@@ -1,0 +1,17 @@
+# Logs
+*.log
+*.log.*
+*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak
+*~
+
+# IDE
+.vscode/
+.idea/
