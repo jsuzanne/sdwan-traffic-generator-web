@@ -41,27 +41,16 @@ Perfect for **Palo Alto Prisma SD-WAN**, Cisco Viptela, VMware VeloCloud, Fortin
 - Test new configurations safely
 - Benchmark SD-WAN performance
 
-## 🚀 Quick Start
+## 🚀 Installation
 
-### Prerequisites
+### Quick Install (Recommended) ⚡
 
-- **OS**: Ubuntu 20.04+, Debian 11+, or any systemd-based Linux
-- **CPU**: 1 core minimum
-- **RAM**: 512 MB minimum
-- **Disk**: 500 MB for logs
-- **Network**: Internet access via HTTP/HTTPS (ports 80/443)
-- **Tools**: `curl`, `bash` 4.0+, `jq` (optional, for JSON viewing)
+Perfect for demos and testing. Takes ~2 minutes.
 
-### Installation
-
-#### Method 1: Quick Install (Recommended)
-
-Download and extract
+Download and install
 wget https://github.com/jsuzanne/sdwan-traffic-generator/archive/refs/heads/main.zip
 unzip main.zip
 cd sdwan-traffic-generator-main
-
-Install
 chmod +x install.sh
 sudo ./install.sh
 
@@ -69,15 +58,21 @@ Start the service
 sudo systemctl start sdwan-traffic-gen
 sudo systemctl enable sdwan-traffic-gen
 
-Verify it's running
+Verify
 sudo systemctl status sdwan-traffic-gen
 tail -f /var/log/sdwan-traffic-gen/traffic.log
 
 text
 
-#### Method 2: Git Clone
+Press `Ctrl+C` to stop watching logs. Traffic generation starts immediately!
 
-Clone the repository
+---
+
+### Git Clone Method
+
+For developers who want to contribute or modify the code.
+
+Clone repository
 git clone https://github.com/jsuzanne/sdwan-traffic-generator.git
 cd sdwan-traffic-generator
 
@@ -91,44 +86,89 @@ sudo systemctl enable sdwan-traffic-gen
 
 text
 
-#### Method 3: Manual Installation
+---
 
-Create directories
-sudo mkdir -p /opt/sdwan-traffic-gen/config
-sudo mkdir -p /var/log/sdwan-traffic-gen
+### System Requirements
 
-Copy files
-sudo cp traffic-generator.sh /opt/sdwan-traffic-gen/
-sudo chmod +x /opt/sdwan-traffic-gen/traffic-generator.sh
-sudo cp config/*.txt /opt/sdwan-traffic-gen/config/
+| Requirement | Details |
+|-------------|---------|
+| **OS** | Ubuntu 20.04+, Debian 11+, RHEL 8+ (systemd-based) |
+| **CPU** | 1 core minimum |
+| **RAM** | 512 MB minimum |
+| **Disk** | 500 MB for logs |
+| **Network** | Internet access (HTTP/HTTPS ports 80/443) |
+| **Dependencies** | `curl`, `jq` (auto-installed by script) |
 
-Install systemd service
-sudo cp systemd/sdwan-traffic-gen.service /etc/systemd/system/
-sudo systemctl daemon-reload
+---
 
-Install log rotation
-sudo cp logrotate/sdwan-traffic-gen /etc/logrotate.d/
+### Post-Installation
 
-Start
-sudo systemctl enable sdwan-traffic-gen
+After installation completes, you'll see:
+
+✅ Installation complete!
+
+📋 Next steps:
+
 sudo systemctl start sdwan-traffic-gen
 
-text
+sudo systemctl enable sdwan-traffic-gen
 
-### First Steps After Installation
-
-1. Check service status
 sudo systemctl status sdwan-traffic-gen
 
-2. Watch live traffic generation
 tail -f /var/log/sdwan-traffic-gen/traffic.log
 
-3. View statistics (after ~1 minute)
+text
+
+**What happens next:**
+- ✅ Traffic generation starts within seconds
+- ✅ Service auto-starts on boot
+- ✅ Logs rotate automatically (max 700 MB)
+- ✅ Statistics update every 50 requests
+
+---
+
+### First Verification
+
+Check the service is running
+sudo systemctl status sdwan-traffic-gen
+
+Watch live traffic (Ctrl+C to exit)
+tail -f /var/log/sdwan-traffic-gen/traffic.log
+
+View statistics after 1-2 minutes
 cat /var/log/sdwan-traffic-gen/stats.json | jq
 
-4. Verify on your SD-WAN
-Login to your SD-WAN controller and check application statistics
+Expected output:
+{
+"timestamp": 1732812100,
+"client_id": "client01",
+"total_requests": 150,
+"requests_by_app": {
+"teams": 28,
+"outlook": 25,
+"google": 20
+}
+}
 text
+
+---
+
+### Troubleshooting Installation
+
+**Service won't start?**
+sudo journalctl -u sdwan-traffic-gen -n 50 --no-pager
+
+text
+
+**No traffic in logs?**
+Check network interface
+ip link show
+echo "YOUR_INTERFACE_NAME" | sudo tee /opt/sdwan-traffic-gen/config/interfaces.txt
+sudo systemctl restart sdwan-traffic-gen
+
+text
+
+See full [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more solutions.
 
 ## 📖 Usage
 
@@ -396,8 +436,7 @@ echo "scale=2; $success / $total * 100" | bc
 Application distribution
 grep SUCCESS /var/log/sdwan-traffic-gen/traffic.log |
 awk -F'/' '{print $3}' | awk '{print $1}' |
-sort | uniq -c | sort -nr |
-awk '{printf "%-20s %5d requests (%4.1f%%)\n", $2, $1, $1/total*100}' total=$(grep -c SUCCESS /var/log/sdwan-traffic-gen/traffic.log)
+sort | uniq -c | sort -nr
 
 text
 
