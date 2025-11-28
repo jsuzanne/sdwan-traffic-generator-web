@@ -7,7 +7,7 @@
 
 A realistic enterprise application traffic generator designed for SD-WAN demonstrations and testing. Generates weighted HTTP/HTTPS traffic to 60+ popular SaaS applications with configurable distribution patterns.
 
-Perfect for **Palo Alto Prisma SD-WAN**, Cisco Viptela, VMware VeloCloud, Fortinet, and any SD-WAN solution requiring realistic application traffic.
+Optimized for Palo Alto Prisma SD-WAN and compatible with other major SD-WAN platforms
 
 ## 🎯 Features
 
@@ -20,6 +20,14 @@ Perfect for **Palo Alto Prisma SD-WAN**, Cisco Viptela, VMware VeloCloud, Fortin
 - **Log Rotation**: Automatic log management to prevent disk space issues
 - **User-Agent Variety**: Rotates between multiple realistic browser and application agents
 - **Multi-Interface Support**: Load balance across multiple network interfaces
+
+## 🔷 Palo Alto Prisma SD-WAN Integration
+
+This tool is specifically tested and optimized for Palo Alto Prisma SD-WAN, supporting:
+- Application identification through SNI inspection
+- Traffic steering policy validation
+- Secure Fabric tunnel testing
+- Multi-path load distribution verification
 
 ## 📊 Use Cases
 
