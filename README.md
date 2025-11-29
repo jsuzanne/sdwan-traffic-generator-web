@@ -467,7 +467,9 @@ du -sh /var/log/sdwan-traffic-gen/
 ```
 
 List log files
+```bash
 ls -lh /var/log/sdwan-traffic-gen/
+```
 
 Expected size:
 - traffic.log: 0-100 MB (active log)
@@ -477,96 +479,140 @@ Expected size:
 ### Performance Metrics
 
 Requests per minute
+```bash
 echo "scale=2; $(grep -c SUCCESS /var/log/sdwan-traffic-gen/traffic.log) /
 $(($(date +%s) - $(stat -c %Y /var/log/sdwan-traffic-gen/traffic.log))) * 60" | bc
+```
 
 Success rate
+```bash
 total=$(grep -c "requesting" /var/log/sdwan-traffic-gen/traffic.log)
 success=$(grep -c "SUCCESS" /var/log/sdwan-traffic-gen/traffic.log)
 echo "scale=2; $success / $total * 100" | bc
+```
 
 Application distribution
+```bash
 grep SUCCESS /var/log/sdwan-traffic-gen/traffic.log |
 awk -F'/' '{print $3}' | awk '{print $1}' |
 sort | uniq -c | sort -nr
+```
 
 ## 🐛 Troubleshooting
 
 ### Service won't start
 
 Check detailed error
+```bash
 sudo journalctl -u sdwan-traffic-gen -n 50 --no-pager
+```
 
 Test manually
+```bash
 sudo /opt/sdwan-traffic-gen/traffic-generator.sh client01
+```
 
 Verify configuration
+```bash
 ls -la /opt/sdwan-traffic-gen/config/
+```
 
 ### No traffic in logs
 
 Verify service is running
+```bash
 ps aux | grep traffic-generator
+```
 
 Check network connectivity
+```bash
 curl -I https://google.com
+```
 
 Test specific interface
+```bash
 curl --interface eth0 -I https://teams.microsoft.com
+```
 
 Restart service
+```bash
 sudo systemctl restart sdwan-traffic-gen
+```
 
 ### Applications not identified in SD-WAN
 
 **Solution 1: Use application-specific endpoints**
 Instead of generic paths:
+```bash
 teams.microsoft.com|100|/
+```
 
 Use specific API endpoints:
+```bash
 teams.microsoft.com|100|/api/mt/emea/beta/users/
+```
 
 **Solution 2: Enable SSL inspection** on your SD-WAN device (vendor-specific)
 
 **Solution 3: Verify SNI is visible**
+```bash
 sudo tcpdump -i eth0 -n port 443 | grep -i "teams.microsoft"
+```
 
 See [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more solutions.
 
 ## 🔄 Updating
 
 Navigate to repository
+```bash
 cd sdwan-traffic-generator
+```
 
 Pull latest changes
+```bash
 git pull origin main
+```
 
 Backup current config
+```bash
 sudo cp /opt/sdwan-traffic-gen/config/applications.txt /tmp/applications.txt.bak
+```
 
 Reinstall
+```bash
 sudo ./install.sh
+```
 
 Restore custom config if needed
+```bash
 sudo cp /tmp/applications.txt.bak /opt/sdwan-traffic-gen/config/applications.txt
+```
 
 Restart
+```bash
 sudo systemctl restart sdwan-traffic-gen
+```
 
 ## 🗑️ Uninstallation
 
 Stop and disable service
+```bash
 sudo systemctl stop sdwan-traffic-gen
 sudo systemctl disable sdwan-traffic-gen
+```
 
 Remove files
+```bash
 sudo rm -rf /opt/sdwan-traffic-gen
 sudo rm -rf /var/log/sdwan-traffic-gen
 sudo rm /etc/systemd/system/sdwan-traffic-gen.service
 sudo rm /etc/logrotate.d/sdwan-traffic-gen
+```
 
 Reload systemd
+```bash
 sudo systemctl daemon-reload
+```
 
 ## 📚 Documentation
 
