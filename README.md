@@ -57,11 +57,13 @@ Perfect for demos and testing. Takes ~2 minutes.
 
 Download and install:
 
+```bash
 wget https://github.com/jsuzanne/sdwan-traffic-generator/archive/refs/heads/main.zip
 unzip main.zip
 cd sdwan-traffic-generator-main
 chmod +x install.sh
 sudo ./install.sh
+```
 
 Start the service:
 
