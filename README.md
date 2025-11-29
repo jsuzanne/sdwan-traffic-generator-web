@@ -130,11 +130,8 @@ After installation completes, you'll see:
 
 ```bash
 sudo systemctl start sdwan-traffic-gen
-
 sudo systemctl enable sdwan-traffic-gen
-
 sudo systemctl status sdwan-traffic-gen
-
 tail -f /var/log/sdwan-traffic-gen/traffic.log
 ```
 
@@ -161,7 +158,6 @@ tail -f /var/log/sdwan-traffic-gen/traffic.log
 View statistics after 1-2 minutes
 ```bash
 cat /var/log/sdwan-traffic-gen/stats.json | jq
-```
 
 Expected output:
 {
@@ -174,6 +170,7 @@ Expected output:
 "google": 20
 }
 }
+```
 
 ---
 
@@ -277,22 +274,28 @@ sudo systemctl restart sdwan-traffic-gen
 ```
 
 #### Format
+```bash
 domain|weight|endpoint
+```
 
 **Example:**
+```bash
 Higher weight = more traffic
 teams.microsoft.com|100|/api/mt/emea/beta/users/
 outlook.office365.com|95|/
 google.com|50|/
 slack.com|45|/api/api.test
+```
 
 #### Understanding Weights
 
+```bash
 Weights are **relative**, not absolute percentages:
 
 teams.microsoft.com|100|/ # 100/200 = 50% of traffic
 google.com|50|/ # 50/200 = 25% of traffic
 slack.com|50|/api/api.test # 50/200 = 25% of traffic
+```
 
 See [Configuration Guide](docs/CONFIGURATION.md#weight-calculation) for detailed examples.
 
@@ -315,6 +318,7 @@ See [Configuration Guide](docs/CONFIGURATION.md#weight-calculation) for detailed
 ## 📈 Example Output
 
 ### Traffic Logs
+```bash
 [2025-11-28 17:20:15] [INFO] Starting SD-WAN Traffic Generator - Client: client01
 [2025-11-28 17:20:15] [INFO] client01 requesting https://teams.microsoft.com/api/mt/emea/beta/users/ via eth0 (traceid: 1732812015-client01)
 [2025-11-28 17:20:16] [INFO] client01 SUCCESS https://teams.microsoft.com/api/mt/emea/beta/users/ - code: 200
@@ -322,8 +326,10 @@ See [Configuration Guide](docs/CONFIGURATION.md#weight-calculation) for detailed
 [2025-11-28 17:20:18] [INFO] client01 SUCCESS https://drive.google.com/ - code: 200
 [2025-11-28 17:20:19] [INFO] client01 requesting https://slack.com/api/api.test via eth0 (traceid: 1732812019-client01)
 [2025-11-28 17:20:20] [INFO] client01 SUCCESS https://slack.com/api/api.test - code: 200
+```
 
 ### Statistics JSON
+```bash
 {
 "timestamp": 1732812100,
 "client_id": "client01",
@@ -341,6 +347,7 @@ See [Configuration Guide](docs/CONFIGURATION.md#weight-calculation) for detailed
 "discord": 2
 }
 }
+```
 
 ## 🔧 Configuration
 
