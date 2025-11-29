@@ -462,7 +462,9 @@ See [Configuration Guide](docs/CONFIGURATION.md#custom-profiles-for-different-sc
 ### Disk Usage
 
 Check log sizes
+```bash
 du -sh /var/log/sdwan-traffic-gen/
+```
 
 List log files
 ls -lh /var/log/sdwan-traffic-gen/
