@@ -407,6 +407,7 @@ Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15
 
 ### Profile 1: Microsoft-Heavy Enterprise (40% Microsoft)
 Edit applications.txt:
+```bash
 Microsoft 365 - 40%
 outlook.office365.com|150|/
 teams.microsoft.com|140|/api/mt/emea/beta/users/
@@ -420,8 +421,10 @@ gmail.com|55|/
 Others - 45%
 zoom.us|80|/
 slack.com|70|/
+```
 
 ### Profile 2: Cloud-Native Startup (30% Cloud Providers)
+```bash
 Cloud Providers - 30%
 portal.azure.com|100|/
 console.aws.amazon.com|95|/
@@ -434,8 +437,10 @@ gitlab.com|80|/
 Collaboration - 20%
 slack.com|75|/
 zoom.us|70|/
+```
 
 ### Profile 3: Remote Work (40% Video Conferencing)
+```bash
 Video - 40%
 zoom.us|150|/
 teams.microsoft.com|140|/
@@ -448,6 +453,7 @@ miro.com|100|/
 
 Others - 30%
 drive.google.com|90|/
+```
 
 See [Configuration Guide](docs/CONFIGURATION.md#custom-profiles-for-different-scenarios) for more examples.
 
