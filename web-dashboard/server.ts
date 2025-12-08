@@ -76,28 +76,111 @@ const initializeDefaultConfigs = () => {
 
     // Create default applications.txt if it doesn't exist
     if (!fs.existsSync(appsFile)) {
-        const defaultApps = `# Microsoft 365 Suite
-office365.com|100|https://www.office365.com
-outlook.office.com|80|https://outlook.office.com
-teams.microsoft.com|70|https://teams.microsoft.com
+        const defaultApps = `# Format: domain|weight|endpoint
+# Weight: Higher = more traffic generated
+
+# Microsoft 365 Suite
+outlook.office365.com|100|/
+teams.microsoft.com|95|/api/mt/emea/beta/users/
+login.microsoftonline.com|90|/
+graph.microsoft.com|85|/v1.0/me
+onedrive.live.com|80|/
+sharepoint.com|75|/
 
 # Google Workspace
-google.com|100|https://www.google.com
-drive.google.com|80|https://drive.google.com
-mail.google.com|90|https://mail.google.com
+mail.google.com|90|/mail/
+drive.google.com|85|/
+docs.google.com|80|/document/
+meet.google.com|75|/
+calendar.google.com|70|/
 
-# Collaboration Tools
-zoom.us|60|https://zoom.us
-slack.com|50|https://slack.com
-webex.com|55|https://webex.com
+# Communication & Collaboration
+zoom.us|90|/
+slack.com|85|/api/api.test
+webex.com|70|/
+discord.com|40|/api/v9/gateway
 
-# Cloud Storage
-dropbox.com|40|https://www.dropbox.com
-box.com|35|https://www.box.com
+# CRM & Sales
+salesforce.com|80|/
+hubspot.com|60|/
+dynamics.microsoft.com|55|/
 
-# Social Media
-linkedin.com|30|https://www.linkedin.com
-twitter.com|25|https://twitter.com`;
+# Project Management
+monday.com|65|/
+asana.com|60|/
+trello.com|55|/
+jira.atlassian.com|70|/
+confluence.atlassian.com|65|/
+
+# Cloud Storage & File Sharing
+dropbox.com|75|/
+box.com|60|/
+wetransfer.com|45|/
+
+# Development & DevOps
+github.com|75|/
+gitlab.com|55|/
+bitbucket.org|45|/
+stackoverflow.com|50|/
+
+# Cloud Providers
+portal.azure.com|70|/
+console.aws.amazon.com|70|/
+console.cloud.google.com|65|/
+
+# Business Intelligence
+tableau.com|50|/
+powerbi.microsoft.com|55|/
+looker.com|40|/
+
+# HR & Productivity
+workday.com|55|/
+bamboohr.com|40|/
+zenefits.com|35|/
+adp.com|45|/
+
+# Marketing & Social
+linkedin.com|60|/
+twitter.com|50|/robots.txt
+facebook.com|55|/robots.txt
+instagram.com|45|/robots.txt
+
+# Design & Creative
+figma.com|55|/
+canva.com|50|/
+adobe.com|45|/
+
+# Customer Support
+zendesk.com|60|/
+intercom.com|50|/
+freshdesk.com|40|/
+
+# Finance & Accounting
+quickbooks.intuit.com|50|/
+expensify.com|40|/
+stripe.com|45|/
+
+# Security & IT Tools
+okta.com|55|/
+duo.com|45|/
+1password.com|40|/
+lastpass.com|35|/
+
+# Video & Media
+youtube.com|65|/feed/trending
+vimeo.com|40|/
+netflix.com|30|/robots.txt
+
+# E-commerce
+shopify.com|50|/
+amazon.com|60|/robots.txt
+ebay.com|35|/robots.txt
+
+# Popular SaaS
+notion.so|65|/
+airtable.com|50|/
+miro.com|55|/
+docusign.com|50|/`;
 
         fs.writeFileSync(appsFile, defaultApps, 'utf8');
         console.log(`Created default applications.txt with ${defaultApps.split('\n').filter(l => !l.startsWith('#') && l.trim()).length} applications`);

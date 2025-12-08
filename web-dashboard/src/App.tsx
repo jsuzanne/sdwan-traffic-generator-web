@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Config from './Config';
 import Login from './Login';
+import Statistics from './Statistics';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -23,7 +24,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics'>('dashboard');
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
@@ -312,6 +313,15 @@ export default function App() {
           <LayoutDashboard size={18} /> Dashboard
         </button>
         <button
+          onClick={() => setView('statistics')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
+            view === 'statistics' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <BarChart3 size={18} /> Statistics
+        </button>
+        <button
           onClick={() => setView('config')}
           className={cn(
             "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
@@ -406,6 +416,8 @@ export default function App() {
             </div>
           </div>
         </>
+      ) : view === 'statistics' ? (
+        <Statistics stats={stats} />
       ) : (
         <Config token={token!} />
       )}

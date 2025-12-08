@@ -31,7 +31,6 @@ interface ConfigProps {
 export default function Config({ token }: ConfigProps) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [interfaces, setInterfaces] = useState<string[]>([]); // Selected interfaces
-    const [systemInterfaces, setSystemInterfaces] = useState<InterfaceInfo[]>([]); // Available physical
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [savedMsg, setSavedMsg] = useState<string | null>(null);
@@ -50,14 +49,12 @@ export default function Config({ token }: ConfigProps) {
     useEffect(() => {
         Promise.all([
             fetch('/api/config/apps', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
-            fetch('/api/config/interfaces', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
-            fetch('/api/system/interfaces', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
-        ]).then(([catsData, ifaceData, sysIfaceData]) => {
+            fetch('/api/config/interfaces', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
+        ]).then(([catsData, ifaceData]) => {
             // Initialize expanded state
             const CatsWithState = catsData.map((c: any) => ({ ...c, expanded: true }));
             setCategories(CatsWithState);
             setInterfaces(ifaceData);
-            setSystemInterfaces(sysIfaceData);
             setLoading(false);
         }).catch(() => setLoading(false));
     }, [token]);
@@ -124,16 +121,6 @@ export default function Config({ token }: ConfigProps) {
         saveInterfaces(newInterfaces);
     };
 
-    // Select from dropdown
-    const selectInterface = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const val = e.target.value;
-        if (val && !interfaces.includes(val)) {
-            const newInterfaces = [...interfaces, val];
-            setInterfaces(newInterfaces);
-            saveInterfaces(newInterfaces);
-        }
-    };
-
     const saveInterfaces = async (newInterfaces: string[]) => {
         try {
             await fetch('/api/config/interfaces', {
@@ -169,26 +156,77 @@ export default function Config({ token }: ConfigProps) {
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold">Network Interfaces</h2>
-                            <p className="text-sm text-slate-400">Select physical interfaces for traffic generation</p>
+                            <p className="text-sm text-slate-400">Manually specify physical interfaces for traffic generation</p>
                         </div>
                     </div>
                 </div>
 
+                {/* Help Text */}
+                <div className="mb-4 bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                    <h3 className="text-blue-400 font-semibold text-sm mb-2 flex items-center gap-2">
+                        <Server size={16} />
+                        How to find your network interface name:
+                    </h3>
+                    <div className="text-sm text-slate-300 space-y-2">
+                        <div>
+                            <span className="font-semibold text-blue-300">Linux:</span>
+                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">ip link show</code>
+                            <span className="ml-2 text-slate-400">or</span>
+                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">ifconfig</code>
+                        </div>
+                        <div>
+                            <span className="font-semibold text-blue-300">Windows:</span>
+                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">ipconfig</code>
+                            <span className="ml-2 text-slate-400">(look for "Ethernet adapter" or "Wi-Fi")</span>
+                        </div>
+                        <div>
+                            <span className="font-semibold text-blue-300">macOS:</span>
+                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">ifconfig</code>
+                            <span className="ml-2 text-slate-400">or</span>
+                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">networksetup -listallhardwareports</code>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                            Common names: <code className="bg-slate-950 px-1 rounded">eth0</code>, <code className="bg-slate-950 px-1 rounded">ens33</code>, <code className="bg-slate-950 px-1 rounded">en0</code>, <code className="bg-slate-950 px-1 rounded">wlan0</code>
+                        </p>
+                    </div>
+                </div>
+
                 <div className="flex flex-col gap-4">
+                    {/* Manual Entry Input */}
                     <div className="flex gap-4 items-center">
-                        <select
-                            onChange={selectInterface}
-                            className="bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-purple-500 w-64"
-                            defaultValue=""
+                        <input
+                            type="text"
+                            placeholder="Type interface name (e.g., eth0, ens33, en0)"
+                            className="flex-1 bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-4 py-2 outline-none focus:border-purple-500"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    const input = e.currentTarget;
+                                    const val = input.value.trim();
+                                    if (val && !interfaces.includes(val)) {
+                                        const newInterfaces = [...interfaces, val];
+                                        setInterfaces(newInterfaces);
+                                        saveInterfaces(newInterfaces);
+                                        input.value = '';
+                                    }
+                                }
+                            }}
+                        />
+                        <button
+                            onClick={(e) => {
+                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                const val = input.value.trim();
+                                if (val && !interfaces.includes(val)) {
+                                    const newInterfaces = [...interfaces, val];
+                                    setInterfaces(newInterfaces);
+                                    saveInterfaces(newInterfaces);
+                                    input.value = '';
+                                }
+                            }}
+                            className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
                         >
-                            <option value="" disabled>Add Interface...</option>
-                            {systemInterfaces.map(iface => (
-                                <option key={iface.name} value={iface.name}>
-                                    {iface.name} ({iface.ip})
-                                </option>
-                            ))}
-                            <option value="custom">Custom (Type manually)</option>
-                        </select>
+                            <Plus size={18} />
+                            Add
+                        </button>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -203,7 +241,7 @@ export default function Config({ token }: ConfigProps) {
                                 </button>
                             </div>
                         ))}
-                        {interfaces.length === 0 && <span className="text-slate-500 italic text-sm">No interfaces selected</span>}
+                        {interfaces.length === 0 && <span className="text-slate-500 italic text-sm">No interfaces configured</span>}
                     </div>
                 </div>
             </div>
