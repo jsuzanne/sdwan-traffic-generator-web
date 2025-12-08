@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Config from './Config';
+import Login from './Login';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -20,15 +21,102 @@ interface Stats {
 
 
 export default function App() {
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
   const [view, setView] = useState<'dashboard' | 'config'>('dashboard');
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
   const [logs, setLogs] = useState<string[]>([]);
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+
+  // Add User State
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+
+  // Traffic Control State
+  const [trafficRunning, setTrafficRunning] = useState(false);
+  const [configValid, setConfigValid] = useState(false);
+
+  const addUser = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/auth/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ username: newUsername, password: newUserPassword })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('User created successfully');
+        setShowAddUserModal(false);
+        setNewUsername('');
+        setNewUserPassword('');
+      } else {
+        alert(data.error || 'Failed to create user');
+      }
+    } catch (e) { alert('Error creating user'); }
+  };
+  //...
+  // Inside JSX, after Logout button:
+  /* 
+      {username === 'admin' && (
+          <button onClick={() => setShowAddUserModal(true)} title="Add User" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-green-400 transition-colors">
+              <UserPlus size={18} />
+          </button>
+      )}
+  */
+  // And the Modal
+
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    setToken(null);
+    setUsername(null);
+  };
+
+  const handleLogin = (t: string, u: string) => {
+    localStorage.setItem('token', t);
+    localStorage.setItem('username', u);
+    setToken(t);
+    setUsername(u);
+  };
+
+  const changePassword = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ newPassword })
+      });
+      if (res.ok) {
+        alert('Password changed successfully');
+        setShowPwdModal(false);
+        setNewPassword('');
+      } else {
+        alert('Failed to change password');
+      }
+    } catch (e) { alert('Error changing password'); }
+  };
+
+  // Auth Headers helper
+  const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
 
   const fetchStats = async () => {
+    if (!token) return;
     try {
-      const res = await fetch('/api/stats');
+      const res = await fetch('/api/stats', { headers: authHeaders() });
+      if (res.status === 403 || res.status === 401) logout();
       const data = await res.json();
       if (data.timestamp) {
         setStats(data);
@@ -50,8 +138,9 @@ export default function App() {
   };
 
   const fetchStatus = async () => {
+    if (!token) return;
     try {
-      const res = await fetch('/api/status');
+      const res = await fetch('/api/status', { headers: authHeaders() });
       const data = await res.json();
       setStatus(data.status);
     } catch (e) {
@@ -59,9 +148,49 @@ export default function App() {
     }
   };
 
-  const fetchLogs = async () => {
+  const fetchTrafficStatus = async () => {
+    if (!token) return;
     try {
-      const res = await fetch('/api/logs');
+      const res = await fetch('/api/traffic/status', { headers: authHeaders() });
+      const data = await res.json();
+      setTrafficRunning(data.running || false);
+    } catch (e) {
+      console.error('Failed to fetch traffic status');
+    }
+  };
+
+  const checkConfigValid = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/config/interfaces', { headers: authHeaders() });
+      const interfaces = await res.json();
+      setConfigValid(interfaces && interfaces.length > 0);
+    } catch (e) {
+      setConfigValid(false);
+    }
+  };
+
+  const handleTrafficToggle = async () => {
+    if (!token) return;
+    const endpoint = trafficRunning ? '/api/traffic/stop' : '/api/traffic/start';
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTrafficRunning(data.running);
+      }
+    } catch (e) {
+      console.error('Failed to toggle traffic');
+    }
+  };
+
+  const fetchLogs = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/logs', { headers: authHeaders() });
       const data = await res.json();
       if (data.logs) setLogs(data.logs);
     } catch (e) {
@@ -70,21 +199,28 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (!token) return;
     // Initial fetch
     fetchStats();
-    fetchStatus();
     fetchLogs();
+    fetchTrafficStatus();
+    checkConfigValid();
 
     // Poll every 2s
     const interval = setInterval(() => {
       fetchStats();
       fetchLogs();
+      fetchTrafficStatus();
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [token]);
 
   const totalErrors = stats ? Object.values(stats.errors_by_app).reduce((a, b) => a + b, 0) : 0;
   const successRate = stats ? ((stats.total_requests - totalErrors) / stats.total_requests * 100).toFixed(1) : '100';
+
+  if (!token) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
@@ -96,17 +232,73 @@ export default function App() {
           <p className="text-slate-400 mt-1">Real-time Control Center</p>
         </div>
 
-        <div className="flex gap-4">
-          {/* Status Indicator */}
-          <div className={cn(
-            "px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 h-10 border",
-            status === 'running' ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"
-          )}>
-            <div className={cn("w-2 h-2 rounded-full", status === 'running' ? "bg-green-400 animate-pulse" : "bg-red-400")} />
-            {status.toUpperCase()}
-          </div>
+
+        <div className="flex gap-4 items-center">
+          <span className="text-sm font-medium text-slate-300">{username}</span>
+
+          {username === 'admin' && (
+            <button onClick={() => setShowAddUserModal(true)} title="Add User" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-green-400 transition-colors">
+              <UserPlus size={18} />
+            </button>
+          )}
+
+          <button onClick={() => setShowPwdModal(true)} title="Change Password" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-400 transition-colors">
+            <Key size={18} />
+          </button>
+          <button onClick={logout} title="Sign Out" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
+            <LogOut size={18} />
+          </button>
         </div>
       </header>
+
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-100 mb-4">Add New User</h3>
+            <input
+              type="text"
+              placeholder="Username"
+              value={newUsername}
+              onChange={e => setNewUsername(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 mb-2 focus:border-blue-500 outline-none"
+            />
+            <input
+              type="password"
+              placeholder="Password (min 5 chars)"
+              value={newUserPassword}
+              onChange={e => setNewUserPassword(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 mb-4 focus:border-blue-500 outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowAddUserModal(false)} className="px-4 py-2 text-slate-400 hover:text-slate-200">Cancel</button>
+              <button onClick={addUser} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg">Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Modal */}
+      {showPwdModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-100 mb-4">Change Password</h3>
+            <input
+              type="password"
+              placeholder="New Password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 mb-4 focus:border-blue-500 outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowPwdModal(false)} className="px-4 py-2 text-slate-400 hover:text-slate-200">Cancel</button>
+              <button onClick={changePassword} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
       {/* Navigation Tabs */}
       <div className="flex gap-2 mb-8 border-b border-slate-800">
@@ -132,6 +324,45 @@ export default function App() {
 
       {view === 'dashboard' ? (
         <>
+          {/* Traffic Control Panel */}
+          <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Activity size={24} className={trafficRunning ? "text-green-400" : "text-slate-500"} />
+                  Traffic Generation
+                </h3>
+                <p className="text-slate-400 text-sm mt-1">
+                  Status: <span className={trafficRunning ? "text-green-400 font-semibold" : "text-slate-500"}>{trafficRunning ? 'Active' : 'Paused'}</span>
+                  {' • '}
+                  Configuration: <span className={configValid ? "text-green-400" : "text-yellow-400"}>{configValid ? 'Valid' : 'Required'}</span>
+                </p>
+              </div>
+
+              <button
+                onClick={handleTrafficToggle}
+                disabled={!configValid}
+                className={cn(
+                  "px-8 py-3 rounded-lg font-semibold transition-all shadow-lg",
+                  trafficRunning
+                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-500/20'
+                    : 'bg-green-600 hover:bg-green-500 text-white shadow-green-500/20 disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed'
+                )}
+              >
+                {trafficRunning ? '⏸ Stop Traffic' : '▶ Start Traffic'}
+              </button>
+            </div>
+
+            {!configValid && (
+              <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <p className="text-yellow-400 text-sm flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  Please configure at least one network interface in the <button onClick={() => setView('config')} className="underline font-semibold hover:text-yellow-300">Configuration</button> tab before starting traffic generation.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Metrics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card title="Total Requests" value={stats?.total_requests || 0} icon={<Activity />} />
@@ -176,7 +407,7 @@ export default function App() {
           </div>
         </>
       ) : (
-        <Config />
+        <Config token={token!} />
       )}
     </div>
   );

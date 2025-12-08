@@ -2,19 +2,19 @@
 # Weight: Plus élevé = plus de trafic généré
 
 # Microsoft 365 Suite
-outlook.office365.com|100|/
-teams.microsoft.com|95|/api/mt/emea/beta/users/
-login.microsoftonline.com|90|/
-graph.microsoft.com|85|/v1.0/me
-onedrive.live.com|80|/
-sharepoint.com|75|/
+outlook.office365.com|67|/
+teams.microsoft.com|67|/api/mt/emea/beta/users/
+login.microsoftonline.com|67|/
+graph.microsoft.com|67|/v1.0/me
+onedrive.live.com|67|/
+sharepoint.com|67|/
 
 # Google Workspace
-mail.google.com|90|/mail/
-drive.google.com|85|/
-docs.google.com|80|/document/
-meet.google.com|75|/
-calendar.google.com|70|/
+mail.google.com|72|/mail/
+drive.google.com|72|/
+docs.google.com|72|/document/
+meet.google.com|72|/
+calendar.google.com|72|/
 
 # Communication & Collaboration
 zoom.us|90|/
@@ -23,9 +23,9 @@ webex.com|70|/
 discord.com|40|/api/v9/gateway
 
 # CRM & Sales
-salesforce.com|80|/
-hubspot.com|60|/
-dynamics.microsoft.com|55|/
+salesforce.com|41|/
+hubspot.com|41|/
+dynamics.microsoft.com|41|/
 
 # Project Management
 monday.com|65|/

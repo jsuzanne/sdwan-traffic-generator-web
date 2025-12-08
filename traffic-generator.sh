@@ -295,6 +295,21 @@ function main() {
     
     # Main loop
     while true; do
+        # Check if traffic generation is enabled
+        local control_file="${CONFIG_DIR}/traffic-control.json"
+        if [[ -f "$control_file" ]]; then
+            local enabled=$(jq -r '.enabled // false' "$control_file" 2>/dev/null)
+            if [[ "$enabled" != "true" ]]; then
+                # Traffic is paused, sleep and check again
+                sleep 5
+                continue
+            fi
+        else
+            # No control file means paused (wait for user to start)
+            sleep 5
+            continue
+        fi
+        
         # Get random variables
         local interface=$(getRandomInterface)
         local user_agent=$(getRandomUserAgent)

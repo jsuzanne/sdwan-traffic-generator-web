@@ -18,25 +18,21 @@ services:
   web-ui:
     build:
       context: ./web-dashboard
+      dockerfile: Dockerfile
     container_name: sdwan-web-ui
     restart: unless-stopped
-    ports:
-      - "8080:3000"
     volumes:
-      # Access to same config and logs
       - ./config:/app/config
-      # We map the config directory to ../config relative to /app (which is where server.ts expects it in dev, 
-      # but in prod we might need to adjust logic or map it cleanly)
-      # server.ts logic: "process.env.CONFIG_DIR || path.join(__dirname, '../config')"
-      # In container, workdir is /app. __dirname is /app. So it looks for /config.
-      # So we mount ./config to /config
-
       # Shared logs
       - traffic_logs:/var/log/sdwan-traffic-gen
+    ports:
+      - "8080:8080"
     environment:
       - NODE_ENV=production
+      - PORT=8080
       - CONFIG_DIR=/app/config
       - LOG_DIR=/var/log/sdwan-traffic-gen
 
 volumes:
   traffic_logs:
+  config-data:

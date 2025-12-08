@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     jq \
     ca-certificates \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -14,7 +15,7 @@ WORKDIR /app
 # But for a self-contained image, we copy it.
 
 COPY traffic-generator.sh /app/
-RUN chmod +x /app/traffic-generator.sh
+RUN dos2unix /app/traffic-generator.sh && chmod +x /app/traffic-generator.sh
 
 # Create directories
 RUN mkdir -p /var/log/sdwan-traffic-gen /opt/sdwan-traffic-gen/config
