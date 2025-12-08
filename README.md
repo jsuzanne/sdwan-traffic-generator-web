@@ -1,705 +1,78 @@
 # SD-WAN Traffic Generator
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Bash](https://img.shields.io/badge/bash-5.0%2B-green.svg)
-![Status](https://img.shields.io/badge/status-production-brightgreen.svg)
-![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)
+A realistic enterprise application traffic generator designed for SD-WAN testing and demonstrations. It simulates various application traffic patterns (HTTP/HTTPS) to generate load and test application-aware network policies.
 
-A realistic enterprise application traffic generator designed for SD-WAN demonstrations and testing. Generates weighted HTTP/HTTPS traffic to 60+ popular SaaS applications with configurable distribution patterns.
+**Now featuring a modern Web Dashboard!**
 
-Optimized for Palo Alto Prisma SD-WAN and compatible with other major SD-WAN platforms
+![Dashboard Preview](https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/dashboard_final_final_check_1765222448411.png)
 
-## 🎯 Features
+## Features
 
-- **60+ Enterprise Applications**: Microsoft 365, Google Workspace, Salesforce, Zoom, Slack, AWS, Azure, and more
-- **Weighted Traffic Distribution**: Control exact traffic percentages per application category
-- **Application-Specific Endpoints**: Uses real API endpoints for accurate SD-WAN application identification
-- **Intelligent Backoff**: Progressive retry logic (1 min → 3 hours) for unreachable hosts
-- **Real-time Statistics**: JSON metrics updated every 50 requests
-- **Systemd Service**: Auto-start on boot with automatic restart on failure
-- **Log Rotation**: Automatic log management to prevent disk space issues
-- **User-Agent Variety**: Rotates between multiple realistic browser and application agents
-- **Multi-Interface Support**: Load balance across multiple network interfaces
+-   **Web Dashboard**: Real-time traffic visualization, live logs, and status monitoring.
+-   **Configuration UI**: Easily adjust application weights and network interfaces from your browser.
+-   **Docker Ready**: Single-command deployment using Docker Compose.
+-   **Realistic Patterns**: Randomly selected user agents and weighted application distribution (Google, Office365, Salesforce, etc.).
+-   **Logging**: Detailed activity logging (`traffic.log`) and statistics (`stats.json`).
 
-## 🔷 Palo Alto Prisma SD-WAN Integration
+## 🚀 Quick Start (Recommended)
 
-This tool is specifically tested and optimized for Palo Alto Prisma SD-WAN, supporting:
-- Application identification through SNI inspection
-- Traffic steering policy validation
-- Secure Fabric tunnel testing
-- Multi-path load distribution verification
+The easiest way to run the generator is using Docker. This installs both the traffic engine and the web interface.
 
-## 📊 Use Cases
+### Prerequisites
+-   Docker & Docker Compose
 
-### SD-WAN Demonstrations
-- Generate realistic traffic patterns for customer demos
-- Populate SD-WAN dashboards with meaningful application data
-- Demonstrate application steering and policy enforcement
-- Show real-time path selection and quality metrics
+### Installation
+1.  Clone this repository:
+    ```bash
+    git clone https://github.com/jsuzanne/sdwan-traffic-generator-web.git
+    cd sdwan-traffic-generator-web
+    ```
+2.  Start the service:
+    ```bash
+    docker-compose up -d
+    ```
+3.  Open the Dashboard:
+    **http://localhost:8080**
 
-### Testing & Validation
-- Validate application identification accuracy
-- Test QoS and traffic shaping policies
-- Verify failover and path selection logic
-- Capacity planning and load testing
-
-### Lab Environments
-- Create realistic traffic for training labs
-- Simulate enterprise network patterns
-- Test new configurations safely
-- Benchmark SD-WAN performance
-
-## 🚀 Installation
-
-### Quick Install (Recommended) ⚡
-
-Perfect for demos and testing. Takes ~2 minutes.
-
-Download and install:
-
-```bash
-wget https://github.com/jsuzanne/sdwan-traffic-generator/archive/refs/heads/main.zip
-unzip main.zip
-cd sdwan-traffic-generator-main
-chmod +x install.sh
-sudo ./install.sh
-```
-
-Start the service:
-
-```bash
-sudo systemctl start sdwan-traffic-gen
-sudo systemctl enable sdwan-traffic-gen
-```
-
-Verify:
-
-```bash
-sudo systemctl status sdwan-traffic-gen
-tail -f /var/log/sdwan-traffic-gen/traffic.log
-
-Press `Ctrl+C` to stop watching logs. Traffic generation starts immediately!
-```
+### Management
+-   **Start/Stop**: `docker-compose up -d` / `docker-compose down`
+-   **View Logs**: `docker-compose logs -f`
+-   **Update Config**: Use the **Configuration** tab in the web interface.
 
 ---
 
-### Git Clone Method
+## ⚙️ Manual / Headless Installation (Legacy)
 
-For developers who want to contribute or modify the code.
+If you only need the command-line traffic generator engine (without the Web UI) or cannot use Docker, you can install the script directly on a Linux machine (Ubuntu/Debian/CentOS).
 
-```bash
-Clone repository
-git clone https://github.com/jsuzanne/sdwan-traffic-generator.git
-cd sdwan-traffic-generator
-```
+### Prerequisites
+-   `curl`, `jq`, `net-tools`
 
-Install
+### Installation
 ```bash
 chmod +x install.sh
 sudo ./install.sh
 ```
+This will set up the `sdwan-traffic-gen` systemd service.
 
-Start
+### Configuration (Manual)
+Edit the files in `/opt/sdwan-traffic-gen/config/`:
+-   `applications.txt`: List of target URLs and weights.
+-   `interfaces.txt`: Network interfaces to bind to.
+-   `user_agents.txt`: User agent strings.
+
+### Usage
 ```bash
 sudo systemctl start sdwan-traffic-gen
-sudo systemctl enable sdwan-traffic-gen
-```
-
----
-
-### System Requirements
-
-| Requirement | Details |
-|-------------|---------|
-| **OS** | Ubuntu 20.04+, Debian 11+, RHEL 8+ (systemd-based) |
-| **CPU** | 1 core minimum |
-| **RAM** | 512 MB minimum |
-| **Disk** | 500 MB for logs |
-| **Network** | Internet access (HTTP/HTTPS ports 80/443) |
-| **Dependencies** | `curl`, `jq` (auto-installed by script) |
-
----
-
-### Post-Installation
-
-After installation completes, you'll see:
-
-✅ Installation complete!
-
-📋 Next steps:
-
-```bash
-sudo systemctl start sdwan-traffic-gen
-sudo systemctl enable sdwan-traffic-gen
 sudo systemctl status sdwan-traffic-gen
 tail -f /var/log/sdwan-traffic-gen/traffic.log
 ```
 
-**What happens next:**
-- ✅ Traffic generation starts within seconds
-- ✅ Service auto-starts on boot
-- ✅ Logs rotate automatically (max 700 MB)
-- ✅ Statistics update every 50 requests
-
----
-
-### First Verification
-
-Check the service is running
-```bash
-sudo systemctl status sdwan-traffic-gen
-```
-
-Watch live traffic (Ctrl+C to exit)
-```bash
-tail -f /var/log/sdwan-traffic-gen/traffic.log
-```
-
-View statistics after 1-2 minutes
-```bash
-cat /var/log/sdwan-traffic-gen/stats.json | jq
-
-Expected output:
-{
-"timestamp": 1732812100,
-"client_id": "client01",
-"total_requests": 150,
-"requests_by_app": {
-"teams": 28,
-"outlook": 25,
-"google": 20
-}
-}
-```
-
----
-
-### Troubleshooting Installation
-
-**Service won't start?**
-```bash
-sudo journalctl -u sdwan-traffic-gen -n 50 --no-pager
-```
-
-**No traffic in logs?**
-Check network interface
-```bash
-ip link show
-echo "YOUR_INTERFACE_NAME" | sudo tee /opt/sdwan-traffic-gen/config/interfaces.txt
-sudo systemctl restart sdwan-traffic-gen
-```
-
-See full [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more solutions.
-
-## 📖 Usage
-
-### Basic Monitoring
-
-View real-time logs
-```bash
-tail -f /var/log/sdwan-traffic-gen/traffic.log
-```
-
-View statistics
-```bash
-cat /var/log/sdwan-traffic-gen/stats.json | jq
-```
-
-Watch statistics live (updates every 5 seconds)
-```bash
-watch -n 5 'cat /var/log/sdwan-traffic-gen/stats.json 2>/dev/null | jq'
-```
-
-Check service status
-```bash
-sudo systemctl status sdwan-traffic-gen
-```
-
-Count total requests
-```bash
-grep -c SUCCESS /var/log/sdwan-traffic-gen/traffic.log
-```
-
-Top 10 applications by request count
-```bash
-grep SUCCESS /var/log/sdwan-traffic-gen/traffic.log |
-awk -F'/' '{print $3}' | awk '{print $1}' |
-sort | uniq -c | sort -nr | head -10
-```
-
-### Service Management
-
-Start service
-```bash
-sudo systemctl start sdwan-traffic-gen
-```
-
-Stop service
-```bash
-sudo systemctl stop sdwan-traffic-gen
-```
-
-Restart service
-```bash
-sudo systemctl restart sdwan-traffic-gen
-```
-
-Enable auto-start on boot
-```bash
-sudo systemctl enable sdwan-traffic-gen
-```
-
-Disable auto-start
-```bash
-sudo systemctl disable sdwan-traffic-gen
-```
-
-View service logs
-```bash
-sudo journalctl -u sdwan-traffic-gen -f
-```
-
-### Customizing Traffic Distribution
-
-#### Quick Edit
-
-Edit application weights
-```bash
-sudo nano /opt/sdwan-traffic-gen/config/applications.txt
-```
-
-Restart to apply changes
-```bash
-sudo systemctl restart sdwan-traffic-gen
-```
-
-#### Format
-```bash
-domain|weight|endpoint
-```
-
-**Example:**
-```bash
-Higher weight = more traffic
-teams.microsoft.com|100|/api/mt/emea/beta/users/
-outlook.office365.com|95|/
-google.com|50|/
-slack.com|45|/api/api.test
-```
-
-#### Understanding Weights
-
-```bash
-Weights are **relative**, not absolute percentages:
-
-teams.microsoft.com|100|/ # 100/200 = 50% of traffic
-google.com|50|/ # 50/200 = 25% of traffic
-slack.com|50|/api/api.test # 50/200 = 25% of traffic
-```
-
-See [Configuration Guide](docs/CONFIGURATION.md#weight-calculation) for detailed examples.
-
-## 🎛️ Default Traffic Distribution
-
-| Category | % | Applications |
-|----------|---|--------------|
-| Microsoft 365 | 25% | Outlook, Teams, OneDrive, SharePoint, Graph API |
-| Google Workspace | 20% | Gmail, Drive, Docs, Meet, Calendar |
-| Communication | 15% | Zoom, Slack, Webex, Discord |
-| CRM & Sales | 8% | Salesforce, HubSpot, Dynamics 365 |
-| Project Management | 7% | Jira, Confluence, Asana, Monday, Trello |
-| Cloud Storage | 6% | Dropbox, Box, WeTransfer |
-| DevOps | 5% | GitHub, GitLab, Bitbucket, Stack Overflow |
-| Cloud Providers | 5% | Azure, AWS, GCP Consoles |
-| Business Intelligence | 3% | Tableau, Power BI, Looker |
-| HR & Productivity | 2% | Workday, BambooHR, Zenefits |
-| Other | 4% | Social Media, Design, Support Tools |
-
-## 📈 Example Output
-
-### Traffic Logs
-```bash
-[2025-11-28 17:20:15] [INFO] Starting SD-WAN Traffic Generator - Client: client01
-[2025-11-28 17:20:15] [INFO] client01 requesting https://teams.microsoft.com/api/mt/emea/beta/users/ via eth0 (traceid: 1732812015-client01)
-[2025-11-28 17:20:16] [INFO] client01 SUCCESS https://teams.microsoft.com/api/mt/emea/beta/users/ - code: 200
-[2025-11-28 17:20:17] [INFO] client01 requesting https://drive.google.com/ via eth0 (traceid: 1732812017-client01)
-[2025-11-28 17:20:18] [INFO] client01 SUCCESS https://drive.google.com/ - code: 200
-[2025-11-28 17:20:19] [INFO] client01 requesting https://slack.com/api/api.test via eth0 (traceid: 1732812019-client01)
-[2025-11-28 17:20:20] [INFO] client01 SUCCESS https://slack.com/api/api.test - code: 200
-```
-
-### Statistics JSON
-```bash
-{
-"timestamp": 1732812100,
-"client_id": "client01",
-"total_requests": 250,
-"requests_by_app": {
-"teams": 47,
-"outlook": 45,
-"google": 38,
-"slack": 32,
-"zoom": 28,
-"salesforce": 15,
-"github": 12
-},
-"errors_by_app": {
-"discord": 2
-}
-}
-```
-
-## 🔧 Configuration
-
-### Network Interfaces
-
-By default, traffic uses `eth0`. To use different or multiple interfaces:
-
-Edit interfaces file
-```bash
-sudo nano /opt/sdwan-traffic-gen/config/interfaces.txt
-```
-
-Example: Multiple interfaces for load balancing
-```bash
-eth0
-eth1
-ens192
-```
-
-Traffic will be randomly distributed across all listed interfaces.
-
-### Request Rate
-
-Modify the sleep time between requests:
-
-```bash
-sudo nano /opt/sdwan-traffic-gen/traffic-generator.sh
-```
-
-Find and modify:
-```bash
-SLEEP_BETWEEN_REQUESTS=1 # Default: 60 requests/min
-```
-
-Examples:
-```bash
-SLEEP_BETWEEN_REQUESTS=0.5 # 120 requests/min (busier)
-SLEEP_BETWEEN_REQUESTS=2 # 30 requests/min (lighter)
-SLEEP_BETWEEN_REQUESTS=0.1 # 600 requests/min (heavy load)
-```
-
-### User Agents
-
-Customize browser and application signatures:
-
-```bash
-sudo nano /opt/sdwan-traffic-gen/config/user_agents.txt
-```
-
-Add custom agents, one per line
-```bash
-Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
-Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15
-```
-
-## 🎨 Pre-configured Profiles
-
-### Profile 1: Microsoft-Heavy Enterprise (40% Microsoft)
-Edit applications.txt:
-```bash
-Microsoft 365 - 40%
-outlook.office365.com|150|/
-teams.microsoft.com|140|/api/mt/emea/beta/users/
-onedrive.live.com|120|/
-sharepoint.com|110|/
-
-Google Workspace - 15%
-drive.google.com|60|/
-gmail.com|55|/
-
-Others - 45%
-zoom.us|80|/
-slack.com|70|/
-```
-
-### Profile 2: Cloud-Native Startup (30% Cloud Providers)
-```bash
-Cloud Providers - 30%
-portal.azure.com|100|/
-console.aws.amazon.com|95|/
-console.cloud.google.com|90|/
-
-DevOps - 25%
-github.com|85|/
-gitlab.com|80|/
-
-Collaboration - 20%
-slack.com|75|/
-zoom.us|70|/
-```
-
-### Profile 3: Remote Work (40% Video Conferencing)
-```bash
-Video - 40%
-zoom.us|150|/
-teams.microsoft.com|140|/
-meet.google.com|130|/
-webex.com|120|/
-
-Collaboration - 30%
-slack.com|110|/
-miro.com|100|/
-
-Others - 30%
-drive.google.com|90|/
-```
-
-See [Configuration Guide](docs/CONFIGURATION.md#custom-profiles-for-different-scenarios) for more examples.
-
-## 🔍 Monitoring & Statistics
-
-### Disk Usage
-
-Check log sizes
-```bash
-du -sh /var/log/sdwan-traffic-gen/
-```
-
-List log files
-```bash
-ls -lh /var/log/sdwan-traffic-gen/
-```
-
-Expected size:
-- traffic.log: 0-100 MB (active log)
-- traffic.log.1-7.gz: ~100 MB total (compressed archives)
-- stats.json: < 10 MB
-
-### Performance Metrics
-
-Requests per minute
-```bash
-echo "scale=2; $(grep -c SUCCESS /var/log/sdwan-traffic-gen/traffic.log) /
-$(($(date +%s) - $(stat -c %Y /var/log/sdwan-traffic-gen/traffic.log))) * 60" | bc
-```
-
-Success rate
-```bash
-total=$(grep -c "requesting" /var/log/sdwan-traffic-gen/traffic.log)
-success=$(grep -c "SUCCESS" /var/log/sdwan-traffic-gen/traffic.log)
-echo "scale=2; $success / $total * 100" | bc
-```
-
-Application distribution
-```bash
-grep SUCCESS /var/log/sdwan-traffic-gen/traffic.log |
-awk -F'/' '{print $3}' | awk '{print $1}' |
-sort | uniq -c | sort -nr
-```
-
-## 🐛 Troubleshooting
-
-### Service won't start
-
-Check detailed error
-```bash
-sudo journalctl -u sdwan-traffic-gen -n 50 --no-pager
-```
-
-Test manually
-```bash
-sudo /opt/sdwan-traffic-gen/traffic-generator.sh client01
-```
-
-Verify configuration
-```bash
-ls -la /opt/sdwan-traffic-gen/config/
-```
-
-### No traffic in logs
-
-Verify service is running
-```bash
-ps aux | grep traffic-generator
-```
-
-Check network connectivity
-```bash
-curl -I https://google.com
-```
-
-Test specific interface
-```bash
-curl --interface eth0 -I https://teams.microsoft.com
-```
-
-Restart service
-```bash
-sudo systemctl restart sdwan-traffic-gen
-```
-
-### Applications not identified in SD-WAN
-
-**Solution 1: Use application-specific endpoints**
-Instead of generic paths:
-```bash
-teams.microsoft.com|100|/
-```
-
-Use specific API endpoints:
-```bash
-teams.microsoft.com|100|/api/mt/emea/beta/users/
-```
-
-**Solution 2: Enable SSL inspection** on your SD-WAN device (vendor-specific)
-
-**Solution 3: Verify SNI is visible**
-```bash
-sudo tcpdump -i eth0 -n port 443 | grep -i "teams.microsoft"
-```
-
-See [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more solutions.
-
-## 🔄 Updating
-
-Navigate to repository
-```bash
-cd sdwan-traffic-generator
-```
-
-Pull latest changes
-```bash
-git pull origin main
-```
-
-Backup current config
-```bash
-sudo cp /opt/sdwan-traffic-gen/config/applications.txt /tmp/applications.txt.bak
-```
-
-Reinstall
-```bash
-sudo ./install.sh
-```
-
-Restore custom config if needed
-```bash
-sudo cp /tmp/applications.txt.bak /opt/sdwan-traffic-gen/config/applications.txt
-```
-
-Restart
-```bash
-sudo systemctl restart sdwan-traffic-gen
-```
-
-## 🗑️ Uninstallation
-
-Stop and disable service
-```bash
-sudo systemctl stop sdwan-traffic-gen
-sudo systemctl disable sdwan-traffic-gen
-```
-
-Remove files
-```bash
-sudo rm -rf /opt/sdwan-traffic-gen
-sudo rm -rf /var/log/sdwan-traffic-gen
-sudo rm /etc/systemd/system/sdwan-traffic-gen.service
-sudo rm /etc/logrotate.d/sdwan-traffic-gen
-```
-
-Reload systemd
-```bash
-sudo systemctl daemon-reload
-```
-
-## 📚 Documentation
-
-- **[Installation Guide](README.md#installation)** - Complete setup instructions
-- **[Configuration Guide](docs/CONFIGURATION.md)** - Detailed configuration options and examples
-- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
-- **[Usage Guide](docs/USAGE.md)** - Daily operations and monitoring
-
-### Quick Links
-
-- [Creating Custom Traffic Profiles](docs/CONFIGURATION.md#custom-profiles-for-different-scenarios)
-- [Setting Target Percentages](docs/CONFIGURATION.md#setting-target-percentages)
-- [Weight Calculation Examples](docs/CONFIGURATION.md#weight-calculation)
-- [Troubleshooting Service Issues](docs/TROUBLESHOOTING.md#service-issues)
-- [Network Connectivity Problems](docs/TROUBLESHOOTING.md#network-connectivity)
-- [Performance Tuning](docs/CONFIGURATION.md#traffic-patterns)
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
-
-1. **Report Bugs**: Open an issue with detailed reproduction steps
-2. **Suggest Features**: Describe your use case and proposed solution
-3. **Submit Pull Requests**: 
-   - Fork the repository
-   - Create a feature branch (`git checkout -b feature/AmazingFeature`)
-   - Commit your changes (`git commit -m 'Add AmazingFeature'`)
-   - Push to the branch (`git push origin feature/AmazingFeature`)
-   - Open a Pull Request
-
-### Development Guidelines
-
-- Follow existing code style and structure
-- Test your changes thoroughly
-- Update documentation for new features
-- Add comments for complex logic
-
-## 🌟 Star History
-
-If you find this project useful, please consider giving it a star! ⭐
-
-[![Star History Chart](https://api.star-history.com/svg?repos=jsuzanne/sdwan-traffic-generator&type=Date)](https://star-history.com/#jsuzanne/sdwan-traffic-generator&Date)
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Inspired by real-world SD-WAN deployment needs
-- Application list based on 2025 enterprise SaaS usage patterns
-- Tested with Palo Alto Prisma SD-WAN, Cisco Viptela, and VMware VeloCloud
-- Thanks to the SD-WAN community for feedback and suggestions
-
-## 📧 Support & Contact
-
-- **Issues**: https://github.com/jsuzanne/sdwan-traffic-generator/issues
-- **Discussions**: https://github.com/jsuzanne/sdwan-traffic-generator/discussions
-- **Author**: Julien Suzanne
-- **LinkedIn**: [Connect on LinkedIn](https://www.linkedin.com/in/julien-suzanne/)
-
-## 🎓 Use Cases from the Community
-
-> "Essential tool for SD-WAN demos. Saves hours of manual traffic generation!" - Network Engineer
-
-> "Perfect for testing application steering policies in our lab." - Solutions Architect
-
-> "Makes customer demos look professional with realistic traffic patterns." - Pre-Sales Engineer
-
-*Share your use case by opening a discussion!*
-
-## 🚦 Project Status
-
-- ✅ **Stable**: Production-ready for demos and testing
-- 🔄 **Active Development**: Regular updates and improvements
-- 📖 **Well Documented**: Comprehensive guides and examples
-- 🤝 **Community Driven**: Open to contributions and feedback
-
----
-
-**Made with ❤️ for the SD-WAN community**
-
-*Tested on Ubuntu 22.04/24.04, Debian 11/12*
-
-*Compatible with all major SD-WAN vendors*
-
----
-
-**⚠️ Disclaimer**: This tool generates real HTTP/HTTPS requests to public SaaS platforms. Use responsibly and ensure you have appropriate network policies in place. Not intended for production network load or stress testing of third-party services.
-
+## Structure
+-   `web-dashboard/`: Source code for the React/Node.js web interface.
+-   `traffic-generator.sh`: Core Bash script for generating traffic.
+-   `config/`: Configuration files.
+-   `logs/`: Log output directory.
+
+## License
+MIT
