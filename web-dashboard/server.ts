@@ -268,6 +268,21 @@ app.post('/api/auth/users', authenticateToken, (req: any, res) => {
     res.json({ success: true, message: 'User created' });
 });
 
+// API: Get Version (Public endpoint)
+app.get('/api/version', (req, res) => {
+    try {
+        const versionFile = path.join(__dirname, '../VERSION');
+        if (fs.existsSync(versionFile)) {
+            const version = fs.readFileSync(versionFile, 'utf8').trim();
+            res.json({ version });
+        } else {
+            res.json({ version: 'unknown' });
+        }
+    } catch (e) {
+        res.json({ version: 'unknown' });
+    }
+});
+
 // Protect sensitive endpoints
 // (We leave status/stats public? User asked for login to app. So we probably protect everything except login)
 // Actually status/stats are read-only. Config is sensitive.
@@ -535,5 +550,15 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.listen(port, () => {
+    // Log version on startup
+    try {
+        const versionFile = path.join(__dirname, '../VERSION');
+        if (fs.existsSync(versionFile)) {
+            const version = fs.readFileSync(versionFile, 'utf8').trim();
+            console.log(`🚀 SD-WAN Traffic Generator v${version}`);
+        }
+    } catch (e) {
+        // Ignore version read errors
+    }
     console.log(`Backend running at http://localhost:${port}`);
 });

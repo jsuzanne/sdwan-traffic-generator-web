@@ -2,12 +2,12 @@
 # Weight: Plus élevé = plus de trafic généré
 
 # Microsoft 365 Suite
-outlook.office365.com|67|/
-teams.microsoft.com|67|/api/mt/emea/beta/users/
-login.microsoftonline.com|67|/
-graph.microsoft.com|67|/v1.0/me
-onedrive.live.com|67|/
-sharepoint.com|67|/
+outlook.office365.com|59|/
+teams.microsoft.com|59|/api/mt/emea/beta/users/
+login.microsoftonline.com|59|/
+graph.microsoft.com|59|/v1.0/me
+onedrive.live.com|59|/
+sharepoint.com|59|/
 
 # Google Workspace
 mail.google.com|72|/mail/

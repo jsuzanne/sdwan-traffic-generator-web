@@ -41,6 +41,10 @@ export default function App() {
   const [trafficRunning, setTrafficRunning] = useState(false);
   const [configValid, setConfigValid] = useState(false);
 
+  // Version State
+  const [version, setVersion] = useState<string>('');
+
+
   const addUser = async () => {
     if (!token) return;
     try {
@@ -199,6 +203,17 @@ export default function App() {
     }
   }
 
+  const fetchVersion = async () => {
+    try {
+      const res = await fetch('/api/version');
+      const data = await res.json();
+      if (data.version) setVersion(data.version);
+    } catch (e) {
+      console.error("Failed to fetch version");
+    }
+  }
+
+
   useEffect(() => {
     if (!token) return;
     // Initial fetch
@@ -206,6 +221,7 @@ export default function App() {
     fetchLogs();
     fetchTrafficStatus();
     checkConfigValid();
+    fetchVersion();
 
     // Poll every 2s
     const interval = setInterval(() => {
@@ -215,6 +231,7 @@ export default function App() {
     }, 2000);
     return () => clearInterval(interval);
   }, [token]);
+
 
   const totalErrors = stats ? Object.values(stats.errors_by_app).reduce((a, b) => a + b, 0) : 0;
   const successRate = stats ? ((stats.total_requests - totalErrors) / stats.total_requests * 100).toFixed(1) : '100';
@@ -230,8 +247,11 @@ export default function App() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
             SD-WAN Traffic Generator
           </h1>
-          <p className="text-slate-400 mt-1">Real-time Control Center</p>
+          <p className="text-slate-400 mt-1">
+            Real-time Control Center {version && <span className="text-slate-500">• v{version}</span>}
+          </p>
         </div>
+
 
 
         <div className="flex gap-4 items-center">

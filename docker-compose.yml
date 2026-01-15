@@ -12,26 +12,40 @@ services:
       # Shared logs volume
       - traffic_logs:/var/log/sdwan-traffic-gen
     environment:
-      - SLEEP_BETWEEN_REQUESTS=1
+      - SLEEP_BETWEEN_REQUESTS=${SLEEP_BETWEEN_REQUESTS:-1}
+    healthcheck:
+      test: [ "CMD", "test", "-f", "/var/log/sdwan-traffic-gen/traffic.log" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # The Web Dashboard
   web-ui:
     build:
-      context: ./web-dashboard
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: web-dashboard/Dockerfile
     container_name: sdwan-web-ui
     restart: unless-stopped
     volumes:
       - ./config:/app/config
       # Shared logs
       - traffic_logs:/var/log/sdwan-traffic-gen
+      # Mount VERSION file
+      - ./VERSION:/app/VERSION:ro
     ports:
-      - "8080:8080"
+      - "${WEB_UI_PORT:-8080}:8080"
     environment:
       - NODE_ENV=production
       - PORT=8080
       - CONFIG_DIR=/app/config
       - LOG_DIR=/var/log/sdwan-traffic-gen
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/version" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 volumes:
   traffic_logs:

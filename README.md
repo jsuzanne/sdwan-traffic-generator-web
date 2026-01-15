@@ -1,5 +1,7 @@
 # SD-WAN Traffic Generator
 
+![SD-WAN Traffic Generator](docs/hero-banner.png)
+
 A realistic enterprise application traffic generator designed for SD-WAN testing and demonstrations. It simulates various application traffic patterns (HTTP/HTTPS) to generate load and test application-aware network policies.
 
 **Now featuring a modern Web Dashboard with real-time monitoring!**

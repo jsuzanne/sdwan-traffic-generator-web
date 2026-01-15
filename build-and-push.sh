@@ -4,32 +4,72 @@
 
 set -e  # Exit on error
 
+# Parse arguments
+VERSION=${1:-$(cat VERSION 2>/dev/null || echo "latest")}
+PUSH_FLAG=${2:-"--push"}
+
+# If second argument is --no-push, don't push
+if [ "$2" = "--no-push" ]; then
+    PUSH_FLAG=""
+    echo "⚠️  Build-only mode (will not push to Docker Hub)"
+fi
+
+# Get git commit SHA for additional tagging
+GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
 echo "🔨 Building multi-platform Docker images..."
+echo "   Version: $VERSION"
+echo "   Git SHA: $GIT_SHA"
 echo ""
 
 # Ensure buildx is set up
 docker buildx create --use --name multiplatform-builder 2>/dev/null || docker buildx use multiplatform-builder
 
+# Build arguments
+BUILD_ARGS="--platform linux/amd64,linux/arm64"
+if [ -n "$PUSH_FLAG" ]; then
+    BUILD_ARGS="$BUILD_ARGS --push"
+else
+    BUILD_ARGS="$BUILD_ARGS --load"
+fi
+
 echo "📦 Building Web UI..."
-docker buildx build --platform linux/amd64,linux/arm64 \
+docker buildx build $BUILD_ARGS \
   -t jsuzanne/sdwan-web-ui:latest \
+  -t jsuzanne/sdwan-web-ui:$VERSION \
+  -t jsuzanne/sdwan-web-ui:git-$GIT_SHA \
+  --label "org.opencontainers.image.version=$VERSION" \
+  --label "org.opencontainers.image.revision=$GIT_SHA" \
   -f web-dashboard/Dockerfile \
-  web-dashboard \
-  --push
+  .
 
 echo ""
 echo "📦 Building Traffic Generator..."
-docker buildx build --platform linux/amd64,linux/arm64 \
+docker buildx build $BUILD_ARGS \
   -t jsuzanne/sdwan-traffic-gen:latest \
+  -t jsuzanne/sdwan-traffic-gen:$VERSION \
+  -t jsuzanne/sdwan-traffic-gen:git-$GIT_SHA \
+  --label "org.opencontainers.image.version=$VERSION" \
+  --label "org.opencontainers.image.revision=$GIT_SHA" \
   -f Dockerfile.traffic-gen \
-  . \
-  --push
+  .
 
 echo ""
-echo "✅ Done! Images pushed to Docker Hub:"
-echo "   - jsuzanne/sdwan-web-ui:latest"
-echo "   - jsuzanne/sdwan-traffic-gen:latest"
+if [ -n "$PUSH_FLAG" ]; then
+    echo "✅ Done! Images pushed to Docker Hub:"
+    echo "   - jsuzanne/sdwan-web-ui:latest"
+    echo "   - jsuzanne/sdwan-web-ui:$VERSION"
+    echo "   - jsuzanne/sdwan-web-ui:git-$GIT_SHA"
+    echo "   - jsuzanne/sdwan-traffic-gen:latest"
+    echo "   - jsuzanne/sdwan-traffic-gen:$VERSION"
+    echo "   - jsuzanne/sdwan-traffic-gen:git-$GIT_SHA"
+    echo ""
+    echo "📥 On your deployment servers, run:"
+    echo "   docker-compose pull"
+    echo "   docker-compose up -d"
+else
+    echo "✅ Done! Images built locally (not pushed)"
+    echo "   To push to Docker Hub, run:"
+    echo "   ./build-and-push.sh $VERSION"
+fi
 echo ""
-echo "📥 On your Ubuntu stations, run:"
-echo "   docker-compose pull"
-echo "   docker-compose up -d"

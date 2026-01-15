@@ -2,9 +2,9 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /app
-COPY package*.json ./
+COPY web-dashboard/package*.json ./
 RUN npm ci
-COPY . .
+COPY web-dashboard/ ./
 RUN npm run build
 
 # Runtime Stage
@@ -15,19 +15,30 @@ WORKDIR /app
 # Install system dependencies (curl for healthchecks etc if needed)
 RUN apk add --no-cache curl
 
-COPY package*.json ./
+COPY web-dashboard/package*.json ./
 # Only production deps
 RUN npm ci --omit=dev && npm install tsx
 
 COPY --from=builder /app/dist ./dist
-COPY server.ts ./
-# We need tsconfig for tsx maybe? or just run with node if compiled?
-# simpler to use tsx for now
-COPY tsconfig.json ./
+COPY web-dashboard/server.ts ./
+COPY web-dashboard/tsconfig.json ./
+# Copy VERSION file from root of build context
+COPY VERSION ./VERSION
+
+# Labels for Docker Hub
+LABEL org.opencontainers.image.title="SD-WAN Traffic Generator - Web UI"
+LABEL org.opencontainers.image.description="Modern web dashboard for SD-WAN traffic generation and monitoring"
+LABEL org.opencontainers.image.source="https://github.com/jsuzanne/sdwan-traffic-generator-web"
+LABEL org.opencontainers.image.vendor="jsuzanne"
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080
 
-EXPOSE 3000
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/api/version || exit 1
 
 CMD ["npx", "tsx", "server.ts"]
+
