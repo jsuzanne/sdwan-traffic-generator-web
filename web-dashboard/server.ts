@@ -271,7 +271,7 @@ app.post('/api/auth/users', authenticateToken, (req: any, res) => {
 // API: Get Version (Public endpoint)
 app.get('/api/version', (req, res) => {
     try {
-        const versionFile = path.join(__dirname, '../VERSION');
+        const versionFile = path.join(__dirname, 'VERSION');
         if (fs.existsSync(versionFile)) {
             const version = fs.readFileSync(versionFile, 'utf8').trim();
             res.json({ version });
@@ -552,7 +552,7 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(port, () => {
     // Log version on startup
     try {
-        const versionFile = path.join(__dirname, '../VERSION');
+        const versionFile = path.join(__dirname, 'VERSION');
         if (fs.existsSync(versionFile)) {
             const version = fs.readFileSync(versionFile, 'utf8').trim();
             console.log(`🚀 SD-WAN Traffic Generator v${version}`);
