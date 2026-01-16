@@ -59,16 +59,52 @@ function log_error() {
 # ============================================================================
 
 function getRandomInterface() {
+    # First, try to read from config file
     if [[ -f "${CONFIG_DIR}/interfaces.txt" ]]; then
         local iface
         iface=$(sort -R "${CONFIG_DIR}/interfaces.txt" 2>/dev/null | head -n 1)
         if [[ -n "$iface" ]]; then
             echo "$iface"
-        else
-            echo "eth0"
+            return
         fi
+    fi
+    
+    # Auto-detect active network interface
+    # Try to find the default route interface
+    local default_iface
+    
+    # Linux: use ip route
+    if command -v ip &>/dev/null; then
+        default_iface=$(ip route | grep '^default' | awk '{print $5}' | head -n 1)
+        if [[ -n "$default_iface" ]]; then
+            echo "$default_iface"
+            return
+        fi
+    fi
+    
+    # macOS/BSD: use route -n get default
+    if command -v route &>/dev/null; then
+        default_iface=$(route -n get default 2>/dev/null | grep 'interface:' | awk '{print $2}')
+        if [[ -n "$default_iface" ]]; then
+            echo "$default_iface"
+            return
+        fi
+    fi
+    
+    # Fallback: try to find first active interface (not loopback)
+    if command -v ifconfig &>/dev/null; then
+        default_iface=$(ifconfig | grep -E '^[a-z]' | grep -v '^lo' | head -n 1 | cut -d: -f1)
+        if [[ -n "$default_iface" ]]; then
+            echo "$default_iface"
+            return
+        fi
+    fi
+    
+    # Last resort fallback
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo "en0"  # macOS default
     else
-        echo "eth0"
+        echo "eth0"  # Linux default
     fi
 }
 
