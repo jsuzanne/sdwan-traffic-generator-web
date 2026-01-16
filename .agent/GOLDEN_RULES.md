@@ -34,8 +34,15 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 ### VERSION File
 - Location: `/VERSION`
-- Format: `X.Y.Z` or `X.Y.Z-beta`
+- Format: `X.Y.Z` or `X.Y.Z-beta.N`
 - Update BEFORE building Docker images
+
+### Beta Versioning Strategy
+**CRITICAL:** Use incremental beta numbers for each build to track changes
+- ✅ **Correct:** `1.1.0-beta.1`, `1.1.0-beta.2`, `1.1.0-beta.3`
+- ❌ **Wrong:** Reusing `1.1.0-beta` for multiple builds
+
+**Why:** Reusing the same version makes it impossible to differentiate which Docker image contains which features/fixes.
 
 ### Changelog
 - Location: `/CHANGELOG.md`
