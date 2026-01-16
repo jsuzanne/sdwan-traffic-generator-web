@@ -12,7 +12,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install system dependencies (curl for healthchecks etc if needed)
+# Install system dependencies (curl for healthchecks and connectivity)
 RUN apk add --no-cache curl
 
 COPY web-dashboard/package*.json ./

@@ -248,13 +248,88 @@ export default function Config({ token }: ConfigProps) {
 
             {/* Applications Section */}
             <div className="space-y-4">
-                <div className="flex items-center gap-3 text-slate-200 mb-2">
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-                        <Sliders size={20} />
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3 text-slate-200">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                            <Sliders size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold">Traffic Distribution</h2>
+                            <p className="text-sm text-slate-400">Adjust weights by category or individual app</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-lg font-semibold">Traffic Distribution</h2>
-                        <p className="text-sm text-slate-400">Adjust weights by category or individual app</p>
+
+                    {/* Import/Export Buttons */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch('/api/config/applications/export', {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    const blob = await res.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'applications.txt';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                    showSuccess('Applications exported');
+                                } catch (e) {
+                                    console.error('Export failed', e);
+                                }
+                            }}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Export
+                        </button>
+                        <button
+                            onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = '.txt';
+                                input.onchange = async (e) => {
+                                    const file = (e.target as HTMLInputElement).files?.[0];
+                                    if (!file) return;
+
+                                    const content = await file.text();
+                                    try {
+                                        const res = await fetch('/api/config/applications/import', {
+                                            method: 'POST',
+                                            headers: authHeaders,
+                                            body: JSON.stringify({ content })
+                                        });
+                                        const data = await res.json();
+                                        if (data.success) {
+                                            showSuccess('Applications imported successfully');
+                                            // Reload categories
+                                            const catsData = await fetch('/api/config/apps', {
+                                                headers: { 'Authorization': `Bearer ${token}` }
+                                            }).then(r => r.json());
+                                            const CatsWithState = catsData.map((c: any) => ({ ...c, expanded: true }));
+                                            setCategories(CatsWithState);
+                                        } else {
+                                            alert(data.message || 'Import failed');
+                                        }
+                                    } catch (e) {
+                                        console.error('Import failed', e);
+                                        alert('Import failed');
+                                    }
+                                };
+                                input.click();
+                            }}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            Import
+                        </button>
                     </div>
                 </div>
 

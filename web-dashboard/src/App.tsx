@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3 } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Config from './Config';
@@ -44,6 +44,10 @@ export default function App() {
   // Version State
   const [version, setVersion] = useState<string>('');
 
+  // Connectivity State
+  const [internetConnected, setInternetConnected] = useState<boolean | null>(null);
+  const [speedTest, setSpeedTest] = useState<{ mbps: number; timestamp: number } | null>(null);
+  const [speedTesting, setSpeedTesting] = useState(false);
 
   const addUser = async () => {
     if (!token) return;
@@ -213,6 +217,35 @@ export default function App() {
     }
   }
 
+  const fetchConnectivity = async () => {
+    try {
+      const res = await fetch('/api/connectivity/status');
+      const data = await res.json();
+      setInternetConnected(data.connected || false);
+    } catch (e) {
+      console.error("Failed to fetch connectivity");
+      setInternetConnected(false);
+    }
+  }
+
+  const runSpeedTest = async () => {
+    setSpeedTesting(true);
+    try {
+      const res = await fetch('/api/connectivity/speedtest');
+      const data = await res.json();
+      if (data.success) {
+        setSpeedTest({
+          mbps: data.download_mbps,
+          timestamp: data.timestamp
+        });
+      }
+    } catch (e) {
+      console.error("Speed test failed");
+    } finally {
+      setSpeedTesting(false);
+    }
+  }
+
 
   useEffect(() => {
     if (!token) return;
@@ -222,12 +255,14 @@ export default function App() {
     fetchTrafficStatus();
     checkConfigValid();
     fetchVersion();
+    // Don't auto-fetch connectivity - only on manual button click
 
     // Poll every 2s
     const interval = setInterval(() => {
       fetchStats();
       fetchLogs();
       fetchTrafficStatus();
+      // Don't poll connectivity automatically
     }, 2000);
     return () => clearInterval(interval);
   }, [token]);

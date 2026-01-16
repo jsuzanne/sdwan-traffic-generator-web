@@ -283,6 +283,46 @@ app.get('/api/version', (req, res) => {
     }
 });
 
+// API: Speed Test (Public endpoint)
+app.get('/api/connectivity/speedtest', async (req, res) => {
+    try {
+        const { exec } = require('child_process');
+        const util = require('util');
+        const execPromise = util.promisify(exec);
+
+        // Download 10MB file from Cloudflare and measure speed
+        const testUrl = 'https://speed.cloudflare.com/__down?bytes=10000000';
+        const curlCommand = `curl -o /dev/null -s -w '%{speed_download}' --max-time 30 ${testUrl}`;
+
+        try {
+            const { stdout } = await execPromise(curlCommand);
+            const bytesPerSecond = parseFloat(stdout);
+            const mbps = (bytesPerSecond * 8 / 1000000).toFixed(2); // Convert to Mbps
+
+            res.json({
+                success: true,
+                download_mbps: parseFloat(mbps),
+                download_bytes_per_second: bytesPerSecond,
+                test_url: 'speed.cloudflare.com',
+                timestamp: Date.now()
+            });
+        } catch (curlError: any) {
+            res.status(500).json({
+                success: false,
+                error: 'Speed test failed',
+                message: curlError?.message || 'Unknown error',
+                timestamp: Date.now()
+            });
+        }
+    } catch (e) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to run speed test',
+            timestamp: Date.now()
+        });
+    }
+});
+
 // Protect sensitive endpoints
 // (We leave status/stats public? User asked for login to app. So we probably protect everything except login)
 // Actually status/stats are read-only. Config is sensitive.
@@ -480,6 +520,73 @@ const updateAppsWeigth = (updates: Record<string, number>, res: any) => {
         res.status(500).json({ error: 'Write failed', details: err });
     }
 };
+
+// API: Export Applications (Download applications.txt)
+app.get('/api/config/applications/export', (req, res) => {
+    try {
+        const content = readFile(APPS_FILE);
+        if (!content) {
+            return res.status(404).json({ error: 'Applications file not found' });
+        }
+
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Disposition', 'attachment; filename="applications.txt"');
+        res.send(content);
+    } catch (err: any) {
+        res.status(500).json({ error: 'Export failed', details: err?.message });
+    }
+});
+
+// API: Import Applications (Upload applications.txt)
+app.post('/api/config/applications/import', (req, res) => {
+    try {
+        const { content } = req.body;
+
+        if (!content || typeof content !== 'string') {
+            return res.status(400).json({ error: 'Invalid file content' });
+        }
+
+        // Basic validation: check if it has the expected format
+        const lines = content.split('\n');
+        let hasValidFormat = false;
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+
+            // Check if line has domain|weight|endpoint format
+            const parts = trimmed.split('|');
+            if (parts.length >= 2) {
+                hasValidFormat = true;
+                break;
+            }
+        }
+
+        if (!hasValidFormat) {
+            return res.status(400).json({
+                error: 'Invalid file format',
+                message: 'File must contain lines in format: domain|weight|endpoint'
+            });
+        }
+
+        // Backup current file
+        const backupFile = APPS_FILE + '.backup';
+        if (fs.existsSync(APPS_FILE)) {
+            fs.copyFileSync(APPS_FILE, backupFile);
+        }
+
+        // Write new content
+        fs.writeFileSync(APPS_FILE, content, 'utf8');
+
+        res.json({
+            success: true,
+            message: 'Applications imported successfully',
+            backup: backupFile
+        });
+    } catch (err: any) {
+        res.status(500).json({ error: 'Import failed', details: err?.message });
+    }
+});
 
 // API: Get Interfaces
 app.get('/api/config/interfaces', (req, res) => {
