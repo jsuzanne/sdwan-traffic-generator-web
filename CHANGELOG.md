@@ -56,6 +56,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All logs prefixed with `[DEBUG]` for easy filtering
   - Helps troubleshoot test execution issues in production
 
+### Added - Three-State DNS Detection
+- **DNS Sinkhole Detection**: DNS security tests now properly detect sinkhole IPs
+  - Detects Palo Alto Networks sinkhole IPs (198.135.184.22, 72.5.65.111)
+  - Detects common sinkhole IPs (0.0.0.0, 127.0.0.1, ::1)
+  - Three distinct states: **Resolved** (clean), **Sinkholed** (threat detected), **Blocked** (query blocked)
+  - Statistics dashboard shows all three states separately
+  - More accurate threat detection visibility
+
 ### Changed
 - **Security Config Schema**: Changed from `eicar_endpoints` (array) to `eicar_endpoint` (string)
   - Simplified to single EICAR endpoint for initial release

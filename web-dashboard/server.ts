@@ -792,6 +792,7 @@ const updateStatistics = (testType: string, status: string) => {
             url_tests_blocked: 0,
             url_tests_allowed: 0,
             dns_tests_blocked: 0,
+            dns_tests_sinkholed: 0,
             dns_tests_allowed: 0,
             threat_tests_blocked: 0,
             threat_tests_allowed: 0,
@@ -807,6 +808,7 @@ const updateStatistics = (testType: string, status: string) => {
         else config.statistics.url_tests_allowed++;
     } else if (testType === 'dns_security') {
         if (status === 'blocked') config.statistics.dns_tests_blocked++;
+        else if (status === 'sinkholed') config.statistics.dns_tests_sinkholed++;
         else config.statistics.dns_tests_allowed++;
     } else if (testType === 'threat_prevention') {
         if (status === 'blocked') config.statistics.threat_tests_blocked++;
@@ -1107,19 +1109,46 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
         try {
             const { stdout, stderr } = await execPromise(dnsCommand);
 
-            // Check if DNS resolution was successful
-            const resolved = !stdout.includes('NXDOMAIN') && !stdout.includes('server can\'t find');
+            // Known sinkhole IPs (Palo Alto Networks and common sinkhole addresses)
+            const sinkholeIPs = [
+                '198.135.184.22',  // Current Palo Alto sinkhole
+                '72.5.65.111',     // Legacy Palo Alto sinkhole
+                '::1',             // IPv6 sinkhole (loopback)
+                '0.0.0.0',         // Common sinkhole
+                '127.0.0.1'        // Loopback sinkhole
+            ];
+
+            // Check for sinkhole IP in response
+            const isSinkholed = sinkholeIPs.some(ip => stdout.includes(ip));
+
+            // Check for blocked (no response)
+            const isBlocked = stdout.includes('NXDOMAIN') || stdout.includes('server can\'t find');
+
+            // Determine status: resolved, sinkholed, or blocked
+            let status: string;
+            let resolved: boolean;
+
+            if (isSinkholed) {
+                status = 'sinkholed';  // Malicious domain detected, sinkhole IP returned
+                resolved = false;      // Not a legitimate resolution
+            } else if (isBlocked) {
+                status = 'blocked';    // Query blocked, no response
+                resolved = false;
+            } else {
+                status = 'resolved';   // Normal resolution
+                resolved = true;
+            }
 
             const result = {
                 success: true,
                 resolved,
-                status: resolved ? 'resolved' : 'blocked',
+                status,
                 domain,
                 testName,
                 output: stdout
             };
 
-            console.log('[DEBUG] DNS test result:', { domain, status: result.status, resolved });
+            console.log('[DEBUG] DNS test result:', { domain, status, resolved, isSinkholed, isBlocked });
             addTestResult('dns_security', testName || domain, result);
             res.json(result);
         } catch (dnsError: any) {

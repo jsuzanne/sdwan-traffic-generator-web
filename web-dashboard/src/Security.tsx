@@ -39,6 +39,7 @@ interface SecurityConfig {
         url_tests_blocked: number;
         url_tests_allowed: number;
         dns_tests_blocked: number;
+        dns_tests_sinkholed: number;
         dns_tests_allowed: number;
         threat_tests_blocked: number;
         threat_tests_allowed: number;
@@ -366,15 +367,20 @@ export default function Security({ token }: SecurityProps) {
                             <span className="text-slate-400 text-sm">DNS Security</span>
                             <Shield size={16} className="text-purple-400" />
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                             <div>
                                 <div className="text-lg font-bold text-red-400">{config.statistics.dns_tests_blocked}</div>
                                 <div className="text-xs text-slate-500">Blocked</div>
                             </div>
                             <div className="text-slate-600">/</div>
                             <div>
+                                <div className="text-lg font-bold text-yellow-400">{config.statistics.dns_tests_sinkholed || 0}</div>
+                                <div className="text-xs text-slate-500">Sinkholed</div>
+                            </div>
+                            <div className="text-slate-600">/</div>
+                            <div>
                                 <div className="text-lg font-bold text-green-400">{config.statistics.dns_tests_allowed}</div>
-                                <div className="text-xs text-slate-500">Allowed</div>
+                                <div className="text-xs text-slate-500">Resolved</div>
                             </div>
                         </div>
                     </div>
