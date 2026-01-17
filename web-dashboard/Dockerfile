@@ -16,8 +16,10 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 COPY web-dashboard/package*.json ./
-# Only production deps
-RUN npm ci --omit=dev && npm install tsx
+# Install production deps with reduced memory usage
+RUN npm ci --omit=dev --prefer-offline --no-audit
+# Install tsx separately to reduce memory pressure
+RUN npm install tsx --no-save
 
 COPY --from=builder /app/dist ./dist
 COPY web-dashboard/server.ts ./
