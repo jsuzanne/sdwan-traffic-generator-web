@@ -653,7 +653,10 @@ export default function Security({ token }: SecurityProps) {
                                                     onChange={() => toggleDNSTest(test.id)}
                                                     className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-900"
                                                 />
-                                                <span className="text-sm text-slate-200 truncate">{test.name}</span>
+                                                <span
+                                                    className="text-sm text-slate-200 truncate cursor-help"
+                                                    title={`Domain: ${test.domain}\nCommand: getent ahosts ${test.domain}`}
+                                                >{test.name}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {lastResult && getStatusBadge(lastResult.result)}
@@ -695,7 +698,10 @@ export default function Security({ token }: SecurityProps) {
                                                     onChange={() => toggleDNSTest(test.id)}
                                                     className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-900"
                                                 />
-                                                <span className="text-sm text-slate-200 truncate">{test.name}</span>
+                                                <span
+                                                    className="text-sm text-slate-200 truncate cursor-help"
+                                                    title={`Domain: ${test.domain}\nCommand: getent ahosts ${test.domain}`}
+                                                >{test.name}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {lastResult && getStatusBadge(lastResult.result)}
@@ -848,7 +854,23 @@ export default function Security({ token }: SecurityProps) {
                                                                 'Threat Prevention'}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-slate-200">{result.testName}</td>
+                                                <td className="px-4 py-3 text-sm text-slate-200">
+                                                    {result.testType === 'dns_security' ? (
+                                                        (() => {
+                                                            const dnsTest = DNS_TEST_DOMAINS.find(t => t.name === result.testName);
+                                                            return dnsTest ? (
+                                                                <span
+                                                                    className="cursor-help"
+                                                                    title={`Domain: ${dnsTest.domain}\nCommand: getent ahosts ${dnsTest.domain}`}
+                                                                >
+                                                                    {result.testName}
+                                                                </span>
+                                                            ) : result.testName;
+                                                        })()
+                                                    ) : (
+                                                        result.testName
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-3 text-sm">{getStatusBadge(result.result)}</td>
                                             </tr>
                                         ))}

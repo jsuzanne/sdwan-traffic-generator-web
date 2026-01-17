@@ -743,6 +743,15 @@ const getSecurityConfig = () => {
                 url_filtering: { enabled_categories: [], protocol: 'http' },
                 dns_security: { enabled_tests: [] },
                 threat_prevention: { enabled: false, eicar_endpoint: 'http://192.168.203.100/eicar.com.txt' },
+                scheduled_execution: {
+                    enabled: false,
+                    interval_minutes: 60,
+                    run_url_tests: true,
+                    run_dns_tests: true,
+                    run_threat_tests: true,
+                    next_run_time: null,
+                    last_run_time: null
+                },
                 test_history: []
             };
             fs.writeFileSync(SECURITY_CONFIG_FILE, JSON.stringify(defaultConfig, null, 2));
@@ -1213,11 +1222,19 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
     }
 
     const results = [];
+    const batchId = Date.now(); // Unique batch ID
 
     // Helper function to wait
     const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    for (const test of tests) {
+    console.log(`[DNS-BATCH-${batchId}] Starting batch test with ${tests.length} domains`);
+
+    for (let i = 0; i < tests.length; i++) {
+        const test = tests[i];
+        const testId = `${batchId}-${i + 1}`;
+
+        console.log(`[DNS-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.domain} (${test.testName})`);
+
         try {
             // exec already imported at top
             // util.promisify already imported as promisify
@@ -1230,13 +1247,17 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                 // First attempt
                 let { stdout, stderr } = await execPromise(dnsCommand);
 
+                console.log(`[DNS-TEST-${testId}] First query result: ${stdout.trim() || '(empty)'}`);
+
                 // If first attempt returns empty, retry after 2 seconds
                 // Palo Alto DNS Security sometimes returns empty on first query, sinkhole IP on second
                 if (!stdout.trim()) {
+                    console.log(`[DNS-TEST-${testId}] First query empty, waiting 2 seconds before retry...`);
                     await wait(2000);
                     const retry = await execPromise(dnsCommand);
                     stdout = retry.stdout;
                     stderr = retry.stderr;
+                    console.log(`[DNS-TEST-${testId}] Retry query result: ${stdout.trim() || '(empty)'}`);
                 }
 
                 // Known sinkhole IPs (Palo Alto Networks and common sinkhole addresses)
@@ -1268,6 +1289,8 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                     status = 'resolved';   // Normal resolution
                     resolved = true;
                 }
+
+                console.log(`[DNS-TEST-${testId}] Final status: ${status} (isSinkholed=${isSinkholed}, isBlocked=${isBlocked})`);
 
                 const result = {
                     success: true,
