@@ -498,6 +498,105 @@ app.get('/api/config/apps', extractUserMiddleware, (req, res) => { // Use token 
     res.json(categories);
 });
 
+// API: Internet Connectivity Test
+app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
+    console.log('[CONNECTIVITY] Starting internet connectivity test...');
+
+    const testEndpoints = [
+        { name: 'Cloudflare DNS', url: 'https://1.1.1.1', timeout: 5000 },
+        { name: 'Google DNS', url: 'https://8.8.8.8', timeout: 5000 },
+        { name: 'Google', url: 'https://www.google.com', timeout: 5000 }
+    ];
+
+    const results = [];
+    let connected = false;
+    let avgLatency = 0;
+
+    for (const endpoint of testEndpoints) {
+        console.log(`[CONNECTIVITY] Testing ${endpoint.name} (${endpoint.url})...`);
+        const startTime = Date.now();
+        try {
+            const response = await fetch(endpoint.url, {
+                method: 'HEAD',
+                signal: AbortSignal.timeout(endpoint.timeout)
+            });
+
+            const latency = Date.now() - startTime;
+
+            if (response.ok || response.status < 500) {
+                results.push({
+                    name: endpoint.name,
+                    status: 'connected',
+                    latency,
+                    statusCode: response.status
+                });
+                connected = true;
+                avgLatency += latency;
+            } else {
+                results.push({
+                    name: endpoint.name,
+                    status: 'error',
+                    error: `HTTP ${response.status}`
+                });
+            }
+        } catch (error: any) {
+            results.push({
+                name: endpoint.name,
+                status: 'failed',
+                error: error.message
+            });
+        }
+    }
+
+    const successfulTests = results.filter(r => r.status === 'connected').length;
+    if (successfulTests > 0) {
+        avgLatency = Math.round(avgLatency / successfulTests);
+    }
+
+    console.log(`[CONNECTIVITY] Test complete: ${connected ? 'Connected' : 'No connection'}, avg latency: ${avgLatency}ms, successful: ${successfulTests}/3`);
+
+    res.json({
+        connected,
+        latency: avgLatency,
+        timestamp: Date.now(),
+        results
+    });
+});
+
+// API: Docker Network Statistics
+app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) => {
+    console.log('[CONNECTIVITY] Fetching Docker network statistics...');
+
+    try {
+        const execPromise = promisify(exec);
+
+        // Get container network stats from /sys/class/net
+        const { stdout } = await execPromise('cat /sys/class/net/eth0/statistics/rx_bytes /sys/class/net/eth0/statistics/tx_bytes');
+        const [rxBytes, txBytes] = stdout.trim().split('\n').map(Number);
+
+        console.log('[CONNECTIVITY] Docker stats:', { rxBytes, txBytes });
+
+        res.json({
+            success: true,
+            stats: {
+                received_bytes: rxBytes,
+                transmitted_bytes: txBytes,
+                received_mb: (rxBytes / 1024 / 1024).toFixed(2),
+                transmitted_mb: (txBytes / 1024 / 1024).toFixed(2),
+                total_mb: ((rxBytes + txBytes) / 1024 / 1024).toFixed(2)
+            },
+            timestamp: Date.now()
+        });
+    } catch (error: any) {
+        console.error('[CONNECTIVITY] Failed to get Docker stats:', error.message);
+        res.json({
+            success: false,
+            error: error.message,
+            stats: null
+        });
+    }
+});
+
 // API: Update Application Weight (Single)
 app.post('/api/config/apps', authenticateToken, (req, res) => {
     const { domain, weight } = req.body;

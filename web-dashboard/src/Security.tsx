@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Play, AlertTriangle, CheckCircle, XCircle, Clock, Download, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, Play, AlertTriangle, CheckCircle, XCircle, Clock, Download, Trash2, ChevronDown, ChevronUp, Copy, Filter } from 'lucide-react';
 import { URL_CATEGORIES, DNS_TEST_DOMAINS } from './data/security-categories';
 
 interface SecurityProps {
@@ -61,6 +61,9 @@ export default function Security({ token }: SecurityProps) {
     const [threatExpanded, setThreatExpanded] = useState(true);
     const [resultsExpanded, setResultsExpanded] = useState(true);
 
+    // Test results filter
+    const [testTypeFilter, setTestTypeFilter] = useState<'all' | 'url_filtering' | 'dns_security' | 'threat_prevention'>('all');
+
     // EICAR endpoint input
     const [eicarEndpoint, setEicarEndpoint] = useState('http://192.168.203.100/eicar.com.txt');
 
@@ -69,6 +72,14 @@ export default function Security({ token }: SecurityProps) {
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Command copied to clipboard!', 'success');
+        }).catch(() => {
+            showToast('Failed to copy command', 'error');
+        });
     };
 
     // Load configuration
@@ -661,6 +672,13 @@ export default function Security({ token }: SecurityProps) {
                                             <div className="flex items-center gap-2">
                                                 {lastResult && getStatusBadge(lastResult.result)}
                                                 <button
+                                                    onClick={() => copyToClipboard(`docker exec sdwan-web-ui sh -c "getent ahosts ${test.domain}"`)}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-blue-400 transition-colors"
+                                                    title="Copy CLI command"
+                                                >
+                                                    <Copy size={14} />
+                                                </button>
+                                                <button
                                                     onClick={() => runDNSTest(test)}
                                                     disabled={isTesting}
                                                     className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
@@ -705,6 +723,13 @@ export default function Security({ token }: SecurityProps) {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {lastResult && getStatusBadge(lastResult.result)}
+                                                <button
+                                                    onClick={() => copyToClipboard(`docker exec sdwan-web-ui sh -c "getent ahosts ${test.domain}"`)}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-blue-400 transition-colors"
+                                                    title="Copy CLI command"
+                                                >
+                                                    <Copy size={14} />
+                                                </button>
                                                 <button
                                                     onClick={() => runDNSTest(test)}
                                                     disabled={isTesting}
@@ -803,7 +828,19 @@ export default function Security({ token }: SecurityProps) {
                 {resultsExpanded && (
                     <div className="p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-slate-400 text-sm">Recent test execution history</p>
+                            <div className="flex items-center gap-3">
+                                <p className="text-slate-400 text-sm">Recent test execution history</p>
+                                <select
+                                    value={testTypeFilter}
+                                    onChange={(e) => setTestTypeFilter(e.target.value as any)}
+                                    className="px-3 py-1.5 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="all">All Tests</option>
+                                    <option value="url_filtering">URL Filtering</option>
+                                    <option value="dns_security">DNS Security</option>
+                                    <option value="threat_prevention">Threat Prevention</option>
+                                </select>
+                            </div>
                             <div className="flex gap-2">
                                 <button
                                     onClick={exportResults}
@@ -839,41 +876,44 @@ export default function Security({ token }: SecurityProps) {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-800">
-                                        {testResults.slice(0, 20).map((result, index) => (
-                                            <tr key={index} className="hover:bg-slate-800/30 transition-colors">
-                                                <td className="px-4 py-3 text-sm text-slate-400">
-                                                    {new Date(result.timestamp).toLocaleTimeString()}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm">
-                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${result.testType === 'url_filtering' ? 'bg-blue-500/20 text-blue-400' :
-                                                        result.testType === 'dns_security' ? 'bg-purple-500/20 text-purple-400' :
-                                                            'bg-red-500/20 text-red-400'
-                                                        }`}>
-                                                        {result.testType === 'url_filtering' ? 'URL Filtering' :
-                                                            result.testType === 'dns_security' ? 'DNS Security' :
-                                                                'Threat Prevention'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-slate-200">
-                                                    {result.testType === 'dns_security' ? (
-                                                        (() => {
-                                                            const dnsTest = DNS_TEST_DOMAINS.find(t => t.name === result.testName);
-                                                            return dnsTest ? (
-                                                                <span
-                                                                    className="cursor-help"
-                                                                    title={`Domain: ${dnsTest.domain}\nCommand: getent ahosts ${dnsTest.domain}`}
-                                                                >
-                                                                    {result.testName}
-                                                                </span>
-                                                            ) : result.testName;
-                                                        })()
-                                                    ) : (
-                                                        result.testName
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm">{getStatusBadge(result.result)}</td>
-                                            </tr>
-                                        ))}
+                                        {testResults
+                                            .filter(result => testTypeFilter === 'all' || result.testType === testTypeFilter)
+                                            .slice(0, 20)
+                                            .map((result, index) => (
+                                                <tr key={index} className="hover:bg-slate-800/30 transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-slate-400">
+                                                        {new Date(result.timestamp).toLocaleTimeString()}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm">
+                                                        <span className={`px-2 py-1 rounded text-xs font-medium ${result.testType === 'url_filtering' ? 'bg-blue-500/20 text-blue-400' :
+                                                            result.testType === 'dns_security' ? 'bg-purple-500/20 text-purple-400' :
+                                                                'bg-red-500/20 text-red-400'
+                                                            }`}>
+                                                            {result.testType === 'url_filtering' ? 'URL Filtering' :
+                                                                result.testType === 'dns_security' ? 'DNS Security' :
+                                                                    'Threat Prevention'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-slate-200">
+                                                        {result.testType === 'dns_security' ? (
+                                                            (() => {
+                                                                const dnsTest = DNS_TEST_DOMAINS.find(t => t.name === result.testName);
+                                                                return dnsTest ? (
+                                                                    <span
+                                                                        className="cursor-help"
+                                                                        title={`Domain: ${dnsTest.domain}\nCommand: getent ahosts ${dnsTest.domain}`}
+                                                                    >
+                                                                        {result.testName}
+                                                                    </span>
+                                                                ) : result.testName;
+                                                            })()
+                                                        ) : (
+                                                            result.testName
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm">{getStatusBadge(result.result)}</td>
+                                                </tr>
+                                            ))}
                                     </tbody>
                                 </table>
                             </div>
