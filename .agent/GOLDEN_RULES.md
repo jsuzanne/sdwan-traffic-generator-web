@@ -66,11 +66,25 @@ npm run dev  # Runs on http://localhost:5173
 - Traffic generation: Test in Docker on Ubuntu LAB
 
 ### 3. Beta Release
-1. Update `VERSION` to `X.Y.Z-beta`
-2. Update `CHANGELOG.md`
-3. Build multi-platform Docker images with `--push`
-4. Test in LAB environment
-5. **DO NOT commit to GitHub yet**
+
+**⚠️ CRITICAL PRE-RELEASE CHECKLIST:**
+```bash
+# ALWAYS run these commands BEFORE creating a tag:
+git status                    # Verify NO uncommitted changes
+git diff                      # Check for any unstaged changes
+git log --oneline -5          # Verify recent commits look correct
+```
+
+**Why:** Uncommitted files (like App.tsx) won't be in the Docker build, causing missing features and wasted debugging time.
+
+1. **Verify all changes are committed** (run `git status` - should be clean)
+2. Update `VERSION` to `X.Y.Z-beta.N` (incremental beta number)
+3. Update `CHANGELOG.md`
+4. Commit VERSION and CHANGELOG changes
+5. Push to GitHub: `git push origin main`
+6. Create and push tag: `git tag vX.Y.Z-beta.N && git push origin vX.Y.Z-beta.N`
+7. Wait for GitHub Actions to complete (~6-8 minutes)
+8. Test in LAB environment
 
 ### 4. Stable Release (After LAB Validation)
 1. Update `VERSION` to `X.Y.Z` (remove `-beta`)
