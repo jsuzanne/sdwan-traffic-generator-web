@@ -1104,7 +1104,9 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
         // util.promisify already imported as promisify
         const execPromise = promisify(exec);
 
-        const dnsCommand = `nslookup ${domain}`;
+        // Use getent instead of nslookup - more reliable in containers
+        const dnsCommand = `getent ahosts ${domain}`;
+        console.log('[DEBUG] Executing DNS test:', dnsCommand);
 
         try {
             const { stdout, stderr } = await execPromise(dnsCommand);
@@ -1121,8 +1123,8 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
             // Check for sinkhole IP in response
             const isSinkholed = sinkholeIPs.some(ip => stdout.includes(ip));
 
-            // Check for blocked (no response)
-            const isBlocked = stdout.includes('NXDOMAIN') || stdout.includes('server can\'t find');
+            // Check for blocked (no response or empty output)
+            const isBlocked = !stdout.trim() || stdout.includes('Name or service not known');
 
             // Determine status: resolved, sinkholed, or blocked
             let status: string;
@@ -1133,7 +1135,6 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 resolved = false;      // Not a legitimate resolution
             } else if (isBlocked) {
                 status = 'blocked';    // Query blocked, no response
-                resolved = false;
             } else {
                 status = 'resolved';   // Normal resolution
                 resolved = true;
