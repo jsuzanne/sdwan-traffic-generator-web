@@ -1230,10 +1230,10 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                 // First attempt
                 let { stdout, stderr } = await execPromise(dnsCommand);
 
-                // If first attempt returns empty, retry after 500ms
+                // If first attempt returns empty, retry after 2 seconds
                 // Palo Alto DNS Security sometimes returns empty on first query, sinkhole IP on second
                 if (!stdout.trim()) {
-                    await wait(500);
+                    await wait(2000);
                     const retry = await execPromise(dnsCommand);
                     stdout = retry.stdout;
                     stderr = retry.stderr;
