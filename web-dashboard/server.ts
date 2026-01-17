@@ -1214,22 +1214,65 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
 
     const results = [];
 
+    // Helper function to wait
+    const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
     for (const test of tests) {
         try {
             // exec already imported at top
             // util.promisify already imported as promisify
             const execPromise = promisify(exec);
 
-            const dnsCommand = `nslookup ${test.domain}`;
+            // Use getent instead of nslookup - more reliable in containers
+            const dnsCommand = `getent ahosts ${test.domain}`;
 
             try {
-                const { stdout } = await execPromise(dnsCommand);
-                const resolved = !stdout.includes('NXDOMAIN') && !stdout.includes('server can\'t find');
+                // First attempt
+                let { stdout, stderr } = await execPromise(dnsCommand);
+
+                // If first attempt returns empty, retry after 500ms
+                // Palo Alto DNS Security sometimes returns empty on first query, sinkhole IP on second
+                if (!stdout.trim()) {
+                    await wait(500);
+                    const retry = await execPromise(dnsCommand);
+                    stdout = retry.stdout;
+                    stderr = retry.stderr;
+                }
+
+                // Known sinkhole IPs (Palo Alto Networks and common sinkhole addresses)
+                const sinkholeIPs = [
+                    '198.135.184.22',  // Current Palo Alto sinkhole
+                    '72.5.65.111',     // Legacy Palo Alto sinkhole
+                    '::1',             // IPv6 sinkhole (loopback)
+                    '0.0.0.0',         // Common sinkhole
+                    '127.0.0.1'        // Loopback sinkhole
+                ];
+
+                // Check for sinkhole IP in response
+                const isSinkholed = sinkholeIPs.some(ip => stdout.includes(ip));
+
+                // Check for blocked (no response or empty output after retry)
+                const isBlocked = !stdout.trim() || stdout.includes('Name or service not known');
+
+                // Determine status: resolved, sinkholed, or blocked
+                let status: string;
+                let resolved: boolean;
+
+                if (isSinkholed) {
+                    status = 'sinkholed';  // Malicious domain detected, sinkhole IP returned
+                    resolved = false;      // Not a legitimate resolution
+                } else if (isBlocked) {
+                    status = 'blocked';    // Query blocked, no response
+                    resolved = false;
+                } else {
+                    status = 'resolved';   // Normal resolution
+                    resolved = true;
+                }
 
                 const result = {
                     success: true,
                     resolved,
-                    status: resolved ? 'resolved' : 'blocked',
+                    status,
                     domain: test.domain,
                     testName: test.testName
                 };
