@@ -34,6 +34,19 @@ const USERS_FILE = path.join(APP_CONFIG.configDir, 'users.json');
 app.use(cors());
 app.use(express.json());
 
+// Global request logger - logs ALL incoming requests
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.path}`, {
+        body: req.body,
+        query: req.query,
+        headers: {
+            'content-type': req.headers['content-type'],
+            'authorization': req.headers['authorization'] ? 'Bearer ***' : 'none'
+        }
+    });
+    next();
+});
+
 // --- Authentication Middleware ---
 const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
