@@ -1111,6 +1111,9 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
         try {
             const { stdout, stderr } = await execPromise(dnsCommand);
 
+            console.log('[DEBUG] DNS command output:', stdout);
+            console.log('[DEBUG] DNS command stderr:', stderr || '(empty)');
+
             // Known sinkhole IPs (Palo Alto Networks and common sinkhole addresses)
             const sinkholeIPs = [
                 '198.135.184.22',  // Current Palo Alto sinkhole
@@ -1135,6 +1138,7 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 resolved = false;      // Not a legitimate resolution
             } else if (isBlocked) {
                 status = 'blocked';    // Query blocked, no response
+                resolved = false;
             } else {
                 status = 'resolved';   // Normal resolution
                 resolved = true;

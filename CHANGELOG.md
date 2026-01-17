@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-beta.5] - 2026-01-17 (In Development)
+
+### Added - Enhanced DNS Debug Logging
+- **DNS Command Output Logging**: Added detailed debug logs for DNS security tests
+  - Logs the exact `getent ahosts` command being executed
+  - Logs the raw stdout output from the command
+  - Logs stderr output (if any)
+  - Logs the sinkhole detection logic results (isSinkholed, isBlocked)
+  - Helps troubleshoot why sinkhole detection may not be working
+
+### Planned for beta.5
+- **Progress Indicators**: For long-running tests (24 DNS / 67 URL categories)
+- **Internet Connectivity Validation**: Pre-test connectivity checks
+- **Speed Test Integration**: Network speed validation before tests
+
 ## [1.1.0] - 2026-01-16
 
 ### Added - Security Testing Feature
