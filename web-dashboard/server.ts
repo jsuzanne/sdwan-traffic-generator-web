@@ -1121,11 +1121,27 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
         const dnsCommand = `getent ahosts ${domain}`;
         console.log('[DEBUG] Executing DNS test:', dnsCommand);
 
-        try {
-            const { stdout, stderr } = await execPromise(dnsCommand);
+        // Helper function to wait
+        const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-            console.log('[DEBUG] DNS command output:', stdout);
-            console.log('[DEBUG] DNS command stderr:', stderr || '(empty)');
+        try {
+            // First attempt
+            let { stdout, stderr } = await execPromise(dnsCommand);
+
+            console.log('[DEBUG] DNS command output (attempt 1):', stdout || '(empty)');
+            console.log('[DEBUG] DNS command stderr (attempt 1):', stderr || '(empty)');
+
+            // If first attempt returns empty, retry after 500ms
+            // Palo Alto DNS Security sometimes returns empty on first query, sinkhole IP on second
+            if (!stdout.trim()) {
+                console.log('[DEBUG] First query returned empty, retrying after 500ms...');
+                await wait(500);
+                const retry = await execPromise(dnsCommand);
+                stdout = retry.stdout;
+                stderr = retry.stderr;
+                console.log('[DEBUG] DNS command output (attempt 2):', stdout || '(empty)');
+                console.log('[DEBUG] DNS command stderr (attempt 2):', stderr || '(empty)');
+            }
 
             // Known sinkhole IPs (Palo Alto Networks and common sinkhole addresses)
             const sinkholeIPs = [
@@ -1139,7 +1155,7 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
             // Check for sinkhole IP in response
             const isSinkholed = sinkholeIPs.some(ip => stdout.includes(ip));
 
-            // Check for blocked (no response or empty output)
+            // Check for blocked (no response or empty output after retry)
             const isBlocked = !stdout.trim() || stdout.includes('Name or service not known');
 
             // Determine status: resolved, sinkholed, or blocked
