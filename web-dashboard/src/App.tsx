@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Config from './Config';
 import Login from './Login';
 import Statistics from './Statistics';
+import Security from './Security';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -24,7 +25,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security'>('dashboard');
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
@@ -385,6 +386,15 @@ export default function App() {
         >
           <Settings size={18} /> Configuration
         </button>
+        <button
+          onClick={() => setView('security')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
+            view === 'security' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Shield size={18} /> Security
+        </button>
       </div>
 
       {view === 'dashboard' ? (
@@ -473,6 +483,8 @@ export default function App() {
         </>
       ) : view === 'statistics' ? (
         <Statistics stats={stats} />
+      ) : view === 'security' ? (
+        <Security token={token!} />
       ) : (
         <Config token={token!} />
       )}
