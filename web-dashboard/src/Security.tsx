@@ -398,11 +398,11 @@ export default function Security({ token }: SecurityProps) {
 
                 {/* Internet Connectivity Status */}
                 {connectivity && (
-                    <div className={`mt-3 rounded-lg p-3 flex items-start gap-2 ${connectivity.status === 'online'
+                    <div className={`mt-3 rounded-lg p-3 flex items-start gap-2 ${connectivity.connected
                         ? 'bg-blue-500/10 border border-blue-500/30'
                         : 'bg-orange-500/10 border border-orange-500/30'
                         }`}>
-                        {connectivity.status === 'online' ? (
+                        {connectivity.connected ? (
                             <>
                                 <CheckCircle size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
                                 <div className="text-blue-300 text-sm">
@@ -414,7 +414,7 @@ export default function Security({ token }: SecurityProps) {
                             <>
                                 <AlertTriangle size={18} className="text-orange-400 mt-0.5 flex-shrink-0" />
                                 <div className="text-orange-300 text-sm">
-                                    <strong>Internet Issues</strong> - {connectivity.details?.filter((d: any) => d.status === 'offline').length || 0} endpoint(s) unreachable. Tests may fail.
+                                    <strong>Internet Issues</strong> - {connectivity.results?.filter((d: any) => d.status !== 'connected').length || 0} endpoint(s) unreachable. Tests may fail.
                                 </div>
                             </>
                         )}
