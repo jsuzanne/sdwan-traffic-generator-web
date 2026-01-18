@@ -41,6 +41,36 @@ const getNextTestId = (): number => {
     }
 };
 
+// Test Logger - Dedicated log file for test execution with rotation
+const TEST_LOG_FILE = path.join(APP_CONFIG.logDir, 'test-execution.log');
+const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
+
+const logTest = (message: string) => {
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] ${message}\n`;
+
+    try {
+        // Check file size and rotate if needed
+        if (fs.existsSync(TEST_LOG_FILE)) {
+            const stats = fs.statSync(TEST_LOG_FILE);
+            if (stats.size > MAX_LOG_SIZE) {
+                const rotatedFile = `${TEST_LOG_FILE}.${Date.now()}`;
+                fs.renameSync(TEST_LOG_FILE, rotatedFile);
+                console.log(`[TEST-LOG] Rotated log file to: ${rotatedFile}`);
+            }
+        }
+
+        // Append to log file
+        fs.appendFileSync(TEST_LOG_FILE, logLine);
+
+        // Also log to console
+        console.log(message);
+    } catch (e) {
+        console.error('Error writing to test log:', e);
+        console.log(message); // Fallback to console only
+    }
+};
+
 
 const app = express();
 const port = parseInt(process.env.PORT || '3001');
@@ -1190,10 +1220,10 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
 
     const testId = getNextTestId();
 
-    console.log(`[URL-TEST-${testId}] URL filtering test request:`, { url, category });
+    logTest(`[URL-TEST-${testId}] URL filtering test request:`, { url, category });
 
     if (!url) {
-        console.log(`[URL-TEST-${testId}] Test failed: No URL provided`);
+        logTest(`[URL-TEST-${testId}] Test failed: No URL provided`);
         return res.status(400).json({ error: 'URL is required' });
     }
 
@@ -1203,12 +1233,12 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
         const execPromise = promisify(exec);
 
         const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${url}'`;
-        console.log(`[URL-TEST-${testId}] Executing URL test:`, curlCommand);
+        logTest(`[URL-TEST-${testId}] Executing URL test:`, curlCommand);
 
         try {
             const { stdout } = await execPromise(curlCommand);
             const httpCode = parseInt(stdout);
-            console.log(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
+            logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
 
             const result = {
                 success: httpCode >= 200 && httpCode < 400,
@@ -1218,7 +1248,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 category
             };
 
-            console.log(`[URL-TEST-${testId}] Final status: ${result.status} (HTTP ${httpCode})`);
+            logTest(`[URL-TEST-${testId}] Final status: ${result.status} (HTTP ${httpCode})`);
             addTestResult('url_filtering', category || url, result, testId);
             res.json(result);
         } catch (curlError: any) {
@@ -1232,7 +1262,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 error: curlError.message
             };
 
-            console.log(`[URL-TEST-${testId}] Final status: blocked (curl error: ${curlError.message})`);
+            logTest(`[URL-TEST-${testId}] Final status: blocked (curl error: ${curlError.message})`);
             addTestResult('url_filtering', category || url, result, testId);
             res.json(result);
         }
@@ -1306,10 +1336,10 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
     // Generate unique test ID
     const testId = getNextTestId();
 
-    console.log(`[DNS-TEST-${testId}] DNS security test request:`, { domain, testName });
+    logTest(`[DNS-TEST-${testId}] DNS security test request:`, { domain, testName });
 
     if (!domain) {
-        console.log(`[DNS-TEST-${testId}] Test failed: No domain provided`);
+        logTest(`[DNS-TEST-${testId}] Test failed: No domain provided`);
         return res.status(400).json({ error: 'Domain is required' });
     }
 
@@ -1320,7 +1350,7 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
 
         // Use getent instead of nslookup - more reliable in containers
         const dnsCommand = `getent ahosts ${domain}`;
-        console.log(`[DNS-TEST-${testId}] Executing DNS test:`, dnsCommand);
+        logTest(`[DNS-TEST-${testId}] Executing DNS test:`, dnsCommand);
 
         // Helper function to wait
         const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -1383,7 +1413,7 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 output: stdout
             };
 
-            console.log(`[DNS-TEST-${testId}] Test result:`, { domain, status, resolved, isSinkholed, isBlocked });
+            logTest(`[DNS-TEST-${testId}] Test result:`, { domain, status, resolved, isSinkholed, isBlocked });
             addTestResult('dns_security', testName || domain, result, testId);
             res.json(result);
         } catch (dnsError: any) {
@@ -1400,7 +1430,7 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 error: dnsError.message
             };
 
-            console.log(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
+            logTest(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
 
             addTestResult('dns_security', testName || domain, result, testId);
             res.json(result);
@@ -1424,13 +1454,13 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
     // Helper function to wait
     const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    console.log(`[DNS-BATCH-${batchId}] Starting batch test with ${tests.length} domains`);
+    logTest(`[DNS-BATCH-${batchId}] Starting batch test with ${tests.length} domains`);
 
     for (let i = 0; i < tests.length; i++) {
         const test = tests[i];
         const testId = getNextTestId(); // Generate unique ID for each test
 
-        console.log(`[DNS-BATCH-${batchId}][DNS-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.domain} (${test.testName})`);
+        logTest(`[DNS-BATCH-${batchId}][DNS-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.domain} (${test.testName})`);
 
         try {
             // exec already imported at top
@@ -1444,17 +1474,17 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                 // First attempt
                 let { stdout, stderr } = await execPromise(dnsCommand);
 
-                console.log(`[DNS-TEST-${testId}] First query result: ${stdout.trim() || '(empty)'}`);
+                logTest(`[DNS-TEST-${testId}] First query result: ${stdout.trim() || '(empty)'}`);
 
                 // If first attempt returns empty, retry after 2 seconds
                 // Palo Alto DNS Security sometimes returns empty on first query, sinkhole IP on second
                 if (!stdout.trim()) {
-                    console.log(`[DNS-TEST-${testId}] First query empty, waiting 2 seconds before retry...`);
+                    logTest(`[DNS-TEST-${testId}] First query empty, waiting 2 seconds before retry...`);
                     await wait(2000);
                     const retry = await execPromise(dnsCommand);
                     stdout = retry.stdout;
                     stderr = retry.stderr;
-                    console.log(`[DNS-TEST-${testId}] Retry query result: ${stdout.trim() || '(empty)'}`);
+                    logTest(`[DNS-TEST-${testId}] Retry query result: ${stdout.trim() || '(empty)'}`);
                 }
 
                 // Known sinkhole IPs (Palo Alto Networks and common sinkhole addresses)
@@ -1487,7 +1517,7 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                     resolved = true;
                 }
 
-                console.log(`[DNS-TEST-${testId}] Final status: ${status} (isSinkholed=${isSinkholed}, isBlocked=${isBlocked})`);
+                logTest(`[DNS-TEST-${testId}] Final status: ${status} (isSinkholed=${isSinkholed}, isBlocked=${isBlocked})`);
 
                 const result = {
                     success: true,
@@ -1513,7 +1543,7 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                     error: dnsError.message
                 };
 
-                console.log(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
+                logTest(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
 
                 results.push(result);
                 addTestResult('dns_security', test.testName, result, testId);
@@ -1538,10 +1568,10 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
 
     const testId = getNextTestId();
 
-    console.log(`[THREAT-TEST-${testId}] EICAR test request received:`, { endpoint });
+    logTest(`[THREAT-TEST-${testId}] EICAR test request received:`, { endpoint });
 
     if (!endpoint) {
-        console.log(`[THREAT-TEST-${testId}] Test failed: No endpoint provided`);
+        logTest(`[THREAT-TEST-${testId}] Test failed: No endpoint provided`);
         return res.status(400).json({ error: 'Endpoint URL is required' });
     }
 
@@ -1565,11 +1595,11 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
 
         for (const ep of endpointsArray) {
             const curlCommand = `curl -fsS --max-time 20 ${ep} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt`;
-            console.log(`[THREAT-TEST-${testId}] Executing EICAR test:`, curlCommand);
+            logTest(`[THREAT-TEST-${testId}] Executing EICAR test:`, curlCommand);
 
             try {
                 await execPromise(curlCommand);
-                console.log(`[THREAT-TEST-${testId}] EICAR file downloaded successfully`);
+                logTest(`[THREAT-TEST-${testId}] EICAR file downloaded successfully`);
 
                 const result = {
                     success: true,
@@ -1578,7 +1608,7 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
                     message: 'EICAR file downloaded successfully (not blocked by IPS)'
                 };
 
-                console.log(`[THREAT-TEST-${testId}] EICAR test result: ALLOWED`, { endpoint });
+                logTest(`[THREAT-TEST-${testId}] EICAR test result: ALLOWED`, { endpoint });
                 addTestResult('threat_prevention', `EICAR Test (${endpoint})`, result, testId);
                 results.push(result);
             } catch (curlError: any) {
@@ -1591,7 +1621,7 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
                     error: curlError.message
                 };
 
-                console.log(`[THREAT-TEST-${testId}] EICAR test result: BLOCKED`, { endpoint, error: curlError.message });
+                logTest(`[THREAT-TEST-${testId}] EICAR test result: BLOCKED`, { endpoint, error: curlError.message });
                 addTestResult('threat_prevention', `EICAR Test (${endpoint})`, result, testId);
                 results.push(result);
             }
