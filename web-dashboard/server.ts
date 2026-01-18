@@ -564,9 +564,14 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
         if (key.startsWith('CONNECTIVITY_HTTP_')) {
             const value = process.env[key];
             if (value) {
-                const [name, url] = value.split(':');
-                if (name && url) {
-                    testEndpoints.push({ name, type: 'http', target: `${url}`, timeout: 5000 });
+                // Split only on first colon to handle http:// and https://
+                const colonIndex = value.indexOf(':');
+                if (colonIndex > 0) {
+                    const name = value.substring(0, colonIndex);
+                    const url = value.substring(colonIndex + 1);
+                    if (name && url) {
+                        testEndpoints.push({ name, type: 'http', target: url, timeout: 5000 });
+                    }
                 }
             }
         }
