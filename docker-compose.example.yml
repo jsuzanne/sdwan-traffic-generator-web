@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  sdwan-web-ui:
+    image: jsuzanne/sdwan-web-ui:latest
+    container_name: sdwan-web-ui
+    ports:
+      - "8080:8080"
+    environment:
+      # JWT Secret for authentication
+      - JWT_SECRET=change-this-secret-key-in-production
+
+      # Debug mode (optional)
+      - DEBUG_API=false
+
+      # === Custom Connectivity Test Endpoints ===
+      # Format: Name:Target
+      # These endpoints will be tested on startup and displayed in the UI
+
+      # HTTP/HTTPS Endpoints
+      - CONNECTIVITY_HTTP_1=DC-Application:https://app.datacenter.local
+      - CONNECTIVITY_HTTP_2=Backup-App:https://backup.datacenter.local:8443
+      # - CONNECTIVITY_HTTP_3=Custom-API:https://api.company.com
+
+      # ICMP Ping Endpoints (IP addresses)
+      - CONNECTIVITY_PING_1=HQ-Firewall:10.0.0.1
+      - CONNECTIVITY_PING_2=Branch-Router:192.168.1.1
+      - CONNECTIVITY_PING_3=Backup-Gateway:192.168.2.1
+      # - CONNECTIVITY_PING_4=Remote-Site:172.16.0.1
+
+      # TCP Port Tests (IP:Port)
+      - CONNECTIVITY_TCP_1=DC-SSH:10.0.0.100:22
+      - CONNECTIVITY_TCP_2=DC-RDP:10.0.0.100:3389
+      # - CONNECTIVITY_TCP_3=DB-Server:10.0.0.200:5432
+      # - CONNECTIVITY_TCP_4=Web-Server:10.0.0.150:443
+
+    volumes:
+      # Persistent storage for configuration and logs
+      - ./config:/app/config
+      - ./logs:/var/log/sdwan-traffic-gen
+    restart: unless-stopped
+    networks:
+      - sdwan-network
+
+networks:
+  sdwan-network:
+    driver: bridge
