@@ -72,6 +72,85 @@ const logTest = (message: string) => {
 };
 
 
+// Platform Detection & DNS Command Availability
+const PLATFORM = os.platform(); // 'linux', 'darwin', 'win32'
+const availableCommands: { [key: string]: boolean } = {};
+
+// Check if a command is available
+const checkCommand = async (command: string): Promise<boolean> => {
+    try {
+        const execPromise = promisify(exec);
+        await execPromise(command);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+// Initialize available commands on startup
+const initializeCommands = async () => {
+    console.log(`[PLATFORM] Detected platform: ${PLATFORM}`);
+
+    // Check DNS command availability
+    availableCommands.getent = await checkCommand('getent --version 2>/dev/null');
+    availableCommands.dscacheutil = await checkCommand('dscacheutil -h 2>/dev/null');
+    availableCommands.dig = await checkCommand('dig -v 2>/dev/null');
+    availableCommands.nslookup = await checkCommand('nslookup -version 2>/dev/null || nslookup localhost 2>/dev/null');
+    availableCommands.curl = await checkCommand('curl --version 2>/dev/null');
+
+    console.log('[PLATFORM] Available commands:', availableCommands);
+};
+
+// Get the best DNS command for the current platform
+const getDnsCommand = (domain: string): { command: string; type: string } => {
+    if (PLATFORM === 'linux') {
+        if (availableCommands.getent) return { command: `getent ahosts ${domain}`, type: 'getent' };
+        if (availableCommands.dig) return { command: `dig +short ${domain}`, type: 'dig' };
+        return { command: `nslookup ${domain}`, type: 'nslookup' };
+    }
+
+    if (PLATFORM === 'darwin') {
+        if (availableCommands.dscacheutil) return { command: `dscacheutil -q host -a name ${domain}`, type: 'dscacheutil' };
+        if (availableCommands.dig) return { command: `dig +short ${domain}`, type: 'dig' };
+        return { command: `nslookup ${domain}`, type: 'nslookup' };
+    }
+
+    // Windows or unknown
+    return { command: `nslookup ${domain}`, type: 'nslookup' };
+};
+
+// Parse DNS command output based on command type
+const parseDnsOutput = (output: string, type: string): string | null => {
+    if (!output || output.trim() === '') return null;
+
+    if (type === 'getent') {
+        // Format: "198.135.184.22  STREAM malware.wicar.org"
+        const match = output.match(/^(\d+\.\d+\.\d+\.\d+)/m);
+        return match ? match[1] : null;
+    }
+
+    if (type === 'dscacheutil') {
+        // Format: "ip_address: 198.135.184.22"
+        const match = output.match(/ip_address:\s*(\d+\.\d+\.\d+\.\d+)/);
+        return match ? match[1] : null;
+    }
+
+    if (type === 'dig') {
+        // Format: "198.135.184.22" (just the IP)
+        const match = output.match(/^(\d+\.\d+\.\d+\.\d+)/m);
+        return match ? match[1] : null;
+    }
+
+    if (type === 'nslookup') {
+        // Format: "Address: 198.135.184.22" or "Addresses:  198.135.184.22"
+        const match = output.match(/Address(?:es)?:\s*(\d+\.\d+\.\d+\.\d+)/);
+        return match ? match[1] : null;
+    }
+
+    return null;
+};
+
+
 const app = express();
 const port = parseInt(process.env.PORT || '3001');
 
@@ -764,32 +843,28 @@ app.get('/api/system/health', authenticateToken, async (req, res) => {
     console.log('[SYSTEM] Running health check...');
 
     const execPromise = promisify(exec);
+
+    // Get selected DNS command for a test domain
+    const dnsCmd = getDnsCommand('test.example.com');
+
     const health = {
-        platform: os.platform(),
+        platform: PLATFORM,
         ready: true,
-        commands: {} as any,
+        commands: {
+            dns: {
+                available: true,
+                selected: dnsCmd.type,
+                command: dnsCmd.command.replace('test.example.com', '<domain>'),
+                purpose: 'DNS Security Tests',
+                fallback_chain: PLATFORM === 'darwin'
+                    ? ['dscacheutil', 'dig', 'nslookup']
+                    : PLATFORM === 'linux'
+                        ? ['getent', 'dig', 'nslookup']
+                        : ['nslookup']
+            }
+        } as any,
         timestamp: Date.now()
     };
-
-    // Check getent (for DNS tests)
-    try {
-        await execPromise('which getent');
-        health.commands.getent = {
-            available: true,
-            command: 'getent ahosts',
-            purpose: 'DNS Security Tests'
-        };
-        console.log('[SYSTEM] ✓ getent available');
-    } catch (error) {
-        health.commands.getent = {
-            available: false,
-            command: 'getent ahosts',
-            purpose: 'DNS Security Tests',
-            error: 'Command not found'
-        };
-        health.ready = false;
-        console.log('[SYSTEM] ✗ getent not available');
-    }
 
     // Check curl (for URL/Threat tests)
     try {
@@ -1461,8 +1536,8 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
         // util.promisify already imported as promisify
         const execPromise = promisify(exec);
 
-        // Use getent instead of nslookup - more reliable in containers
-        const dnsCommand = `getent ahosts ${domain}`;
+        // Get platform-specific DNS command
+        const { command: dnsCommand, type: commandType } = getDnsCommand(domain);
         logTest(`[DNS-TEST-${testId}] Executing DNS test for ${domain} (${testName || 'Custom Test'}): ${dnsCommand}`);
 
         // Helper function to wait
@@ -1472,19 +1547,19 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
             // First attempt
             let { stdout, stderr } = await execPromise(dnsCommand);
 
-            console.log('[DEBUG] DNS command output (attempt 1):', stdout || '(empty)');
-            console.log('[DEBUG] DNS command stderr (attempt 1):', stderr || '(empty)');
+            logTest(`[DNS-TEST-${testId}] DNS command output (attempt 1):`, stdout || '(empty)');
 
-            // If first attempt returns empty, retry after 500ms
-            // Palo Alto DNS Security sometimes returns empty on first query, sinkhole IP on second
-            if (!stdout.trim()) {
-                console.log('[DEBUG] First query returned empty, retrying after 500ms...');
+            // Parse output based on command type
+            let resolvedIp = parseDnsOutput(stdout, commandType);
+
+            // If no IP found, try a second time (DNS can be flaky)
+            if (!resolvedIp) {
+                logTest(`[DNS-TEST-${testId}] No IP in first attempt, retrying after 500ms...`);
                 await wait(500);
-                const retry = await execPromise(dnsCommand);
-                stdout = retry.stdout;
-                stderr = retry.stderr;
-                console.log('[DEBUG] DNS command output (attempt 2):', stdout || '(empty)');
-                console.log('[DEBUG] DNS command stderr (attempt 2):', stderr || '(empty)');
+                const result2 = await execPromise(dnsCommand);
+                stdout = result2.stdout;
+                logTest(`[DNS-TEST-${testId}] DNS command output (attempt 2):`, stdout || '(empty)');
+                resolvedIp = parseDnsOutput(stdout, commandType);
             }
 
             // Known sinkhole IPs (Palo Alto Networks and common sinkhole addresses)
@@ -1496,25 +1571,25 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 '127.0.0.1'        // Loopback sinkhole
             ];
 
-            // Check for sinkhole IP in response
-            const isSinkholed = sinkholeIPs.some(ip => stdout.includes(ip));
-
-            // Check for blocked (no response or empty output after retry)
-            const isBlocked = !stdout.trim() || stdout.includes('Name or service not known');
-
-            // Determine status: resolved, sinkholed, or blocked
+            // Determine status based on parsed IP
             let status: string;
             let resolved: boolean;
 
-            if (isSinkholed) {
-                status = 'sinkholed';  // Malicious domain detected, sinkhole IP returned
-                resolved = false;      // Not a legitimate resolution
-            } else if (isBlocked) {
-                status = 'blocked';    // Query blocked, no response
+            if (!resolvedIp) {
+                // No IP found - domain is blocked
+                status = 'blocked';
                 resolved = false;
+                logTest(`[DNS-TEST-${testId}] Status: BLOCKED (no IP resolved)`);
+            } else if (sinkholeIPs.includes(resolvedIp)) {
+                // Sinkhole IP detected
+                status = 'sinkholed';
+                resolved = false;
+                logTest(`[DNS-TEST-${testId}] Status: SINKHOLED (IP: ${resolvedIp})`);
             } else {
-                status = 'resolved';   // Normal resolution
+                // Normal resolution
+                status = 'resolved';
                 resolved = true;
+                logTest(`[DNS-TEST-${testId}] Status: RESOLVED (IP: ${resolvedIp})`);
             }
 
             const result = {
@@ -1759,7 +1834,10 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-app.listen(port, () => {
+app.listen(port, async () => {
+    // Initialize platform-specific commands
+    await initializeCommands();
+
     // Log version on startup
     try {
         const versionFile = path.join(__dirname, 'VERSION');
