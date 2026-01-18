@@ -552,46 +552,153 @@ app.get('/api/config/apps', extractUserMiddleware, (req, res) => { // Use token 
 app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
     console.log('[CONNECTIVITY] Starting internet connectivity test...');
 
+    // Default endpoints (always tested)
     const testEndpoints = [
-        { name: 'Cloudflare DNS', url: 'https://1.1.1.1', timeout: 5000 },
-        { name: 'Google DNS', url: 'https://8.8.8.8', timeout: 5000 },
-        { name: 'Google', url: 'https://www.google.com', timeout: 5000 }
+        { name: 'Cloudflare DNS', type: 'http', target: 'https://1.1.1.1', timeout: 5000 },
+        { name: 'Google DNS', type: 'http', target: 'https://8.8.8.8', timeout: 5000 },
+        { name: 'Google', type: 'http', target: 'https://www.google.com', timeout: 5000 }
     ];
+
+    // Add custom HTTP endpoints from ENV
+    Object.keys(process.env).forEach(key => {
+        if (key.startsWith('CONNECTIVITY_HTTP_')) {
+            const value = process.env[key];
+            if (value) {
+                const [name, url] = value.split(':');
+                if (name && url) {
+                    testEndpoints.push({ name, type: 'http', target: `${url}`, timeout: 5000 });
+                }
+            }
+        }
+    });
+
+    // Add custom PING endpoints from ENV
+    Object.keys(process.env).forEach(key => {
+        if (key.startsWith('CONNECTIVITY_PING_')) {
+            const value = process.env[key];
+            if (value) {
+                const [name, ip] = value.split(':');
+                if (name && ip) {
+                    testEndpoints.push({ name, type: 'ping', target: ip, timeout: 2000 });
+                }
+            }
+        }
+    });
+
+    // Add custom TCP endpoints from ENV
+    Object.keys(process.env).forEach(key => {
+        if (key.startsWith('CONNECTIVITY_TCP_')) {
+            const value = process.env[key];
+            if (value) {
+                const parts = value.split(':');
+                if (parts.length === 3) {
+                    const [name, ip, port] = parts;
+                    testEndpoints.push({ name, type: 'tcp', target: `${ip}:${port}`, timeout: 3000 });
+                }
+            }
+        }
+    });
+
+    console.log(`[CONNECTIVITY] Testing ${testEndpoints.length} endpoints (${testEndpoints.filter(e => e.type === 'http').length} HTTP, ${testEndpoints.filter(e => e.type === 'ping').length} PING, ${testEndpoints.filter(e => e.type === 'tcp').length} TCP)`);
 
     const results = [];
     let connected = false;
     let avgLatency = 0;
 
     for (const endpoint of testEndpoints) {
-        console.log(`[CONNECTIVITY] Testing ${endpoint.name} (${endpoint.url})...`);
+        console.log(`[CONNECTIVITY] Testing ${endpoint.name} [${endpoint.type.toUpperCase()}] (${endpoint.target})...`);
         const startTime = Date.now();
+
         try {
-            const response = await fetch(endpoint.url, {
-                method: 'HEAD',
-                signal: AbortSignal.timeout(endpoint.timeout)
-            });
-
-            const latency = Date.now() - startTime;
-
-            if (response.ok || response.status < 500) {
-                results.push({
-                    name: endpoint.name,
-                    status: 'connected',
-                    latency,
-                    statusCode: response.status
+            if (endpoint.type === 'http') {
+                // HTTP/HTTPS test
+                const response = await fetch(endpoint.target, {
+                    method: 'HEAD',
+                    signal: AbortSignal.timeout(endpoint.timeout)
                 });
-                connected = true;
-                avgLatency += latency;
-            } else {
-                results.push({
-                    name: endpoint.name,
-                    status: 'error',
-                    error: `HTTP ${response.status}`
-                });
+
+                const latency = Date.now() - startTime;
+
+                if (response.ok || response.status < 500) {
+                    results.push({
+                        name: endpoint.name,
+                        type: endpoint.type,
+                        status: 'connected',
+                        latency,
+                        details: `HTTP ${response.status}`
+                    });
+                    connected = true;
+                    avgLatency += latency;
+                } else {
+                    results.push({
+                        name: endpoint.name,
+                        type: endpoint.type,
+                        status: 'error',
+                        error: `HTTP ${response.status}`
+                    });
+                }
+            } else if (endpoint.type === 'ping') {
+                // ICMP Ping test
+                const execPromise = promisify(exec);
+                const pingCommand = `ping -c 1 -W ${Math.floor(endpoint.timeout / 1000)} ${endpoint.target}`;
+
+                try {
+                    const { stdout } = await execPromise(pingCommand);
+                    const latency = Date.now() - startTime;
+
+                    // Extract time from ping output (works on Linux/Mac)
+                    const timeMatch = stdout.match(/time[=<](\d+\.?\d*)/);
+                    const pingTime = timeMatch ? parseFloat(timeMatch[1]) : latency;
+
+                    results.push({
+                        name: endpoint.name,
+                        type: endpoint.type,
+                        status: 'connected',
+                        latency: Math.round(pingTime),
+                        details: 'ICMP Echo Reply'
+                    });
+                    connected = true;
+                    avgLatency += pingTime;
+                } catch (pingError: any) {
+                    results.push({
+                        name: endpoint.name,
+                        type: endpoint.type,
+                        status: 'failed',
+                        error: 'No response'
+                    });
+                }
+            } else if (endpoint.type === 'tcp') {
+                // TCP Port test
+                const execPromise = promisify(exec);
+                const [ip, port] = endpoint.target.split(':');
+                const ncCommand = `nc -zv -w ${Math.floor(endpoint.timeout / 1000)} ${ip} ${port} 2>&1`;
+
+                try {
+                    await execPromise(ncCommand);
+                    const latency = Date.now() - startTime;
+
+                    results.push({
+                        name: endpoint.name,
+                        type: endpoint.type,
+                        status: 'connected',
+                        latency,
+                        details: `TCP Port ${port}`
+                    });
+                    connected = true;
+                    avgLatency += latency;
+                } catch (tcpError: any) {
+                    results.push({
+                        name: endpoint.name,
+                        type: endpoint.type,
+                        status: 'failed',
+                        error: `Port ${port} closed`
+                    });
+                }
             }
         } catch (error: any) {
             results.push({
                 name: endpoint.name,
+                type: endpoint.type,
                 status: 'failed',
                 error: error.message
             });
@@ -603,7 +710,7 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
         avgLatency = Math.round(avgLatency / successfulTests);
     }
 
-    console.log(`[CONNECTIVITY] Test complete: ${connected ? 'Connected' : 'No connection'}, avg latency: ${avgLatency}ms, successful: ${successfulTests}/3`);
+    console.log(`[CONNECTIVITY] Test complete: ${connected ? 'Connected' : 'No connection'}, avg latency: ${avgLatency}ms, successful: ${successfulTests}/${testEndpoints.length}`);
 
     res.json({
         connected,

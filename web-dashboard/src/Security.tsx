@@ -396,28 +396,81 @@ export default function Security({ token }: SecurityProps) {
                     </div>
                 )}
 
+
                 {/* Internet Connectivity Status */}
                 {connectivity && (
-                    <div className={`mt-3 rounded-lg p-3 flex items-start gap-2 ${connectivity.connected
+                    <div className={`mt-3 rounded-lg p-3 ${connectivity.connected
                         ? 'bg-blue-500/10 border border-blue-500/30'
                         : 'bg-orange-500/10 border border-orange-500/30'
                         }`}>
-                        {connectivity.connected ? (
-                            <>
-                                <CheckCircle size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                                <div className="text-blue-300 text-sm">
-                                    <strong>Internet Connected</strong> - All endpoints reachable
-                                    {connectivity.latency && ` (avg latency: ${Math.round(connectivity.latency)}ms)`}
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <AlertTriangle size={18} className="text-orange-400 mt-0.5 flex-shrink-0" />
-                                <div className="text-orange-300 text-sm">
-                                    <strong>Internet Issues</strong> - {connectivity.results?.filter((d: any) => d.status !== 'connected').length || 0} endpoint(s) unreachable. Tests may fail.
-                                </div>
-                            </>
-                        )}
+                        <div className="flex items-start gap-2">
+                            {connectivity.connected ? (
+                                <>
+                                    <CheckCircle size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <div className="text-blue-300 text-sm">
+                                            <strong>Internet Connected</strong> - {connectivity.results?.filter((d: any) => d.status === 'connected').length || 0}/{connectivity.results?.length || 0} endpoints reachable
+                                            {connectivity.latency && ` (avg: ${Math.round(connectivity.latency)}ms)`}
+                                        </div>
+                                        {connectivity.results && connectivity.results.length > 0 && (
+                                            <div className="mt-2 space-y-1">
+                                                {connectivity.results.map((result: any, idx: number) => (
+                                                    <div key={idx} className="flex items-center gap-2 text-xs">
+                                                        {result.status === 'connected' ? (
+                                                            <CheckCircle size={12} className="text-green-400 flex-shrink-0" />
+                                                        ) : (
+                                                            <XCircle size={12} className="text-red-400 flex-shrink-0" />
+                                                        )}
+                                                        <span className="text-slate-300 font-medium">{result.name}</span>
+                                                        <span className="text-slate-500 uppercase text-[10px] px-1.5 py-0.5 bg-slate-800 rounded">
+                                                            {result.type || 'http'}
+                                                        </span>
+                                                        {result.status === 'connected' && result.latency && (
+                                                            <span className="text-slate-400 ml-auto">{Math.round(result.latency)}ms</span>
+                                                        )}
+                                                        {result.status !== 'connected' && result.error && (
+                                                            <span className="text-red-400 ml-auto text-[10px]">{result.error}</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <AlertTriangle size={18} className="text-orange-400 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <div className="text-orange-300 text-sm">
+                                            <strong>Internet Issues</strong> - {connectivity.results?.filter((d: any) => d.status !== 'connected').length || 0} endpoint(s) unreachable. Tests may fail.
+                                        </div>
+                                        {connectivity.results && connectivity.results.length > 0 && (
+                                            <div className="mt-2 space-y-1">
+                                                {connectivity.results.map((result: any, idx: number) => (
+                                                    <div key={idx} className="flex items-center gap-2 text-xs">
+                                                        {result.status === 'connected' ? (
+                                                            <CheckCircle size={12} className="text-green-400 flex-shrink-0" />
+                                                        ) : (
+                                                            <XCircle size={12} className="text-red-400 flex-shrink-0" />
+                                                        )}
+                                                        <span className="text-slate-300 font-medium">{result.name}</span>
+                                                        <span className="text-slate-500 uppercase text-[10px] px-1.5 py-0.5 bg-slate-800 rounded">
+                                                            {result.type || 'http'}
+                                                        </span>
+                                                        {result.status === 'connected' && result.latency && (
+                                                            <span className="text-slate-400 ml-auto">{Math.round(result.latency)}ms</span>
+                                                        )}
+                                                        {result.status !== 'connected' && result.error && (
+                                                            <span className="text-orange-400 ml-auto text-[10px]">{result.error}</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
