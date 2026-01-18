@@ -68,6 +68,9 @@ export default function Security({ token }: SecurityProps) {
     // System health
     const [systemHealth, setSystemHealth] = useState<any>(null);
 
+    // Internet connectivity
+    const [connectivity, setConnectivity] = useState<any>(null);
+
     // EICAR endpoint input
     const [eicarEndpoint, setEicarEndpoint] = useState('http://192.168.203.100/eicar.com.txt');
 
@@ -91,6 +94,7 @@ export default function Security({ token }: SecurityProps) {
         fetchConfig();
         fetchResults();
         fetchHealth();
+        fetchConnectivity();
     }, []);
 
     const fetchHealth = async () => {
@@ -100,6 +104,16 @@ export default function Security({ token }: SecurityProps) {
             setSystemHealth(data);
         } catch (e) {
             console.error('Failed to fetch system health:', e);
+        }
+    };
+
+    const fetchConnectivity = async () => {
+        try {
+            const res = await fetch('/api/connectivity/test', { headers: authHeaders() });
+            const data = await res.json();
+            setConnectivity(data);
+        } catch (e) {
+            console.error('Failed to fetch connectivity:', e);
         }
     };
 
@@ -376,6 +390,31 @@ export default function Security({ token }: SecurityProps) {
                                             .map(([name]: any) => name)
                                             .join(', ')
                                     }. Tests may fail. Deploy in Docker for full functionality.
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* Internet Connectivity Status */}
+                {connectivity && (
+                    <div className={`mt-3 rounded-lg p-3 flex items-start gap-2 ${connectivity.status === 'online'
+                        ? 'bg-blue-500/10 border border-blue-500/30'
+                        : 'bg-orange-500/10 border border-orange-500/30'
+                        }`}>
+                        {connectivity.status === 'online' ? (
+                            <>
+                                <CheckCircle size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                                <div className="text-blue-300 text-sm">
+                                    <strong>Internet Connected</strong> - All endpoints reachable
+                                    {connectivity.latency && ` (avg latency: ${Math.round(connectivity.latency)}ms)`}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <AlertTriangle size={18} className="text-orange-400 mt-0.5 flex-shrink-0" />
+                                <div className="text-orange-300 text-sm">
+                                    <strong>Internet Issues</strong> - {connectivity.details?.filter((d: any) => d.status === 'offline').length || 0} endpoint(s) unreachable. Tests may fail.
                                 </div>
                             </>
                         )}
