@@ -1019,9 +1019,9 @@ export default function Security({ token }: SecurityProps) {
                                 <p>No test results yet. Run some tests to see results here.</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto max-h-96 overflow-y-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-800/50">
+                                    <thead className="bg-slate-800/50 sticky top-0">
                                         <tr>
                                             <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test ID</th>
                                             <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Timestamp</th>
@@ -1033,7 +1033,7 @@ export default function Security({ token }: SecurityProps) {
                                     <tbody className="divide-y divide-slate-800">
                                         {testResults
                                             .filter(result => testTypeFilter === 'all' || result.testType === testTypeFilter)
-                                            .slice(0, 20)
+                                            .slice(0, 50)
                                             .map((result, index) => (
                                                 <tr key={index} className="hover:bg-slate-800/30 transition-colors">
                                                     <td className="px-4 py-3 text-sm text-slate-400 font-mono">

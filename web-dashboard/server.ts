@@ -806,8 +806,6 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
 
 // API: Docker Network Statistics
 app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) => {
-    console.log('[CONNECTIVITY] Fetching Docker network statistics...');
-
     try {
         const execPromise = promisify(exec);
 
@@ -815,7 +813,6 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
         const { stdout } = await execPromise('cat /sys/class/net/eth0/statistics/rx_bytes /sys/class/net/eth0/statistics/tx_bytes');
         const [rxBytes, txBytes] = stdout.trim().split('\n').map(Number);
 
-        console.log('[CONNECTIVITY] Docker stats:', { rxBytes, txBytes });
 
         res.json({
             success: true,
