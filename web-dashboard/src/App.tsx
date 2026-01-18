@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Config from './Config';
@@ -45,10 +45,10 @@ export default function App() {
   // Version State
   const [version, setVersion] = useState<string>('');
 
-  // Connectivity State
-  const [internetConnected, setInternetConnected] = useState<boolean | null>(null);
-  const [speedTest, setSpeedTest] = useState<{ mbps: number; timestamp: number } | null>(null);
-  const [speedTesting, setSpeedTesting] = useState(false);
+  // Network Monitoring State
+  const [connectivity, setConnectivity] = useState<any>(null);
+  const [dockerStats, setDockerStats] = useState<any>(null);
+  const [networkExpanded, setNetworkExpanded] = useState(false);
 
   const addUser = async () => {
     if (!token) return;
@@ -219,31 +219,24 @@ export default function App() {
   }
 
   const fetchConnectivity = async () => {
+    if (!token) return;
     try {
-      const res = await fetch('/api/connectivity/status');
+      const res = await fetch('/api/connectivity/test', { headers: authHeaders() });
       const data = await res.json();
-      setInternetConnected(data.connected || false);
+      setConnectivity(data);
     } catch (e) {
       console.error("Failed to fetch connectivity");
-      setInternetConnected(false);
     }
   }
 
-  const runSpeedTest = async () => {
-    setSpeedTesting(true);
+  const fetchDockerStats = async () => {
+    if (!token) return;
     try {
-      const res = await fetch('/api/connectivity/speedtest');
+      const res = await fetch('/api/connectivity/docker-stats', { headers: authHeaders() });
       const data = await res.json();
-      if (data.success) {
-        setSpeedTest({
-          mbps: data.download_mbps,
-          timestamp: data.timestamp
-        });
-      }
+      setDockerStats(data);
     } catch (e) {
-      console.error("Speed test failed");
-    } finally {
-      setSpeedTesting(false);
+      console.error("Failed to fetch Docker stats");
     }
   }
 
@@ -256,16 +249,26 @@ export default function App() {
     fetchTrafficStatus();
     checkConfigValid();
     fetchVersion();
-    // Don't auto-fetch connectivity - only on manual button click
+    fetchConnectivity();
+    fetchDockerStats();
 
     // Poll every 2s
     const interval = setInterval(() => {
       fetchStats();
       fetchLogs();
       fetchTrafficStatus();
-      // Don't poll connectivity automatically
+      fetchDockerStats(); // Poll Docker stats for real-time bandwidth
     }, 2000);
-    return () => clearInterval(interval);
+
+    // Poll connectivity every 30s (less frequent)
+    const connectivityInterval = setInterval(() => {
+      fetchConnectivity();
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(connectivityInterval);
+    };
   }, [token]);
 
 
@@ -434,6 +437,84 @@ export default function App() {
                   <AlertCircle size={16} />
                   Please configure at least one network interface in the <button onClick={() => setView('config')} className="underline font-semibold hover:text-yellow-300">Configuration</button> tab before starting traffic generation.
                 </p>
+              </div>
+            )}
+          </div>
+
+          {/* Network Monitoring */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+                <Wifi size={20} className="text-blue-400" />
+                Network Status
+              </h3>
+              <button
+                onClick={() => setNetworkExpanded(!networkExpanded)}
+                className="text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                <ChevronDown size={18} className={`transform transition-transform ${networkExpanded ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+
+            {/* Compact Summary */}
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-4">
+                {/* Connectivity Status */}
+                {connectivity && (
+                  <div className="flex items-center gap-2">
+                    {connectivity.connected ? (
+                      <>
+                        <CheckCircle size={14} className="text-green-400" />
+                        <span className="text-slate-300">
+                          {connectivity.results?.filter((r: any) => r.status === 'connected').length || 0}/{connectivity.results?.length || 0} endpoints
+                        </span>
+                        {connectivity.latency && (
+                          <span className="text-slate-500">({Math.round(connectivity.latency)}ms avg)</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <XCircle size={14} className="text-orange-400" />
+                        <span className="text-orange-300">
+                          {connectivity.results?.filter((r: any) => r.status !== 'connected').length || 0} offline
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Docker Stats */}
+                {dockerStats?.success && (
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <span>↓ {dockerStats.stats.received_mb} MB</span>
+                    <span>↑ {dockerStats.stats.transmitted_mb} MB</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Expanded Details */}
+            {networkExpanded && connectivity?.results && (
+              <div className="mt-4 pt-4 border-t border-slate-800 space-y-1">
+                {connectivity.results.map((result: any, idx: number) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs py-1">
+                    {result.status === 'connected' ? (
+                      <CheckCircle size={12} className="text-green-400 flex-shrink-0" />
+                    ) : (
+                      <XCircle size={12} className="text-red-400 flex-shrink-0" />
+                    )}
+                    <span className="text-slate-300 font-medium">{result.name}</span>
+                    <span className="text-slate-500 uppercase text-[10px] px-1.5 py-0.5 bg-slate-800 rounded">
+                      {result.type || 'http'}
+                    </span>
+                    {result.status === 'connected' && result.latency && (
+                      <span className="text-slate-400 ml-auto">{Math.round(result.latency)}ms</span>
+                    )}
+                    {result.status !== 'connected' && result.error && (
+                      <span className="text-red-400 ml-auto text-[10px]">{result.error}</span>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

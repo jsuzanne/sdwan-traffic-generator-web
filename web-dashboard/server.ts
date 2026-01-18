@@ -1332,7 +1332,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
 
     const testId = getNextTestId();
 
-    logTest(`[URL-TEST-${testId}] URL filtering test request:`, { url, category });
+    logTest(`[URL-TEST-${testId}] URL filtering test request: ${url} (${category || 'Uncategorized'})`);
 
     if (!url) {
         logTest(`[URL-TEST-${testId}] Test failed: No URL provided`);
@@ -1345,7 +1345,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
         const execPromise = promisify(exec);
 
         const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${url}'`;
-        logTest(`[URL-TEST-${testId}] Executing URL test:`, curlCommand);
+        logTest(`[URL-TEST-${testId}] Executing URL test for ${url} (${category || 'Uncategorized'}): ${curlCommand}`);
 
         try {
             const { stdout } = await execPromise(curlCommand);
@@ -1448,7 +1448,8 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
     // Generate unique test ID
     const testId = getNextTestId();
 
-    logTest(`[DNS-TEST-${testId}] DNS security test request:`, { domain, testName });
+
+    logTest(`[DNS-TEST-${testId}] DNS security test request: ${domain} (${testName || 'Custom Test'})`);
 
     if (!domain) {
         logTest(`[DNS-TEST-${testId}] Test failed: No domain provided`);
@@ -1462,7 +1463,7 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
 
         // Use getent instead of nslookup - more reliable in containers
         const dnsCommand = `getent ahosts ${domain}`;
-        logTest(`[DNS-TEST-${testId}] Executing DNS test:`, dnsCommand);
+        logTest(`[DNS-TEST-${testId}] Executing DNS test for ${domain} (${testName || 'Custom Test'}): ${dnsCommand}`);
 
         // Helper function to wait
         const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -1680,7 +1681,7 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
 
     const testId = getNextTestId();
 
-    logTest(`[THREAT-TEST-${testId}] EICAR test request received:`, { endpoint });
+    logTest(`[THREAT-TEST-${testId}] EICAR test request received: ${endpoint} (Threat Prevention Test)`);
 
     if (!endpoint) {
         logTest(`[THREAT-TEST-${testId}] Test failed: No endpoint provided`);
@@ -1707,11 +1708,11 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
 
         for (const ep of endpointsArray) {
             const curlCommand = `curl -fsS --max-time 20 ${ep} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt`;
-            logTest(`[THREAT-TEST-${testId}] Executing EICAR test:`, curlCommand);
+            logTest(`[THREAT-TEST-${testId}] Executing EICAR test for ${ep}: ${curlCommand}`);
 
             try {
                 await execPromise(curlCommand);
-                logTest(`[THREAT-TEST-${testId}] EICAR file downloaded successfully`);
+                logTest(`[THREAT-TEST-${testId}] EICAR file downloaded successfully from ${ep}`);
 
                 const result = {
                     success: true,
