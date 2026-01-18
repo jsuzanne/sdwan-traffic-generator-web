@@ -39,6 +39,9 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
+          # Update VERSION file to match tag
+          echo "$VERSION" > VERSION
+          echo "Updated VERSION file to: $VERSION"
       
       - name: Build and push Web UI
         uses: docker/build-push-action@v5
@@ -52,6 +55,8 @@ jobs:
             ${{ env.WEB_UI_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
 
   build-traffic-gen:
     name: Build Traffic Generator
