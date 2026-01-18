@@ -5,7 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0-beta.5] - 2026-01-17 (In Development)
+## [1.1.0-beta.16] - 2026-01-18
+
+### Added - Cross-Platform DNS Support 🌐
+- **Platform Detection**: Auto-detects operating system (macOS, Linux, Windows)
+- **Smart Command Selection**: Chooses best DNS command based on platform
+  - **macOS**: Uses `dscacheutil` (native macOS DNS tool) with fallback to `dig` → `nslookup`
+  - **Linux**: Uses `getent ahosts` with fallback to `dig` → `nslookup`
+  - **Windows**: Uses `nslookup`
+- **Command Availability Check**: Verifies which DNS commands are installed at startup
+- **Dynamic Output Parsing**: Parses different command outputs correctly
+- **System Health API**: `/api/system/health` now reports:
+  - Detected platform (darwin/linux/win32)
+  - Available DNS commands
+  - Selected DNS command with full fallback chain
+- **DNS Tests Now Work on macOS**: Previously failed due to missing `getent`, now fully functional
+
+### Changed - UI/UX Improvements ✨
+- **Removed Verbose Docker Logs**: Eliminated noisy Docker stats console logs
+  - No more `[CONNECTIVITY] Docker stats:` spam every 2 seconds
+  - Cleaner console output for debugging
+- **Test Results Table Optimization**: Limited to 50 most recent tests
+  - Added scrollable container (max-height: 384px)
+  - Sticky table header stays visible while scrolling
+  - Better performance with large test histories
+- **Compact Scheduler UI**: Reduced vertical space by 60%
+  - Single-line horizontal layout when enabled
+  - Smaller padding (16px instead of 24px)
+  - Compact labels: "URL", "DNS", "Threat" instead of full names
+  - Inline interval input with label
+  - **Before**: ~200px height → **After**: ~80px height
+
+### Fixed
+- **GitHub Actions Workflow**: Fixed VERSION file handling
+  - Workflow now writes VERSION from git tag before build
+  - Passes VERSION as build argument to Docker
+  - Ensures Docker image displays correct version number
+- **DNS Test Retry Logic**: Improved retry mechanism with better IP extraction
+- **Scheduler Persistence**: Ensured scheduler config persists in Docker deployments
+
+### Technical Details
+- Added `os.platform()` detection for cross-platform support
+- Implemented `checkCommand()` to verify command availability
+- Created `getDnsCommand()` for dynamic command selection
+- Created `parseDnsOutput()` for parsing different DNS command outputs
+- Updated individual and batch DNS test endpoints to use new platform-aware logic
+
+## [1.1.0-beta.5] - 2026-01-17
 
 ### Added - Enhanced DNS Debug Logging
 - **DNS Command Output Logging**: Added detailed debug logs for DNS security tests
@@ -14,11 +60,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Logs stderr output (if any)
   - Logs the sinkhole detection logic results (isSinkholed, isBlocked)
   - Helps troubleshoot why sinkhole detection may not be working
-
-### Planned for beta.5
-- **Progress Indicators**: For long-running tests (24 DNS / 67 URL categories)
-- **Internet Connectivity Validation**: Pre-test connectivity checks
-- **Speed Test Integration**: Network speed validation before tests
 
 ## [1.1.0] - 2026-01-16
 
