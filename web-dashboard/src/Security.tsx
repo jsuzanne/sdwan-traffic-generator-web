@@ -64,6 +64,9 @@ export default function Security({ token }: SecurityProps) {
     // Test results filter
     const [testTypeFilter, setTestTypeFilter] = useState<'all' | 'url_filtering' | 'dns_security' | 'threat_prevention'>('all');
 
+    // System health
+    const [systemHealth, setSystemHealth] = useState<any>(null);
+
     // EICAR endpoint input
     const [eicarEndpoint, setEicarEndpoint] = useState('http://192.168.203.100/eicar.com.txt');
 
@@ -86,7 +89,18 @@ export default function Security({ token }: SecurityProps) {
     useEffect(() => {
         fetchConfig();
         fetchResults();
+        fetchHealth();
     }, []);
+
+    const fetchHealth = async () => {
+        try {
+            const res = await fetch('/api/system/health', { headers: authHeaders() });
+            const data = await res.json();
+            setSystemHealth(data);
+        } catch (e) {
+            console.error('Failed to fetch system health:', e);
+        }
+    };
 
     const fetchConfig = async () => {
         try {
@@ -337,6 +351,35 @@ export default function Security({ token }: SecurityProps) {
                         <strong>Warning:</strong> These tests will trigger firewall security alerts and blocks. Use only in demo/POC environments.
                     </p>
                 </div>
+
+                {/* System Health Status */}
+                {systemHealth && (
+                    <div className={`mt-3 rounded-lg p-3 flex items-start gap-2 ${systemHealth.ready
+                        ? 'bg-green-500/10 border border-green-500/30'
+                        : 'bg-red-500/10 border border-red-500/30'
+                        }`}>
+                        {systemHealth.ready ? (
+                            <>
+                                <CheckCircle size={18} className="text-green-400 mt-0.5 flex-shrink-0" />
+                                <div className="text-green-300 text-sm">
+                                    <strong>System Ready</strong> - All required commands available ({systemHealth.platform})
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <XCircle size={18} className="text-red-400 mt-0.5 flex-shrink-0" />
+                                <div className="text-red-300 text-sm">
+                                    <strong>System Not Ready</strong> - Missing commands: {
+                                        Object.entries(systemHealth.commands)
+                                            .filter(([_, cmd]: any) => !cmd.available)
+                                            .map(([name]: any) => name)
+                                            .join(', ')
+                                    }. Tests may fail. Deploy in Docker for full functionality.
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Statistics Dashboard */}
@@ -562,8 +605,9 @@ export default function Security({ token }: SecurityProps) {
                             </p>
                             <button
                                 onClick={runURLBatchTest}
-                                disabled={loading || config.url_filtering.enabled_categories.length === 0}
+                                disabled={loading || config.url_filtering.enabled_categories.length === 0 || (systemHealth && !systemHealth.ready)}
                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                                title={systemHealth && !systemHealth.ready ? 'System not ready - missing required commands' : ''}
                             >
                                 <Play size={16} /> Run All Enabled
                             </button>
@@ -634,8 +678,9 @@ export default function Security({ token }: SecurityProps) {
                             </p>
                             <button
                                 onClick={runDNSBatchTest}
-                                disabled={loading || config.dns_security.enabled_tests.length === 0}
+                                disabled={loading || config.dns_security.enabled_tests.length === 0 || (systemHealth && !systemHealth.ready)}
                                 className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                                title={systemHealth && !systemHealth.ready ? 'System not ready - missing required commands' : ''}
                             >
                                 <Play size={16} /> Run All Enabled
                             </button>

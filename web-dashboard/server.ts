@@ -597,6 +597,63 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
     }
 });
 
+// API: System Health Check
+app.get('/api/system/health', authenticateToken, async (req, res) => {
+    console.log('[SYSTEM] Running health check...');
+
+    const execPromise = promisify(exec);
+    const health = {
+        platform: os.platform(),
+        ready: true,
+        commands: {} as any,
+        timestamp: Date.now()
+    };
+
+    // Check getent (for DNS tests)
+    try {
+        await execPromise('which getent');
+        health.commands.getent = {
+            available: true,
+            command: 'getent ahosts',
+            purpose: 'DNS Security Tests'
+        };
+        console.log('[SYSTEM] ✓ getent available');
+    } catch (error) {
+        health.commands.getent = {
+            available: false,
+            command: 'getent ahosts',
+            purpose: 'DNS Security Tests',
+            error: 'Command not found'
+        };
+        health.ready = false;
+        console.log('[SYSTEM] ✗ getent not available');
+    }
+
+    // Check curl (for URL/Threat tests)
+    try {
+        await execPromise('which curl');
+        health.commands.curl = {
+            available: true,
+            command: 'curl',
+            purpose: 'URL Filtering & Threat Prevention Tests'
+        };
+        console.log('[SYSTEM] ✓ curl available');
+    } catch (error) {
+        health.commands.curl = {
+            available: false,
+            command: 'curl',
+            purpose: 'URL Filtering & Threat Prevention Tests',
+            error: 'Command not found'
+        };
+        health.ready = false;
+        console.log('[SYSTEM] ✗ curl not available');
+    }
+
+    console.log(`[SYSTEM] Health check complete: ${health.ready ? 'READY' : 'NOT READY'}`);
+
+    res.json(health);
+});
+
 // API: Update Application Weight (Single)
 app.post('/api/config/apps', authenticateToken, (req, res) => {
     const { domain, weight } = req.body;
@@ -1294,15 +1351,20 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
             addTestResult('dns_security', testName || domain, result);
             res.json(result);
         } catch (dnsError: any) {
-            // DNS error usually means blocked
+            // Check if it's a command not found error
+            const isCommandError = dnsError.message.includes('command not found') ||
+                dnsError.message.includes('not found');
+
             const result = {
                 success: false,
                 resolved: false,
-                status: 'blocked',
+                status: isCommandError ? 'error' : 'blocked',
                 domain,
                 testName,
                 error: dnsError.message
             };
+
+            console.log(`[DNS-TEST] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
 
             addTestResult('dns_security', testName || domain, result);
             res.json(result);
@@ -1402,14 +1464,20 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                 results.push(result);
                 addTestResult('dns_security', test.testName, result);
             } catch (dnsError: any) {
+                // Check if it's a command not found error
+                const isCommandError = dnsError.message.includes('command not found') ||
+                    dnsError.message.includes('not found');
+
                 const result = {
                     success: false,
                     resolved: false,
-                    status: 'blocked',
+                    status: isCommandError ? 'error' : 'blocked',
                     domain: test.domain,
                     testName: test.testName,
                     error: dnsError.message
                 };
+
+                console.log(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
 
                 results.push(result);
                 addTestResult('dns_security', test.testName, result);
