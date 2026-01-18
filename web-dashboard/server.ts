@@ -1185,10 +1185,12 @@ app.delete('/api/security/results', authenticateToken, (req, res) => {
 app.post('/api/security/url-test', authenticateToken, async (req, res) => {
     const { url, category } = req.body;
 
-    console.log('[DEBUG] URL filtering test request:', { url, category });
+    const testId = getNextTestId();
+
+    console.log(`[URL-TEST-${testId}] URL filtering test request:`, { url, category });
 
     if (!url) {
-        console.log('[DEBUG] URL test failed: No URL provided');
+        console.log(`[URL-TEST-${testId}] Test failed: No URL provided`);
         return res.status(400).json({ error: 'URL is required' });
     }
 
@@ -1210,7 +1212,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 category
             };
 
-            addTestResult('url_filtering', category || url, result);
+            addTestResult('url_filtering', category || url, result, testId);
             res.json(result);
         } catch (curlError: any) {
             // Curl error usually means blocked or network error
@@ -1223,7 +1225,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 error: curlError.message
             };
 
-            addTestResult('url_filtering', category || url, result);
+            addTestResult('url_filtering', category || url, result, testId);
             res.json(result);
         }
     } catch (e: any) {
@@ -1526,10 +1528,12 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
 app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
     const { endpoint } = req.body;
 
-    console.log('[DEBUG] EICAR test request received:', { endpoint });
+    const testId = getNextTestId();
+
+    console.log(`[THREAT-TEST-${testId}] EICAR test request received:`, { endpoint });
 
     if (!endpoint) {
-        console.log('[DEBUG] EICAR test failed: No endpoint provided');
+        console.log(`[THREAT-TEST-${testId}] Test failed: No endpoint provided`);
         return res.status(400).json({ error: 'Endpoint URL is required' });
     }
 
@@ -1565,8 +1569,8 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
                     message: 'EICAR file downloaded successfully (not blocked by IPS)'
                 };
 
-                console.log('[DEBUG] EICAR test result: ALLOWED', { endpoint });
-                addTestResult('threat_prevention', `EICAR Test (${endpoint})`, result);
+                console.log(`[THREAT-TEST-${testId}] EICAR test result: ALLOWED`, { endpoint });
+                addTestResult('threat_prevention', `EICAR Test (${endpoint})`, result, testId);
                 results.push(result);
             } catch (curlError: any) {
                 // Curl error usually means blocked by IPS
@@ -1578,8 +1582,8 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
                     error: curlError.message
                 };
 
-                console.log('[DEBUG] EICAR test result: BLOCKED', { endpoint, error: curlError.message });
-                addTestResult('threat_prevention', `EICAR Test (${endpoint})`, result);
+                console.log(`[THREAT-TEST-${testId}] EICAR test result: BLOCKED`, { endpoint, error: curlError.message });
+                addTestResult('threat_prevention', `EICAR Test (${endpoint})`, result, testId);
                 results.push(result);
             }
         }
