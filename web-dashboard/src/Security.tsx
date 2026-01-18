@@ -773,7 +773,7 @@ export default function Security({ token }: SecurityProps) {
                                 const isEnabled = config.url_filtering.enabled_categories.includes(category.id);
                                 const isTesting = testing[`url-${category.id}`];
                                 const lastResult = testResults.find(r =>
-                                    r.testType === 'url_filtering' && r.testName === category.name
+                                    (r.testType === 'url_filtering' || r.testType === 'url') && r.testName === category.name
                                 );
 
                                 return (
@@ -856,7 +856,7 @@ export default function Security({ token }: SecurityProps) {
                                     const isEnabled = config.dns_security.enabled_tests.includes(test.id);
                                     const isTesting = testing[`dns-${test.id}`];
                                     const lastResult = testResults.find(r =>
-                                        r.testType === 'dns_security' && r.testName === test.name
+                                        (r.testType === 'dns_security' || r.testType === 'dns') && r.testName === test.name
                                     );
 
                                     return (
@@ -908,7 +908,7 @@ export default function Security({ token }: SecurityProps) {
                                     const isEnabled = config.dns_security.enabled_tests.includes(test.id);
                                     const isTesting = testing[`dns-${test.id}`];
                                     const lastResult = testResults.find(r =>
-                                        r.testType === 'dns_security' && r.testName === test.name
+                                        (r.testType === 'dns_security' || r.testType === 'dns') && r.testName === test.name
                                     );
 
                                     return (
@@ -1016,9 +1016,9 @@ export default function Security({ token }: SecurityProps) {
                                     </button>
                                 </div>
 
-                                {testResults.find(r => r.testType === 'threat_prevention') && (
+                                {testResults.find(r => r.testType === 'threat_prevention' || r.testType === 'threat') && (
                                     <div className="mt-3">
-                                        {getStatusBadge(testResults.find(r => r.testType === 'threat_prevention')?.result)}
+                                        {getStatusBadge(testResults.find(r => r.testType === 'threat_prevention' || r.testType === 'threat')?.result)}
                                     </div>
                                 )}
                             </div>
