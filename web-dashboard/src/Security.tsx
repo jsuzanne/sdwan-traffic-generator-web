@@ -157,7 +157,8 @@ export default function Security({ token }: SecurityProps) {
                 ...r,
                 testId: r.id,
                 testType: r.type,
-                testName: r.name
+                testName: r.name,
+                result: { status: r.status } // For getStatusBadge compatibility
             }));
 
             if (append) {
