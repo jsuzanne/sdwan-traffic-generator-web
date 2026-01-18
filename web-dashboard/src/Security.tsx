@@ -639,9 +639,16 @@ export default function Security({ token }: SecurityProps) {
                                         <div className="flex items-center gap-2">
                                             {lastResult && getStatusBadge(lastResult.result)}
                                             <button
+                                                onClick={() => copyToClipboard(`docker exec sdwan-web-ui sh -c "curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${category.url}'"`)}
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-blue-400 transition-colors"
+                                                title="Copy CLI command"
+                                            >
+                                                <Copy size={14} />
+                                            </button>
+                                            <button
                                                 onClick={() => runURLTest(category)}
                                                 disabled={isTesting}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-blue-400 transition-colors disabled:opacity-50"
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
                                                 title="Run test"
                                             >
                                                 <Play size={14} />
@@ -838,13 +845,22 @@ export default function Security({ token }: SecurityProps) {
                                     />
                                 </div>
 
-                                <button
-                                    onClick={runThreatTest}
-                                    disabled={loading || !eicarEndpoint}
-                                    className="w-full px-4 py-3 bg-red-600 hover:bg-red-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <Play size={18} /> Run EICAR Test
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => copyToClipboard(`docker exec sdwan-web-ui sh -c "curl -fsS --max-time 20 ${eicarEndpoint} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt"`)}
+                                        className="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                        title="Copy CLI command"
+                                    >
+                                        <Copy size={18} /> Copy Command
+                                    </button>
+                                    <button
+                                        onClick={runThreatTest}
+                                        disabled={loading || !eicarEndpoint}
+                                        className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Play size={18} /> Run EICAR Test
+                                    </button>
+                                </div>
 
                                 {testResults.find(r => r.testType === 'threat_prevention') && (
                                     <div className="mt-3">
