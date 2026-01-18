@@ -152,10 +152,18 @@ export default function Security({ token }: SecurityProps) {
             const res = await fetch(`/api/security/results?${params}`, { headers: authHeaders() });
             const data = await res.json();
 
+            // Map id to testId for frontend compatibility
+            const mappedResults = (data.results || []).map((r: any) => ({
+                ...r,
+                testId: r.id,
+                testType: r.type,
+                testName: r.name
+            }));
+
             if (append) {
-                setTestResults(prev => [...prev, ...(data.results || [])]);
+                setTestResults(prev => [...prev, ...mappedResults]);
             } else {
-                setTestResults(data.results || []);
+                setTestResults(mappedResults);
             }
 
             setTotalResults(data.total || 0);
@@ -1111,8 +1119,8 @@ export default function Security({ token }: SecurityProps) {
                                                     </td>
                                                     <td className="px-4 py-3 text-sm">
                                                         <span className={`px-2 py-1 rounded text-xs font-medium ${result.testType === 'url_filtering' || result.testType === 'url' ? 'bg-blue-500/20 text-blue-400' :
-                                                                result.testType === 'dns_security' || result.testType === 'dns' ? 'bg-purple-500/20 text-purple-400' :
-                                                                    'bg-red-500/20 text-red-400'
+                                                            result.testType === 'dns_security' || result.testType === 'dns' ? 'bg-purple-500/20 text-purple-400' :
+                                                                'bg-red-500/20 text-red-400'
                                                             }`}>
                                                             {result.testType === 'url_filtering' || result.testType === 'url' ? 'URL' :
                                                                 result.testType === 'dns_security' || result.testType === 'dns' ? 'DNS' :

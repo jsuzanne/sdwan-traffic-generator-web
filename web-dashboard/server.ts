@@ -1594,30 +1594,49 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
         return res.status(400).json({ error: 'Tests array is required' });
     }
 
+    const batchId = Date.now();
     const results = [];
 
-    for (const test of tests) {
-        try {
-            // exec already imported at top
-            // util.promisify already imported as promisify
-            const execPromise = promisify(exec);
+    logTest(`[URL-BATCH-${batchId}] Starting batch URL filtering test with ${tests.length} tests`);
 
+    for (let i = 0; i < tests.length; i++) {
+        const test = tests[i];
+        const testId = getNextTestId();
+
+        try {
+            logTest(`[URL-BATCH-${batchId}][URL-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.url} (${test.category})`);
+
+            const execPromise = promisify(exec);
             const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${test.url}'`;
+
+            logTest(`[URL-TEST-${testId}] Executing URL test for ${test.url} (${test.category}): ${curlCommand}`);
 
             try {
                 const { stdout } = await execPromise(curlCommand);
                 const httpCode = parseInt(stdout);
+
+                logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
+
+                const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
                 const result = {
                     success: httpCode >= 200 && httpCode < 400,
                     httpCode,
-                    status: httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked',
+                    status,
                     url: test.url,
                     category: test.category
                 };
 
+                logTest(`[URL-TEST-${testId}] Final status: ${status} (HTTP ${httpCode})`);
+
                 results.push(result);
-                addTestResult('url_filtering', test.category, result);
+                await addTestResult('url_filtering', test.category, result, testId, {
+                    url: test.url,
+                    httpCode,
+                    command: curlCommand
+                });
             } catch (curlError: any) {
+                logTest(`[URL-TEST-${testId}] Final status: blocked (curl error: ${curlError.message})`);
+
                 const result = {
                     success: false,
                     httpCode: 0,
@@ -1628,9 +1647,15 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                 };
 
                 results.push(result);
-                addTestResult('url_filtering', test.category, result);
+                await addTestResult('url_filtering', test.category, result, testId, {
+                    url: test.url,
+                    error: curlError.message,
+                    command: curlCommand
+                });
             }
         } catch (e: any) {
+            logTest(`[URL-TEST-${testId}] Error: ${e.message}`);
+
             results.push({
                 success: false,
                 status: 'error',
@@ -1641,6 +1666,7 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
         }
     }
 
+    logTest(`[URL-BATCH-${batchId}] Batch completed: ${results.length} tests executed`);
     res.json({ results });
 });
 
