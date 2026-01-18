@@ -39,6 +39,8 @@ services:
       - PORT=8080
       - CONFIG_DIR=/app/config
       - LOG_DIR=/var/log/sdwan-traffic-gen
+      - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7}
+      - LOG_MAX_SIZE_MB=${LOG_MAX_SIZE_MB:-100}
       - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/api/version" ]

@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-beta.17] - 2026-01-18
+
+### Added - Persistent Test Logging 📝
+- **JSONL Log Storage**: All test results now saved to persistent log files
+  - Append-only format for fast writes
+  - Survives container restarts
+  - Searchable and filterable
+- **Log Rotation**: Automatic rotation when files reach 100MB (configurable)
+- **Auto-Cleanup**: Daily cleanup at 2 AM, 7-day retention by default
+  - Configurable via `LOG_RETENTION_DAYS` environment variable
+  - Configurable max file size via `LOG_MAX_SIZE_MB`
+- **Search & Filter API**: Fast search by test#, name, or status
+  - Pagination support (50 results per page)
+  - Filter by test type (URL/DNS/Threat)
+  - Filter by status (blocked/allowed/sinkholed/error)
+
+### Added - Enhanced Test Results UI 🔍
+- **Search Bar**: Search test results by test#, name, or status
+  - Debounced input for performance
+  - Real-time filtering
+- **Infinite Scroll**: Load more results as you scroll
+  - Loads 50 tests at a time
+  - Smooth scrolling performance
+  - "Load More" button for manual loading
+- **Detailed Log Viewer**: Click any test row to view full details
+  - Shows command executed
+  - Shows raw output
+  - Shows errors (if any)
+  - Shows execution time
+  - Shows resolved IPs for DNS tests
+- **Result Counter**: Shows total results and currently displayed count
+
+### Added - System Health Monitoring 💻
+- **Memory Stats**: Total, used, free, usage percentage
+- **Disk Stats**: Total, used, free, usage percentage for log directory
+- **Log Directory Usage**: Bytes used by test logs
+- **Enhanced `/api/system/health` endpoint** with all metrics
+
+### Added - New API Endpoints
+- `GET /api/security/results` - Paginated results with search/filters
+  - Query params: `limit`, `offset`, `search`, `type`, `status`
+  - Returns: `results`, `total`, `limit`, `offset`
+- `GET /api/security/results/:id` - Get detailed test result by ID
+- `GET /api/security/results/stats` - Get log statistics
+  - Total tests, tests by type/status, disk usage
+- `DELETE /api/security/results` - Manual cleanup (delete all logs)
+
+### Changed - Docker Configuration
+- **Environment Variables**: Added `LOG_RETENTION_DAYS` and `LOG_MAX_SIZE_MB`
+  - Defaults: 7 days retention, 100MB max file size
+  - Configurable via docker-compose.yml
+
+### Technical Details
+- Created `test-logger.ts` module for comprehensive logging
+- Updated all test endpoints to log to persistent storage
+- Backward compatible: maintains in-memory history for old API
+- Daily cleanup scheduler runs at 2 AM
+- Frontend uses debounced search for performance
+- Infinite scroll with scroll event detection
+
 ## [1.1.0-beta.16] - 2026-01-18
 
 ### Added - Cross-Platform DNS Support 🌐

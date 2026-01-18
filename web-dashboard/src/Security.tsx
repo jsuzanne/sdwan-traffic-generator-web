@@ -65,6 +65,16 @@ export default function Security({ token }: SecurityProps) {
     // Test results filter
     const [testTypeFilter, setTestTypeFilter] = useState<'all' | 'url_filtering' | 'dns_security' | 'threat_prevention'>('all');
 
+    // Search and pagination
+    const [searchQuery, setSearchQuery] = useState('');
+    const [totalResults, setTotalResults] = useState(0);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+
+    // Detailed log viewer
+    const [selectedTest, setSelectedTest] = useState<any>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+
     // System health
     const [systemHealth, setSystemHealth] = useState<any>(null);
 
@@ -130,13 +140,62 @@ export default function Security({ token }: SecurityProps) {
         }
     };
 
-    const fetchResults = async () => {
+    const fetchResults = async (offset = 0, append = false) => {
         try {
-            const res = await fetch('/api/security/results', { headers: authHeaders() });
+            const params = new URLSearchParams({
+                limit: '50',
+                offset: offset.toString(),
+                ...(searchQuery && { search: searchQuery }),
+                ...(testTypeFilter !== 'all' && { type: testTypeFilter })
+            });
+
+            const res = await fetch(`/api/security/results?${params}`, { headers: authHeaders() });
             const data = await res.json();
-            setTestResults(data.results || []);
+
+            if (append) {
+                setTestResults(prev => [...prev, ...(data.results || [])]);
+            } else {
+                setTestResults(data.results || []);
+            }
+
+            setTotalResults(data.total || 0);
+            setHasMore((data.results?.length || 0) === 50);
         } catch (e) {
             console.error('Failed to fetch test results:', e);
+        }
+    };
+
+    const loadMore = async () => {
+        if (loadingMore || !hasMore) return;
+        setLoadingMore(true);
+        await fetchResults(testResults.length, true);
+        setLoadingMore(false);
+    };
+
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+        setTestResults([]);
+    };
+
+    // Debounced search effect
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchResults(0, false);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery, testTypeFilter]);
+
+    const viewTestDetails = async (testId: number) => {
+        try {
+            const response = await fetch(`/api/security/results/${testId}`, {
+                headers: authHeaders()
+            });
+            const data = await response.json();
+            setSelectedTest(data);
+            setShowDetailModal(true);
+        } catch (e) {
+            console.error('Failed to fetch test details:', e);
+            showToast('Failed to load test details', 'error');
         }
     };
 
@@ -554,16 +613,14 @@ export default function Security({ token }: SecurityProps) {
 
             {/* Scheduled Execution */}
             {config.scheduled_execution && (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <Clock size={20} className="text-blue-400" />
-                                Scheduled Execution
-                            </h3>
-                            <p className="text-sm text-slate-400 mt-1">
-                                Automatically run enabled tests at regular intervals
-                            </p>
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Clock size={18} className="text-blue-400" />
+                            <div>
+                                <h3 className="text-base font-semibold text-white">Scheduled Execution</h3>
+                                <p className="text-xs text-slate-500">Auto-run tests at intervals</p>
+                            </div>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input
@@ -586,11 +643,9 @@ export default function Security({ token }: SecurityProps) {
                     </div>
 
                     {config.scheduled_execution.enabled && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Interval (minutes)
-                                </label>
+                        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-800 text-sm">
+                            <div className="flex items-center gap-2">
+                                <label className="text-slate-400">Interval:</label>
                                 <input
                                     type="number"
                                     min="5"
@@ -606,15 +661,13 @@ export default function Security({ token }: SecurityProps) {
                                             });
                                         }
                                     }}
-                                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 focus:border-blue-500 outline-none"
+                                    className="w-20 bg-slate-950 border border-slate-700 text-slate-200 rounded px-2 py-1 focus:border-blue-500 outline-none"
                                 />
+                                <span className="text-slate-500">min</span>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Test Types
-                                </label>
-                                <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                            <div className="flex items-center gap-3 ml-4">
+                                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={config.scheduled_execution.run_url_tests}
@@ -628,11 +681,11 @@ export default function Security({ token }: SecurityProps) {
                                                 });
                                             }
                                         }}
-                                        className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600"
+                                        className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600"
                                     />
-                                    URL Filtering Tests
+                                    URL
                                 </label>
-                                <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={config.scheduled_execution.run_dns_tests}
@@ -646,11 +699,11 @@ export default function Security({ token }: SecurityProps) {
                                                 });
                                             }
                                         }}
-                                        className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-purple-600"
+                                        className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-purple-600"
                                     />
-                                    DNS Security Tests
+                                    DNS
                                 </label>
-                                <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={config.scheduled_execution.run_threat_tests}
@@ -664,9 +717,9 @@ export default function Security({ token }: SecurityProps) {
                                                 });
                                             }
                                         }}
-                                        className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-red-600"
+                                        className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-red-600"
                                     />
-                                    Threat Prevention Tests
+                                    Threat
                                 </label>
                             </div>
                         </div>
@@ -974,28 +1027,35 @@ export default function Security({ token }: SecurityProps) {
                     <div className="flex items-center gap-3">
                         <Shield size={20} className="text-green-400" />
                         <h3 className="text-lg font-semibold text-white">Test Results</h3>
-                        <span className="text-sm text-slate-400">({testResults.length} results)</span>
+                        <span className="text-sm text-slate-400">({totalResults} total, showing {testResults.length})</span>
                     </div>
                     {resultsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </button>
 
                 {resultsExpanded && (
                     <div className="p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <p className="text-slate-400 text-sm">Recent test execution history</p>
+                        {/* Search and Filters */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div className="flex-1 w-full sm:w-auto">
+                                <input
+                                    type="text"
+                                    placeholder="Search by test #, name, or status..."
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
+                                />
+                            </div>
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
                                 <select
                                     value={testTypeFilter}
                                     onChange={(e) => setTestTypeFilter(e.target.value as any)}
-                                    className="px-3 py-1.5 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="all">All Tests</option>
-                                    <option value="url_filtering">URL Filtering</option>
-                                    <option value="dns_security">DNS Security</option>
-                                    <option value="threat_prevention">Threat Prevention</option>
+                                    <option value="url">URL Filtering</option>
+                                    <option value="dns">DNS Security</option>
+                                    <option value="threat">Threat Prevention</option>
                                 </select>
-                            </div>
-                            <div className="flex gap-2">
                                 <button
                                     onClick={exportResults}
                                     disabled={testResults.length === 0}
@@ -1016,69 +1076,164 @@ export default function Security({ token }: SecurityProps) {
                         {testResults.length === 0 ? (
                             <div className="text-center py-8 text-slate-500">
                                 <Shield size={48} className="mx-auto mb-3 opacity-30" />
-                                <p>No test results yet. Run some tests to see results here.</p>
+                                <p>{searchQuery ? 'No results found for your search' : 'No test results yet. Run some tests to see results here.'}</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                                <table className="w-full">
-                                    <thead className="bg-slate-800/50 sticky top-0">
-                                        <tr>
-                                            <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test ID</th>
-                                            <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Timestamp</th>
-                                            <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test Type</th>
-                                            <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test Name</th>
-                                            <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Result</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-800">
-                                        {testResults
-                                            .filter(result => testTypeFilter === 'all' || result.testType === testTypeFilter)
-                                            .slice(0, 50)
-                                            .map((result, index) => (
-                                                <tr key={index} className="hover:bg-slate-800/30 transition-colors">
+                            <>
+                                <div className="overflow-x-auto max-h-96 overflow-y-auto" onScroll={(e) => {
+                                    const target = e.currentTarget;
+                                    if (target.scrollHeight - target.scrollTop <= target.clientHeight + 100 && hasMore && !loadingMore) {
+                                        loadMore();
+                                    }
+                                }}>
+                                    <table className="w-full">
+                                        <thead className="bg-slate-800/50 sticky top-0 z-10">
+                                            <tr>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test ID</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Timestamp</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test Type</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test Name</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Result</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800">
+                                            {testResults.map((result, index) => (
+                                                <tr
+                                                    key={result.testId || index}
+                                                    onClick={() => result.testId && viewTestDetails(result.testId)}
+                                                    className="hover:bg-slate-800/30 transition-colors cursor-pointer"
+                                                >
                                                     <td className="px-4 py-3 text-sm text-slate-400 font-mono">
                                                         #{result.testId || 'N/A'}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-slate-400">
-                                                        {new Date(result.timestamp).toLocaleTimeString()}
+                                                        {new Date(result.timestamp).toLocaleString()}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm">
-                                                        <span className={`px-2 py-1 rounded text-xs font-medium ${result.testType === 'url_filtering' ? 'bg-blue-500/20 text-blue-400' :
-                                                            result.testType === 'dns_security' ? 'bg-purple-500/20 text-purple-400' :
-                                                                'bg-red-500/20 text-red-400'
+                                                        <span className={`px-2 py-1 rounded text-xs font-medium ${result.testType === 'url_filtering' || result.testType === 'url' ? 'bg-blue-500/20 text-blue-400' :
+                                                                result.testType === 'dns_security' || result.testType === 'dns' ? 'bg-purple-500/20 text-purple-400' :
+                                                                    'bg-red-500/20 text-red-400'
                                                             }`}>
-                                                            {result.testType === 'url_filtering' ? 'URL Filtering' :
-                                                                result.testType === 'dns_security' ? 'DNS Security' :
-                                                                    'Threat Prevention'}
+                                                            {result.testType === 'url_filtering' || result.testType === 'url' ? 'URL' :
+                                                                result.testType === 'dns_security' || result.testType === 'dns' ? 'DNS' :
+                                                                    'Threat'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-slate-200">
-                                                        {result.testType === 'dns_security' ? (
-                                                            (() => {
-                                                                const dnsTest = DNS_TEST_DOMAINS.find(t => t.name === result.testName);
-                                                                return dnsTest ? (
-                                                                    <span
-                                                                        className="cursor-help"
-                                                                        title={`Domain: ${dnsTest.domain}\nCommand: getent ahosts ${dnsTest.domain}`}
-                                                                    >
-                                                                        {result.testName}
-                                                                    </span>
-                                                                ) : result.testName;
-                                                            })()
-                                                        ) : (
-                                                            result.testName
-                                                        )}
+                                                    <td className="px-4 py-3 text-sm text-slate-200 truncate max-w-xs">
+                                                        {result.testName}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm">{getStatusBadge(result.result)}</td>
                                                 </tr>
                                             ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </tbody>
+                                    </table>
+                                    {loadingMore && (
+                                        <div className="text-center py-4 text-slate-400 text-sm">
+                                            Loading more results...
+                                        </div>
+                                    )}
+                                </div>
+                                {hasMore && !loadingMore && (
+                                    <div className="text-center">
+                                        <button
+                                            onClick={loadMore}
+                                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-sm font-medium transition-colors"
+                                        >
+                                            Load More
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
             </div>
+
+            {/* Detailed Log Viewer Modal */}
+            {showDetailModal && selectedTest && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-3xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-white">Test Details #{selectedTest.id}</h3>
+                                <p className="text-sm text-slate-400">{new Date(selectedTest.timestamp).toLocaleString()}</p>
+                            </div>
+                            <button
+                                onClick={() => setShowDetailModal(false)}
+                                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                            >
+                                <XCircle size={20} className="text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)] space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-slate-400">Test Type</label>
+                                    <p className="text-white mt-1">{selectedTest.type === 'url' ? 'URL Filtering' : selectedTest.type === 'dns' ? 'DNS Security' : 'Threat Prevention'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-400">Status</label>
+                                    <div className="mt-1">{getStatusBadge({ status: selectedTest.status })}</div>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-sm font-medium text-slate-400">Test Name</label>
+                                    <p className="text-white mt-1">{selectedTest.name}</p>
+                                </div>
+                            </div>
+
+                            {selectedTest.details && (
+                                <div className="bg-slate-800/50 rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-slate-300 mb-3">Details</h4>
+                                    <div className="space-y-2 text-sm">
+                                        {selectedTest.details.url && (
+                                            <div>
+                                                <span className="text-slate-400">URL:</span>
+                                                <span className="text-slate-200 ml-2 font-mono">{selectedTest.details.url}</span>
+                                            </div>
+                                        )}
+                                        {selectedTest.details.domain && (
+                                            <div>
+                                                <span className="text-slate-400">Domain:</span>
+                                                <span className="text-slate-200 ml-2 font-mono">{selectedTest.details.domain}</span>
+                                            </div>
+                                        )}
+                                        {selectedTest.details.resolvedIp && (
+                                            <div>
+                                                <span className="text-slate-400">Resolved IP:</span>
+                                                <span className="text-slate-200 ml-2 font-mono">{selectedTest.details.resolvedIp}</span>
+                                            </div>
+                                        )}
+                                        {selectedTest.details.command && (
+                                            <div>
+                                                <span className="text-slate-400">Command:</span>
+                                                <pre className="text-slate-200 ml-2 mt-1 bg-slate-900 p-2 rounded overflow-x-auto">{selectedTest.details.command}</pre>
+                                            </div>
+                                        )}
+                                        {selectedTest.details.output && (
+                                            <div>
+                                                <span className="text-slate-400">Output:</span>
+                                                <pre className="text-slate-200 ml-2 mt-1 bg-slate-900 p-2 rounded overflow-x-auto max-h-48">{selectedTest.details.output}</pre>
+                                            </div>
+                                        )}
+                                        {selectedTest.details.error && (
+                                            <div>
+                                                <span className="text-red-400">Error:</span>
+                                                <pre className="text-red-300 ml-2 mt-1 bg-slate-900 p-2 rounded overflow-x-auto">{selectedTest.details.error}</pre>
+                                            </div>
+                                        )}
+                                        {selectedTest.details.executionTime && (
+                                            <div>
+                                                <span className="text-slate-400">Execution Time:</span>
+                                                <span className="text-slate-200 ml-2">{selectedTest.details.executionTime}ms</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import os from 'os';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { TestLogger, TestResult } from './test-logger.js';
 
 // Fix for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +23,13 @@ const APP_CONFIG = {
 };
 
 console.log('Using config:', APP_CONFIG);
+
+// Initialize Test Logger with configurable retention
+const LOG_RETENTION_DAYS = parseInt(process.env.LOG_RETENTION_DAYS || '7');
+const LOG_MAX_SIZE_MB = parseInt(process.env.LOG_MAX_SIZE_MB || '100');
+const testLogger = new TestLogger(APP_CONFIG.logDir, LOG_RETENTION_DAYS, LOG_MAX_SIZE_MB);
+
+console.log(`Test Logger initialized: retention=${LOG_RETENTION_DAYS} days, max_size=${LOG_MAX_SIZE_MB}MB`);
 
 // Test Counter - Persistent sequential ID for all tests
 const TEST_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'test-counter.json');
@@ -860,6 +868,21 @@ app.get('/api/system/health', authenticateToken, async (req, res) => {
                         : ['nslookup']
             }
         } as any,
+        system: {
+            memory: {
+                total: 0,
+                used: 0,
+                free: 0,
+                usedPercent: 0
+            },
+            disk: {
+                total: 0,
+                used: 0,
+                free: 0,
+                usedPercent: 0,
+                logDirUsage: 0
+            }
+        },
         timestamp: Date.now()
     };
 
@@ -881,6 +904,46 @@ app.get('/api/system/health', authenticateToken, async (req, res) => {
         };
         health.ready = false;
         console.log('[SYSTEM] ✗ curl not available');
+    }
+
+    // Get memory stats
+    try {
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
+        const usedMem = totalMem - freeMem;
+
+        health.system.memory = {
+            total: totalMem,
+            used: usedMem,
+            free: freeMem,
+            usedPercent: Math.round((usedMem / totalMem) * 100)
+        };
+    } catch (error) {
+        console.error('[SYSTEM] Failed to get memory stats:', error);
+    }
+
+    // Get disk stats (log directory)
+    try {
+        const dfCommand = PLATFORM === 'darwin'
+            ? `df -k ${APP_CONFIG.logDir} | tail -1 | awk '{print $2,$3,$4}'`
+            : `df -k ${APP_CONFIG.logDir} | tail -1 | awk '{print $2,$3,$4}'`;
+
+        const { stdout } = await execPromise(dfCommand);
+        const [total, used, free] = stdout.trim().split(/\s+/).map(s => parseInt(s) * 1024); // Convert KB to bytes
+
+        health.system.disk = {
+            total,
+            used,
+            free,
+            usedPercent: Math.round((used / total) * 100),
+            logDirUsage: 0 // Will be filled below
+        };
+
+        // Get log directory usage from TestLogger stats
+        const logStats = await testLogger.getStats();
+        health.system.disk.logDirUsage = logStats.diskUsageBytes;
+    } catch (error) {
+        console.error('[SYSTEM] Failed to get disk stats:', error);
     }
 
     console.log(`[SYSTEM] Health check complete: ${health.ready ? 'READY' : 'NOT READY'}`);
@@ -1166,7 +1229,7 @@ const saveSecurityConfig = (config: any) => {
 };
 
 // Helper: Add test result to history
-const addTestResult = (testType: string, testName: string, result: any, testId?: number) => {
+const addTestResult = async (testType: string, testName: string, result: any, testId?: number, details?: any) => {
     const config = getSecurityConfig();
     if (!config) return;
 
@@ -1181,10 +1244,10 @@ const addTestResult = (testType: string, testName: string, result: any, testId?:
         result,
     };
 
+    // Keep in-memory history for backward compatibility (last 50)
     config.test_history = config.test_history || [];
     config.test_history.unshift(historyEntry);
 
-    // Keep only last 50 results
     if (config.test_history.length > 50) {
         config.test_history = config.test_history.slice(0, 50);
     }
@@ -1195,6 +1258,23 @@ const addTestResult = (testType: string, testName: string, result: any, testId?:
     if (result.status) {
         updateStatistics(testType, result.status);
     }
+
+    // Log to persistent TestLogger
+    const testResult: TestResult = {
+        id,
+        timestamp: Date.now(),
+        type: testType === 'url_filtering' ? 'url' : testType === 'dns_security' ? 'dns' : 'threat',
+        name: testName,
+        status: result.status || 'error',
+        details: details || {
+            url: result.url,
+            domain: result.domain,
+            endpoint: result.endpoint,
+            ...result
+        }
+    };
+
+    await testLogger.logTest(testResult);
 
     return id; // Return the test ID
 };
@@ -1378,23 +1458,74 @@ app.post('/api/security/config', authenticateToken, (req, res) => {
     }
 });
 
-// API: Get Test History
-app.get('/api/security/results', authenticateToken, (req, res) => {
-    const config = getSecurityConfig();
-    if (!config) return res.status(500).json({ error: 'Failed to read config' });
-    res.json({ results: config.test_history || [] });
+// API: Get Test History (with search, pagination, filters)
+app.get('/api/security/results', authenticateToken, async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit as string) || 50;
+        const offset = parseInt(req.query.offset as string) || 0;
+        const search = req.query.search as string;
+        const type = req.query.type as 'url' | 'dns' | 'threat' | undefined;
+        const status = req.query.status as 'blocked' | 'allowed' | 'sinkholed' | 'error' | undefined;
+
+        const { results, total } = await testLogger.getResults({
+            limit,
+            offset,
+            search,
+            type,
+            status
+        });
+
+        res.json({ results, total, limit, offset });
+    } catch (error) {
+        console.error('[API] Failed to get test results:', error);
+        res.status(500).json({ error: 'Failed to retrieve test results' });
+    }
 });
 
-// API: Clear Test History
-app.delete('/api/security/results', authenticateToken, (req, res) => {
-    const config = getSecurityConfig();
-    if (!config) return res.status(500).json({ error: 'Failed to read config' });
+// API: Get Single Test Result by ID
+app.get('/api/security/results/:id', authenticateToken, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const result = await testLogger.getResultById(id);
 
-    config.test_history = [];
-    if (saveSecurityConfig(config)) {
-        res.json({ success: true });
-    } else {
-        res.status(500).json({ error: 'Failed to clear history' });
+        if (result) {
+            res.json(result);
+        } else {
+            res.status(404).json({ error: 'Test result not found' });
+        }
+    } catch (error) {
+        console.error('[API] Failed to get test result:', error);
+        res.status(500).json({ error: 'Failed to retrieve test result' });
+    }
+});
+
+// API: Get Test Statistics
+app.get('/api/security/results/stats', authenticateToken, async (req, res) => {
+    try {
+        const stats = await testLogger.getStats();
+        res.json(stats);
+    } catch (error) {
+        console.error('[API] Failed to get test stats:', error);
+        res.status(500).json({ error: 'Failed to retrieve statistics' });
+    }
+});
+
+// API: Clear Test History (manual cleanup)
+app.delete('/api/security/results', authenticateToken, async (req, res) => {
+    try {
+        const before = req.query.before as string;
+
+        if (before) {
+            // Delete logs before specific date (not implemented yet - would need enhancement)
+            res.status(501).json({ error: 'Date-based cleanup not yet implemented' });
+        } else {
+            // Delete all logs
+            const deletedCount = await testLogger.deleteAll();
+            res.json({ success: true, deletedCount });
+        }
+    } catch (error) {
+        console.error('[API] Failed to clear test results:', error);
+        res.status(500).json({ error: 'Failed to clear test results' });
     }
 });
 
@@ -1598,7 +1729,7 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 output: stdout
             };
 
-            logTest(`[DNS-TEST-${testId}] Test result:`, { domain, status, resolved, isSinkholed, isBlocked });
+            logTest(`[DNS-TEST-${testId}] Test result:`, { domain, status, resolved });
             addTestResult('dns_security', testName || domain, result, testId);
             res.json(result);
         } catch (dnsError: any) {
@@ -1845,5 +1976,29 @@ app.listen(port, async () => {
     } catch (e) {
         // Ignore version read errors
     }
+
+    // Schedule daily log cleanup (runs at 2 AM)
+    const scheduleLogCleanup = () => {
+        const now = new Date();
+        const tomorrow2AM = new Date(now);
+        tomorrow2AM.setDate(tomorrow2AM.getDate() + 1);
+        tomorrow2AM.setHours(2, 0, 0, 0);
+
+        const msUntil2AM = tomorrow2AM.getTime() - now.getTime();
+
+        setTimeout(async () => {
+            console.log('[LOG_CLEANUP] Running daily log cleanup...');
+            const deletedCount = await testLogger.cleanup();
+            console.log(`[LOG_CLEANUP] Deleted ${deletedCount} old log files`);
+
+            // Schedule next cleanup
+            scheduleLogCleanup();
+        }, msUntil2AM);
+
+        console.log(`[LOG_CLEANUP] Next cleanup scheduled for ${tomorrow2AM.toISOString()}`);
+    };
+
+    scheduleLogCleanup();
+
     console.log(`Backend running at http://localhost:${port}`);
 });
