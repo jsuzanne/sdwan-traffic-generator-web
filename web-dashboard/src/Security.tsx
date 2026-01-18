@@ -7,6 +7,7 @@ interface SecurityProps {
 }
 
 interface TestResult {
+    testId?: number;
     timestamp: number;
     testType: string;
     testName: string;
@@ -914,6 +915,7 @@ export default function Security({ token }: SecurityProps) {
                                 <table className="w-full">
                                     <thead className="bg-slate-800/50">
                                         <tr>
+                                            <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test ID</th>
                                             <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Timestamp</th>
                                             <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test Type</th>
                                             <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test Name</th>
@@ -926,6 +928,9 @@ export default function Security({ token }: SecurityProps) {
                                             .slice(0, 20)
                                             .map((result, index) => (
                                                 <tr key={index} className="hover:bg-slate-800/30 transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-slate-400 font-mono">
+                                                        #{result.testId || 'N/A'}
+                                                    </td>
                                                     <td className="px-4 py-3 text-sm text-slate-400">
                                                         {new Date(result.timestamp).toLocaleTimeString()}
                                                     </td>
