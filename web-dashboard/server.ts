@@ -23,6 +23,23 @@ const APP_CONFIG = {
 
 console.log('Using config:', APP_CONFIG);
 
+// Test Counter - Persistent sequential ID for all tests
+const TEST_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'test-counter.json');
+
+const getNextTestId = (): number => {
+    try {
+        if (!fs.existsSync(TEST_COUNTER_FILE)) {
+            fs.writeFileSync(TEST_COUNTER_FILE, JSON.stringify({ counter: 0 }));
+        }
+        const data = JSON.parse(fs.readFileSync(TEST_COUNTER_FILE, 'utf8'));
+        const nextId = (data.counter || 0) + 1;
+        fs.writeFileSync(TEST_COUNTER_FILE, JSON.stringify({ counter: nextId }));
+        return nextId;
+    } catch (e) {
+        console.error('Error managing test counter:', e);
+        return Date.now(); // Fallback to timestamp
+    }
+};
 
 
 const app = express();
@@ -932,11 +949,15 @@ const saveSecurityConfig = (config: any) => {
 };
 
 // Helper: Add test result to history
-const addTestResult = (testType: string, testName: string, result: any) => {
+const addTestResult = (testType: string, testName: string, result: any, testId?: number) => {
     const config = getSecurityConfig();
     if (!config) return;
 
+    // Get next test ID if not provided
+    const id = testId || getNextTestId();
+
     const historyEntry = {
+        testId: id,
         timestamp: Date.now(),
         testType,
         testName,
@@ -957,6 +978,8 @@ const addTestResult = (testType: string, testName: string, result: any) => {
     if (result.status) {
         updateStatistics(testType, result.status);
     }
+
+    return id; // Return the test ID
 };
 
 // Helper: Update statistics
@@ -1270,10 +1293,13 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
 app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
     const { domain, testName } = req.body;
 
-    console.log('[DEBUG] DNS security test request:', { domain, testName });
+    // Generate unique test ID
+    const testId = getNextTestId();
+
+    console.log(`[DNS-TEST-${testId}] DNS security test request:`, { domain, testName });
 
     if (!domain) {
-        console.log('[DEBUG] DNS test failed: No domain provided');
+        console.log(`[DNS-TEST-${testId}] Test failed: No domain provided`);
         return res.status(400).json({ error: 'Domain is required' });
     }
 
@@ -1284,7 +1310,7 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
 
         // Use getent instead of nslookup - more reliable in containers
         const dnsCommand = `getent ahosts ${domain}`;
-        console.log('[DEBUG] Executing DNS test:', dnsCommand);
+        console.log(`[DNS-TEST-${testId}] Executing DNS test:`, dnsCommand);
 
         // Helper function to wait
         const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -1347,8 +1373,8 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 output: stdout
             };
 
-            console.log('[DEBUG] DNS test result:', { domain, status, resolved, isSinkholed, isBlocked });
-            addTestResult('dns_security', testName || domain, result);
+            console.log(`[DNS-TEST-${testId}] Test result:`, { domain, status, resolved, isSinkholed, isBlocked });
+            addTestResult('dns_security', testName || domain, result, testId);
             res.json(result);
         } catch (dnsError: any) {
             // Check if it's a command not found error
@@ -1364,9 +1390,9 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 error: dnsError.message
             };
 
-            console.log(`[DNS-TEST] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
+            console.log(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
 
-            addTestResult('dns_security', testName || domain, result);
+            addTestResult('dns_security', testName || domain, result, testId);
             res.json(result);
         }
     } catch (e: any) {
@@ -1392,9 +1418,9 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
 
     for (let i = 0; i < tests.length; i++) {
         const test = tests[i];
-        const testId = `${batchId}-${i + 1}`;
+        const testId = getNextTestId(); // Generate unique ID for each test
 
-        console.log(`[DNS-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.domain} (${test.testName})`);
+        console.log(`[DNS-BATCH-${batchId}][DNS-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.domain} (${test.testName})`);
 
         try {
             // exec already imported at top
@@ -1462,7 +1488,7 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                 };
 
                 results.push(result);
-                addTestResult('dns_security', test.testName, result);
+                addTestResult('dns_security', test.testName, result, testId);
             } catch (dnsError: any) {
                 // Check if it's a command not found error
                 const isCommandError = dnsError.message.includes('command not found') ||
@@ -1480,7 +1506,7 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                 console.log(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
 
                 results.push(result);
-                addTestResult('dns_security', test.testName, result);
+                addTestResult('dns_security', test.testName, result, testId);
             }
         } catch (e: any) {
             results.push({
