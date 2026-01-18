@@ -47,22 +47,25 @@ const port = parseInt(process.env.PORT || '3001');
 
 const SECRET_KEY = process.env.JWT_SECRET || 'super-secret-key-change-this';
 const USERS_FILE = path.join(APP_CONFIG.configDir, 'users.json');
+const DEBUG_API = process.env.DEBUG_API === 'true';
 
 app.use(cors());
 app.use(express.json());
 
-// Global request logger - logs ALL incoming requests
-app.use((req, res, next) => {
-    console.log(`[REQUEST] ${req.method} ${req.path}`, {
-        body: req.body,
-        query: req.query,
-        headers: {
-            'content-type': req.headers['content-type'],
-            'authorization': req.headers['authorization'] ? 'Bearer ***' : 'none'
-        }
+// Global request logger - logs ALL incoming requests (only if DEBUG_API=true)
+if (DEBUG_API) {
+    app.use((req, res, next) => {
+        console.log(`[REQUEST] ${req.method} ${req.path}`, {
+            body: req.body,
+            query: req.query,
+            headers: {
+                'content-type': req.headers['content-type'],
+                'authorization': req.headers['authorization'] ? 'Bearer ***' : 'none'
+            }
+        });
+        next();
     });
-    next();
-});
+}
 
 // --- Authentication Middleware ---
 const authenticateToken = (req: any, res: any, next: any) => {
@@ -1200,10 +1203,13 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
         const execPromise = promisify(exec);
 
         const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${url}'`;
+        console.log(`[URL-TEST-${testId}] Executing URL test:`, curlCommand);
 
         try {
             const { stdout } = await execPromise(curlCommand);
             const httpCode = parseInt(stdout);
+            console.log(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
+
             const result = {
                 success: httpCode >= 200 && httpCode < 400,
                 httpCode,
@@ -1212,6 +1218,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 category
             };
 
+            console.log(`[URL-TEST-${testId}] Final status: ${result.status} (HTTP ${httpCode})`);
             addTestResult('url_filtering', category || url, result, testId);
             res.json(result);
         } catch (curlError: any) {
@@ -1225,6 +1232,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 error: curlError.message
             };
 
+            console.log(`[URL-TEST-${testId}] Final status: blocked (curl error: ${curlError.message})`);
             addTestResult('url_filtering', category || url, result, testId);
             res.json(result);
         }
@@ -1557,10 +1565,11 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
 
         for (const ep of endpointsArray) {
             const curlCommand = `curl -fsS --max-time 20 ${ep} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt`;
-            console.log('[DEBUG] Executing EICAR test:', curlCommand);
+            console.log(`[THREAT-TEST-${testId}] Executing EICAR test:`, curlCommand);
 
             try {
                 await execPromise(curlCommand);
+                console.log(`[THREAT-TEST-${testId}] EICAR file downloaded successfully`);
 
                 const result = {
                     success: true,
