@@ -5,7 +5,36 @@
 The Security Testing feature enables controlled testing of Palo Alto Networks / Prisma Access security policies for demos and POCs. It provides automated testing of URL Filtering, DNS Security, and Threat Prevention capabilities.
 
 **Version:** 1.1.0  
-**Last Updated:** 2026-01-16
+**Last Updated:** 2026-01-19
+
+---
+
+## Screenshots
+
+### Security Overview Dashboard
+![Security Overview](screenshots/security/overview.png)
+
+*Real-time summary of URL filtering, DNS security, and threat prevention test results with system health monitoring*
+
+### URL Filtering Tests
+![URL Filtering](screenshots/security/url-filtering.png)
+
+*Test 66 different URL categories including malware, phishing, gambling, adult content, and more*
+
+### DNS Security Tests
+![DNS Security](screenshots/security/dns-security.png)
+
+*Validate DNS security policies with basic and advanced test domains*
+
+### Threat Prevention
+![Threat Prevention](screenshots/security/threat-prevention.png)
+
+*EICAR file download testing for IPS validation*
+
+### Test Results History
+![Test Results](screenshots/security/test-results.png)
+
+*Persistent logging with search, filtering, pagination, and export capabilities*
 
 ---
 
@@ -18,7 +47,8 @@ The Security Testing feature enables controlled testing of Palo Alto Networks / 
 5. [Test Categories](#test-categories)
 6. [Scheduled Execution](#scheduled-execution)
 7. [Statistics Tracking](#statistics-tracking)
-8. [Maintenance](#maintenance)
+8. [Persistent Logging](#persistent-logging)
+9. [Maintenance](#maintenance)
 
 ---
 

@@ -1,47 +1,209 @@
 version: '3.8'
 
+# SD-WAN Traffic Generator - Production Configuration
+# Version: 1.1.0
+# Last Updated: 2026-01-19
+
 services:
+  # Web Dashboard - User Interface and API
   sdwan-web-ui:
     image: jsuzanne/sdwan-web-ui:latest
     container_name: sdwan-web-ui
+    hostname: sdwan-web-ui
+
+    # Port Mapping
+    # Change 8080:8080 to 8081:8080 if port 8080 is already in use
     ports:
       - "8080:8080"
+
+    # Environment Variables
     environment:
-      # JWT Secret for authentication
-      - JWT_SECRET=change-this-secret-key-in-production
+      # JWT Secret - CHANGE THIS IN PRODUCTION!
+      - JWT_SECRET=your-super-secret-jwt-key-change-me-in-production
 
-      # Debug mode (optional)
-      - DEBUG_API=false
+      # Log Retention Settings
+      - LOG_RETENTION_DAYS=7 # Keep logs for 7 days
+      - LOG_MAX_SIZE_MB=100 # Maximum log file size (MB)
 
-      # === Custom Connectivity Test Endpoints ===
-      # Format: Name:Target
-      # These endpoints will be tested on startup and displayed in the UI
+      # Optional: Node.js Settings
+      - NODE_ENV=production
+      - TZ=UTC # Timezone (change as needed)
 
-      # HTTP/HTTPS Endpoints
-      - CONNECTIVITY_HTTP_1=DC-Application:https://app.datacenter.local
-      - CONNECTIVITY_HTTP_2=Backup-App:https://backup.datacenter.local:8443
-      # - CONNECTIVITY_HTTP_3=Custom-API:https://api.company.com
-
-      # ICMP Ping Endpoints (IP addresses)
-      - CONNECTIVITY_PING_1=HQ-Firewall:10.0.0.1
-      - CONNECTIVITY_PING_2=Branch-Router:192.168.1.1
-      - CONNECTIVITY_PING_3=Backup-Gateway:192.168.2.1
-      # - CONNECTIVITY_PING_4=Remote-Site:172.16.0.1
-
-      # TCP Port Tests (IP:Port)
-      - CONNECTIVITY_TCP_1=DC-SSH:10.0.0.100:22
-      - CONNECTIVITY_TCP_2=DC-RDP:10.0.0.100:3389
-      # - CONNECTIVITY_TCP_3=DB-Server:10.0.0.200:5432
-      # - CONNECTIVITY_TCP_4=Web-Server:10.0.0.150:443
-
+    # Volume Mounts
     volumes:
-      # Persistent storage for configuration and logs
-      - ./config:/app/config
+      # Configuration directory (applications.txt, interfaces.txt, etc.)
+      - ./config:/opt/sdwan-traffic-gen/config
+
+      # Logs directory (traffic.log, test-results.jsonl, stats.json)
       - ./logs:/var/log/sdwan-traffic-gen
+
+    # Restart Policy
     restart: unless-stopped
+
+    # Health Check
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Resource Limits (Optional - Uncomment to enable)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 512M
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 256M
+
+    # Network
     networks:
       - sdwan-network
 
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Traffic Generator - Background Traffic Simulation
+  sdwan-traffic-gen:
+    image: jsuzanne/sdwan-traffic-gen:latest
+    container_name: sdwan-traffic-gen
+    hostname: sdwan-traffic-gen
+
+    # Environment Variables
+    environment:
+      # Traffic Generation Settings
+      - SLEEP_BETWEEN_REQUESTS=1 # Seconds between requests (1 = 1 req/sec)
+
+      # Optional: Client ID for multi-instance deployments
+      - CLIENT_ID=client01
+
+      # Optional: Timezone
+      - TZ=UTC
+
+    # Volume Mounts (Same as web-ui for shared config/logs)
+    volumes:
+      - ./config:/opt/sdwan-traffic-gen/config
+      - ./logs:/var/log/sdwan-traffic-gen
+
+    # Restart Policy
+    restart: unless-stopped
+
+    # Resource Limits (Optional - Uncomment to enable)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 256M
+    #     reservations:
+    #       cpus: '0.25'
+    #       memory: 128M
+
+    # Network
+    networks:
+      - sdwan-network
+
+    # Dependencies
+    depends_on:
+      sdwan-web-ui:
+        condition: service_healthy
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Network Configuration
 networks:
   sdwan-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes (Optional - Use named volumes instead of bind mounts)
+# volumes:
+#   config:
+#     driver: local
+#   logs:
+#     driver: local
+
+# ============================================================================
+# PRODUCTION DEPLOYMENT CHECKLIST
+# ============================================================================
+#
+# 1. Security
+#    ✓ Change JWT_SECRET to a strong random value
+#    ✓ Change default admin password after first login
+#    ✓ Use HTTPS with reverse proxy (nginx, traefik, caddy)
+#    ✓ Restrict access with firewall rules
+#
+# 2. Configuration
+#    ✓ Create config/applications.txt with your applications
+#    ✓ Create config/interfaces.txt with your network interfaces
+#    ✓ Adjust LOG_RETENTION_DAYS based on your needs
+#    ✓ Set appropriate SLEEP_BETWEEN_REQUESTS (1 = 1 req/sec)
+#
+# 3. Monitoring
+#    ✓ Set up log rotation (already configured)
+#    ✓ Monitor disk space for logs directory
+#    ✓ Check health endpoint: http://localhost:8080/api/health
+#    ✓ Enable resource limits if needed
+#
+# 4. Backup
+#    ✓ Backup config/ directory regularly
+#    ✓ Backup logs/ directory if needed for compliance
+#    ✓ Test restore procedures
+#
+# 5. Networking
+#    ✓ Ensure containers can reach internet
+#    ✓ Configure DNS if needed
+#    ✓ Open firewall ports (8080 or custom)
+#
+# ============================================================================
+# QUICK START
+# ============================================================================
+#
+# 1. Create directories:
+#    mkdir -p config logs
+#
+# 2. Create config/applications.txt:
+#    See docs/TRAFFIC_GENERATOR.md for examples
+#
+# 3. Start services:
+#    docker compose up -d
+#
+# 4. Access dashboard:
+#    http://localhost:8080
+#    Default credentials: admin / admin
+#
+# 5. View logs:
+#    docker compose logs -f
+#
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+#
+# You can also use a .env file instead of hardcoding values:
+#
+# Create .env file:
+#   WEB_UI_PORT=8080
+#   JWT_SECRET=your-secret-key
+#   LOG_RETENTION_DAYS=7
+#   LOG_MAX_SIZE_MB=100
+#   SLEEP_BETWEEN_REQUESTS=1
+#
+# Then use in docker-compose.yml:
+#   ports:
+#     - "${WEB_UI_PORT}:8080"
+#   environment:
+#     - JWT_SECRET=${JWT_SECRET}
+#
+# ============================================================================

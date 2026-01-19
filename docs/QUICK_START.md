@@ -1,0 +1,283 @@
+# Quick Start Guide
+
+Get your SD-WAN Traffic Generator up and running in 5 minutes!
+
+## Prerequisites
+
+- Docker and Docker Compose installed
+- Linux, macOS, or Windows with WSL2
+- At least 2GB free RAM
+- Network connectivity
+
+## Installation Methods
+
+### Method 1: Docker Compose (Recommended)
+
+**Step 1: Create project directory**
+
+```bash
+mkdir sdwan-traffic-gen
+cd sdwan-traffic-gen
+```
+
+**Step 2: Download docker-compose.yml**
+
+```bash
+curl -O https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/docker-compose.yml
+```
+
+Or create it manually:
+
+```yaml
+version: '3.8'
+
+services:
+  sdwan-web-ui:
+    image: jsuzanne/sdwan-web-ui:latest
+    container_name: sdwan-web-ui
+    ports:
+      - "8080:8080"
+    environment:
+      - JWT_SECRET=change-this-secret-in-production
+      - LOG_RETENTION_DAYS=7
+      - LOG_MAX_SIZE_MB=100
+    volumes:
+      - ./config:/opt/sdwan-traffic-gen/config
+      - ./logs:/var/log/sdwan-traffic-gen
+    restart: unless-stopped
+    networks:
+      - sdwan-network
+
+  sdwan-traffic-gen:
+    image: jsuzanne/sdwan-traffic-gen:latest
+    container_name: sdwan-traffic-gen
+    environment:
+      - SLEEP_BETWEEN_REQUESTS=1
+    volumes:
+      - ./config:/opt/sdwan-traffic-gen/config
+      - ./logs:/var/log/sdwan-traffic-gen
+    restart: unless-stopped
+    networks:
+      - sdwan-network
+    depends_on:
+      - sdwan-web-ui
+
+networks:
+  sdwan-network:
+    driver: bridge
+```
+
+**Step 3: Create configuration directory**
+
+```bash
+mkdir -p config logs
+```
+
+**Step 4: Create applications.txt**
+
+Create `config/applications.txt` with your desired applications:
+
+```bash
+cat > config/applications.txt << 'EOF'
+# Microsoft 365 Suite
+outlook.office365.com|68|/
+teams.microsoft.com|68|/api/mt/emea/beta/users/
+login.microsoftonline.com|68|/
+
+# Google Workspace
+mail.google.com|100|/mail/
+drive.google.com|80|/
+docs.google.com|72|/document/
+
+# Collaboration Tools
+zoom.us|60|/
+slack.com|50|/api/api.test
+webex.com|55|/
+
+# Social Media
+linkedin.com|72|/
+twitter.com|72|/robots.txt
+facebook.com|55|/robots.txt
+EOF
+```
+
+**Step 5: Start the services**
+
+```bash
+docker compose up -d
+```
+
+**Step 6: Access the dashboard**
+
+Open your browser to: **http://localhost:8080**
+
+**Default credentials:** `admin` / `admin`
+
+**⚠️ Change the password immediately after first login!**
+
+---
+
+## First-Time Configuration
+
+### 1. Login to Dashboard
+
+Navigate to `http://localhost:8080` and login with `admin/admin`.
+
+### 2. Configure Network Interface
+
+Go to **Configuration** tab:
+- Click "Add Interface"
+- Enter your network interface (e.g., `eth0`, `enp0s3`, `wlan0`)
+- Click "Add"
+
+**How to find your interface:**
+```bash
+# Linux
+ip addr show
+
+# macOS
+ifconfig
+
+# Look for your active network interface (usually eth0, enp0s3, or wlan0)
+```
+
+### 3. Start Traffic Generation
+
+Go to **Dashboard** tab:
+- Click the toggle button to start traffic generation
+- Status should change to "Active" (green)
+- Watch the request counter increase
+
+### 4. Monitor Traffic
+
+- **Dashboard Tab**: Real-time statistics and charts
+- **Logs Tab**: Live traffic logs
+- **Configuration Tab**: Adjust application weights
+
+### 5. Test Security Features
+
+Go to **Security** tab:
+- Run URL Filtering tests
+- Run DNS Security tests
+- Run Threat Prevention tests
+- View test results history
+
+---
+
+## Common Tasks
+
+### View Logs
+
+```bash
+# All logs
+docker compose logs -f
+
+# Web UI only
+docker compose logs -f sdwan-web-ui
+
+# Traffic generator only
+docker compose logs -f sdwan-traffic-gen
+```
+
+### Restart Services
+
+```bash
+docker compose restart
+```
+
+### Stop Services
+
+```bash
+docker compose down
+```
+
+### Update to Latest Version
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+### Change Port
+
+If port 8080 is already in use:
+
+```bash
+# Edit docker-compose.yml
+# Change: "8080:8080" to "8081:8080"
+
+docker compose up -d
+```
+
+Or use environment variable:
+
+```bash
+echo "WEB_UI_PORT=8081" > .env
+docker compose up -d
+```
+
+---
+
+## Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Find what's using port 8080
+sudo lsof -i :8080
+
+# Change port in docker-compose.yml
+# Change: "8080:8080" to "8081:8080"
+```
+
+### Container Won't Start
+
+```bash
+# Check logs
+docker compose logs sdwan-web-ui
+docker compose logs sdwan-traffic-gen
+
+# Rebuild
+docker compose down
+docker compose up -d --build
+```
+
+### No Traffic Being Generated
+
+1. Check network interface is configured
+2. Verify traffic generation is started (green status)
+3. Check logs: `docker compose logs -f sdwan-traffic-gen`
+4. Verify `applications.txt` exists and has valid entries
+
+### Can't Access Dashboard
+
+1. Check container is running: `docker ps`
+2. Check port mapping: `docker compose ps`
+3. Try `http://127.0.0.1:8080` instead of `localhost`
+4. Check firewall rules
+
+---
+
+## Next Steps
+
+- **[Traffic Generator Guide](TRAFFIC_GENERATOR.md)** - Learn about applications.txt and weights
+- **[Security Testing](SECURITY_TESTING.md)** - Comprehensive security testing guide
+- **[Configuration Guide](CONFIGURATION.md)** - Advanced configuration options
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Detailed troubleshooting guide
+
+---
+
+## Production Deployment
+
+For production use:
+
+1. **Change JWT_SECRET** in docker-compose.yml
+2. **Change default password** after first login
+3. **Use HTTPS** with reverse proxy (nginx, traefik)
+4. **Restrict access** with firewall rules
+5. **Enable log rotation** (already configured)
+6. **Monitor disk space** for logs directory
+
+---
+
+**Need help?** Check the [Troubleshooting Guide](TROUBLESHOOTING.md) or open an issue on GitHub.

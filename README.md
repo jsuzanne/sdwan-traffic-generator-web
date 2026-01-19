@@ -4,16 +4,35 @@
 
 A realistic enterprise application traffic generator designed for SD-WAN testing and demonstrations. It simulates various application traffic patterns (HTTP/HTTPS) to generate load and test application-aware network policies.
 
-**Now featuring a modern Web Dashboard with real-time monitoring!**
+**Now featuring a modern Web Dashboard with real-time monitoring and comprehensive security testing!**
 
 ## ✨ Features
 
+### Traffic Generation
 -   **🎯 Real-time Dashboard**: Live traffic visualization, metrics, and status monitoring
 -   **⚙️ Configuration UI**: Easily adjust application weights and network interfaces from your browser
--   **🐳 Docker Ready**: Single-command deployment using Docker Compose
--   **🌐 Realistic Patterns**: Randomly selected user agents and weighted application distribution (Microsoft 365, Google Workspace, Salesforce, and 50+ enterprise apps)
+-   **🌐 Realistic Patterns**: Randomly selected user agents and weighted application distribution (Microsoft 365, Google Workspace, and 140+ enterprise/consumer apps)
 -   **📊 Live Logging**: Real-time log streaming and detailed statistics
+-   **🔄 Intelligent Backoff**: Automatic retry logic for failed requests
+
+### Security Testing (v1.1.0)
+-   **🛡️ URL Filtering**: Test 66 different URL categories (malware, phishing, gambling, adult content, etc.)
+-   **🔒 DNS Security**: Validate DNS security policies with 24 test domains (malware, phishing, DGA, etc.)
+-   **⚠️ Threat Prevention**: EICAR file download testing for IPS validation
+-   **📅 Scheduled Testing**: Automated security tests at configurable intervals
+-   **📈 Test Results History**: Persistent logging with search, filtering, and export
+
+### Persistent Logging (v1.1.0)
+-   **💾 JSONL Storage**: Structured, searchable test results
+-   **🔄 Auto Rotation**: Size and age-based log cleanup (7-day retention)
+-   **🔍 Search & Filter**: Find specific tests quickly with powerful search
+-   **📤 Export**: Download results in JSON, CSV, or JSONL format
+-   **📊 System Health**: Monitor memory, disk usage, and log size
+
+### Deployment
+-   **🐳 Docker Ready**: Single-command deployment using Docker Compose
 -   **🔒 Secure**: Built-in authentication with JWT tokens
+-   **🚀 Production Ready**: Log rotation, health monitoring, and automatic cleanup
 
 ---
 
@@ -26,6 +45,21 @@ A realistic enterprise application traffic generator designed for SD-WAN testing
 <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="800">
 
 *Monitor traffic generation status, total requests, success rate, and active applications in real-time*
+
+### Security Testing - URL Filtering
+<img src="docs/screenshots/security/url-filtering.png" alt="URL Filtering Tests" width="800">
+
+*Test 66 different URL categories to validate firewall policies*
+
+### Security Testing - DNS Security
+<img src="docs/screenshots/security/dns-security.png" alt="DNS Security Tests" width="800">
+
+*Validate DNS security with malware, phishing, and advanced threat domains*
+
+### Security Testing - Test Results
+<img src="docs/screenshots/security/test-results.png" alt="Test Results History" width="800">
+
+*Search, filter, and export security test results with persistent logging*
 
 ### Live Logs & Statistics
 <img src="docs/screenshots/logs-stats.png" alt="Logs and Statistics" width="800">
@@ -269,6 +303,53 @@ docker-compose up -d --build
 1. Check that network interfaces are configured in the Configuration tab
 2. Verify traffic generation is started (green "Active" status)
 3. Check logs: `docker-compose logs -f traffic-gen`
+
+---
+
+## 📚 Documentation
+
+Comprehensive guides for all features:
+
+### Getting Started
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
+- **[Installation Guide](docs/QUICK_START.md#installation-methods)** - Detailed installation instructions
+
+### Traffic Generation
+- **[Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md)** - Configure applications.txt and weights
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
+
+### Security Testing
+- **[Security Testing Guide](docs/SECURITY_TESTING.md)** - Comprehensive security testing documentation
+- **[Security Quick Reference](docs/SECURITY_QUICK_REFERENCE.md)** - Quick reference for security tests
+- **[Security FAQ](docs/SECURITY_TESTING_FAQ.md)** - Frequently asked questions
+
+### Logging & Monitoring
+- **[Persistent Logging](docs/PERSISTENT_LOGGING.md)** - Test results storage, search, and export
+- **[Connectivity Endpoints](docs/CONNECTIVITY_ENDPOINTS.md)** - System health monitoring
+
+### Troubleshooting
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+---
+
+## 🔑 Key Concepts
+
+### Traffic Generator vs Security Tests
+
+The SD-WAN Traffic Generator has **two separate systems**:
+
+| Feature | Traffic Generator | Security Tests |
+|---------|------------------|----------------|
+| **Purpose** | Simulate user traffic | Test security policies |
+| **Source** | `config/applications.txt` | Hardcoded test URLs |
+| **Execution** | Continuous background | On-demand or scheduled |
+| **Logs** | `/var/log/sdwan-traffic-gen/traffic.log` | `test-results.jsonl` |
+| **Examples** | google.com, office365.com | urlfiltering.paloaltonetworks.com |
+
+**Traffic Generator** creates realistic application traffic for SD-WAN demos.  
+**Security Tests** validate URL filtering, DNS security, and threat prevention policies.
+
+See [Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md) for details.
 
 ---
 
