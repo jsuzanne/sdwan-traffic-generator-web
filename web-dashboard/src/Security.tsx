@@ -390,10 +390,16 @@ export default function Security({ token }: SecurityProps) {
 
         if (status === 'blocked') {
             return <span className="flex items-center gap-1 text-red-400 text-sm"><XCircle size={14} /> Blocked</span>;
+        } else if (status === 'sinkholed') {
+            return <span className="flex items-center gap-1 text-yellow-400 text-sm"><AlertTriangle size={14} /> Sinkholed</span>;
         } else if (status === 'allowed' || status === 'resolved') {
-            return <span className="flex items-center gap-1 text-green-400 text-sm"><CheckCircle size={14} /> Allowed</span>;
+            return <span className="flex items-center gap-1 text-green-400 text-sm"><CheckCircle size={14} /> Resolved</span>;
+        } else if (status === 'error') {
+            return <span className="flex items-center gap-1 text-orange-400 text-sm"><XCircle size={14} /> Error</span>;
         } else {
-            return <span className="flex items-center gap-1 text-yellow-400 text-sm"><Clock size={14} /> Pending</span>;
+            // This should never happen - log it for debugging
+            console.warn('Unknown test status:', status);
+            return <span className="flex items-center gap-1 text-slate-400 text-sm"><Clock size={14} /> Unknown</span>;
         }
     };
 
