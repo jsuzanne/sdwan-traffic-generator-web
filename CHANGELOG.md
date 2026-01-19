@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.1] - 2026-01-19
+
+### Fixed - DNS Security Status Display 🐛
+- **"Pending" Status Bug**: Fixed DNS security tests incorrectly showing "Pending" status
+  - **Root Cause**: `getStatusBadge()` function didn't recognize "sinkholed" status
+  - **Impact**: Tests with "sinkholed" status fell through to default "Pending" case
+  - **Solution**: Added explicit handling for "sinkholed" status with yellow badge and AlertTriangle icon
+- **Status Badge Improvements**:
+  - ✅ **Blocked** (red, XCircle) - Domain blocked/NXDOMAIN
+  - ✅ **Sinkholed** (yellow, AlertTriangle) - Domain redirected to sinkhole IP
+  - ✅ **Resolved** (green, CheckCircle) - Domain resolved successfully
+  - ✅ **Error** (orange, XCircle) - Test execution error
+  - Added debug logging for unknown statuses to catch future issues
+
+### Technical Details
+- Modified `web-dashboard/src/Security.tsx` - `getStatusBadge()` function
+- Changed "Allowed" label to "Resolved" for DNS tests (more accurate)
+- Added console warning for unexpected status values
+- Eliminated ambiguous "Pending" state for valid test results
+
+### Known Issues
+- **Duplicate URLs in Live Logs**: URLs appear duplicated in Live Logs view (e.g., `https://example.comhttps://example.com`)
+  - Actual log file is correct
+  - Deferred to v1.1.1 for investigation
+
 ## [1.1.0] - 2026-01-18
 
 ### Added - Persistent Test Logging 📝
