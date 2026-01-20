@@ -1671,7 +1671,9 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
 
             const execPromise = promisify(exec);
             // IMPROVED: Retrieve content AND HTTP code for block page detection
-            const curlCommand = `curl -sS --max-time 10 -w "\n%{http_code}" '${test.url}'`;
+            // const curlCommand = `curl -sS --max-time 10 -w "\n%{http_code}" '${test.url}'`;
+    	    // ✅ MODIFICATION ICI : Ajout --retry 2 --retry-delay 3
+    	    const curlCommand = `curl -sS --max-time 10 --retry 2 --retry-delay 3 -w "\n%{http_code}" '${test.url}'`;
 
             logTest(`[URL-TEST-${testId}] Executing URL test for ${test.url} (${test.category}): ${curlCommand}`);
 
@@ -1723,6 +1725,10 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                     status,
                     command: curlCommand
                 });
+          	// ✅ AJOUTER CE DÉLAI ICI (après le try/catch)
+                if (i < tests.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));  // 500ms entre tests
+                }
             } catch (curlError: any) {
                 logTest(`[URL-TEST-${testId}] Final status: blocked (curl error: ${curlError.message})`);
 
