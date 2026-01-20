@@ -1,0 +1,29 @@
+# Format: domain|weight|endpoint
+# Weight: Higher = more traffic generated
+# Endpoint: Path only (e.g., / or /api/v1), NOT full URL
+
+# Microsoft 365 Suite
+office365.com|68|/
+outlook.office.com|68|/
+teams.microsoft.com|68|/
+
+# Google Workspace
+google.com|100|/
+drive.google.com|80|/
+mail.google.com|90|/mail/
+
+# Collaboration Tools
+zoom.us|60|/
+slack.com|50|/api/api.test
+webex.com|55|/
+
+# Cloud Storage
+dropbox.com|40|/
+box.com|35|/
+
+# Social Media
+linkedin.com|72|/
+twitter.com|72|/robots.txt
+
+# Enterprise
+paloaltonetworks.fr|45|/

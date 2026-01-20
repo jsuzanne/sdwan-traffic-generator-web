@@ -1,5 +1,10 @@
 # Format: domain|weight|endpoint
-# Weight: Plus élevé = plus de trafic généré
+# Weight: Higher value = more traffic generated (relative probability)
+# Endpoint: Path only (e.g., / or /api/v1), NOT full URL with https://
+# 
+# IMPORTANT: The endpoint field should contain ONLY the path portion.
+# The script will prepend "https://" and the domain automatically.
+# Example: linkedin.com|72|/ becomes https://linkedin.com/
 
 # Microsoft 365 Suite
 outlook.office365.com|59|/

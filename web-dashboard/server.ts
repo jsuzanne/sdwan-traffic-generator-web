@@ -1342,12 +1342,46 @@ const runScheduledTests = async () => {
             const category = URL_CATEGORIES.find(c => c.id === categoryId);
             if (!category) continue;
 
+            // Generate test ID for tracking
+            const testId = getNextTestId();
+            logTest(`[URL-TEST-${testId}] URL filtering test: ${category.url} (${categoryId})`);
+
             try {
-                const { stdout } = await execPromise(`curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${category.url}'`);
-                const httpCode = parseInt(stdout);
-                const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
-                updateStatistics('url_filtering', status);
-            } catch (e) {
+                // IMPROVED: Retrieve content AND HTTP code for block page detection
+                const curlCommand = `curl -sS --max-time 10 -w "\n%{http_code}" '${category.url}'`;
+                logTest(`[URL-TEST-${testId}] Executing: ${curlCommand}`);
+
+                const { stdout } = await execPromise(curlCommand);
+                const lines = stdout.trim().split('\n');
+                const httpCode = parseInt(lines[lines.length - 1]);
+                const content = lines.slice(0, -1).join('\n');
+
+                logTest(`[URL-TEST-${testId}] HTTP ${httpCode}, content: ${content.length} bytes`);
+
+                // Detect real Palo Alto block pages (not test pages)
+                const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+
+                let status: string;
+                if (httpCode === 403 || isBlockPage) {
+                    status = 'blocked';
+                    logTest(`[URL-TEST-${testId}] BLOCKED: ${httpCode === 403 ? 'HTTP 403' : 'Block page detected'}`);
+                } else if (httpCode === 404) {
+                    status = 'unknown';
+                    logTest(`[URL-TEST-${testId}] UNKNOWN: HTTP 404 (test URL does not exist)`);
+                } else if (httpCode >= 200 && httpCode < 300) {
+                    status = 'allowed';
+                    logTest(`[URL-TEST-${testId}] ALLOWED: HTTP ${httpCode}`);
+                } else {
+                    status = 'error';
+                    logTest(`[URL-TEST-${testId}] ERROR: Unexpected HTTP ${httpCode}`);
+                }
+
+                if (status === 'blocked' || status === 'allowed') {
+                    updateStatistics('url_filtering', status);
+                }
+
+            } catch (e: any) {
+                logTest(`[URL-TEST-${testId}] BLOCKED: curl error - ${e.message}`);
                 updateStatistics('url_filtering', 'blocked');
             }
         }
@@ -1547,27 +1581,52 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
         // util.promisify already imported as promisify
         const execPromise = promisify(exec);
 
-        const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${url}'`;
+        // IMPROVED: Retrieve content AND HTTP code for block page detection
+        const curlCommand = `curl -sS --max-time 10 -w "\n%{http_code}" '${url}'`;
         logTest(`[URL-TEST-${testId}] Executing URL test for ${url} (${category || 'Uncategorized'}): ${curlCommand}`);
 
         try {
             const { stdout } = await execPromise(curlCommand);
-            const httpCode = parseInt(stdout);
-            logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
+            const lines = stdout.trim().split('\n');
+            const httpCode = parseInt(lines[lines.length - 1]);
+            const content = lines.slice(0, -1).join('\n');
+
+            logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}, content length: ${content.length} bytes`);
+
+            // Detect real Palo Alto block pages
+            const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+
+            if (isBlockPage) {
+                logTest(`[URL-TEST-${testId}] Block page detected in content`);
+            }
+
+            let status: string;
+
+            if (httpCode === 403 || isBlockPage) {
+                status = 'blocked';
+                logTest(`[URL-TEST-${testId}] Final status: blocked (${httpCode === 403 ? 'HTTP 403' : 'block page keywords'})`);
+            } else if (httpCode === 404) {
+                status = 'unknown';
+                logTest(`[URL-TEST-${testId}] Final status: unknown (HTTP 404 - test URL does not exist)`);
+            } else if (httpCode >= 200 && httpCode < 300) {
+                status = 'allowed';
+                logTest(`[URL-TEST-${testId}] Final status: allowed (HTTP ${httpCode})`);
+            } else {
+                status = 'error';
+                logTest(`[URL-TEST-${testId}] Final status: error (unexpected HTTP ${httpCode})`);
+            }
 
             const result = {
-                success: httpCode >= 200 && httpCode < 400,
+                success: status === 'allowed',
                 httpCode,
-                status: httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked',
+                status,
                 url,
                 category
             };
 
-            logTest(`[URL-TEST-${testId}] Final status: ${result.status} (HTTP ${httpCode})`);
             addTestResult('url_filtering', category || url, result, testId);
             res.json(result);
         } catch (curlError: any) {
-            // Curl error usually means blocked or network error
             const result = {
                 success: false,
                 httpCode: 0,
@@ -1607,31 +1666,55 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
             logTest(`[URL-BATCH-${batchId}][URL-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.url} (${test.category})`);
 
             const execPromise = promisify(exec);
-            const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${test.url}'`;
+            // IMPROVED: Retrieve content AND HTTP code for block page detection
+            const curlCommand = `curl -sS --max-time 10 -w "\n%{http_code}" '${test.url}'`;
 
             logTest(`[URL-TEST-${testId}] Executing URL test for ${test.url} (${test.category}): ${curlCommand}`);
 
             try {
                 const { stdout } = await execPromise(curlCommand);
-                const httpCode = parseInt(stdout);
+                const lines = stdout.trim().split('\n');
+                const httpCode = parseInt(lines[lines.length - 1]);
+                const content = lines.slice(0, -1).join('\n');
 
-                logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
+                logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}, content length: ${content.length} bytes`);
 
-                const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
+                // Detect real Palo Alto block pages
+                const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+
+                if (isBlockPage) {
+                    logTest(`[URL-TEST-${testId}] Block page detected in content`);
+                }
+
+                let status: string;
+
+                if (httpCode === 403 || isBlockPage) {
+                    status = 'blocked';
+                    logTest(`[URL-TEST-${testId}] Final status: blocked (${httpCode === 403 ? 'HTTP 403' : 'block page keywords'})`);
+                } else if (httpCode === 404) {
+                    status = 'unknown';
+                    logTest(`[URL-TEST-${testId}] Final status: unknown (HTTP 404 - test URL does not exist)`);
+                } else if (httpCode >= 200 && httpCode < 300) {
+                    status = 'allowed';
+                    logTest(`[URL-TEST-${testId}] Final status: allowed (HTTP ${httpCode})`);
+                } else {
+                    status = 'error';
+                    logTest(`[URL-TEST-${testId}] Final status: error (unexpected HTTP ${httpCode})`);
+                }
+
                 const result = {
-                    success: httpCode >= 200 && httpCode < 400,
+                    success: status === 'allowed',
                     httpCode,
                     status,
                     url: test.url,
                     category: test.category
                 };
 
-                logTest(`[URL-TEST-${testId}] Final status: ${status} (HTTP ${httpCode})`);
-
                 results.push(result);
                 await addTestResult('url_filtering', test.category, result, testId, {
                     url: test.url,
                     httpCode,
+                    status,
                     command: curlCommand
                 });
             } catch (curlError: any) {

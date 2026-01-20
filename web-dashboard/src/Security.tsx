@@ -393,7 +393,7 @@ export default function Security({ token }: SecurityProps) {
         } else if (status === 'sinkholed') {
             return <span className="flex items-center gap-1 text-yellow-400 text-sm"><AlertTriangle size={14} /> Sinkholed</span>;
         } else if (status === 'allowed' || status === 'resolved') {
-            return <span className="flex items-center gap-1 text-green-400 text-sm"><CheckCircle size={14} /> Resolved</span>;
+            return <span className="flex items-center gap-1 text-green-400 text-sm"><CheckCircle size={14} /> Allowed </span>;
         } else if (status === 'error') {
             return <span className="flex items-center gap-1 text-orange-400 text-sm"><XCircle size={14} /> Error</span>;
         } else {
