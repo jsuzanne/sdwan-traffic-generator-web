@@ -1359,10 +1359,12 @@ const runScheduledTests = async () => {
                 logTest(`[URL-TEST-${testId}] HTTP ${httpCode}, content: ${content.length} bytes`);
 
                 // Detect real Palo Alto block pages (not test pages)
-                const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+                //const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+		const isBlockPage = /Web Page Blocked|has been blocked|access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
 
                 let status: string;
-                if (httpCode === 403 || isBlockPage) {
+                //if (httpCode === 403 || isBlockPage) {
+		if (httpCode === 403 || httpCode === 503 || isBlockPage) {
                     status = 'blocked';
                     logTest(`[URL-TEST-${testId}] BLOCKED: ${httpCode === 403 ? 'HTTP 403' : 'Block page detected'}`);
                 } else if (httpCode === 404) {
@@ -1594,7 +1596,8 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
             logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}, content length: ${content.length} bytes`);
 
             // Detect real Palo Alto block pages
-            const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+            // const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+	    const isBlockPage = /Web Page Blocked|has been blocked|access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
 
             if (isBlockPage) {
                 logTest(`[URL-TEST-${testId}] Block page detected in content`);
@@ -1602,7 +1605,8 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
 
             let status: string;
 
-            if (httpCode === 403 || isBlockPage) {
+            //if (httpCode === 403 || isBlockPage) {
+	    if (httpCode === 403 || httpCode === 503 || isBlockPage) {
                 status = 'blocked';
                 logTest(`[URL-TEST-${testId}] Final status: blocked (${httpCode === 403 ? 'HTTP 403' : 'block page keywords'})`);
             } else if (httpCode === 404) {
@@ -1680,7 +1684,8 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                 logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}, content length: ${content.length} bytes`);
 
                 // Detect real Palo Alto block pages
-                const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+                // const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
+		const isBlockPage = /Web Page Blocked|has been blocked|access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
 
                 if (isBlockPage) {
                     logTest(`[URL-TEST-${testId}] Block page detected in content`);
@@ -1688,7 +1693,8 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
 
                 let status: string;
 
-                if (httpCode === 403 || isBlockPage) {
+                //if (httpCode === 403 || isBlockPage) {
+		if (httpCode === 403 || httpCode === 503 || isBlockPage) {
                     status = 'blocked';
                     logTest(`[URL-TEST-${testId}] Final status: blocked (${httpCode === 403 ? 'HTTP 403' : 'block page keywords'})`);
                 } else if (httpCode === 404) {
