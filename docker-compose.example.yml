@@ -9,6 +9,9 @@ services:
   sdwan-web-ui:
     image: jsuzanne/sdwan-web-ui:latest
     container_name: sdwan-web-ui
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     hostname: sdwan-web-ui
 
     # Port Mapping

@@ -5,6 +5,9 @@ services:
       context: .
       dockerfile: Dockerfile.traffic-gen
     container_name: sdwan-traffic-gen
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     restart: unless-stopped
     volumes:
       # Mount config so it can be updated

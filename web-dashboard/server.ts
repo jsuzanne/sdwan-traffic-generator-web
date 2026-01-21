@@ -352,12 +352,10 @@ docusign.com|50|/`;
                             fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
 
             if (isDocker) {
-                // In Docker, use eth0 by default
                 defaultIface = 'eth0';
                 detectionMethod = 'Docker container detected';
                 console.log('🐳 Docker environment detected, using eth0');
             } else if (PLATFORM === 'linux') {
-                // On Linux host, detect default route interface
                 try {
                     const route = execSync("ip route | grep default | awk '{print $5}' | head -n 1", { 
                         encoding: 'utf8',
@@ -366,31 +364,27 @@ docusign.com|50|/`;
                     defaultIface = route.trim();
                     detectionMethod = 'Linux ip route';
                 } catch (e) {
-                    defaultIface = 'eth0'; // Fallback
+                    defaultIface = 'eth0';
                     detectionMethod = 'Fallback';
                 }
             } else if (PLATFORM === 'darwin') {
-                // On macOS, use en0 (most common)
                 defaultIface = 'en0';
                 detectionMethod = 'macOS default';
             } else {
-                // Windows or unknown, use eth0 as fallback
                 defaultIface = 'eth0';
                 detectionMethod = 'Generic fallback';
             }
 
             if (defaultIface) {
-                // Write auto-detected interface
-                const interfaceContent = \`# Auto-detected interface (\${detectionMethod})\n\` +
-                                       \`# You can manually edit this file if needed\n\` +
-                                       \`\${defaultIface}\n\`;
+                const interfaceContent = `# Auto-detected interface (${detectionMethod})\n` +
+                                       `# You can manually edit this file if needed\n` +
+                                       `${defaultIface}\n`;
                 fs.writeFileSync(interfacesFile, interfaceContent, 'utf8');
-                console.log(\`✅ Auto-configured interface: \${defaultIface} (\${detectionMethod})\`);
+                console.log(`✅ Auto-configured interface: ${defaultIface} (${detectionMethod})`);
             } else {
                 throw new Error('No interface detected');
             }
         } catch (error) {
-            // Auto-detection failed, create empty file with instructions
             console.log('⚠️  Auto-detection failed, creating empty config file');
             fs.writeFileSync(interfacesFile, 
                 '# Add network interfaces here, one per line\n' +
@@ -410,9 +404,8 @@ docusign.com|50|/`;
             console.log('⚠️  interfaces.txt exists but is empty, attempting auto-detection...');
             try {
                 const { execSync } = require('child_process');
-                let defaultIface = 'eth0'; // Safe default
+                let defaultIface = 'eth0';
 
-                // Quick detection for Docker/Linux
                 const isDocker = fs.existsSync('/.dockerenv');
                 if (isDocker || PLATFORM === 'linux') {
                     defaultIface = 'eth0';
@@ -420,9 +413,8 @@ docusign.com|50|/`;
                     defaultIface = 'en0';
                 }
 
-                // Append auto-detected interface to existing file
-                fs.appendFileSync(interfacesFile, \`\n# Auto-detected\n\${defaultIface}\n\`, 'utf8');
-                console.log(\`✅ Auto-added interface: \${defaultIface}\`);
+                fs.appendFileSync(interfacesFile, `\n# Auto-detected\n${defaultIface}\n`, 'utf8');
+                console.log(`✅ Auto-added interface: ${defaultIface}`);
             } catch (e) {
                 console.log('⚠️  Could not auto-detect interface, manual configuration required');
             }
@@ -1256,7 +1248,8 @@ app.get('/api/system/default-interface', authenticateToken, async (req, res) => 
 });
 
 
-// ✅ NEW: API Force Auto-Detect Interface
+
+// ✅ NEW: API Force Auto-Detect Interface (for first-time setup)
 app.post('/api/system/auto-detect-interface', authenticateToken, async (req, res) => {
     try {
         console.log('🔍 INTERFACE: Manual auto-detection requested');
@@ -1282,12 +1275,12 @@ app.post('/api/system/auto-detect-interface', authenticateToken, async (req, res
                 detectionMethod = 'Linux default route';
 
                 if (defaultIface) {
-                    const testCmd = \`ip link show \${defaultIface} 2>/dev/null\`;
+                    const testCmd = `ip link show ${defaultIface} 2>/dev/null`;
                     try {
                         await execPromise(testCmd);
-                        console.log(\`✅ INTERFACE: Verified \${defaultIface} exists\`);
+                        console.log(`✅ INTERFACE: Verified ${defaultIface} exists`);
                     } catch (e) {
-                        console.log(\`⚠️  INTERFACE: \${defaultIface} not found, using fallback\`);
+                        console.log(`⚠️  INTERFACE: ${defaultIface} not found, using fallback`);
                         defaultIface = 'eth0';
                         detectionMethod = 'Fallback after verification failed';
                         confidence = 'low';
@@ -1309,12 +1302,12 @@ app.post('/api/system/auto-detect-interface', authenticateToken, async (req, res
 
         if (defaultIface) {
             const interfacesFile = path.join(APP_CONFIG.configDir, 'interfaces.txt');
-            const content = \`# Auto-detected on \${new Date().toISOString()}\n\` +
-                          \`# Method: \${detectionMethod}\n\` +
-                          \`\${defaultIface}\n\`;
+            const content = `# Auto-detected on ${new Date().toISOString()}\n` +
+                          `# Method: ${detectionMethod}\n` +
+                          `${defaultIface}\n`;
             fs.writeFileSync(interfacesFile, content, 'utf8');
 
-            console.log(\`✅ INTERFACE: Saved \${defaultIface} to config\`);
+            console.log(`✅ INTERFACE: Saved ${defaultIface} to config`);
 
             res.json({
                 success: true,
@@ -1323,7 +1316,7 @@ app.post('/api/system/auto-detect-interface', authenticateToken, async (req, res
                 confidence,
                 platform: PLATFORM,
                 isDocker,
-                message: \`Successfully detected and configured interface: \${defaultIface}\`
+                message: `Successfully detected and configured interface: ${defaultIface}`
             });
         } else {
             res.json({
