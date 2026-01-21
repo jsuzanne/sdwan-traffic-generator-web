@@ -98,9 +98,54 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 
 ---
 
+## 📋 Prerequisites
+
+### Docker Installation Required
+
+This application runs in Docker containers. You **must** have Docker installed and running before installation.
+
+#### 🐳 macOS
+- **Install Docker Desktop for Mac**
+  - Download from: https://www.docker.com/products/docker-desktop/
+  - Requires macOS 11 or later
+  - **Important:** Launch Docker Desktop and wait until it's running (🐳 icon in menu bar)
+
+#### 🪟 Windows
+- **Install Docker Desktop for Windows**
+  - Download from: https://www.docker.com/products/docker-desktop/
+  - Requires Windows 10/11 64-bit with WSL 2
+  - **Important:** Enable WSL 2 backend and ensure Docker Desktop is running
+
+#### 🐧 Linux (Ubuntu/Debian)
+- **Install Docker Engine**
+  - Follow official guide: https://docs.docker.com/engine/install/ubuntu/
+  - Or quick install:
+    ```bash
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    sudo usermod -aG docker $USER
+    # Logout and login again
+    ```
+
+#### ✅ Verify Docker Installation
+
+```bash
+# Check Docker is running
+docker --version
+docker ps
+
+# Expected output:
+# Docker version 24.x.x or later
+# CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS   PORTS   NAMES
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### Option 1: One-Liner Install (Fastest) ⭐
+
+**Requirements:** Docker must be running (see [Prerequisites](#-prerequisites) above)
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/install.sh | bash
@@ -108,7 +153,8 @@ curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web
 
 This will:
 - ✅ Download docker-compose.yml
-- ✅ Start services with pre-built images
+- ✅ Pull pre-built images from Docker Hub
+- ✅ Start services automatically
 - ✅ Auto-generate configuration (67 apps + interface detection)
 - ✅ Ready in 30 seconds
 
@@ -355,6 +401,28 @@ Shared Volumes:
 
 ## 🐛 Troubleshooting
 
+### Docker Not Running
+
+**Error:** `Cannot connect to the Docker daemon`
+
+**Solution:**
+- **macOS/Windows:** Launch Docker Desktop and wait until the 🐳 icon appears
+- **Linux:** `sudo systemctl start docker`
+
+### Docker Pull Timeout
+
+**Error:** `context deadline exceeded`
+
+**Solution:**
+```bash
+# Retry the pull
+docker compose pull
+
+# Or manually pull images
+docker pull jsuzanne/sdwan-web-ui:latest
+docker pull jsuzanne/sdwan-traffic-gen:latest
+```
+
 ### Port 8080 already in use
 
 ```yaml
@@ -391,6 +459,7 @@ docker compose exec traffic-gen cat /opt/sdwan-traffic-gen/config/interfaces.txt
 
 # Should show your interface (eth0, en0, ens4, etc.)
 # If incorrect, edit config/interfaces.txt and restart
+docker compose restart
 ```
 
 ### [ERROR] Configuration file not found
@@ -399,7 +468,7 @@ This error should **NOT** appear in v1.1.0-patch.7 or later. If you see it:
 
 ```bash
 # Update to latest version
-git pull origin main
+docker compose pull
 docker compose down
 docker compose up -d
 ```
