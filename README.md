@@ -36,7 +36,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 ### 🔧 Zero-Config Deployment
 - **Auto-detection** - Automatically detects network interfaces on first start
 - **Auto-generated Config** - Creates applications.txt with 67 apps automatically
-- **One-liner Install** - Ready in 30 seconds with single command
+- **One-liner Install** - Ready in 30 seconds with single command (Linux/macOS)
 - **Docker-based** - Pre-built multi-platform images (AMD64 + ARM64)
 
 ### 🔒 Production Ready
@@ -98,6 +98,19 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 
 ---
 
+## 🖥️ Platform Support
+
+This application runs on:
+
+- **🐧 Linux** - Docker Engine (Ubuntu, Debian, CentOS, etc.)
+- **🍎 macOS** - Docker Desktop for Mac (macOS 11+)
+- **🪟 Windows** - Docker Desktop with WSL 2 (Windows 10/11)
+
+> **Windows Users:** The one-liner installation script is not supported in PowerShell.  
+> Please follow the **[Windows Installation Guide](docs/WINDOWS_INSTALL.md)** for step-by-step instructions.
+
+---
+
 ## 📋 Prerequisites
 
 ### Docker Installation Required
@@ -111,10 +124,10 @@ This application runs in Docker containers. You **must** have Docker installed a
   - **Important:** Launch Docker Desktop and wait until it's running (🐳 icon in menu bar)
 
 #### 🪟 Windows
-- **Install Docker Desktop for Windows**
-  - Download from: https://www.docker.com/products/docker-desktop/
-  - Requires Windows 10/11 64-bit with WSL 2
-  - **Important:** Enable WSL 2 backend and ensure Docker Desktop is running
+- **Install Docker Desktop for Windows with WSL 2**
+  - **Complete guide:** [Windows Installation Guide](docs/WINDOWS_INSTALL.md)
+  - Requires Windows 10/11 64-bit
+  - **Important:** WSL 2 must be enabled and Docker Desktop must be running
 
 #### 🐧 Linux (Ubuntu/Debian)
 - **Install Docker Engine**
@@ -143,7 +156,7 @@ docker ps
 
 ## 🚀 Quick Start
 
-### Option 1: One-Liner Install (Fastest) ⭐
+### Option 1: One-Liner Install (Linux/macOS) ⭐
 
 **Requirements:** Docker must be running (see [Prerequisites](#-prerequisites) above)
 
@@ -161,10 +174,13 @@ This will:
 **Access:** http://localhost:8080  
 **Credentials:** `admin` / `admin` (change after first login)
 
+> **Note:** This method is not supported on Windows. Windows users should use Option 2 below or follow the [Windows Installation Guide](docs/WINDOWS_INSTALL.md).
+
 ---
 
-### Option 2: Manual Install (Docker Hub Images)
+### Option 2: Manual Install (All Platforms)
 
+**Linux/macOS:**
 ```bash
 # Download docker-compose.yml
 curl -sSL -o docker-compose.yml https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/docker-compose.example.yml
@@ -176,7 +192,25 @@ docker compose up -d
 open http://localhost:8080
 ```
 
+**Windows (PowerShell):**
+```powershell
+# Create directory
+mkdir C:\sdwan-traffic-gen
+cd C:\sdwan-traffic-gen
+
+# Download docker-compose.yml (note: curl.exe, not curl)
+curl.exe -L https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/docker-compose.example.yml -o docker-compose.yml
+
+# Start services
+docker compose up -d
+
+# Access dashboard in browser
+# http://localhost:8080
+```
+
 **Default credentials:** `admin` / `admin`
+
+**For detailed Windows instructions, see [Windows Installation Guide](docs/WINDOWS_INSTALL.md)**
 
 ---
 
@@ -408,6 +442,7 @@ Shared Volumes:
 **Solution:**
 - **macOS/Windows:** Launch Docker Desktop and wait until the 🐳 icon appears
 - **Linux:** `sudo systemctl start docker`
+- **Windows specific issues:** See [Windows Installation Guide](docs/WINDOWS_INSTALL.md#troubleshooting)
 
 ### Docker Pull Timeout
 
@@ -553,6 +588,7 @@ Comprehensive guides for all features:
 
 ### Getting Started
 - **[Installation Guide](INSTALLATION.md)** - Complete setup instructions with troubleshooting
+- **[Windows Installation Guide](docs/WINDOWS_INSTALL.md)** - Step-by-step guide for Windows 10/11
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
 
 ### Traffic Generation
@@ -620,6 +656,7 @@ npm run build
 - [ ] Cloud provider integrations (AWS, Azure, GCP)
 - [ ] WebRTC and video streaming simulation
 - [ ] Custom security test categories
+- [ ] PowerShell installation script for Windows
 
 ---
 
@@ -631,7 +668,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Documentation:** [INSTALLATION.md](INSTALLATION.md)
+- **Documentation:** [INSTALLATION.md](INSTALLATION.md) | [Windows Guide](docs/WINDOWS_INSTALL.md)
 - **Issues:** [GitHub Issues](https://github.com/jsuzanne/sdwan-traffic-generator-web/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/jsuzanne/sdwan-traffic-generator-web/discussions)
 
@@ -648,4 +685,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ for SD-WAN testing and demonstrations**
 
-For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md)
+For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md)  
+For Windows-specific setup, see [Windows Installation Guide](docs/WINDOWS_INSTALL.md)
