@@ -2,7 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-import { spawn, exec } from 'child_process';
+//import { spawn, exec } from 'child_process';
+import { spawn, exec, execSync } from 'child_process';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 import os from 'os';
@@ -342,7 +343,7 @@ docusign.com|50|/`;
         console.log('🔍 No interfaces.txt found, attempting auto-detection...');
 
         try {
-            const { execSync } = require('child_process');
+            // const { execSync } = require('child_process');
             let defaultIface = '';
             let detectionMethod = '';
 
