@@ -22,3 +22,20 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Config files (auto-generated)
+config/
+!config/.gitkeep
+
+# Logs (auto-generated)
+logs/
+!logs/.gitkeep
+
+# Local environment
+.env
+
+# Backups
+*.backup
+*.20260121
+*.20260120*
+*.new
