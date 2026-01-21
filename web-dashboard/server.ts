@@ -337,10 +337,96 @@ docusign.com|50|/`;
         console.log(`Created default applications.txt with ${defaultApps.split('\n').filter(l => !l.startsWith('#') && l.trim()).length} applications`);
     }
 
-    // Create empty interfaces.txt if it doesn't exist (user must configure)
+    // ✅ IMPROVED: Auto-detect network interface if not configured
     if (!fs.existsSync(interfacesFile)) {
-        fs.writeFileSync(interfacesFile, '# Add network interfaces here, one per line\n# Example: eth0\n', 'utf8');
-        console.log('Created default interfaces.txt (empty - requires user configuration)');
+        console.log('🔍 No interfaces.txt found, attempting auto-detection...');
+
+        try {
+            const { execSync } = require('child_process');
+            let defaultIface = '';
+            let detectionMethod = '';
+
+            // Check if running in Docker container
+            const isDocker = fs.existsSync('/.dockerenv') || 
+                           (fs.existsSync('/proc/1/cgroup') && 
+                            fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
+
+            if (isDocker) {
+                // In Docker, use eth0 by default
+                defaultIface = 'eth0';
+                detectionMethod = 'Docker container detected';
+                console.log('🐳 Docker environment detected, using eth0');
+            } else if (PLATFORM === 'linux') {
+                // On Linux host, detect default route interface
+                try {
+                    const route = execSync("ip route | grep default | awk '{print $5}' | head -n 1", { 
+                        encoding: 'utf8',
+                        timeout: 2000
+                    });
+                    defaultIface = route.trim();
+                    detectionMethod = 'Linux ip route';
+                } catch (e) {
+                    defaultIface = 'eth0'; // Fallback
+                    detectionMethod = 'Fallback';
+                }
+            } else if (PLATFORM === 'darwin') {
+                // On macOS, use en0 (most common)
+                defaultIface = 'en0';
+                detectionMethod = 'macOS default';
+            } else {
+                // Windows or unknown, use eth0 as fallback
+                defaultIface = 'eth0';
+                detectionMethod = 'Generic fallback';
+            }
+
+            if (defaultIface) {
+                // Write auto-detected interface
+                const interfaceContent = \`# Auto-detected interface (\${detectionMethod})\n\` +
+                                       \`# You can manually edit this file if needed\n\` +
+                                       \`\${defaultIface}\n\`;
+                fs.writeFileSync(interfacesFile, interfaceContent, 'utf8');
+                console.log(\`✅ Auto-configured interface: \${defaultIface} (\${detectionMethod})\`);
+            } else {
+                throw new Error('No interface detected');
+            }
+        } catch (error) {
+            // Auto-detection failed, create empty file with instructions
+            console.log('⚠️  Auto-detection failed, creating empty config file');
+            fs.writeFileSync(interfacesFile, 
+                '# Add network interfaces here, one per line\n' +
+                '# Example: eth0, en0, wlan0\n' +
+                '# Run "ip link show" (Linux) or "ifconfig" (Mac) to list interfaces\n',
+                'utf8'
+            );
+            console.log('📝 Please configure network interface manually in config/interfaces.txt');
+        }
+    } else {
+        // File exists, check if it's empty (only comments)
+        const content = fs.readFileSync(interfacesFile, 'utf8');
+        const hasInterface = content.split('\n')
+            .some(line => line.trim() && !line.trim().startsWith('#'));
+
+        if (!hasInterface) {
+            console.log('⚠️  interfaces.txt exists but is empty, attempting auto-detection...');
+            try {
+                const { execSync } = require('child_process');
+                let defaultIface = 'eth0'; // Safe default
+
+                // Quick detection for Docker/Linux
+                const isDocker = fs.existsSync('/.dockerenv');
+                if (isDocker || PLATFORM === 'linux') {
+                    defaultIface = 'eth0';
+                } else if (PLATFORM === 'darwin') {
+                    defaultIface = 'en0';
+                }
+
+                // Append auto-detected interface to existing file
+                fs.appendFileSync(interfacesFile, \`\n# Auto-detected\n\${defaultIface}\n\`, 'utf8');
+                console.log(\`✅ Auto-added interface: \${defaultIface}\`);
+            } catch (e) {
+                console.log('⚠️  Could not auto-detect interface, manual configuration required');
+            }
+        }
     }
 
     // Initialize traffic control file (default: stopped)
@@ -1170,6 +1256,94 @@ app.get('/api/system/default-interface', authenticateToken, async (req, res) => 
 });
 
 
+// ✅ NEW: API Force Auto-Detect Interface
+app.post('/api/system/auto-detect-interface', authenticateToken, async (req, res) => {
+    try {
+        console.log('🔍 INTERFACE: Manual auto-detection requested');
+        const { execSync } = require('child_process');
+        const execPromise = promisify(exec);
+        let defaultIface = '';
+        let detectionMethod = '';
+        let confidence = 'high';
+
+        // Check if running in Docker container
+        const isDocker = fs.existsSync('/.dockerenv') || 
+                       (fs.existsSync('/proc/1/cgroup') && 
+                        fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
+
+        if (isDocker) {
+            defaultIface = 'eth0';
+            detectionMethod = 'Docker container';
+            console.log('🐳 INTERFACE: Docker detected, using eth0');
+        } else if (PLATFORM === 'linux') {
+            try {
+                const { stdout } = await execPromise("ip route | grep default | awk '{print $5}' | head -n 1");
+                defaultIface = stdout.trim();
+                detectionMethod = 'Linux default route';
+
+                if (defaultIface) {
+                    const testCmd = \`ip link show \${defaultIface} 2>/dev/null\`;
+                    try {
+                        await execPromise(testCmd);
+                        console.log(\`✅ INTERFACE: Verified \${defaultIface} exists\`);
+                    } catch (e) {
+                        console.log(\`⚠️  INTERFACE: \${defaultIface} not found, using fallback\`);
+                        defaultIface = 'eth0';
+                        detectionMethod = 'Fallback after verification failed';
+                        confidence = 'low';
+                    }
+                }
+            } catch (e) {
+                defaultIface = 'eth0';
+                detectionMethod = 'Linux fallback';
+                confidence = 'low';
+            }
+        } else if (PLATFORM === 'darwin') {
+            defaultIface = 'en0';
+            detectionMethod = 'macOS default';
+        } else {
+            defaultIface = 'eth0';
+            detectionMethod = 'Generic fallback';
+            confidence = 'low';
+        }
+
+        if (defaultIface) {
+            const interfacesFile = path.join(APP_CONFIG.configDir, 'interfaces.txt');
+            const content = \`# Auto-detected on \${new Date().toISOString()}\n\` +
+                          \`# Method: \${detectionMethod}\n\` +
+                          \`\${defaultIface}\n\`;
+            fs.writeFileSync(interfacesFile, content, 'utf8');
+
+            console.log(\`✅ INTERFACE: Saved \${defaultIface} to config\`);
+
+            res.json({
+                success: true,
+                interface: defaultIface,
+                method: detectionMethod,
+                confidence,
+                platform: PLATFORM,
+                isDocker,
+                message: \`Successfully detected and configured interface: \${defaultIface}\`
+            });
+        } else {
+            res.json({
+                success: false,
+                error: 'Could not detect any network interface',
+                platform: PLATFORM,
+                suggestion: 'Please configure manually using: ip link show (Linux) or ifconfig (Mac/Windows)'
+            });
+        }
+    } catch (error: any) {
+        console.error('INTERFACE: Auto-detection error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Auto-detection failed',
+            message: error.message,
+            suggestion: 'Please configure network interface manually in Configuration page'
+        });
+    }
+});
+
 // API: Tail Logs (Simple last 50 lines)
 app.get('/api/logs', (req, res) => {
     const logFile = path.join(APP_CONFIG.logDir, 'traffic.log');
@@ -1342,48 +1516,12 @@ const runScheduledTests = async () => {
             const category = URL_CATEGORIES.find(c => c.id === categoryId);
             if (!category) continue;
 
-            // Generate test ID for tracking
-            const testId = getNextTestId();
-            logTest(`[URL-TEST-${testId}] URL filtering test: ${category.url} (${categoryId})`);
-
             try {
-                // IMPROVED: Retrieve content AND HTTP code for block page detection
-                const curlCommand = `curl -sS --max-time 10 -w "\n%{http_code}" '${category.url}'`;
-                logTest(`[URL-TEST-${testId}] Executing: ${curlCommand}`);
-
-                const { stdout } = await execPromise(curlCommand);
-                const lines = stdout.trim().split('\n');
-                const httpCode = parseInt(lines[lines.length - 1]);
-                const content = lines.slice(0, -1).join('\n');
-
-                logTest(`[URL-TEST-${testId}] HTTP ${httpCode}, content: ${content.length} bytes`);
-
-                // Detect real Palo Alto block pages (not test pages)
-                //const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
-		const isBlockPage = /Web Page Blocked|has been blocked|access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
-
-                let status: string;
-                //if (httpCode === 403 || isBlockPage) {
-		if (httpCode === 403 || httpCode === 503 || isBlockPage) {
-                    status = 'blocked';
-                    logTest(`[URL-TEST-${testId}] BLOCKED: ${httpCode === 403 ? 'HTTP 403' : 'Block page detected'}`);
-                } else if (httpCode === 404) {
-                    status = 'unknown';
-                    logTest(`[URL-TEST-${testId}] UNKNOWN: HTTP 404 (test URL does not exist)`);
-                } else if (httpCode >= 200 && httpCode < 300) {
-                    status = 'allowed';
-                    logTest(`[URL-TEST-${testId}] ALLOWED: HTTP ${httpCode}`);
-                } else {
-                    status = 'error';
-                    logTest(`[URL-TEST-${testId}] ERROR: Unexpected HTTP ${httpCode}`);
-                }
-
-                if (status === 'blocked' || status === 'allowed') {
-                    updateStatistics('url_filtering', status);
-                }
-
-            } catch (e: any) {
-                logTest(`[URL-TEST-${testId}] BLOCKED: curl error - ${e.message}`);
+                const { stdout } = await execPromise(`curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${category.url}'`);
+                const httpCode = parseInt(stdout);
+                const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
+                updateStatistics('url_filtering', status);
+            } catch (e) {
                 updateStatistics('url_filtering', 'blocked');
             }
         }
@@ -1583,54 +1721,27 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
         // util.promisify already imported as promisify
         const execPromise = promisify(exec);
 
-        // IMPROVED: Retrieve content AND HTTP code for block page detection
-        const curlCommand = `curl -sS --max-time 10 -w "\n%{http_code}" '${url}'`;
+        const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${url}'`;
         logTest(`[URL-TEST-${testId}] Executing URL test for ${url} (${category || 'Uncategorized'}): ${curlCommand}`);
 
         try {
             const { stdout } = await execPromise(curlCommand);
-            const lines = stdout.trim().split('\n');
-            const httpCode = parseInt(lines[lines.length - 1]);
-            const content = lines.slice(0, -1).join('\n');
-
-            logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}, content length: ${content.length} bytes`);
-
-            // Detect real Palo Alto block pages
-            // const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
-	    const isBlockPage = /Web Page Blocked|has been blocked|access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
-
-            if (isBlockPage) {
-                logTest(`[URL-TEST-${testId}] Block page detected in content`);
-            }
-
-            let status: string;
-
-            //if (httpCode === 403 || isBlockPage) {
-	    if (httpCode === 403 || httpCode === 503 || isBlockPage) {
-                status = 'blocked';
-                logTest(`[URL-TEST-${testId}] Final status: blocked (${httpCode === 403 ? 'HTTP 403' : 'block page keywords'})`);
-            } else if (httpCode === 404) {
-                status = 'unknown';
-                logTest(`[URL-TEST-${testId}] Final status: unknown (HTTP 404 - test URL does not exist)`);
-            } else if (httpCode >= 200 && httpCode < 300) {
-                status = 'allowed';
-                logTest(`[URL-TEST-${testId}] Final status: allowed (HTTP ${httpCode})`);
-            } else {
-                status = 'error';
-                logTest(`[URL-TEST-${testId}] Final status: error (unexpected HTTP ${httpCode})`);
-            }
+            const httpCode = parseInt(stdout);
+            logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
 
             const result = {
-                success: status === 'allowed',
+                success: httpCode >= 200 && httpCode < 400,
                 httpCode,
-                status,
+                status: httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked',
                 url,
                 category
             };
 
+            logTest(`[URL-TEST-${testId}] Final status: ${result.status} (HTTP ${httpCode})`);
             addTestResult('url_filtering', category || url, result, testId);
             res.json(result);
         } catch (curlError: any) {
+            // Curl error usually means blocked or network error
             const result = {
                 success: false,
                 httpCode: 0,
@@ -1670,65 +1781,33 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
             logTest(`[URL-BATCH-${batchId}][URL-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.url} (${test.category})`);
 
             const execPromise = promisify(exec);
-            // IMPROVED: Retrieve content AND HTTP code for block page detection
-            // const curlCommand = `curl -sS --max-time 10 -w "\n%{http_code}" '${test.url}'`;
-    	    // ✅ MODIFICATION ICI : Ajout --retry 2 --retry-delay 3
-    	    const curlCommand = `curl -sS --max-time 10 --retry 2 --retry-delay 3 -w "\n%{http_code}" '${test.url}'`;
+            const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${test.url}'`;
 
             logTest(`[URL-TEST-${testId}] Executing URL test for ${test.url} (${test.category}): ${curlCommand}`);
 
             try {
                 const { stdout } = await execPromise(curlCommand);
-                const lines = stdout.trim().split('\n');
-                const httpCode = parseInt(lines[lines.length - 1]);
-                const content = lines.slice(0, -1).join('\n');
+                const httpCode = parseInt(stdout);
 
-                logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}, content length: ${content.length} bytes`);
+                logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
 
-                // Detect real Palo Alto block pages
-                // const isBlockPage = /access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
-		const isBlockPage = /Web Page Blocked|has been blocked|access.*blocked|access.*restricted|URL category.*blocked|triggering.*blocking|URL Filtering.*Block/i.test(content);
-
-                if (isBlockPage) {
-                    logTest(`[URL-TEST-${testId}] Block page detected in content`);
-                }
-
-                let status: string;
-
-                //if (httpCode === 403 || isBlockPage) {
-		if (httpCode === 403 || httpCode === 503 || isBlockPage) {
-                    status = 'blocked';
-                    logTest(`[URL-TEST-${testId}] Final status: blocked (${httpCode === 403 ? 'HTTP 403' : 'block page keywords'})`);
-                } else if (httpCode === 404) {
-                    status = 'unknown';
-                    logTest(`[URL-TEST-${testId}] Final status: unknown (HTTP 404 - test URL does not exist)`);
-                } else if (httpCode >= 200 && httpCode < 300) {
-                    status = 'allowed';
-                    logTest(`[URL-TEST-${testId}] Final status: allowed (HTTP ${httpCode})`);
-                } else {
-                    status = 'error';
-                    logTest(`[URL-TEST-${testId}] Final status: error (unexpected HTTP ${httpCode})`);
-                }
-
+                const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
                 const result = {
-                    success: status === 'allowed',
+                    success: httpCode >= 200 && httpCode < 400,
                     httpCode,
                     status,
                     url: test.url,
                     category: test.category
                 };
 
+                logTest(`[URL-TEST-${testId}] Final status: ${status} (HTTP ${httpCode})`);
+
                 results.push(result);
                 await addTestResult('url_filtering', test.category, result, testId, {
                     url: test.url,
                     httpCode,
-                    status,
                     command: curlCommand
                 });
-          	// ✅ AJOUTER CE DÉLAI ICI (après le try/catch)
-                if (i < tests.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500));  // 500ms entre tests
-                }
             } catch (curlError: any) {
                 logTest(`[URL-TEST-${testId}] Final status: blocked (curl error: ${curlError.message})`);
 
