@@ -1,5 +1,36 @@
 services:
-  # The Traffic Generator Engine
+  # Web Dashboard - Starts first and generates config
+  web-ui:
+    build:
+      context: .
+      dockerfile: web-dashboard/Dockerfile
+    container_name: sdwan-web-ui
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    restart: unless-stopped
+    ports:
+      - "${WEB_UI_PORT:-8080}:8080"
+    volumes:
+      - ./config:/app/config
+      - traffic_logs:/var/log/sdwan-traffic-gen
+      - ./VERSION:/app/VERSION:ro
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - CONFIG_DIR=/app/config
+      - LOG_DIR=/var/log/sdwan-traffic-gen
+      - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7}
+      - LOG_MAX_SIZE_MB=${LOG_MAX_SIZE_MB:-100}
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
+    healthcheck:
+      test: ["CMD", "test", "-f", "/app/config/applications.txt"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # Traffic Generator - Starts after web-ui is healthy
   traffic-gen:
     build:
       context: .
@@ -10,48 +41,14 @@ services:
       - 8.8.4.4
     restart: unless-stopped
     volumes:
-      # Mount config so it can be updated
       - ./config:/opt/sdwan-traffic-gen/config
-      # Shared logs volume
       - traffic_logs:/var/log/sdwan-traffic-gen
     environment:
       - SLEEP_BETWEEN_REQUESTS=${SLEEP_BETWEEN_REQUESTS:-1}
-    healthcheck:
-      test: [ "CMD", "test", "-f", "/var/log/sdwan-traffic-gen/traffic.log" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # The Web Dashboard
-  web-ui:
-    build:
-      context: .
-      dockerfile: web-dashboard/Dockerfile
-    container_name: sdwan-web-ui
-    restart: unless-stopped
-    volumes:
-      - ./config:/app/config
-      # Shared logs
-      - traffic_logs:/var/log/sdwan-traffic-gen
-      # Mount VERSION file
-      - ./VERSION:/app/VERSION:ro
-    ports:
-      - "${WEB_UI_PORT:-8080}:8080"
-    environment:
-      - NODE_ENV=production
-      - PORT=8080
-      - CONFIG_DIR=/app/config
-      - LOG_DIR=/var/log/sdwan-traffic-gen
-      - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7}
-      - LOG_MAX_SIZE_MB=${LOG_MAX_SIZE_MB:-100}
-      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/version" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    depends_on:
+      web-ui:
+        condition: service_healthy
 
 volumes:
   traffic_logs:
-  config-data:
+
