@@ -4,38 +4,97 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.1.0--patch.7-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
-A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive connectivity testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
+A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
-![SD-WAN Traffic Generator Dashboard](SDWAN%20Emulator.JPG)
+![SD-WAN Traffic Generator](docs/hero-banner.png)
+
+---
 
 ## ✨ Features
 
-### 🚀 Core Capabilities
+### 🚀 Traffic Generation
 - **67 Pre-configured Applications** - Popular SaaS apps (Google, Microsoft 365, Salesforce, Zoom, etc.)
-- **Realistic Traffic Generation** - Authentic HTTP requests with proper headers, User-Agents, and Referers
-- **Zero-Config Deployment** - Auto-detection of network interfaces and automatic configuration
-- **Web Dashboard** - Modern React UI with real-time logs and statistics
-- **Multi-Protocol Testing** - HTTP/HTTPS, PING (ICMP), and TCP port connectivity tests
+- **Realistic Traffic Patterns** - Authentic HTTP requests with proper headers, User-Agents, and Referers
+- **Real-time Dashboard** - Live traffic visualization, metrics, and status monitoring
+- **Weighted Distribution** - Configure application traffic ratios (Microsoft 365, Google Workspace, etc.)
+- **Multi-interface Support** - Bind to specific network interfaces
+
+### 🛡️ Security Testing (v1.1.0)
+- **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)
+- **DNS Security Tests** - Test DNS security policies with 24 domains (malware, phishing, DGA, etc.)
+- **Threat Prevention** - EICAR file download testing for IPS validation
+- **Scheduled Testing** - Automated security tests at configurable intervals
+- **Test Results History** - Persistent logging with search, filtering, and export
 
 ### 📊 Monitoring & Analytics
-- Real-time traffic logs with live updates
-- Success/failure statistics with latency metrics
-- Bandwidth usage tracking
-- Custom connectivity test monitoring
-- Historical data export (JSON/JSONL)
+- **Real-time Logs** - Live log streaming with WebSocket updates
+- **Statistics Dashboard** - Success/failure rates, latency metrics, bandwidth tracking
+- **Persistent Logging** - JSONL storage with 7-day retention and auto-rotation
+- **Search & Filter** - Find specific tests quickly with powerful search
+- **Export Capabilities** - Download results in JSON, CSV, or JSONL format
 
-### 🔧 Customization
-- Configurable request frequency (requests per second)
-- Custom application lists
-- Network interface selection
-- JWT-based authentication
-- Log retention and rotation policies
+### 🔧 Zero-Config Deployment
+- **Auto-detection** - Automatically detects network interfaces on first start
+- **Auto-generated Config** - Creates applications.txt with 67 apps automatically
+- **One-liner Install** - Ready in 30 seconds with single command
+- **Docker-based** - Pre-built multi-platform images (AMD64 + ARM64)
 
-### 🐳 Deployment Options
-- Pre-built Docker images on Docker Hub
-- Docker Compose for easy orchestration
-- Automatic healthchecks and dependency management
-- Production-ready with resource limits
+### 🔒 Production Ready
+- **JWT Authentication** - Secure login with token-based auth
+- **Log Rotation** - Automatic cleanup with configurable retention
+- **Health Monitoring** - Built-in healthchecks and dependency management
+- **Resource Limits** - Optional CPU and memory constraints
+
+---
+
+## 📸 Screenshots
+
+### Login Interface
+<img src="docs/screenshots/login.png" alt="Login Page" width="600">
+
+*Secure authentication with JWT tokens*
+
+---
+
+### Dashboard - Real-time Monitoring
+<img src="docs/screenshots/dashboard.png" alt="Dashboard" width="800">
+
+*Monitor traffic generation status, total requests, success rate, and active applications in real-time*
+
+---
+
+### Security Testing - URL Filtering
+<img src="docs/screenshots/security/url-filtering.png" alt="URL Filtering Tests" width="800">
+
+*Test 66 different URL categories to validate firewall policies*
+
+---
+
+### Security Testing - DNS Security
+<img src="docs/screenshots/security/dns-security.png" alt="DNS Security Tests" width="800">
+
+*Validate DNS security with malware, phishing, and advanced threat domains*
+
+---
+
+### Security Testing - Test Results
+<img src="docs/screenshots/security/test-results.png" alt="Test Results History" width="800">
+
+*Search, filter, and export security test results with persistent logging*
+
+---
+
+### Live Logs & Statistics
+<img src="docs/screenshots/logs-stats.png" alt="Logs and Statistics" width="800">
+
+*View traffic volume charts and live log streaming*
+
+---
+
+### Configuration Management
+<img src="docs/screenshots/configuration.png" alt="Configuration" width="800">
+
+*Manage network interfaces and adjust traffic distribution weights*
 
 ---
 
@@ -128,12 +187,28 @@ Simply start the containers and access the dashboard at http://localhost:8080
 
 ---
 
-## 📚 Documentation
+## 📖 Usage
 
-- **[Installation Guide](INSTALLATION.md)** - Complete setup instructions with troubleshooting
-- **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
-- **[API Documentation](docs/API.md)** - REST API reference
-- **[Development Guide](docs/DEVELOPMENT.md)** - Contributing and local development
+### Managing Traffic Generation
+
+1. **Login** to the web dashboard at `http://localhost:8080`
+2. **Dashboard Tab**: View real-time statistics and control traffic generation
+3. **Configuration Tab**: 
+   - Add network interfaces (e.g., `eth0`, `wlan0`)
+   - Adjust traffic distribution weights for different application categories
+   - Changes are applied immediately
+4. **Logs Tab**: View real-time traffic logs and statistics
+5. **Security Tab**: Run URL filtering, DNS security, and threat prevention tests
+6. **Start/Stop**: Use the toggle button on the dashboard
+
+### Running Security Tests
+
+Navigate to the **Security** tab to:
+- Test URL categories (malware, phishing, gambling, etc.)
+- Validate DNS security policies
+- Test IPS/threat prevention with EICAR downloads
+- Schedule automated tests
+- View and export test results
 
 ---
 
@@ -239,6 +314,7 @@ docker compose logs --no-color > logs-export.txt
         │   - Real-time logs                     │
         │   - Statistics & monitoring            │
         │   - Configuration UI                   │
+        │   - Security testing                   │
         │   Port: 8080                           │
         └────────────┬───────────────────────────┘
                      │
@@ -250,6 +326,7 @@ docker compose logs --no-color > logs-export.txt
         │   - Log aggregation                    │
         │   - Connectivity testing               │
         │   - Stats calculation                  │
+        │   - Security test execution            │
         └────────────┬───────────────────────────┘
                      │
                      │ Shared Volumes
@@ -284,6 +361,12 @@ Shared Volumes:
 # Change port in docker-compose.yml
 ports:
   - "8081:8080"
+```
+
+Or:
+```bash
+echo "WEB_UI_PORT=8081" > .env
+docker compose up -d
 ```
 
 ### Cannot connect to dashboard
@@ -330,6 +413,12 @@ environment:
   - LOG_MAX_SIZE_MB=50
 ```
 
+### No Traffic Being Generated
+
+1. Check that network interfaces are configured in the Configuration tab
+2. Verify traffic generation is started (green "Active" status on dashboard)
+3. Check logs: `docker compose logs -f traffic-gen`
+
 ---
 
 ## 🔒 Security
@@ -359,6 +448,25 @@ openssl rand -base64 32
 
 ---
 
+## 🔑 Key Concepts
+
+### Traffic Generator vs Security Tests
+
+The SD-WAN Traffic Generator has **two separate systems**:
+
+| Feature | Traffic Generator | Security Tests |
+|---------|------------------|----------------|
+| **Purpose** | Simulate user traffic | Test security policies |
+| **Source** | `config/applications.txt` | Hardcoded test URLs |
+| **Execution** | Continuous background | On-demand or scheduled |
+| **Logs** | `/var/log/sdwan-traffic-gen/traffic.log` | `test-results.jsonl` |
+| **Examples** | google.com, office365.com | urlfiltering.paloaltonetworks.com |
+
+**Traffic Generator** creates realistic application traffic for SD-WAN demos.  
+**Security Tests** validate URL filtering, DNS security, and threat prevention policies.
+
+---
+
 ## 📦 Docker Images
 
 Pre-built images are available on Docker Hub:
@@ -366,13 +474,51 @@ Pre-built images are available on Docker Hub:
 - **Web UI:** [`jsuzanne/sdwan-web-ui:latest`](https://hub.docker.com/r/jsuzanne/sdwan-web-ui)
 - **Traffic Generator:** [`jsuzanne/sdwan-traffic-gen:latest`](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 
-Images are automatically built and pushed on every release.
+Images are automatically built for **AMD64** and **ARM64** architectures.
+
+---
+
+## 📚 Documentation
+
+Comprehensive guides for all features:
+
+### Getting Started
+- **[Installation Guide](INSTALLATION.md)** - Complete setup instructions with troubleshooting
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
+
+### Traffic Generation
+- **[Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md)** - Configure applications.txt and weights
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
+
+### Security Testing
+- **[Security Testing Guide](docs/SECURITY_TESTING.md)** - Comprehensive security testing documentation
+- **[Security Quick Reference](docs/SECURITY_QUICK_REFERENCE.md)** - Quick reference for security tests
+- **[Security FAQ](docs/SECURITY_TESTING_FAQ.md)** - Frequently asked questions
+
+### Logging & Monitoring
+- **[Persistent Logging](docs/PERSISTENT_LOGGING.md)** - Test results storage, search, and export
+- **[Connectivity Endpoints](docs/CONNECTIVITY_ENDPOINTS.md)** - System health monitoring
+
+### Troubleshooting
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+---
+
+## 🎯 Use Cases
+
+- **SD-WAN Testing** - Validate traffic routing, QoS policies, and failover scenarios
+- **Security Policy Testing** - Test URL filtering, DNS security, and threat prevention
+- **Network Performance** - Measure latency, bandwidth, and reliability
+- **Firewall Validation** - Verify firewall rules and application awareness
+- **Load Testing** - Generate sustained traffic for capacity planning
+- **Demo & Training** - Educational tool for network engineers and sales demonstrations
+- **Compliance** - Verify network policies and application access controls
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### Development Setup
 
@@ -391,6 +537,20 @@ npm run dev
 # Build for production
 npm run build
 ```
+
+---
+
+## 📈 Roadmap
+
+- [ ] Multi-region deployment support
+- [ ] Advanced traffic patterns (burst, gradual ramp-up)
+- [ ] Custom protocol support (DNS, FTP, SMTP, etc.)
+- [ ] Grafana/Prometheus integration
+- [ ] API for programmatic control
+- [ ] Traffic replay from PCAP files
+- [ ] Cloud provider integrations (AWS, Azure, GCP)
+- [ ] WebRTC and video streaming simulation
+- [ ] Custom security test categories
 
 ---
 
@@ -417,29 +577,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🎯 Use Cases
-
-- **SD-WAN Testing** - Validate traffic routing, QoS policies, and failover scenarios
-- **Network Performance** - Measure latency, bandwidth, and reliability
-- **Security Testing** - Test firewall rules, DPI, and security policies
-- **Load Testing** - Generate sustained traffic for capacity planning
-- **Demo & Training** - Educational tool for network engineers
-- **Compliance** - Verify network policies and application access
-
----
-
-## 📈 Roadmap
-
-- [ ] Multi-region deployment support
-- [ ] Advanced traffic patterns (burst, gradual ramp-up)
-- [ ] Custom protocol support (DNS, FTP, etc.)
-- [ ] Grafana/Prometheus integration
-- [ ] API for programmatic control
-- [ ] Traffic replay from PCAP files
-- [ ] Cloud provider integrations (AWS, Azure, GCP)
-
----
-
-**Happy traffic generating! 🚀**
+**Made with ❤️ for SD-WAN testing and demonstrations**
 
 For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md)
