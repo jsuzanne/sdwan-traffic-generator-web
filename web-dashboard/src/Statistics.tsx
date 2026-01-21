@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, CheckCircle, Search } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, CheckCircle, Search, Activity } from 'lucide-react';
 
 interface Stats {
     timestamp: number;
     total_requests: number;
+    requests_per_minute: number; // ⬅️ NOUVEAU
     requests_by_app: Record<string, number>;
     errors_by_app: Record<string, number>;
 }
@@ -25,7 +26,6 @@ export default function Statistics({ stats }: StatsProps) {
         );
     }
 
-    // Combine requests and errors data
     const appStats = Object.keys(stats.requests_by_app).map(app => ({
         name: app,
         requests: stats.requests_by_app[app] || 0,
@@ -35,7 +35,6 @@ export default function Statistics({ stats }: StatsProps) {
             : '100.0'
     }));
 
-    // Filter and sort
     const filteredStats = appStats
         .filter(app => app.name.toLowerCase().includes(searchTerm.toLowerCase()))
         .sort((a, b) => {
@@ -51,18 +50,31 @@ export default function Statistics({ stats }: StatsProps) {
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 🔥 MODIFICATION: Grid avec 4 cards incluant req/min */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {/* Card 1: Requêtes par minute */}
                 <div className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border border-blue-500/30 rounded-xl p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-slate-400 text-sm mb-1">Total Requests</p>
-                            <p className="text-3xl font-bold text-blue-400">{stats.total_requests.toLocaleString()}</p>
+                            <p className="text-slate-400 text-sm mb-1">Req / Minute</p>
+                            <p className="text-3xl font-bold text-blue-400">{stats.requests_per_minute || 0}</p>
                         </div>
-                        <TrendingUp size={32} className="text-blue-400 opacity-50" />
+                        <Activity size={32} className="text-blue-400 opacity-50" />
                     </div>
                 </div>
 
+                {/* Card 2: Total Requests */}
+                <div className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border border-purple-500/30 rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-slate-400 text-sm mb-1">Total Requests</p>
+                            <p className="text-3xl font-bold text-purple-400">{stats.total_requests.toLocaleString()}</p>
+                        </div>
+                        <TrendingUp size={32} className="text-purple-400 opacity-50" />
+                    </div>
+                </div>
+
+                {/* Card 3: Success Rate */}
                 <div className="bg-gradient-to-br from-green-900/20 to-green-800/10 border border-green-500/30 rounded-xl p-6">
                     <div className="flex items-center justify-between">
                         <div>
@@ -73,6 +85,7 @@ export default function Statistics({ stats }: StatsProps) {
                     </div>
                 </div>
 
+                {/* Card 4: Total Errors */}
                 <div className="bg-gradient-to-br from-red-900/20 to-red-800/10 border border-red-500/30 rounded-xl p-6">
                     <div className="flex items-center justify-between">
                         <div>
@@ -99,28 +112,31 @@ export default function Statistics({ stats }: StatsProps) {
                 <div className="flex gap-2">
                     <button
                         onClick={() => setSortBy('requests')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${sortBy === 'requests'
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            sortBy === 'requests'
                                 ? 'bg-purple-600 text-white'
                                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                            }`}
+                        }`}
                     >
                         By Requests
                     </button>
                     <button
                         onClick={() => setSortBy('errors')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${sortBy === 'errors'
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            sortBy === 'errors'
                                 ? 'bg-purple-600 text-white'
                                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                            }`}
+                        }`}
                     >
                         By Errors
                     </button>
                     <button
                         onClick={() => setSortBy('name')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${sortBy === 'name'
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            sortBy === 'name'
                                 ? 'bg-purple-600 text-white'
                                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                            }`}
+                        }`}
                     >
                         By Name
                     </button>
@@ -160,17 +176,19 @@ export default function Statistics({ stats }: StatsProps) {
                                         <div className="flex items-center justify-end gap-2">
                                             <div className="w-24 bg-slate-800 rounded-full h-2 overflow-hidden">
                                                 <div
-                                                    className={`h-full transition-all ${parseFloat(app.successRate) >= 95 ? 'bg-green-500' :
-                                                            parseFloat(app.successRate) >= 80 ? 'bg-yellow-500' :
-                                                                'bg-red-500'
-                                                        }`}
+                                                    className={`h-full transition-all ${
+                                                        parseFloat(app.successRate) >= 95 ? 'bg-green-500' :
+                                                        parseFloat(app.successRate) >= 80 ? 'bg-yellow-500' :
+                                                        'bg-red-500'
+                                                    }`}
                                                     style={{ width: `${app.successRate}%` }}
                                                 />
                                             </div>
-                                            <span className={`font-semibold min-w-[3rem] ${parseFloat(app.successRate) >= 95 ? 'text-green-400' :
-                                                    parseFloat(app.successRate) >= 80 ? 'text-yellow-400' :
-                                                        'text-red-400'
-                                                }`}>
+                                            <span className={`font-semibold min-w-[3rem] ${
+                                                parseFloat(app.successRate) >= 95 ? 'text-green-400' :
+                                                parseFloat(app.successRate) >= 80 ? 'text-yellow-400' :
+                                                'text-red-400'
+                                            }`}>
                                                 {app.successRate}%
                                             </span>
                                         </div>
@@ -195,3 +213,4 @@ export default function Statistics({ stats }: StatsProps) {
         </div>
     );
 }
+
