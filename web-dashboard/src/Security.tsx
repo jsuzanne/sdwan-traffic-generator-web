@@ -92,11 +92,42 @@ export default function Security({ token }: SecurityProps) {
     };
 
     const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text).then(() => {
-            showToast('Command copied to clipboard!', 'success');
-        }).catch(() => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Command copied to clipboard!', 'success');
+            }).catch(() => {
+                fallbackCopyTextToClipboard(text);
+            });
+        } else {
+            fallbackCopyTextToClipboard(text);
+        }
+    };
+
+    const fallbackCopyTextToClipboard = (text: string) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Ensure the textarea is not visible
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+
+        textArea.focus();
+        textArea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showToast('Command copied to clipboard!', 'success');
+            } else {
+                showToast('Failed to copy command', 'error');
+            }
+        } catch (err) {
             showToast('Failed to copy command', 'error');
-        });
+        }
+
+        document.body.removeChild(textArea);
     };
 
     // Load configuration
