@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.13] - 2026-01-22
+
+### Fixed - Dashboard Data Accuracy 🎯
+- **Stale RPM Calculation**: Fixed a critical React closure bug where the 1s polling interval was stuck with old state, causing "0.0 req/min" to be displayed. Introduced `useRef` for reliable data tracking.
+- **Accurate Success Rate**: Fixed `traffic-generator.sh` statistics logic to correctly count `000000` errors in the global error counter, ensuring the Success Rate metric is accurate.
+- **Improved Lissage**: Refined the RPM calculation to stay stable between discrete file updates.
+
 ## [1.1.0-patch.12] - 2026-01-22
 
 ### Changed - Dashboard Metrics Strategy 📊

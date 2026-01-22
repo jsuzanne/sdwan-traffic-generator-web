@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -51,9 +51,9 @@ export default function App() {
   const [networkExpanded, setNetworkExpanded] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(1000);
 
-  // Rate Calculation State
-  const [prevTotalRequests, setPrevTotalRequests] = useState<number | null>(null);
-  const [prevTimestamp, setPrevTimestamp] = useState<number | null>(null);
+  // Rate Calculation State - Use Refs to avoid stale closures in setInterval
+  const prevTotalRequestsRef = useRef<number | null>(null);
+  const prevTimestampRef = useRef<number | null>(null);
   const [currentRpm, setCurrentRpm] = useState<number>(0);
 
   const addUser = async () => {
@@ -138,9 +138,12 @@ export default function App() {
         setStats(data);
 
         // Calculate RPM
-        if (prevTotalRequests !== null && prevTimestamp !== null) {
-          const deltaReq = data.total_requests - prevTotalRequests;
-          const deltaTime = data.timestamp - prevTimestamp;
+        let calculatedRpm = currentRpm; // Start with last known RPM
+
+        if (prevTotalRequestsRef.current !== null && prevTimestampRef.current !== null) {
+          const deltaReq = data.total_requests - prevTotalRequestsRef.current;
+          const deltaTime = data.timestamp - prevTimestampRef.current;
+
           if (deltaTime > 0) {
             // RPM = (Delta Requests / Delta Seconds) * 60
             const rpm = (deltaReq / deltaTime) * 60;
@@ -148,24 +151,26 @@ export default function App() {
             // If deltaReq is 0, it might be because the stats file hasn't updated yet.
             // We only update RPM if we have new data, or after some timeout.
             if (deltaReq > 0) {
+              calculatedRpm = rpm;
               setCurrentRpm(rpm);
-            } else if (deltaTime > 10) {
-              // If more than 10s without new requests, it's probably really stopped
+            } else if (deltaTime > 15) {
+              // If more than 15s without new requests, it's probably really stopped
+              calculatedRpm = 0;
               setCurrentRpm(0);
             }
           }
         }
 
-        // Update previous state ONLY if data actually changed (to keep the rate stable between discrete file updates)
-        if (data.total_requests !== prevTotalRequests) {
-          setPrevTotalRequests(data.total_requests);
-          setPrevTimestamp(data.timestamp);
+        // Update previous state ONLY if data actually changed
+        if (data.total_requests !== prevTotalRequestsRef.current) {
+          prevTotalRequestsRef.current = data.total_requests;
+          prevTimestampRef.current = data.timestamp;
         }
 
         setHistory(prev => {
           const newEntry = {
             time: new Date(data.timestamp * 1000).toLocaleTimeString(),
-            requests: Math.round(currentRpm), // Chart now reflects RPM
+            requests: Math.round(calculatedRpm), // Use the fresh calculation, not the stale state
             total: data.total_requests,
             ...data.requests_by_app
           };

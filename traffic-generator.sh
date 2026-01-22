@@ -234,7 +234,7 @@ function updateStats() {
     ((APP_COUNTERS[$app_name]++))
     ((TOTAL_REQUESTS++))
     
-    if [[ "$code" == "000" ]]; then
+    if [[ "$code" == "000"* ]]; then
         ((APP_ERRORS[$app_name]++))
     fi
     
