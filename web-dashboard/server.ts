@@ -1044,7 +1044,16 @@ app.post('/api/config/apps', authenticateToken, (req, res) => {
     updateAppsWeigth({ [domain]: weight }, res);
 });
 
-// API: Update Category Weight (Bulk)
+// API: Update Multiple Applications (Bulk)
+app.post('/api/config/apps-bulk', authenticateToken, (req, res) => {
+    const { updates } = req.body; // { "domain1": 50, "domain2": 30 }
+    if (!updates || typeof updates !== 'object') {
+        return res.status(400).json({ error: 'Invalid updates format' });
+    }
+    updateAppsWeigth(updates, res);
+});
+
+// API: Update Category Weight (Bulk - legacy support)
 app.post('/api/config/category', authenticateToken, (req, res) => {
     const { updates } = req.body; // { "domain1": 50, "domain2": 50 }
     updateAppsWeigth(updates, res);

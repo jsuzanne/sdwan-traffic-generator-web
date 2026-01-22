@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.15] - 2026-01-22
+
+### Added - Hierarchical Traffic Distribution 🚦
+- **Percentage-Based Configuration**: Replaced absolute weights with a hierarchical percentage model (Group % and App %).
+- **Proportional Balancing**: Moving a slider now automatically re-balances other shares to maintain a consistent 100% total.
+- **Bulk Config API**: New `/api/config/apps-bulk` endpoint for synchronized multi-application updates.
+- **Improved UI**: New slider design with real-time percentage feedback and weight transparency.
+
 ## [1.1.0-patch.14] - 2026-01-22
 
 ### Fixed - Dashboard UI Stability 📈

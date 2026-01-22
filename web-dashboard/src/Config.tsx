@@ -59,54 +59,96 @@ export default function Config({ token }: ConfigProps) {
         }).catch(() => setLoading(false));
     }, [token]);
 
-    const handleAppWeightChange = async (domain: string, weight: number) => {
-        // Update local state deep clone
-        const newCats = categories.map(c => ({
-            ...c,
-            apps: c.apps.map(a => a.domain === domain ? { ...a, weight } : a)
-        }));
-        setCategories(newCats);
+    // Total weight across all apps
+    const totalWeight = categories.reduce((sum, c) => sum + c.apps.reduce((asum, a) => asum + a.weight, 0), 0) || 1;
 
-        try {
-            await fetch('/api/config/apps', {
-                method: 'POST',
-                headers: authHeaders,
-                body: JSON.stringify({ domain, weight })
-            });
-            // We generally don't show toast for every slider move as it's noisy, but user asked for confirmation.
-            // Maybe a subtle indicator? Or just for the bulk/critical actions.
-            // Let's add a "Saved" indicator that fades in/out.
-        } catch (e) {
-            console.error('Failed to save');
-        }
-    };
-
-    const handleCategoryWeightChange = async (categoryName: string, weight: number) => {
+    const handleAppPercentageChange = (categoryName: string, domain: string, newAppPercent: number) => {
         const category = categories.find(c => c.name === categoryName);
         if (!category) return;
 
-        const updates: Record<string, number> = {};
-        // Set all apps in category to this weight
-        const newCats = categories.map(c => {
-            if (c.name === categoryName) {
-                const newApps = c.apps.map(a => {
-                    updates[a.domain] = weight;
-                    return { ...a, weight };
-                });
-                return { ...c, apps: newApps };
-            }
-            return c;
-        });
-        setCategories(newCats);
+        const categoryTotalWeight = category.apps.reduce((sum, a) => sum + a.weight, 0) || 1;
+        const otherApps = category.apps.filter(a => a.domain !== domain);
+        const otherAppsWeight = otherApps.reduce((sum, a) => sum + a.weight, 0);
 
+        // Targeted weight for this app based on new percentage of category
+        const targetWeight = (newAppPercent / 100) * categoryTotalWeight;
+        const diff = targetWeight - (category.apps.find(a => a.domain === domain)?.weight || 0);
+
+        const newCats = categories.map(c => {
+            if (c.name !== categoryName) return c;
+
+            const redistributedApps = c.apps.map(a => {
+                if (a.domain === domain) return { ...a, weight: Math.max(0, Math.round(targetWeight)) };
+                if (otherAppsWeight === 0) return { ...a, weight: 0 };
+
+                // Distribute difference to others
+                const share = a.weight / otherAppsWeight;
+                return { ...a, weight: Math.max(0, Math.round(a.weight - diff * share)) };
+            });
+
+            // Re-normalize to ensure category total doesn't shift due to rounding
+            const finalTotal = redistributedApps.reduce((s, a) => s + a.weight, 0);
+            if (finalTotal > 0 && Math.abs(finalTotal - categoryTotalWeight) > 1) {
+                const scale = categoryTotalWeight / finalTotal;
+                redistributedApps.forEach(a => a.weight = Math.round(a.weight * scale));
+            }
+
+            return { ...c, apps: redistributedApps };
+        });
+
+        setCategories(newCats);
+        saveCategoryBulk(newCats.find(c => c.name === categoryName)!.apps);
+    };
+
+    const handleCategoryPercentageChange = (categoryName: string, newGroupPercent: number) => {
+        const targetGlobalWeight = (newGroupPercent / 100) * totalWeight;
+        const currentCategoryWeight = categories.find(c => c.name === categoryName)?.apps.reduce((s, a) => s + a.weight, 0) || 0;
+        const diff = targetGlobalWeight - currentCategoryWeight;
+        const otherCategoriesWeight = totalWeight - currentCategoryWeight;
+
+        const newCats = categories.map(c => {
+            const currentCWeight = c.apps.reduce((s, a) => s + a.weight, 0);
+            let scale = 1;
+
+            if (c.name === categoryName) {
+                scale = currentCWeight > 0 ? targetGlobalWeight / currentCWeight : 1;
+            } else if (otherCategoriesWeight > 0) {
+                const targetOtherWeight = totalWeight - targetGlobalWeight;
+                scale = targetOtherWeight / otherCategoriesWeight;
+            }
+
+            return {
+                ...c,
+                apps: c.apps.map(a => ({ ...a, weight: Math.max(0, Math.round(a.weight * scale)) }))
+            };
+        });
+
+        setCategories(newCats);
+        saveAllBulk(newCats);
+    };
+
+    const saveCategoryBulk = async (apps: AppConfig[]) => {
+        const updates: Record<string, number> = {};
+        apps.forEach(a => updates[a.domain] = a.weight);
         try {
-            await fetch('/api/config/category', {
+            await fetch('/api/config/apps-bulk', {
                 method: 'POST',
                 headers: authHeaders,
-                body: JSON.stringify({ updates }) // Send bulk updates
+                body: JSON.stringify({ updates })
             });
-            showSuccess(`Category '${categoryName}' updated`);
-        } catch (e) { console.error("Failed to save category"); }
+        } catch (e) { console.error("Failed to save category bulk"); }
+    };
+
+    const saveAllBulk = async (allCats: Category[]) => {
+        const updates: Record<string, number> = {};
+        allCats.forEach(c => c.apps.forEach(a => updates[a.domain] = a.weight));
+        try {
+            await fetch('/api/config/apps-bulk', {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify({ updates })
+            });
+        } catch (e) { console.error("Failed to save all bulk"); }
     };
 
     const toggleCategory = (name: string) => {
@@ -333,60 +375,72 @@ export default function Config({ token }: ConfigProps) {
                     </div>
                 </div>
 
-                {categories.map(category => (
-                    <div key={category.name} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                        {/* Category Header */}
-                        <div className="bg-slate-800/50 p-4 flex items-center justify-between">
-                            <button
-                                onClick={() => toggleCategory(category.name)}
-                                className="flex items-center gap-3 font-semibold text-slate-200 hover:text-white"
-                            >
-                                {category.expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                                {category.name}
-                            </button>
+                {categories.map(category => {
+                    const categoryWeight = category.apps.reduce((s, a) => s + a.weight, 0);
+                    const categoryPercent = Math.round((categoryWeight / totalWeight) * 100);
 
-                            <div className="flex items-center gap-4">
-                                <span className="text-xs uppercase text-slate-500 font-bold tracking-wider">Group Weight</span>
-                                <input
-                                    type="range"
-                                    min="0" max="100"
-                                    className="w-32 accent-blue-500"
-                                    onChange={(e) => handleCategoryWeightChange(category.name, parseInt(e.target.value))}
-                                    // Value? It's hard to set a single value if apps differ. 
-                                    // We default to 50 or average? 
-                                    // Better: Don't bind value, just use it as "set all to X".
-                                    defaultValue={50}
-                                />
-                            </div>
-                        </div>
+                    return (
+                        <div key={category.name} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                            {/* Category Header */}
+                            <div className="bg-slate-800/50 p-4 flex items-center justify-between">
+                                <button
+                                    onClick={() => toggleCategory(category.name)}
+                                    className="flex items-center gap-3 font-semibold text-slate-200 hover:text-white"
+                                >
+                                    {category.expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                    {category.name}
+                                </button>
 
-                        {/* Apps List */}
-                        {category.expanded && (
-                            <div className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2">
-                                {category.apps.map(app => (
-                                    <div key={app.domain} className="bg-slate-950/50 border border-slate-800 rounded-lg p-3 flex flex-col gap-2">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <div className="font-medium text-slate-200">{app.domain}</div>
-                                                <div className="text-xs text-slate-500 font-mono">{app.endpoint}</div>
-                                            </div>
-                                            <span className="text-sm font-mono text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
-                                                {app.weight}
-                                            </span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0" max="100"
-                                            value={app.weight}
-                                            onChange={(e) => handleAppWeightChange(app.domain, parseInt(e.target.value))}
-                                            className="w-full accent-blue-600 h-1 bg-slate-800 rounded-lg appearance-none"
-                                        />
+                                <div className="flex items-center gap-4">
+                                    <div className="flex flex-col items-end mr-2">
+                                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Group Share</span>
+                                        <span className="text-sm font-mono text-blue-400">{categoryPercent}%</span>
                                     </div>
-                                ))}
+                                    <input
+                                        type="range"
+                                        min="1" max="100"
+                                        className="w-32 accent-blue-500"
+                                        value={categoryPercent}
+                                        onChange={(e) => handleCategoryPercentageChange(category.name, parseInt(e.target.value))}
+                                    />
+                                </div>
                             </div>
-                        )}
-                    </div>
-                ))}
+
+                            {/* Apps List */}
+                            {category.expanded && (
+                                <div className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2">
+                                    {category.apps.map(app => {
+                                        const appPercent = categoryWeight > 0 ? Math.round((app.weight / categoryWeight) * 100) : 0;
+
+                                        return (
+                                            <div key={app.domain} className="bg-slate-950/50 border border-slate-800 rounded-lg p-3 flex flex-col gap-2">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <div className="font-medium text-slate-200">{app.domain}</div>
+                                                        <div className="text-xs text-slate-500 font-mono">{app.endpoint}</div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-sm font-mono text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+                                                            {appPercent}%
+                                                        </span>
+                                                        <span className="text-[9px] text-slate-600 mt-1">Weight: {app.weight}</span>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0" max="100"
+                                                    value={appPercent}
+                                                    onChange={(e) => handleAppPercentageChange(category.name, app.domain, parseInt(e.target.value))}
+                                                    className="w-full accent-blue-600 h-1 bg-slate-800 rounded-lg appearance-none"
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
