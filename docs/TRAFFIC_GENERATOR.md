@@ -39,9 +39,9 @@ zoom.us|60|/
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| **domain** | Application domain (no protocol) | `mail.google.com` |
-| **weight** | Traffic probability (1-1000) | `100` |
-| **endpoint** | URL path to request | `/mail/` or `/` |
+| **domain** | Domain or IP (optionally prefixed with `http://`) | `http://192.168.1.1` |
+| **weight** | Traffic probability (balanced by UI) | `100` |
+| **endpoint** | URL path to request | `/cgi-bin/test.sh` |
 
 ### Example Entry
 
@@ -261,15 +261,21 @@ graph.microsoft.com|30|/v1.0/groups
 
 ### Protocol Selection
 
-The traffic generator uses HTTPS by default. Endpoints are automatically prefixed with `https://`.
+The traffic generator uses HTTPS by default. Endpoints are automatically prefixed with `https://` unless an explicit protocol is specified.
 
+**Default (HTTPS):**
 ```
-# This entry:
-google.com|100|/search
+google.com|100|/search  =>  https://google.com/search
+```
 
-# Becomes:
-https://google.com/search
+**Explicit HTTP (Internal Servers):**
 ```
+http://192.168.203.100|50|/status  =>  http://192.168.203.100/status
+```
+
+### IP Address Identification
+
+When using an IP address as a domain, the dashboard statistics will identify the application by its **full IP address** instead of just its first part.
 
 ### User Agents
 

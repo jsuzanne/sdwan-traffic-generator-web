@@ -36,9 +36,13 @@ domain|weight|endpoint
 
 text
 
-- **domain**: Target application domain (e.g., `teams.microsoft.com`)
-- **weight**: Relative frequency (higher = more traffic)
+- **domain**: Target application domain or IP (e.g., `teams.microsoft.com` or `http://192.168.1.1`)
+- **weight**: Relative frequency (automatically managed as percentages in the Web UI)
 - **endpoint**: Specific URL path (e.g., `/api/v1/users`)
+
+> [!TIP]
+> **Protocol Support**: By default, the engine uses `https://`. To force HTTP (useful for internal servers), prefix the domain with `http://`.
+> **IP Addresses**: You can use raw IP addresses as the domain. Statistics will show the full IP address for clarity.
 
 ### Weight Calculation
 
@@ -50,8 +54,8 @@ text
 
 **Example:**
 teams.microsoft.com|100|/api/mt/emea/beta/users/
+http://192.168.203.100|50|/cgi-bin/hw.sh
 google.com|50|/
-slack.com|50|/
 
 text
 

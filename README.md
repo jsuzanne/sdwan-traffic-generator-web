@@ -16,7 +16,8 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **67 Pre-configured Applications** - Popular SaaS apps (Google, Microsoft 365, Salesforce, Zoom, etc.)
 - **Realistic Traffic Patterns** - Authentic HTTP requests with proper headers, User-Agents, and Referers
 - **Real-time Dashboard** - Live traffic visualization, metrics, and status monitoring
-- **Weighted Distribution** - Configure application traffic ratios (Microsoft 365, Google Workspace, etc.)
+- **Weighted Distribution** - Configure application traffic ratios using a visual Group/App percentage system
+- **Protocol & IP Flexibility** - Support for explicit `http://` or `https://` and full IP address identification
 - **Multi-interface Support** - Bind to specific network interfaces
 
 ### 🛡️ Security Testing (v1.1.0)
@@ -275,8 +276,8 @@ Simply start the containers and access the dashboard at http://localhost:8080
 2. **Dashboard Tab**: View real-time statistics and control traffic generation
 3. **Configuration Tab**: 
    - Add network interfaces (e.g., `eth0`, `wlan0`)
-   - Adjust traffic distribution weights for different application categories
-   - Changes are applied immediately
+   - Adjust traffic distribution percentages for different application categories
+   - Use explicit `http://` or `https://` prefixes for internal or specific servers
 4. **Logs Tab**: View real-time traffic logs and statistics
 5. **Security Tab**: Run URL filtering, DNS security, and threat prevention tests
 6. **Start/Stop**: Use the toggle button on the dashboard

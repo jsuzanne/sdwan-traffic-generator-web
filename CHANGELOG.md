@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.18] - 2026-01-22
+
+### Documentation - Protocol & IP Clarity 📚
+- **Updated Documentation**: Comprehensive updates to `README.md`, `CONFIGURATION.md`, and `TRAFFIC_GENERATOR.md` explaining HTTP support and IP-based statistics.
+- **Visual Percentage Docs**: Reflected the new hierarchical percentage model in the configuration guides.
+
 ## [1.1.0-patch.17] - 2026-01-22
 
 ### Added - Protocol flexibility and IP Support 🌐
