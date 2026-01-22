@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.16] - 2026-01-22
+
+### Fixed - Traffic Distribution Logic 🛡️
+- **0% Deadlock Fix**: Resolved an issue where sliders could become stuck if a value reached 0%. 
+- **Virtual Weight Normalization**: Implemented a fixed total virtual weight (1000) to ensure predictable redistribution even from zero/empty states.
+- **Proportional Redistribution**: Refined the algorithm to better preserve relative ratios during scaling.
+
 ## [1.1.0-patch.15] - 2026-01-22
 
 ### Added - Hierarchical Traffic Distribution 🚦

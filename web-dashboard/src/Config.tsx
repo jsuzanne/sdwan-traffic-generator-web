@@ -59,69 +59,82 @@ export default function Config({ token }: ConfigProps) {
         }).catch(() => setLoading(false));
     }, [token]);
 
-    // Total weight across all apps
-    const totalWeight = categories.reduce((sum, c) => sum + c.apps.reduce((asum, a) => asum + a.weight, 0), 0) || 1;
+    const GLOBAL_TOTAL = 1000;
 
     const handleAppPercentageChange = (categoryName: string, domain: string, newAppPercent: number) => {
         const category = categories.find(c => c.name === categoryName);
         if (!category) return;
 
-        const categoryTotalWeight = category.apps.reduce((sum, a) => sum + a.weight, 0) || 1;
-        const otherApps = category.apps.filter(a => a.domain !== domain);
-        const otherAppsWeight = otherApps.reduce((sum, a) => sum + a.weight, 0);
+        const categoryApps = category.apps;
+        const currentCategoryTotalWeight = categoryApps.reduce((s, a) => s + a.weight, 0) || (GLOBAL_TOTAL / categories.length);
 
-        // Targeted weight for this app based on new percentage of category
-        const targetWeight = (newAppPercent / 100) * categoryTotalWeight;
-        const diff = targetWeight - (category.apps.find(a => a.domain === domain)?.weight || 0);
-
-        const newCats = categories.map(c => {
-            if (c.name !== categoryName) return c;
-
-            const redistributedApps = c.apps.map(a => {
-                if (a.domain === domain) return { ...a, weight: Math.max(0, Math.round(targetWeight)) };
-                if (otherAppsWeight === 0) return { ...a, weight: 0 };
-
-                // Distribute difference to others
-                const share = a.weight / otherAppsWeight;
-                return { ...a, weight: Math.max(0, Math.round(a.weight - diff * share)) };
-            });
-
-            // Re-normalize to ensure category total doesn't shift due to rounding
-            const finalTotal = redistributedApps.reduce((s, a) => s + a.weight, 0);
-            if (finalTotal > 0 && Math.abs(finalTotal - categoryTotalWeight) > 1) {
-                const scale = categoryTotalWeight / finalTotal;
-                redistributedApps.forEach(a => a.weight = Math.round(a.weight * scale));
+        const newApps = categoryApps.map(a => {
+            if (a.domain === domain) {
+                return { ...a, weight: Math.round((newAppPercent / 100) * currentCategoryTotalWeight) };
             }
 
-            return { ...c, apps: redistributedApps };
+            const otherPercentOriginal = 100 - (categoryApps.find(o => o.domain === domain)?.weight || 0) / currentCategoryTotalWeight * 100;
+            const otherPercentTarget = 100 - newAppPercent;
+
+            if (otherPercentOriginal <= 0) {
+                // Was 100%, now decreasing. Share the new "slack" equally
+                return { ...a, weight: Math.round((otherPercentTarget / (categoryApps.length - 1) / 100) * currentCategoryTotalWeight) };
+            }
+
+            // Scale other apps based on their current relative share of the "other" pool
+            const currentShareOfOthers = (a.weight / currentCategoryTotalWeight * 100) / otherPercentOriginal;
+            return { ...a, weight: Math.round((otherPercentTarget * currentShareOfOthers / 100) * currentCategoryTotalWeight) };
         });
 
+        // Normalize to ensure total matches
+        const finalSum = newApps.reduce((s, a) => s + a.weight, 0);
+        if (finalSum > 0 && finalSum !== currentCategoryTotalWeight) {
+            const ratio = currentCategoryTotalWeight / finalSum;
+            newApps.forEach(a => a.weight = Math.round(a.weight * ratio));
+        }
+
+        const newCats = categories.map(c => c.name === categoryName ? { ...c, apps: newApps } : c);
         setCategories(newCats);
-        saveCategoryBulk(newCats.find(c => c.name === categoryName)!.apps);
+        saveCategoryBulk(newApps);
     };
 
     const handleCategoryPercentageChange = (categoryName: string, newGroupPercent: number) => {
-        const targetGlobalWeight = (newGroupPercent / 100) * totalWeight;
-        const currentCategoryWeight = categories.find(c => c.name === categoryName)?.apps.reduce((s, a) => s + a.weight, 0) || 0;
-        const diff = targetGlobalWeight - currentCategoryWeight;
-        const otherCategoriesWeight = totalWeight - currentCategoryWeight;
+        const currentTotal = categories.reduce((sum, c) => sum + c.apps.reduce((asum, a) => asum + a.weight, 0), 0) || GLOBAL_TOTAL;
+
+        const otherCategories = categories.filter(c => c.name !== categoryName);
+        const otherCategoriesWeight = otherCategories.reduce((s, c) => s + c.apps.reduce((as, a) => as + a.weight, 0), 0);
+        const otherPercentOriginal = (otherCategoriesWeight / currentTotal) * 100;
+        const otherPercentTarget = 100 - newGroupPercent;
 
         const newCats = categories.map(c => {
-            const currentCWeight = c.apps.reduce((s, a) => s + a.weight, 0);
-            let scale = 1;
+            const currentCatWeight = c.apps.reduce((s, a) => s + a.weight, 0);
+            let targetCatWeight = 0;
 
             if (c.name === categoryName) {
-                scale = currentCWeight > 0 ? targetGlobalWeight / currentCWeight : 1;
-            } else if (otherCategoriesWeight > 0) {
-                const targetOtherWeight = totalWeight - targetGlobalWeight;
-                scale = targetOtherWeight / otherCategoriesWeight;
+                targetCatWeight = (newGroupPercent / 100) * currentTotal;
+            } else if (otherPercentOriginal <= 0) {
+                targetCatWeight = (otherPercentTarget / otherCategories.length / 100) * currentTotal;
+            } else {
+                const currentShareOfOthers = (currentCatWeight / currentTotal * 100) / otherPercentOriginal;
+                targetCatWeight = (otherPercentTarget * currentShareOfOthers / 100) * currentTotal;
             }
 
-            return {
-                ...c,
-                apps: c.apps.map(a => ({ ...a, weight: Math.max(0, Math.round(a.weight * scale)) }))
-            };
+            // Distribute targetCatWeight to apps in category
+            const appCount = c.apps.length;
+            if (currentCatWeight <= 0) {
+                return { ...c, apps: c.apps.map(a => ({ ...a, weight: Math.round(targetCatWeight / appCount) })) };
+            }
+
+            const scale = targetCatWeight / currentCatWeight;
+            return { ...c, apps: c.apps.map(a => ({ ...a, weight: Math.round(a.weight * scale) })) };
         });
+
+        // Final normalization to GLOBAL_TOTAL
+        const finalGlobalSum = newCats.reduce((sum, c) => sum + c.apps.reduce((as, a) => as + a.weight, 0), 0);
+        if (finalGlobalSum > 0 && finalGlobalSum !== GLOBAL_TOTAL) {
+            const globalRatio = GLOBAL_TOTAL / finalGlobalSum;
+            newCats.forEach(c => c.apps.forEach(a => a.weight = Math.round(a.weight * globalRatio)));
+        }
 
         setCategories(newCats);
         saveAllBulk(newCats);
@@ -377,7 +390,7 @@ export default function Config({ token }: ConfigProps) {
 
                 {categories.map(category => {
                     const categoryWeight = category.apps.reduce((s, a) => s + a.weight, 0);
-                    const categoryPercent = Math.round((categoryWeight / totalWeight) * 100);
+                    const categoryPercent = Math.round((categoryWeight / GLOBAL_TOTAL) * 100);
 
                     return (
                         <div key={category.name} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
