@@ -165,20 +165,27 @@ export default function App() {
         if (data.total_requests !== prevTotalRequestsRef.current) {
           prevTotalRequestsRef.current = data.total_requests;
           prevTimestampRef.current = data.timestamp;
-        }
 
-        setHistory(prev => {
-          const newEntry = {
-            time: new Date(data.timestamp * 1000).toLocaleTimeString(),
-            requests: Math.round(calculatedRpm), // Use the fresh calculation, not the stale state
-            total: data.total_requests,
-            ...data.requests_by_app
-          };
-          // Keep last 30 points for RPM (more meaningful over time)
-          const newHistory = [...prev, newEntry];
-          if (newHistory.length > 30) newHistory.shift();
-          return newHistory;
-        });
+          // Only add to history if the timestamp has progressed
+          setHistory(prev => {
+            // Check if this timestamp is already the last one to avoid "dancing" graph
+            if (prev.length > 0 && prev[prev.length - 1].rawTimestamp === data.timestamp) {
+              return prev;
+            }
+
+            const newEntry = {
+              time: new Date(data.timestamp * 1000).toLocaleTimeString(),
+              rawTimestamp: data.timestamp,
+              requests: Math.round(calculatedRpm),
+              total: data.total_requests,
+              ...data.requests_by_app
+            };
+
+            const newHistory = [...prev, newEntry];
+            if (newHistory.length > 30) newHistory.shift();
+            return newHistory;
+          });
+        }
       }
     } catch (e) {
       console.error('Failed to fetch stats');
