@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.21] - 2026-01-22
+
+### Fixed - Infrastructure 🧱
+- **Multi-Arch Stability**: Switched `web-dashboard` Docker base image to `node:20-slim` (Debian-based) to resolve ARM64 build crashes (Illegal instruction) under QEMU emulation.
+
 ## [1.1.0-patch.20] - 2026-01-22
 
 ### Added - Security UI Productivity ⚡
