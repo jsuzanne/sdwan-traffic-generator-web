@@ -2121,7 +2121,25 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
         const endpointsArray = Array.isArray(endpoint) ? endpoint : [endpoint];
 
         for (const ep of endpointsArray) {
-            const curlCommand = `curl -fsS --max-time 20 ${ep} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt`;
+            let hostname = '';
+            try { hostname = new URL(ep).hostname; } catch (e) { hostname = ep; }
+
+            logTest(`[THREAT-TEST-${testId}] Testing reachability for ${hostname}...`);
+
+            // Check reachability first (ping with 2s timeout)
+            const pingCmd = process.platform === 'darwin'
+                ? `ping -c 1 -t 2 ${hostname} > /dev/null 2>&1`
+                : `ping -c 1 -W 2 ${hostname} > /dev/null 2>&1`;
+
+            let isReachable = true;
+            try {
+                await execPromise(pingCmd);
+            } catch (e) {
+                isReachable = false;
+                logTest(`[THREAT-TEST-${testId}] ${hostname} is unreachable via ping`);
+            }
+
+            const curlCommand = `curl -fsS --connect-timeout 5 --max-time 20 ${ep} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt`;
             logTest(`[THREAT-TEST-${testId}] Executing EICAR test for ${ep}: ${curlCommand}`);
 
             try {
@@ -2131,25 +2149,38 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
                 const result = {
                     success: true,
                     status: 'allowed',
-                    endpoint,
+                    endpoint: ep,
                     message: 'EICAR file downloaded successfully (not blocked by IPS)'
                 };
 
-                logTest(`[THREAT-TEST-${testId}] EICAR test result: ALLOWED`, { endpoint });
-                addTestResult('threat_prevention', `EICAR Test (${endpoint})`, result, testId);
+                logTest(`[THREAT-TEST-${testId}] EICAR test result: ALLOWED`, { endpoint: ep });
+                addTestResult('threat_prevention', `EICAR Test (${ep})`, result, testId);
                 results.push(result);
             } catch (curlError: any) {
-                // Curl error usually means blocked by IPS
+                const exitCode = curlError.code;
+                logTest(`[THREAT-TEST-${testId}] Curl failed with exit code: ${exitCode}`);
+
+                let status = 'blocked';
+                let message = 'EICAR download blocked (IPS triggered)';
+                let success = false;
+
+                // Curl exit codes: 7 = Failed to connect, 28 = Operation timeout
+                if (exitCode === 7 || exitCode === 28 || !isReachable) {
+                    status = 'unreachable';
+                    message = !isReachable ? `Host ${hostname} is unreachable` : `Connection failed/timed out (check connectivity)`;
+                    success = false;
+                }
+
                 const result = {
-                    success: false,
-                    status: 'blocked',
-                    endpoint,
-                    message: 'EICAR download blocked (IPS triggered)',
+                    success,
+                    status,
+                    endpoint: ep,
+                    message,
                     error: curlError.message
                 };
 
-                logTest(`[THREAT-TEST-${testId}] EICAR test result: BLOCKED`, { endpoint, error: curlError.message });
-                addTestResult('threat_prevention', `EICAR Test (${endpoint})`, result, testId);
+                logTest(`[THREAT-TEST-${testId}] EICAR test result: ${status.toUpperCase()}`, { endpoint: ep, error: curlError.message });
+                addTestResult('threat_prevention', `EICAR Test (${ep})`, result, testId);
                 results.push(result);
             }
         }

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.19] - 2026-01-22
+
+### Fixed - EICAR Test Robustness 🛡️
+- **Unreachable Detection**: Implemented a pre-connectivity check and refined `curl` error analysis to distinguish between IPS blocks and network reachability issues.
+- **Improved UI Feedback**: Added a new "Unreachable" status badge in the Security tab for clearer diagnostic reporting when the EICAR host is down.
+
 ## [1.1.0-patch.18] - 2026-01-22
 
 ### Documentation - Protocol & IP Clarity 📚
