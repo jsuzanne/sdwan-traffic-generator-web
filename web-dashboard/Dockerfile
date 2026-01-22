@@ -1,5 +1,5 @@
 # Build Stage
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 COPY web-dashboard/package*.json ./
@@ -8,17 +8,17 @@ COPY web-dashboard/ ./
 RUN npm run build
 
 # Runtime Stage
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
 # Install system dependencies (curl for healthchecks and connectivity)
-RUN apk add --no-cache curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 COPY web-dashboard/package*.json ./
-# Install production deps with reduced memory usage
+# Install production deps
 RUN npm ci --omit=dev --prefer-offline --no-audit
-# Install tsx separately to reduce memory pressure
+# Install tsx separately
 RUN npm install tsx --no-save
 
 COPY --from=builder /app/dist ./dist
