@@ -238,8 +238,8 @@ function updateStats() {
         ((APP_ERRORS[$app_name]++))
     fi
     
-    # Write stats every 50 requests
-    if (( (TOTAL_REQUESTS % 50) == 0 )); then
+    # Write stats every 5 requests
+    if (( (TOTAL_REQUESTS % 5) == 0 )); then
         writeStats
     fi
 }
@@ -377,7 +377,7 @@ function main() {
         local url="${result#*|}"
         
         # Handle result
-        if [[ "$code" == "000" ]]; then
+        if [[ "$code" == "000"* ]]; then
             setBackoff "$backoff_key"
             log_error "$CLIENTID FAILED $url - code: $code"
         else

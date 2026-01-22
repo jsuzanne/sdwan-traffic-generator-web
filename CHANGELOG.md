@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.12] - 2026-01-22
+
+### Changed - Dashboard Metrics Strategy 📊
+- **RPM instead of RPS**: Switched the primary traffic metric from "Requests Per Second" to **"Requests Per Minute" (RPM)** for more intuitive enterprise traffic visualization
+- **Traffic Smoothing**: Improved frontend calculation to maintain a stable rate between discrete statistics file updates
+- **Expanded Chart**: Main chart now shows the last 30 minutes of RPM activity
+
+### Fixed - Traffic Engine Logic 🛠️
+- **Error Code Detection**: Fixed a bug where connection failures (code `000000`) were incorrectly logged as `SUCCESS`
+- **Increased Reporting Frequency**: Statistics are now updated in `stats.json` every 5 requests instead of 50, enabling near real-time dashboard updates
+
 ## [1.1.0-patch.11] - 2026-01-22
 
 ### Fixed - Docker Build & Core Engine 🛠️

@@ -54,7 +54,7 @@ export default function App() {
   // Rate Calculation State
   const [prevTotalRequests, setPrevTotalRequests] = useState<number | null>(null);
   const [prevTimestamp, setPrevTimestamp] = useState<number | null>(null);
-  const [currentRps, setCurrentRps] = useState<number>(0);
+  const [currentRpm, setCurrentRpm] = useState<number>(0);
 
   const addUser = async () => {
     if (!token) return;
@@ -137,28 +137,41 @@ export default function App() {
       if (data.timestamp) {
         setStats(data);
 
-        // Calculate RPS
+        // Calculate RPM
         if (prevTotalRequests !== null && prevTimestamp !== null) {
           const deltaReq = data.total_requests - prevTotalRequests;
           const deltaTime = data.timestamp - prevTimestamp;
           if (deltaTime > 0) {
-            const rps = deltaReq / deltaTime;
-            setCurrentRps(rps > 0 ? rps : 0);
+            // RPM = (Delta Requests / Delta Seconds) * 60
+            const rpm = (deltaReq / deltaTime) * 60;
+
+            // If deltaReq is 0, it might be because the stats file hasn't updated yet.
+            // We only update RPM if we have new data, or after some timeout.
+            if (deltaReq > 0) {
+              setCurrentRpm(rpm);
+            } else if (deltaTime > 10) {
+              // If more than 10s without new requests, it's probably really stopped
+              setCurrentRpm(0);
+            }
           }
         }
-        setPrevTotalRequests(data.total_requests);
-        setPrevTimestamp(data.timestamp);
+
+        // Update previous state ONLY if data actually changed (to keep the rate stable between discrete file updates)
+        if (data.total_requests !== prevTotalRequests) {
+          setPrevTotalRequests(data.total_requests);
+          setPrevTimestamp(data.timestamp);
+        }
 
         setHistory(prev => {
           const newEntry = {
             time: new Date(data.timestamp * 1000).toLocaleTimeString(),
-            requests: currentRps, // Chart now reflects RPS
+            requests: Math.round(currentRpm), // Chart now reflects RPM
             total: data.total_requests,
             ...data.requests_by_app
           };
-          // Keep last 20 points
+          // Keep last 30 points for RPM (more meaningful over time)
           const newHistory = [...prev, newEntry];
-          if (newHistory.length > 20) newHistory.shift();
+          if (newHistory.length > 30) newHistory.shift();
           return newHistory;
         });
       }
@@ -554,7 +567,7 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card
               title="Traffic Rate"
-              value={`${currentRps.toFixed(1)} req/s`}
+              value={`${Math.round(currentRpm)} req/min`}
               icon={<Activity />}
               subValue={`Total: ${stats?.total_requests || 0}`}
             />
