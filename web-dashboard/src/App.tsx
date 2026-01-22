@@ -49,6 +49,7 @@ export default function App() {
   const [connectivity, setConnectivity] = useState<any>(null);
   const [dockerStats, setDockerStats] = useState<any>(null);
   const [networkExpanded, setNetworkExpanded] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(1000);
 
   // Rate Calculation State
   const [prevTotalRequests, setPrevTotalRequests] = useState<number | null>(null);
@@ -259,6 +260,16 @@ export default function App() {
     }
   }
 
+  const fetchConfigUi = async () => {
+    try {
+      const res = await fetch('/api/config/ui');
+      const data = await res.json();
+      if (data.refreshInterval) setRefreshInterval(data.refreshInterval);
+    } catch (e) {
+      console.error("Failed to fetch UI config");
+    }
+  }
+
 
   useEffect(() => {
     if (!token) return;
@@ -270,14 +281,15 @@ export default function App() {
     fetchVersion();
     fetchConnectivity();
     fetchDockerStats();
+    fetchConfigUi();
 
-    // Poll every 2s
+    // Poll every refreshInterval (default 1s)
     const interval = setInterval(() => {
       fetchStats();
       fetchLogs();
       fetchTrafficStatus();
       fetchDockerStats(); // Poll Docker stats for real-time bandwidth
-    }, 2000);
+    }, refreshInterval);
 
     // Poll connectivity every 30s (less frequent)
     const connectivityInterval = setInterval(() => {

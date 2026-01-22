@@ -54,7 +54,8 @@ const getNextTestId = (): number => {
 const TEST_LOG_FILE = path.join(APP_CONFIG.logDir, 'test-execution.log');
 const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
 
-const logTest = (message: string) => {
+const logTest = (...args: any[]) => {
+    const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
     const timestamp = new Date().toISOString();
     const logLine = `[${timestamp}] ${message}\n`;
 
@@ -348,9 +349,9 @@ docusign.com|50|/`;
             let detectionMethod = '';
 
             // Check if running in Docker container
-            const isDocker = fs.existsSync('/.dockerenv') || 
-                           (fs.existsSync('/proc/1/cgroup') && 
-                            fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
+            const isDocker = fs.existsSync('/.dockerenv') ||
+                (fs.existsSync('/proc/1/cgroup') &&
+                    fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
 
             if (isDocker) {
                 defaultIface = 'eth0';
@@ -358,7 +359,7 @@ docusign.com|50|/`;
                 console.log('🐳 Docker environment detected, using eth0');
             } else if (PLATFORM === 'linux') {
                 try {
-                    const route = execSync("ip route | grep default | awk '{print $5}' | head -n 1", { 
+                    const route = execSync("ip route | grep default | awk '{print $5}' | head -n 1", {
                         encoding: 'utf8',
                         timeout: 2000
                     });
@@ -378,8 +379,8 @@ docusign.com|50|/`;
 
             if (defaultIface) {
                 const interfaceContent = `# Auto-detected interface (${detectionMethod})\n` +
-                                       `# You can manually edit this file if needed\n` +
-                                       `${defaultIface}\n`;
+                    `# You can manually edit this file if needed\n` +
+                    `${defaultIface}\n`;
                 fs.writeFileSync(interfacesFile, interfaceContent, 'utf8');
                 console.log(`✅ Auto-configured interface: ${defaultIface} (${detectionMethod})`);
             } else {
@@ -387,7 +388,7 @@ docusign.com|50|/`;
             }
         } catch (error) {
             console.log('⚠️  Auto-detection failed, creating empty config file');
-            fs.writeFileSync(interfacesFile, 
+            fs.writeFileSync(interfacesFile,
                 '# Add network interfaces here, one per line\n' +
                 '# Example: eth0, en0, wlan0\n' +
                 '# Run "ip link show" (Linux) or "ifconfig" (Mac) to list interfaces\n',
@@ -496,6 +497,13 @@ app.post('/api/auth/users', authenticateToken, (req: any, res) => {
     users.push({ username, passwordHash });
     saveUsers(users);
     res.json({ success: true, message: 'User created' });
+});
+
+// API: Get UI Configuration (Public endpoint)
+app.get('/api/config/ui', (req, res) => {
+    res.json({
+        refreshInterval: parseInt(process.env.DASHBOARD_REFRESH_MS || '1000')
+    });
 });
 
 // API: Get Version (Public endpoint)
@@ -1261,9 +1269,9 @@ app.post('/api/system/auto-detect-interface', authenticateToken, async (req, res
         let confidence = 'high';
 
         // Check if running in Docker container
-        const isDocker = fs.existsSync('/.dockerenv') || 
-                       (fs.existsSync('/proc/1/cgroup') && 
-                        fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
+        const isDocker = fs.existsSync('/.dockerenv') ||
+            (fs.existsSync('/proc/1/cgroup') &&
+                fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
 
         if (isDocker) {
             defaultIface = 'eth0';
@@ -1304,8 +1312,8 @@ app.post('/api/system/auto-detect-interface', authenticateToken, async (req, res
         if (defaultIface) {
             const interfacesFile = path.join(APP_CONFIG.configDir, 'interfaces.txt');
             const content = `# Auto-detected on ${new Date().toISOString()}\n` +
-                          `# Method: ${detectionMethod}\n` +
-                          `${defaultIface}\n`;
+                `# Method: ${detectionMethod}\n` +
+                `${defaultIface}\n`;
             fs.writeFileSync(interfacesFile, content, 'utf8');
 
             console.log(`✅ INTERFACE: Saved ${defaultIface} to config`);

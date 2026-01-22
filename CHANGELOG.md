@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.11] - 2026-01-22
+
+### Fixed - Docker Build & Core Engine 🛠️
+- **Restored `traffic-generator.sh`**: Fixed critical build failure in GitHub Actions caused by missing core script
+- Ensures the continuous traffic generator container (`sdwan-traffic-gen`) is correctly built and functional
+
+### Changed - Dashboard UI Responsiveness ⚡
+- **1-Second Refresh Rate**: Increased dashboard polling frequency from 2s to 1s for smoother RPS visualization
+- **Configurable Refresh Interval**: Added support for `DASHBOARD_REFRESH_MS` environment variable
+- **New API Endpoint**: `/api/config/ui` to serve dynamic UI configuration
+
 ## [1.1.0-patch.10] - 2026-01-22
 
 ### Changed - Dashboard Metrics Optimization 📈
