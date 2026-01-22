@@ -221,7 +221,16 @@ function resetBackoff() {
 function updateStats() {
     local app=$1
     local code=$2
-    local app_name="${app%%.*}"
+    
+    # Clean app name (remove protocol and keep more parts for IPs)
+    local app_name="${app#*://}"
+    if [[ "$app_name" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        # It's an IP, keep it full
+        app_name="$app_name"
+    else
+        # It's a domain, keep first part (legacy behavior for domains)
+        app_name="${app_name%%.*}"
+    fi
     
     # Initialiser les compteurs s'ils n'existent pas
     if [[ ! -v "APP_COUNTERS[$app_name]" ]]; then
@@ -290,7 +299,13 @@ function makeRequest() {
     local endpoint=$3
     local user_agent=$4
     
-    local url="https://${app}${endpoint}"
+    local url
+    if [[ "$app" == http* ]]; then
+        url="${app}${endpoint}"
+    else
+        url="https://${app}${endpoint}"
+    fi
+    
     local trace_id="$(date +'%s')-${CLIENTID}"
     
     log_info "$CLIENTID requesting $url via $interface (traceid: $trace_id)"

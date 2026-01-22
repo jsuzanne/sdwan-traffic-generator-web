@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.17] - 2026-01-22
+
+### Added - Protocol flexibility and IP Support 🌐
+- **Explicit Protocol Support**: The traffic engine now honors `http://` or `https://` if specified in the applications configuration.
+- **Improved IP Statistics**: Applications identified by IP addresses are no longer grouped by their first octet in the dashboard; the full IP is now used as a unique identifier.
+
 ## [1.1.0-patch.16] - 2026-01-22
 
 ### Fixed - Traffic Distribution Logic 🛡️
