@@ -228,8 +228,8 @@ function updateStats() {
         # It's an IP, keep it full
         app_name="$app_name"
     else
-        # It's a domain, keep first part (legacy behavior for domains)
-        app_name="${app_name%%.*}"
+        # It's a domain, keep it full for better mapping in the UI
+        app_name="$app_name"
     fi
     
     # Initialiser les compteurs s'ils n'existent pas
