@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.2] - 2026-01-22
+
+### Changed - Dashboard Metrics Optimization 📈
+- **Real-Time Traffic Rate**: Replaced static "Total Requests" with dynamic "Traffic Rate" (Requests Per Second)
+  - Provides a better "heartbeat" observation of the traffic generator
+  - Cumulative "Total Requests" remains visible as a sub-metric
+- **RPS Visualization**: Main dashboard chart now plots Request Rate instead of cumulative totals
+- **Calculated on Frontend**: Non-intrusive implementation using state deltas for performance
+
 ## [1.1.0-patch.1] - 2026-01-19
 
 ### Fixed - DNS Security Status Display 🐛

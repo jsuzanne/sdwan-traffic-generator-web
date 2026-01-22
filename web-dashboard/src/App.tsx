@@ -50,6 +50,11 @@ export default function App() {
   const [dockerStats, setDockerStats] = useState<any>(null);
   const [networkExpanded, setNetworkExpanded] = useState(false);
 
+  // Rate Calculation State
+  const [prevTotalRequests, setPrevTotalRequests] = useState<number | null>(null);
+  const [prevTimestamp, setPrevTimestamp] = useState<number | null>(null);
+  const [currentRps, setCurrentRps] = useState<number>(0);
+
   const addUser = async () => {
     if (!token) return;
     try {
@@ -130,10 +135,24 @@ export default function App() {
       const data = await res.json();
       if (data.timestamp) {
         setStats(data);
+
+        // Calculate RPS
+        if (prevTotalRequests !== null && prevTimestamp !== null) {
+          const deltaReq = data.total_requests - prevTotalRequests;
+          const deltaTime = data.timestamp - prevTimestamp;
+          if (deltaTime > 0) {
+            const rps = deltaReq / deltaTime;
+            setCurrentRps(rps > 0 ? rps : 0);
+          }
+        }
+        setPrevTotalRequests(data.total_requests);
+        setPrevTimestamp(data.timestamp);
+
         setHistory(prev => {
           const newEntry = {
             time: new Date(data.timestamp * 1000).toLocaleTimeString(),
-            requests: data.total_requests,
+            requests: currentRps, // Chart now reflects RPS
+            total: data.total_requests,
             ...data.requests_by_app
           };
           // Keep last 20 points
@@ -521,7 +540,12 @@ export default function App() {
 
           {/* Metrics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card title="Total Requests" value={stats?.total_requests || 0} icon={<Activity />} />
+            <Card
+              title="Traffic Rate"
+              value={`${currentRps.toFixed(1)} req/s`}
+              icon={<Activity />}
+              subValue={`Total: ${stats?.total_requests || 0}`}
+            />
             <Card title="Success Rate" value={`${successRate}%`} icon={<Server />} subValue={`${totalErrors} Errors`} />
             <Card title="Active Apps" value={stats ? Object.keys(stats.requests_by_app).length : 0} icon={<AlertCircle />} />
           </div>
