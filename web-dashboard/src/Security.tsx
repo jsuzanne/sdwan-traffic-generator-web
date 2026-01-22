@@ -248,6 +248,26 @@ export default function Security({ token }: SecurityProps) {
         });
     };
 
+    const toggleAllURLCategories = () => {
+        if (!config) return;
+        const allIds = URL_CATEGORIES.map(cat => cat.id);
+        const allEnabled = config.url_filtering.enabled_categories.length === allIds.length;
+
+        saveConfig({
+            url_filtering: { ...config.url_filtering, enabled_categories: allEnabled ? [] : allIds }
+        });
+    };
+
+    const toggleAllDNSTests = () => {
+        if (!config) return;
+        const allIds = DNS_TEST_DOMAINS.map(test => test.id);
+        const allEnabled = config.dns_security.enabled_tests.length === allIds.length;
+
+        saveConfig({
+            dns_security: { ...config.dns_security, enabled_tests: allEnabled ? [] : allIds }
+        });
+    };
+
     const runURLTest = async (category: typeof URL_CATEGORIES[0]) => {
         setTesting({ ...testing, [`url-${category.id}`]: true });
         try {
@@ -763,9 +783,20 @@ export default function Security({ token }: SecurityProps) {
                 {urlExpanded && (
                     <div className="p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-slate-400 text-sm">
-                                Test URL filtering policies using Palo Alto Networks test pages
-                            </p>
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.url_filtering.enabled_categories.length === URL_CATEGORIES.length}
+                                        onChange={toggleAllURLCategories}
+                                        className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Select All</span>
+                                </label>
+                                <p className="text-slate-400 text-sm">
+                                    Test URL filtering policies using Palo Alto Networks test pages
+                                </p>
+                            </div>
                             <button
                                 onClick={runURLBatchTest}
                                 disabled={loading || config.url_filtering.enabled_categories.length === 0 || (systemHealth && !systemHealth.ready)}
@@ -843,9 +874,20 @@ export default function Security({ token }: SecurityProps) {
                 {dnsExpanded && (
                     <div className="p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-slate-400 text-sm">
-                                Test DNS Security policies using Palo Alto Networks test domains
-                            </p>
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.dns_security.enabled_tests.length === DNS_TEST_DOMAINS.length}
+                                        onChange={toggleAllDNSTests}
+                                        className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-purple-600 focus:ring-purple-500"
+                                    />
+                                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Select All</span>
+                                </label>
+                                <p className="text-slate-400 text-sm">
+                                    Test DNS Security policies using Palo Alto Networks test domains
+                                </p>
+                            </div>
                             <button
                                 onClick={runDNSBatchTest}
                                 disabled={loading || config.dns_security.enabled_tests.length === 0 || (systemHealth && !systemHealth.ready)}
