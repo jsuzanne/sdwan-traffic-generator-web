@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.23] - 2026-01-22
+
+### Added - Statistics UI 📊
+- **Application Groups**: Added a new "Group" column to the Statistics table to better categorize applications.
+- **Enhanced Sorting**: New "By Group" sorting option and refined "By Name" sorting.
+- **Improved Search**: Searching now matches both application names and group names.
+
 ## [1.1.0-patch.22] - 2026-01-22
 
 ### Fixed - Security UI 📋

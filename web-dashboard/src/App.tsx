@@ -50,6 +50,7 @@ export default function App() {
   const [dockerStats, setDockerStats] = useState<any>(null);
   const [networkExpanded, setNetworkExpanded] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(1000);
+  const [appConfig, setAppConfig] = useState<any[]>([]);
 
   // Rate Calculation State - Use Refs to avoid stale closures in setInterval
   const prevTotalRequestsRef = useRef<number | null>(null);
@@ -295,6 +296,17 @@ export default function App() {
     }
   }
 
+  const fetchAppConfig = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/config/apps', { headers: authHeaders() });
+      const data = await res.json();
+      if (Array.isArray(data)) setAppConfig(data);
+    } catch (e) {
+      console.error("Failed to fetch app config");
+    }
+  };
+
 
   useEffect(() => {
     if (!token) return;
@@ -307,6 +319,7 @@ export default function App() {
     fetchConnectivity();
     fetchDockerStats();
     fetchConfigUi();
+    fetchAppConfig();
 
     // Poll every refreshInterval (default 1s)
     const interval = setInterval(() => {
@@ -624,7 +637,7 @@ export default function App() {
           </div>
         </>
       ) : view === 'statistics' ? (
-        <Statistics stats={stats} />
+        <Statistics stats={stats} appConfig={appConfig} />
       ) : view === 'security' ? (
         <Security token={token!} />
       ) : (

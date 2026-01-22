@@ -10,11 +10,12 @@ interface Stats {
 
 interface StatsProps {
     stats: Stats | null;
+    appConfig: any[];
 }
 
-export default function Statistics({ stats }: StatsProps) {
+export default function Statistics({ stats, appConfig }: StatsProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState<'requests' | 'errors' | 'name'>('requests');
+    const [sortBy, setSortBy] = useState<'requests' | 'errors' | 'name' | 'group'>('requests');
 
     if (!stats) {
         return (
@@ -25,9 +26,22 @@ export default function Statistics({ stats }: StatsProps) {
         );
     }
 
+    // Create a lookup map for app -> group
+    const appToGroup: Record<string, string> = {};
+    if (Array.isArray(appConfig)) {
+        appConfig.forEach(cat => {
+            if (cat.apps && Array.isArray(cat.apps)) {
+                cat.apps.forEach((app: any) => {
+                    appToGroup[app.domain] = cat.name;
+                });
+            }
+        });
+    }
+
     // Combine requests and errors data
     const appStats = Object.keys(stats.requests_by_app).map(app => ({
         name: app,
+        group: appToGroup[app] || 'Uncategorized',
         requests: stats.requests_by_app[app] || 0,
         errors: stats.errors_by_app[app] || 0,
         successRate: stats.requests_by_app[app] > 0
@@ -37,10 +51,18 @@ export default function Statistics({ stats }: StatsProps) {
 
     // Filter and sort
     const filteredStats = appStats
-        .filter(app => app.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        .filter(app =>
+            app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            app.group.toLowerCase().includes(searchTerm.toLowerCase())
+        )
         .sort((a, b) => {
             if (sortBy === 'requests') return b.requests - a.requests;
             if (sortBy === 'errors') return b.errors - a.errors;
+            if (sortBy === 'group') {
+                const groupComp = a.group.localeCompare(b.group);
+                if (groupComp !== 0) return groupComp;
+                return a.name.localeCompare(b.name);
+            }
             return a.name.localeCompare(b.name);
         });
 
@@ -100,8 +122,8 @@ export default function Statistics({ stats }: StatsProps) {
                     <button
                         onClick={() => setSortBy('requests')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${sortBy === 'requests'
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                             }`}
                     >
                         By Requests
@@ -109,17 +131,26 @@ export default function Statistics({ stats }: StatsProps) {
                     <button
                         onClick={() => setSortBy('errors')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${sortBy === 'errors'
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                             }`}
                     >
                         By Errors
                     </button>
                     <button
+                        onClick={() => setSortBy('group')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${sortBy === 'group'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                            }`}
+                    >
+                        By Group
+                    </button>
+                    <button
                         onClick={() => setSortBy('name')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${sortBy === 'name'
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                             }`}
                     >
                         By Name
@@ -134,6 +165,7 @@ export default function Statistics({ stats }: StatsProps) {
                         <thead className="bg-slate-800/50">
                             <tr>
                                 <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Application</th>
+                                <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Group</th>
                                 <th className="text-right px-6 py-4 text-sm font-semibold text-slate-300">Requests</th>
                                 <th className="text-right px-6 py-4 text-sm font-semibold text-slate-300">Errors</th>
                                 <th className="text-right px-6 py-4 text-sm font-semibold text-slate-300">Success Rate</th>
@@ -148,6 +180,11 @@ export default function Statistics({ stats }: StatsProps) {
                                             <span className="font-medium text-slate-200">{app.name}</span>
                                         </div>
                                     </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                                            {app.group}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         <span className="text-blue-400 font-semibold">{app.requests.toLocaleString()}</span>
                                     </td>
@@ -161,15 +198,15 @@ export default function Statistics({ stats }: StatsProps) {
                                             <div className="w-24 bg-slate-800 rounded-full h-2 overflow-hidden">
                                                 <div
                                                     className={`h-full transition-all ${parseFloat(app.successRate) >= 95 ? 'bg-green-500' :
-                                                            parseFloat(app.successRate) >= 80 ? 'bg-yellow-500' :
-                                                                'bg-red-500'
+                                                        parseFloat(app.successRate) >= 80 ? 'bg-yellow-500' :
+                                                            'bg-red-500'
                                                         }`}
                                                     style={{ width: `${app.successRate}%` }}
                                                 />
                                             </div>
                                             <span className={`font-semibold min-w-[3rem] ${parseFloat(app.successRate) >= 95 ? 'text-green-400' :
-                                                    parseFloat(app.successRate) >= 80 ? 'text-yellow-400' :
-                                                        'text-red-400'
+                                                parseFloat(app.successRate) >= 80 ? 'text-yellow-400' :
+                                                    'text-red-400'
                                                 }`}>
                                                 {app.successRate}%
                                             </span>
