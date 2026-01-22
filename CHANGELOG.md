@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.25] - 2026-01-22
+
+### Fixed - Statistics UI 📊
+- **Protocol Normalization**: Applications defined with `http://` or `https://` (like your "Slow App") are now correctly mapped to their groups in the Statistics table by normalizing names during lookup.
+
 ## [1.1.0-patch.24] - 2026-01-22
 
 ### Fixed - Statistics UI & Engine 📊

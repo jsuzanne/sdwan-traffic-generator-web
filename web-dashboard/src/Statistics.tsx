@@ -29,13 +29,19 @@ export default function Statistics({ stats, appConfig }: StatsProps) {
     // Create a lookup map for app -> group
     const appToGroup: Record<string, string> = {};
     const truncatedToGroup: Record<string, string> = {};
+
+    const normalizeAppName = (name: string) => name.replace(/^https?:\/\//, '');
+
     if (Array.isArray(appConfig)) {
         appConfig.forEach(cat => {
             if (cat.apps && Array.isArray(cat.apps)) {
                 cat.apps.forEach((app: any) => {
-                    appToGroup[app.domain] = cat.name;
+                    const cleanName = normalizeAppName(app.domain);
+                    appToGroup[cleanName] = cat.name;
+                    appToGroup[app.domain] = cat.name; // Keep original as fallback
+
                     // Fallback for truncated names in existing stats
-                    const hostPart = app.domain.split('.')[0];
+                    const hostPart = cleanName.split('.')[0];
                     if (hostPart && !truncatedToGroup[hostPart]) {
                         truncatedToGroup[hostPart] = cat.name;
                     }
@@ -45,15 +51,18 @@ export default function Statistics({ stats, appConfig }: StatsProps) {
     }
 
     // Combine requests and errors data
-    const appStats = Object.keys(stats.requests_by_app).map(app => ({
-        name: app,
-        group: appToGroup[app] || truncatedToGroup[app] || 'Uncategorized',
-        requests: stats.requests_by_app[app] || 0,
-        errors: stats.errors_by_app[app] || 0,
-        successRate: stats.requests_by_app[app] > 0
-            ? ((stats.requests_by_app[app] - (stats.errors_by_app[app] || 0)) / stats.requests_by_app[app] * 100).toFixed(1)
-            : '100.0'
-    }));
+    const appStats = Object.keys(stats.requests_by_app).map(app => {
+        const cleanApp = normalizeAppName(app);
+        return {
+            name: app,
+            group: appToGroup[cleanApp] || appToGroup[app] || truncatedToGroup[cleanApp] || 'Uncategorized',
+            requests: stats.requests_by_app[app] || 0,
+            errors: stats.errors_by_app[app] || 0,
+            successRate: stats.requests_by_app[app] > 0
+                ? ((stats.requests_by_app[app] - (stats.errors_by_app[app] || 0)) / stats.requests_by_app[app] * 100).toFixed(1)
+                : '100.0'
+        };
+    });
 
     // Filter and sort
     const filteredStats = appStats
