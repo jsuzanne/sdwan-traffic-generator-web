@@ -20,89 +20,90 @@ Example:
 192.168.100.11:6100|G.729|50|60
 ```
 
-*   **Target**: The IP and UDP port of the receiver (usually an `sdwan-voice-gen` in echo mode).
+*   **Target**: The IP and UDP port of the receiver (usually an `sdwan-voice-echo` container).
 *   **Codec**: Display name for the UI.
 *   **Weight**: Probability of picking this target (higher = more frequent).
 *   **Duration**: How long the call lasts in seconds.
 
 ### Simulation Settings
 Accessible via the **Voice** tab in the Web UI:
-*   **Max Simultaneous Calls**: How many concurrent RTP streams to run.
+*   **Max Simultaneous Calls**: How many concurrent RTP streams to run (Max 10 recommended).
 *   **Sleep Between Calls**: Delay before starting a new call after one ends.
-*   **Source Interface**: The network interface to use (must support RAW sockets).
+*   **Source Interface**: The network interface to use (e.g. `eth0`, `eth1`). Note: In `host` networking mode, it sees all physical interfaces of the machine.
 
 ## 📡 Echo Server Setup (Targets)
 
-To measure end-to-end voice performance, you should deploy the **Voice Echo Server** on your target sites (Branch offices, Cloud VPCs, etc.). This server simply bounces back every RTP packet it receives.
+Deploy the **Voice Echo Server** on your target sites. It tracks incoming calls and bounces back the RTP traffic for end-to-end path validation.
 
 ### Quick Deployment on Target
-If you have a fresh Ubuntu machine, you can deploy the echo server in 2 minutes:
-
-1.  **Install Docker & Docker Compose**:
-    ```bash
-    curl -fsSL https://get.docker.com | sh
-    ```
-2.  **Create a `docker-compose.yml`**:
-    ```yaml
-    services:
-      voice-echo:
-        image: jsuzanne/sdwan-voice-echo:stable
-        container_name: sdwan-voice-echo
-        ports:
-          - "6100:6100/udp"
-        restart: unless-stopped
-    ```
-3.  **Start it**:
-    ```bash
-    docker compose up -d
-    ```
+```bash
+# Pull and start the echo server
+docker run -d --name sdwan-voice-echo \
+  -p 6100:6100/udp \
+  --restart unless-stopped \
+  jsuzanne/sdwan-voice-echo:latest
+```
 
 ---
 
-## 🔧 Technical Details
+## 🔧 Pro Features & Networking
 
-### RTP Packet Structure
-The engine generates packets every **20-30ms** to simulate realistic voice timing:
-*   **Layer 3**: IPv4 (Direct L3 sending for better compatibility).
-*   **Layer 4**: UDP (Default Source Port: 5060 / Destination Port: 6100).
-*   **Layer 5**: RTP v2 (Sequence numbers, Timestamps, Payload Type 8 - G.711).
+### 🎯 Deep Inspection & Call IDs (v1.1.0-patch.61+)
+The generator embeds its internal **CALL-ID** (e.g., `CALL-0001`) directly inside the RTP payload. The Echo Server decodes this ID and logs it, allowing you to trace exactly which call is hitting which target in your logs.
 
-### Network Requirements
-To work correctly, the Voice container requires:
-*   `NET_ADMIN` and `NET_RAW` Docker capabilities (pre-configured in our compose).
-*   The target machine must allow UDP 6100 in its firewall (Security Groups / IPTables).
+### 🔗 Flow Separation (v1.1.0-patch.61+)
+To provide realistic SD-WAN testing, each call now uses a **unique random source port**. 
+- **Benefit**: Your SD-WAN router sees each call as a distinct flow (quadruplet), allowing for proper Load Balancing and Multi-link distribution.
+- **Echo Logic**: The Echo server identifies call completion using a **5-second silence timeout** per flow.
+
+### 🧹 Clean Slate Architecture
+On every restart of the `voice-gen` container:
+- Stats logs are truncated (empty start).
+- Call counters reset to `CALL-0001`.
+- The simulation starts in `Disabled` mode for safety.
+This ensures the Web UI and Console are always perfectly synchronized.
+
+---
+
+## 🖥️ Running on Windows (Docker Desktop)
+
+If you are testing the generator or the echo server on Windows, keep these three points in mind:
+
+1.  **Network Mode**: `network_mode: host` is **not supported** on Windows.
+    - Edit `docker-compose.yml` and comment out `network_mode: host`.
+    - Windows will use its internal `bridge` networking instead.
+2.  **Firewall**: Windows Defender Firewall is strict. You **must** manually create an Inbound Rule for **UDP Port 6100** to allow traffic to reach the Echo Server.
+3.  **WSL2 Engine**: Ensure Docker is configured to use the **WSL2 based engine** for better Scapy performance.
 
 ---
 
 ## 📊 Monitoring & Logs
 
 ### Web UI
-Calls are tracked in real-time in the **Voice** tab. The dashboard uses **Session IDs** to ensure that only "Live" calls from the current run are displayed, eliminating ghost calls after a restart.
+The **Voice Monitoring** tab shows calls in real-time. 
+- **Active Calls**: Shows currently running streams.
+- **Recent History**: Shows the last 500 events (Newest First).
 
 ### CLI Debugging
-You can monitor the activity of both the **Generator** and the **Echo Server** using Docker logs:
-
-**On the Generator side:**
+**Generator logs:**
 ```bash
 docker compose logs -f sdwan-voice-gen
 ```
-*Expected output:*
+*Output example:*
 ```text
-[CALL-0102] 📞 CALL STARTED: 192.168.217.5:6100 | G.711-ulaw | 30s
-[CALL-0102] ✅ CALL ENDED: 192.168.217.5:6100
+[CALL-0012] 📞 CALL STARTED: 192.168.203.100:6100 | G.711-ulaw | 15s
 ```
 
-**On the Echo Server side (Target site):**
+**Echo Server (Target) logs:**
 ```bash
 docker compose logs -f sdwan-voice-echo
 ```
-*Expected output:*
+*Output example (with Call ID tracing):*
 ```text
-📞 [18:53:07] Incoming call from 192.168.206.10:31861
-📞 [18:53:15] Incoming call from 192.168.217.5:20431
-✅ [18:53:45] Call from 192.168.206.10:31861 finished
+📞 [22:42:22] Incoming call: CALL-0012 from 192.168.217.5:54321
+✅ [22:42:42] Call CALL-0012 finished (last from 192.168.217.5:54321)
 ```
 
 ### ⚠️ Troubleshooting
-*   **Active Calls not showing up?** Check if the date/time on your Ubuntu machine is synchronized (NTP).
-*   **Logs say "Skipping call"?** The destination IP is probably unreachable (no ping). Check your SD-WAN routing or target firewall.
+*   **Unknown in Echo logs?** Your script or container is likely from an older version or a native Python execution without the Call ID injection.
+*   **Skipping call?** Check if the destination IP is pingable from the generator machine.

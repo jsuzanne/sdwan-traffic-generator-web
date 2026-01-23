@@ -2,18 +2,23 @@
 
 ## 🎯 Current Status (as of 2026-01-23)
 We are currently at version **v1.1.0-patch.61**.
-Finalized voice simulation with unique UDP flows for deep visibility.
+The Voice Simulation (RTP) is fully operational with deep tracing and resilient UI.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **Flow Separation (v61)**: Removed hardcoded source port 5060. Calls now use unique source ports, allowing the Echo server to correctly log and track multiple simultaneous calls.
-2.  **Zero Pollution (v60)**: Orchestrator truncates logs and resets counters on startup.
-3.  **Deep Inspection**: Call IDs are embedded in RTP payloads.
-4.  **Host Networking**: Implemented for native Scapy performance.
-5.  **Build Stability**: Switched to Amazon ECR Public mirrors.
+1.  **Flow Separation (v61)**: Every call now uses a unique source port. This is CRITICAL for SD-WAN load balancing and allows the Echo Server to track multiple concurrent sessions.
+2.  **Clean Slate (v60)**: Orchestrator resets everything (logs, counters) on startup to ensure the UI is always 1:1 with reality.
+3.  **Deep Inspection**: Call IDs are injected into RTP payloads and decoded by the Echo Server for end-to-end tracing.
+4.  **Resilient Dashboard**: UI sorting fixed (newest first), log buffer increased (1000 lines), and silent Scapy logs implemented.
+5.  **Bypass Docker Hub**: Full migration to Amazon ECR Public mirrors to avoid 429 rate limits.
+6.  **Documentation**: `docs/VOICE_SIMULATION.md` updated with all new features and Windows-specific deployment tips.
 
-## 🚀 Immediate Next Steps
-1.  **Verify v56**: Ensure the build passes and the host networking mode doesn't create port conflicts (unlikely).
+## 🚀 Tomorrow's Roadmap (Windows Testing)
+1.  **Testing Environment**: Planning to test on Windows Docker Desktop.
+2.  **Key Adjustments**: 
+    - Need to disable `network_mode: host` (not supported on Windows).
+    - Must open Windows Firewall for UDP 6100.
+3.  **Validation**: Verify if Scapy Layer-3 sending works well through the WSL2 networking stack.
 
 ## 🔑 Crucial Notes
-- **Stable vs Patch**: Do NOT auto-tag builds as `:stable`. Only use GitHub Actions manual trigger for official promotion.
-- **Clock Skew**: The UI uses log-relative time for "Active Calls" detection to be immune to timezone differences between the browser and the server.
+- **Stable Tag**: Reminder to only use the manual GitHub Action for `:stable` tags. Use patch versions for development.
+- **Port 5060**: No longer hardcoded as source port to allow flow separation.
