@@ -2,9 +2,16 @@ name: Build and Push Multi-Platform Docker Images
 
 on:
   push:
+    branches:
+      - main           # Triggers on push to main (latest)
     tags:
-      - 'v*.*.*'        # Triggers on version tags like v1.1.0, v1.1.0-beta
-  workflow_dispatch:    # Allows manual trigger from GitHub UI
+      - 'v*.*.*'       # Triggers on version tags (v1.1.0, etc.)
+  workflow_dispatch:   # Allows manual trigger and promotion
+    inputs:
+      version_to_stable:
+        description: 'Version to promote to stable (e.g. 1.1.0-patch.25)'
+        required: false
+        default: ''
 
 env:
   REGISTRY: docker.io
@@ -12,10 +19,33 @@ env:
   TRAFFIC_GEN_IMAGE: jsuzanne/sdwan-traffic-gen
 
 jobs:
-  build-web-ui:
-    name: Build Web UI
+  promote-to-stable:
+    name: Promote to Stable
     runs-on: ubuntu-latest
-    
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_to_stable != ''
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Tag and Push Stable - Web UI
+        run: |
+          docker pull ${{ env.WEB_UI_IMAGE }}:${{ github.event.inputs.version_to_stable }}
+          docker tag ${{ env.WEB_UI_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.WEB_UI_IMAGE }}:stable
+          docker push ${{ env.WEB_UI_IMAGE }}:stable
+          
+      - name: Tag and Push Stable - Traffic Generator
+        run: |
+          docker pull ${{ env.TRAFFIC_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }}
+          docker tag ${{ env.TRAFFIC_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.TRAFFIC_GEN_IMAGE }}:stable
+          docker push ${{ env.TRAFFIC_GEN_IMAGE }}:stable
+
+  build:
+    name: Build and Push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,17 +62,20 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
-      - name: Extract version from tag
-        id: version
+      - name: Determine Tags
+        id: tags
         run: |
-          # Remove 'v' prefix from tag (v1.1.0 -> 1.1.0)
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
-          # Update VERSION file to match tag
-          echo "$VERSION" > VERSION
-          echo "Updated VERSION file to: $VERSION"
-      
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "tags=${{ env.WEB_UI_IMAGE }}:latest,${{ env.WEB_UI_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
+            echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest,${{ env.TRAFFIC_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "tags=${{ env.WEB_UI_IMAGE }}:latest" >> $GITHUB_OUTPUT
+            echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest" >> $GITHUB_OUTPUT
+            echo "version=latest" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Web UI
         uses: docker/build-push-action@v5
         with:
@@ -50,41 +83,12 @@ jobs:
           file: web-dashboard/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ env.WEB_UI_IMAGE }}:${{ steps.version.outputs.version }}
-            ${{ env.WEB_UI_IMAGE }}:latest
+          tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VERSION=${{ steps.version.outputs.version }}
+            VERSION=${{ steps.tags.outputs.version }}
 
-  build-traffic-gen:
-    name: Build Traffic Generator
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Extract version from tag
-        id: version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
-      
       - name: Build and push Traffic Generator
         uses: docker/build-push-action@v5
         with:
@@ -92,17 +96,15 @@ jobs:
           file: Dockerfile.traffic-gen
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ env.TRAFFIC_GEN_IMAGE }}:${{ steps.version.outputs.version }}
-            ${{ env.TRAFFIC_GEN_IMAGE }}:latest
+          tags: ${{ steps.tags.outputs.gen_tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-web-ui, build-traffic-gen]
-    
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -7,7 +7,7 @@ version: '3.8'
 services:
   # Web Dashboard - User Interface and API
   sdwan-web-ui:
-    image: jsuzanne/sdwan-web-ui:latest
+    image: jsuzanne/sdwan-web-ui:stable
     container_name: sdwan-web-ui
     dns:
       - 8.8.8.8
@@ -29,20 +29,19 @@ services:
       - LOG_DIR=/var/log/sdwan-traffic-gen
 
       # Log Retention Settings
-      - LOG_RETENTION_DAYS=7    # Keep logs for 7 days
-      - LOG_MAX_SIZE_MB=100      # Maximum log file size (MB)
+      - LOG_RETENTION_DAYS=7 # Keep logs for 7 days
+      - LOG_MAX_SIZE_MB=100 # Maximum log file size (MB)
 
       # Optional: Node.js Settings
       - NODE_ENV=production
-      - TZ=UTC                   # Timezone (change as needed)
-
+      - TZ=UTC # Timezone (change as needed)
       # Optional: Custom connectivity tests
       # Format: NAME:URL for HTTP, NAME:IP for PING, NAME:IP:PORT for TCP
       # - CONNECTIVITY_HTTP_1=MyApp:https://myapp.example.com
       # - CONNECTIVITY_PING_1=Gateway:10.0.0.1
       # - CONNECTIVITY_TCP_1=SSH:192.168.1.100:22
 
-    # Volume Mounts
+      # Volume Mounts
     volumes:
       # Configuration directory (applications.txt, interfaces.txt, etc.)
       - ./config:/app/config
@@ -56,7 +55,7 @@ services:
     # Health Check
     # ✅ NEW: Checks if config file exists before marking as healthy
     healthcheck:
-      test: ["CMD", "test", "-f", "/app/config/applications.txt"]
+      test: [ "CMD", "test", "-f", "/app/config/applications.txt" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -85,14 +84,14 @@ services:
 
   # Traffic Generator - Background Traffic Simulation
   sdwan-traffic-gen:
-    image: jsuzanne/sdwan-traffic-gen:latest
+    image: jsuzanne/sdwan-traffic-gen:stable
     container_name: sdwan-traffic-gen
     hostname: sdwan-traffic-gen
 
     # Environment Variables
     environment:
       # Traffic Generation Settings
-      - SLEEP_BETWEEN_REQUESTS=1  # Seconds between requests (1 = 1 req/sec)
+      - SLEEP_BETWEEN_REQUESTS=1 # Seconds between requests (1 = 1 req/sec)
 
       # Optional: Client ID for multi-instance deployments
       - CLIENT_ID=client01

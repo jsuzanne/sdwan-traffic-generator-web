@@ -1,9 +1,19 @@
 # SD-WAN Traffic Generator - Installation Guide
 
-**Version:** 1.1.0-patch.7  
-**Last Updated:** 2026-01-21
+**Version:** 1.1.0-patch.26  
+**Last Updated:** 2026-01-23
 
-## 📦 Two Installation Methods
+## 📦 Docker Image Tags
+
+The project uses three types of Docker tags to ensure stability:
+
+| Tag | Usage | Frequency |
+|-----|-------|-----------|
+| **`stable`** (Recommended) | **Production/Demos** | Updated manually after validation. |
+| **`latest`** | development / Testing | Updated every time code is pushed to `main`. |
+| **`v1.1.0-patch.X`** | Fixed Version | Created when a new release is tagged. |
+
+## 🚀 Installation Methods
 
 ### Method 1: Pre-built Images (Recommended) ⭐
 

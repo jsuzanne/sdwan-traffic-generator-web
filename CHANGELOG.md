@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.26] - 2026-01-23
+
+### Added - Security Split-Scheduler 🛡️
+- Separated **URL Filtering**, **DNS Security**, and **Threat Prevention** into three independent cron jobs.
+- Implemented per-section scheduler settings in the Security UI.
+- Updated backend to manage multiple concurrent security test schedules.
+
+### Fixed - Security Dashboard 🛠️
+- Repaired JSX nesting and structure in `Security.tsx`.
+- Integrated `SchedulerSettings` component across all security sections.
+- Verified build and type safety.
+
 ## [1.1.0-patch.25] - 2026-01-22
 
 ### Fixed - Statistics UI 📊

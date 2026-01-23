@@ -1502,109 +1502,128 @@ const updateStatistics = (testType: string, status: string) => {
 };
 
 // Scheduled Execution
-let scheduledTestInterval: NodeJS.Timeout | null = null;
+let urlTestInterval: NodeJS.Timeout | null = null;
+let dnsTestInterval: NodeJS.Timeout | null = null;
+let threatTestInterval: NodeJS.Timeout | null = null;
 
-const runScheduledTests = async () => {
+const runScheduledUrlTests = async () => {
     const config = getSecurityConfig();
-    if (!config || !config.scheduled_execution?.enabled) return;
+    if (!config || !config.scheduled_execution?.url?.enabled) return;
 
-    console.log('Running scheduled security tests...');
-
-    // exec already imported at top
-    // util.promisify already imported as promisify
+    console.log('Running scheduled URL filtering tests...');
     const execPromise = promisify(exec);
+    const URL_CATEGORIES = (await import('./src/data/security-categories.js' as any)).URL_CATEGORIES;
 
-    // Run URL tests if enabled
-    if (config.scheduled_execution.run_url_tests && config.url_filtering.enabled_categories.length > 0) {
-        // Import URL categories dynamically
-        const URL_CATEGORIES = [
-            { id: 'malware', url: 'http://urlfiltering.paloaltonetworks.com/test-malware' },
-            { id: 'phishing', url: 'http://urlfiltering.paloaltonetworks.com/test-phishing' },
-            // Add more as needed for scheduled tests
-        ];
+    for (const categoryId of config.url_filtering.enabled_categories) {
+        const category = URL_CATEGORIES.find((c: any) => c.id === categoryId);
+        if (!category) continue;
 
-        for (const categoryId of config.url_filtering.enabled_categories.slice(0, 5)) { // Limit to 5 per run
-            const category = URL_CATEGORIES.find(c => c.id === categoryId);
-            if (!category) continue;
-
-            try {
-                const { stdout } = await execPromise(`curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${category.url}'`);
-                const httpCode = parseInt(stdout);
-                const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
-                updateStatistics('url_filtering', status);
-            } catch (e) {
-                updateStatistics('url_filtering', 'blocked');
-            }
+        try {
+            const { stdout } = await execPromise(`curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${category.url}'`);
+            const httpCode = parseInt(stdout);
+            const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
+            updateStatistics('url_filtering', status);
+            addTestResult('url_filtering', category.name, { success: httpCode >= 200 && httpCode < 400, httpCode, status, url: category.url, category: category.name }, getNextTestId());
+        } catch (e) {
+            updateStatistics('url_filtering', 'blocked');
+            addTestResult('url_filtering', category.name, { success: false, status: 'blocked', url: category.url, category: category.name }, getNextTestId());
         }
     }
-
-    // Run DNS tests if enabled
-    if (config.scheduled_execution.run_dns_tests && config.dns_security.enabled_tests.length > 0) {
-        const DNS_DOMAINS = [
-            { id: 'malware', domain: 'test-malware.testpanw.com' },
-            { id: 'phishing', domain: 'test-phishing.testpanw.com' },
-        ];
-
-        for (const testId of config.dns_security.enabled_tests.slice(0, 5)) { // Limit to 5 per run
-            const test = DNS_DOMAINS.find(t => t.id === testId);
-            if (!test) continue;
-
-            try {
-                const { stdout } = await execPromise(`nslookup ${test.domain}`);
-                const resolved = !stdout.includes('NXDOMAIN') && !stdout.includes('server can\'t find');
-                const status = resolved ? 'allowed' : 'blocked';
-                updateStatistics('dns_security', status);
-            } catch (e) {
-                updateStatistics('dns_security', 'blocked');
-            }
-        }
-    }
-
-    // Run threat test if enabled
-    if (config.scheduled_execution.run_threat_tests && config.threat_prevention.enabled) {
-        const endpoints = config.threat_prevention.eicar_endpoints || [config.threat_prevention.eicar_endpoint];
-        for (const endpoint of endpoints.slice(0, 3)) { // Limit to 3 endpoints per run
-            if (!endpoint) continue;
-            try {
-                await execPromise(`curl -fsS --max-time 20 ${endpoint} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt`);
-                updateStatistics('threat_prevention', 'allowed');
-            } catch (e) {
-                updateStatistics('threat_prevention', 'blocked');
-            }
-        }
-    }
-
-    console.log('Scheduled security tests completed');
 };
 
-const startScheduledTests = () => {
+const runScheduledDnsTests = async () => {
     const config = getSecurityConfig();
-    if (!config || !config.scheduled_execution?.enabled) return;
+    if (!config || !config.scheduled_execution?.dns?.enabled) return;
 
-    if (scheduledTestInterval) {
-        clearInterval(scheduledTestInterval);
+    console.log('Running scheduled DNS security tests...');
+    const execPromise = promisify(exec);
+    const DNS_TEST_DOMAINS = (await import('./src/data/security-categories.js' as any)).DNS_TEST_DOMAINS;
+
+    for (const testId of config.dns_security.enabled_tests) {
+        const test = DNS_TEST_DOMAINS.find((t: any) => t.id === testId);
+        if (!test) continue;
+
+        try {
+            const dnsCommand = `getent ahosts ${test.domain}`;
+            const { stdout } = await execPromise(dnsCommand);
+            const sinkholeIPs = ['198.135.184.22', '72.5.65.111', '::1', '0.0.0.0', '127.0.0.1'];
+            const isSinkholed = sinkholeIPs.some(ip => stdout.includes(ip));
+            const isBlocked = !stdout.trim() || stdout.includes('Name or service not known');
+
+            let status = 'resolved';
+            if (isSinkholed) status = 'sinkholed';
+            else if (isBlocked) status = 'blocked';
+
+            updateStatistics('dns_security', status);
+            addTestResult('dns_security', test.name, { success: true, resolved: status === 'resolved', status, domain: test.domain, testName: test.name }, getNextTestId());
+        } catch (e) {
+            updateStatistics('dns_security', 'blocked');
+            addTestResult('dns_security', test.name, { success: false, status: 'blocked', domain: test.domain, testName: test.name }, getNextTestId());
+        }
     }
-
-    const intervalMs = (config.scheduled_execution.interval_minutes || 60) * 60 * 1000;
-    scheduledTestInterval = setInterval(runScheduledTests, intervalMs);
-    console.log(`Scheduled security tests enabled (every ${config.scheduled_execution.interval_minutes} minutes)`);
 };
 
-const stopScheduledTests = () => {
-    if (scheduledTestInterval) {
-        clearInterval(scheduledTestInterval);
-        scheduledTestInterval = null;
-        console.log('Scheduled security tests disabled');
+const runScheduledThreatTests = async () => {
+    const config = getSecurityConfig();
+    if (!config || !config.scheduled_execution?.threat?.enabled) return;
+
+    console.log('Running scheduled threat prevention tests...');
+    const execPromise = promisify(exec);
+    const endpoints = config.threat_prevention.eicar_endpoints || [config.threat_prevention.eicar_endpoint];
+
+    for (const endpoint of endpoints) {
+        if (!endpoint) continue;
+        try {
+            await execPromise(`curl -fsS --max-time 20 ${endpoint} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt`);
+            updateStatistics('threat_prevention', 'allowed');
+            addTestResult('threat_prevention', 'EICAR Test', { success: true, status: 'allowed', endpoint }, getNextTestId());
+        } catch (e) {
+            updateStatistics('threat_prevention', 'blocked');
+            addTestResult('threat_prevention', 'EICAR Test', { success: false, status: 'blocked', endpoint }, getNextTestId());
+        }
     }
 };
 
-// Start scheduled tests on server startup
+const startSchedulers = () => {
+    const config = getSecurityConfig();
+    if (!config || !config.scheduled_execution) return;
+
+    // URL Scheduler
+    if (urlTestInterval) clearInterval(urlTestInterval);
+    if (config.scheduled_execution.url?.enabled) {
+        const interval = (config.scheduled_execution.url.interval_minutes || 15) * 60 * 1000;
+        urlTestInterval = setInterval(runScheduledUrlTests, interval);
+        console.log(`URL security scheduler enabled (every ${config.scheduled_execution.url.interval_minutes} minutes)`);
+    }
+
+    // DNS Scheduler
+    if (dnsTestInterval) clearInterval(dnsTestInterval);
+    if (config.scheduled_execution.dns?.enabled) {
+        const interval = (config.scheduled_execution.dns.interval_minutes || 15) * 60 * 1000;
+        dnsTestInterval = setInterval(runScheduledDnsTests, interval);
+        console.log(`DNS security scheduler enabled (every ${config.scheduled_execution.dns.interval_minutes} minutes)`);
+    }
+
+    // Threat Scheduler
+    if (threatTestInterval) clearInterval(threatTestInterval);
+    if (config.scheduled_execution.threat?.enabled) {
+        const interval = (config.scheduled_execution.threat.interval_minutes || 30) * 60 * 1000;
+        threatTestInterval = setInterval(runScheduledThreatTests, interval);
+        console.log(`Threat prevention scheduler enabled (every ${config.scheduled_execution.threat.interval_minutes} minutes)`);
+    }
+};
+
+const stopAllSchedulers = () => {
+    if (urlTestInterval) { clearInterval(urlTestInterval); urlTestInterval = null; }
+    if (dnsTestInterval) { clearInterval(dnsTestInterval); dnsTestInterval = null; }
+    if (threatTestInterval) { clearInterval(threatTestInterval); threatTestInterval = null; }
+    console.log('All security schedulers disabled');
+};
+
+// Start schedulers on server startup
 setTimeout(() => {
-    const config = getSecurityConfig();
-    if (config?.scheduled_execution?.enabled) {
-        startScheduledTests();
-    }
-}, 5000); // Wait 5 seconds after startup
+    startSchedulers();
+}, 5000);
 
 
 // API: Get Security Configuration
@@ -1626,14 +1645,8 @@ app.post('/api/security/config', authenticateToken, (req, res) => {
     if (threat_prevention) config.threat_prevention = threat_prevention;
     if (scheduled_execution !== undefined) {
         config.scheduled_execution = scheduled_execution;
-
-        // Restart scheduler if settings changed
-        if (scheduled_execution.enabled) {
-            stopScheduledTests();
-            startScheduledTests();
-        } else {
-            stopScheduledTests();
-        }
+        // Re-initialize all schedulers with new settings
+        startSchedulers();
     }
 
     if (saveSecurityConfig(config)) {

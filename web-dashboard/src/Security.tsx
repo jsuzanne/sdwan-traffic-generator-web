@@ -27,13 +27,9 @@ interface SecurityConfig {
         eicar_endpoint: string;
     };
     scheduled_execution?: {
-        enabled: boolean;
-        interval_minutes: number;
-        run_url_tests: boolean;
-        run_dns_tests: boolean;
-        run_threat_tests: boolean;
-        next_run_time: number | null;
-        last_run_time: number | null;
+        url: { enabled: boolean; interval_minutes: number };
+        dns: { enabled: boolean; interval_minutes: number };
+        threat: { enabled: boolean; interval_minutes: number };
     };
     statistics?: {
         total_tests_run: number;
@@ -162,6 +158,16 @@ export default function Security({ token }: SecurityProps) {
         try {
             const res = await fetch('/api/security/config', { headers: authHeaders() });
             const data = await res.json();
+
+            // Ensure scheduled_execution has the new structure if it's from an old config
+            if (data.scheduled_execution && !data.scheduled_execution.url) {
+                data.scheduled_execution = {
+                    url: { enabled: false, interval_minutes: 15 },
+                    dns: { enabled: false, interval_minutes: 15 },
+                    threat: { enabled: false, interval_minutes: 30 }
+                };
+            }
+
             setConfig(data);
             if (data.threat_prevention?.eicar_endpoint) {
                 setEicarEndpoint(data.threat_prevention.eicar_endpoint);
@@ -169,6 +175,70 @@ export default function Security({ token }: SecurityProps) {
         } catch (e) {
             console.error('Failed to fetch security config:', e);
         }
+    };
+
+    const updateSchedule = async (type: 'url' | 'dns' | 'threat', enabled: boolean, minutes: number) => {
+        if (!config) return;
+
+        const newConfig = { ...config };
+        if (!newConfig.scheduled_execution) {
+            newConfig.scheduled_execution = {
+                url: { enabled: false, interval_minutes: 15 },
+                dns: { enabled: false, interval_minutes: 15 },
+                threat: { enabled: false, interval_minutes: 30 }
+            };
+        }
+
+        newConfig.scheduled_execution[type] = { enabled, interval_minutes: minutes };
+
+        try {
+            const res = await fetch('/api/security/config', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig)
+            });
+            const data = await res.json();
+            if (data.success) {
+                setConfig(data.config);
+                showToast(`${type.toUpperCase()} test schedule updated`, 'success');
+            }
+        } catch (e) {
+            showToast('Failed to update schedule', 'error');
+        }
+    };
+
+    const SchedulerSettings = ({ type, title }: { type: 'url' | 'dns' | 'threat', title: string }) => {
+        if (!config?.scheduled_execution) return null;
+        const schedule = config.scheduled_execution[type] || { enabled: false, interval_minutes: 15 };
+
+        return (
+            <div className="flex items-center gap-4 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50">
+                <div className="flex items-center gap-2">
+                    <Clock size={14} className={schedule.enabled ? "text-blue-400" : "text-slate-500"} />
+                    <span className="text-xs font-medium text-slate-400">{title} Schedule:</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <select
+                        value={schedule.interval_minutes}
+                        onChange={(e) => updateSchedule(type, schedule.enabled, parseInt(e.target.value))}
+                        disabled={!schedule.enabled}
+                        className="bg-slate-900 border-slate-700 text-slate-300 text-[10px] rounded p-0.5 focus:ring-blue-500 disabled:opacity-50"
+                    >
+                        {[5, 10, 15, 30, 45, 60].map(m => (
+                            <option key={m} value={m}>{m}m</option>
+                        ))}
+                    </select>
+
+                    <button
+                        onClick={() => updateSchedule(type, !schedule.enabled, schedule.interval_minutes)}
+                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none ${schedule.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
+                    >
+                        <span className={`inline-block h-2 w-2 transform rounded-full bg-white transition-transform ${schedule.enabled ? 'translate-x-4' : 'translate-x-1'}`} />
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     const fetchResults = async (offset = 0, append = false) => {
@@ -679,122 +749,6 @@ export default function Security({ token }: SecurityProps) {
                 </div>
             )}
 
-            {/* Scheduled Execution */}
-            {config.scheduled_execution && (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Clock size={18} className="text-blue-400" />
-                            <div>
-                                <h3 className="text-base font-semibold text-white">Scheduled Execution</h3>
-                                <p className="text-xs text-slate-500">Auto-run tests at intervals</p>
-                            </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={config.scheduled_execution.enabled}
-                                onChange={(e) => {
-                                    if (config.scheduled_execution) {
-                                        saveConfig({
-                                            scheduled_execution: {
-                                                ...config.scheduled_execution,
-                                                enabled: e.target.checked
-                                            }
-                                        });
-                                    }
-                                }}
-                                className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                    </div>
-
-                    {config.scheduled_execution.enabled && (
-                        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-800 text-sm">
-                            <div className="flex items-center gap-2">
-                                <label className="text-slate-400">Interval:</label>
-                                <input
-                                    type="number"
-                                    min="5"
-                                    max="1440"
-                                    value={config.scheduled_execution.interval_minutes}
-                                    onChange={(e) => {
-                                        if (config.scheduled_execution) {
-                                            saveConfig({
-                                                scheduled_execution: {
-                                                    ...config.scheduled_execution,
-                                                    interval_minutes: parseInt(e.target.value) || 60
-                                                }
-                                            });
-                                        }
-                                    }}
-                                    className="w-20 bg-slate-950 border border-slate-700 text-slate-200 rounded px-2 py-1 focus:border-blue-500 outline-none"
-                                />
-                                <span className="text-slate-500">min</span>
-                            </div>
-
-                            <div className="flex items-center gap-3 ml-4">
-                                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={config.scheduled_execution.run_url_tests}
-                                        onChange={(e) => {
-                                            if (config.scheduled_execution) {
-                                                saveConfig({
-                                                    scheduled_execution: {
-                                                        ...config.scheduled_execution,
-                                                        run_url_tests: e.target.checked
-                                                    }
-                                                });
-                                            }
-                                        }}
-                                        className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-blue-600"
-                                    />
-                                    URL
-                                </label>
-                                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={config.scheduled_execution.run_dns_tests}
-                                        onChange={(e) => {
-                                            if (config.scheduled_execution) {
-                                                saveConfig({
-                                                    scheduled_execution: {
-                                                        ...config.scheduled_execution,
-                                                        run_dns_tests: e.target.checked
-                                                    }
-                                                });
-                                            }
-                                        }}
-                                        className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-purple-600"
-                                    />
-                                    DNS
-                                </label>
-                                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={config.scheduled_execution.run_threat_tests}
-                                        onChange={(e) => {
-                                            if (config.scheduled_execution) {
-                                                saveConfig({
-                                                    scheduled_execution: {
-                                                        ...config.scheduled_execution,
-                                                        run_threat_tests: e.target.checked
-                                                    }
-                                                });
-                                            }
-                                        }}
-                                        className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-red-600"
-                                    />
-                                    Threat
-                                </label>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
             {/* URL Filtering Tests */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                 <button
@@ -813,8 +767,8 @@ export default function Security({ token }: SecurityProps) {
 
                 {urlExpanded && (
                     <div className="p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-6">
                                 <label className="flex items-center gap-2 cursor-pointer group">
                                     <input
                                         type="checkbox"
@@ -824,7 +778,10 @@ export default function Security({ token }: SecurityProps) {
                                     />
                                     <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Select All</span>
                                 </label>
-                                <p className="text-slate-400 text-sm">
+
+                                <SchedulerSettings type="url" title="URL" />
+
+                                <p className="text-slate-400 text-sm hidden lg:block">
                                     Test URL filtering policies using Palo Alto Networks test pages
                                 </p>
                             </div>
@@ -904,8 +861,8 @@ export default function Security({ token }: SecurityProps) {
 
                 {dnsExpanded && (
                     <div className="p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-6">
                                 <label className="flex items-center gap-2 cursor-pointer group">
                                     <input
                                         type="checkbox"
@@ -915,7 +872,10 @@ export default function Security({ token }: SecurityProps) {
                                     />
                                     <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Select All</span>
                                 </label>
-                                <p className="text-slate-400 text-sm">
+
+                                <SchedulerSettings type="dns" title="DNS" />
+
+                                <p className="text-slate-400 text-sm hidden lg:block">
                                     Test DNS Security policies using Palo Alto Networks test domains
                                 </p>
                             </div>
@@ -1051,9 +1011,12 @@ export default function Security({ token }: SecurityProps) {
 
                 {threatExpanded && (
                     <div className="p-6 space-y-4">
-                        <p className="text-slate-400 text-sm">
-                            Test IPS/Threat Prevention by downloading EICAR test file
-                        </p>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <p className="text-slate-400 text-sm">
+                                Test IPS/Threat Prevention by downloading EICAR test file
+                            </p>
+                            <SchedulerSettings type="threat" title="Threat" />
+                        </div>
 
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
                             <div className="flex items-start gap-2 mb-3">
@@ -1090,7 +1053,7 @@ export default function Security({ token }: SecurityProps) {
                                     </button>
                                     <button
                                         onClick={runThreatTest}
-                                        disabled={loading || !eicarEndpoint}
+                                        disabled={loading || !eicarEndpoint || (systemHealth && !systemHealth.ready)}
                                         className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                                     >
                                         <Play size={18} /> Run EICAR Test
@@ -1224,7 +1187,7 @@ export default function Security({ token }: SecurityProps) {
                                     )}
                                 </div>
                                 {hasMore && !loadingMore && (
-                                    <div className="text-center">
+                                    <div className="text-center mt-4">
                                         <button
                                             onClick={loadMore}
                                             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-sm font-medium transition-colors"

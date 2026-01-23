@@ -4,8 +4,8 @@
 
 The Security Testing feature enables controlled testing of Palo Alto Networks / Prisma Access security policies for demos and POCs. It provides automated testing of URL Filtering, DNS Security, and Threat Prevention capabilities.
 
-**Version:** 1.1.0  
-**Last Updated:** 2026-01-19
+**Version:** 1.1.0-patch.26  
+**Last Updated:** 2026-01-23
 
 ---
 
@@ -61,15 +61,15 @@ The Security Testing feature enables controlled testing of Palo Alto Networks / 
 │                      Frontend (React)                        │
 │  - Security.tsx (Main Component)                            │
 │  - Statistics Dashboard                                      │
-│  - Scheduled Execution Controls                             │
+│  - Split-Scheduler Controls (URL, DNS, Threat)               │
 │  - Execution Log Display                                     │
 └──────────────────────┬──────────────────────────────────────┘
                        │ REST API
 ┌──────────────────────▼──────────────────────────────────────┐
 │                   Backend (Node.js/Express)                  │
-│  - 10 API Endpoints                                          │
+│  - API Endpoints (Config, Tests, Results)                    │
 │  - Test Execution Engine (curl/nslookup)                    │
-│  - Scheduler (setInterval)                                   │
+│  - Split-Scheduler (URL, DNS, Threat jobs)                  │
 │  - Statistics Tracker                                        │
 └──────────────────────┬──────────────────────────────────────┘
                        │
@@ -91,16 +91,15 @@ User clicks "Run All Enabled"
   → Results logged to test_history
   → Statistics updated (blocked/allowed counters)
   → Frontend refreshes and displays results
-  → Execution log shows real-time progress
 ```
 
-**Scheduled Test Execution:**
+**Scheduled Test Execution (Split-Scheduler):**
 ```
-Scheduler interval triggers (every N minutes)
-  → runScheduledTests() executes
-  → Runs subset of enabled tests (max 5 per category)
+Independent Scheduler (URL, DNS, or Threat) triggers
+  → Specific runScheduled[Type]Tests() executes
+  → Runs subset of enabled tests for that category
   → Updates statistics automatically
-  → Updates last_run_time and next_run_time
+  → Updates specific last_run_time and next_run_time
   → Continues in background
 ```
 
@@ -111,57 +110,50 @@ Scheduler interval triggers (every N minutes)
 ### File Location
 `config/security-tests.json`
 
-### Schema
+### Schema (v1.1.0-patch.26)
 
 ```json
 {
   "url_filtering": {
-    "enabled_categories": ["malware", "phishing", "adult"],
+    "enabled_categories": ["malware", "phishing"],
     "protocol": "http"
   },
   "dns_security": {
-    "enabled_tests": ["malware", "phishing", "dns-tunneling"]
+    "enabled_tests": ["malware", "dns-tunneling"]
   },
   "threat_prevention": {
     "enabled": true,
-    "eicar_endpoints": [
-      "http://192.168.203.100/eicar.com.txt",
-      "http://192.168.203.101/eicar.com.txt"
-    ]
+    "eicar_endpoints": ["http://192.168.203.100/eicar.com.txt"]
   },
-  "scheduled_execution": {
+  "url_filtering_scheduler": {
     "enabled": true,
     "interval_minutes": 60,
-    "run_url_tests": true,
-    "run_dns_tests": true,
-    "run_threat_tests": false,
-    "next_run_time": 1737048960000,
-    "last_run_time": 1737045360000
+    "last_run_time": 1737630000000,
+    "next_run_time": 1737633600000
+  },
+  "dns_security_scheduler": {
+    "enabled": true,
+    "interval_minutes": 60,
+    "last_run_time": 1737630000000,
+    "next_run_time": 1737633600000
+  },
+  "threat_prevention_scheduler": {
+    "enabled": false,
+    "interval_minutes": 120,
+    "last_run_time": null,
+    "next_run_time": null
   },
   "statistics": {
-    "total_tests_run": 42,
-    "url_tests_blocked": 15,
-    "url_tests_allowed": 2,
-    "dns_tests_blocked": 20,
-    "dns_tests_allowed": 1,
-    "threat_tests_blocked": 4,
+    "total_tests_run": 150,
+    "url_tests_blocked": 50,
+    "url_tests_allowed": 5,
+    "dns_tests_blocked": 45,
+    "dns_tests_allowed": 2,
+    "threat_tests_blocked": 10,
     "threat_tests_allowed": 0,
-    "last_test_time": 1737048960000
+    "last_test_time": 1737630000000
   },
-  "test_history": [
-    {
-      "timestamp": 1737048960000,
-      "testType": "url_filtering",
-      "testName": "Malware",
-      "result": {
-        "success": false,
-        "httpCode": 0,
-        "status": "blocked",
-        "url": "http://urlfiltering.paloaltonetworks.com/test-malware",
-        "category": "Malware"
-      }
-    }
-  ]
+  "test_history": [...]
 }
 ```
 
@@ -172,15 +164,15 @@ Scheduler interval triggers (every N minutes)
 | `url_filtering.enabled_categories` | `string[]` | IDs of enabled URL categories |
 | `url_filtering.protocol` | `"http" \| "https"` | Protocol to use for URL tests |
 | `dns_security.enabled_tests` | `string[]` | IDs of enabled DNS test domains |
-| `threat_prevention.enabled` | `boolean` | Enable/disable threat prevention tests |
+| `threat_prevention.enabled` | `boolean` | Enable/disable threat prevention tests (manual/batch) |
 | `threat_prevention.eicar_endpoints` | `string[]` | Array of EICAR file URLs to test |
-| `scheduled_execution.enabled` | `boolean` | Enable/disable scheduled tests |
-| `scheduled_execution.interval_minutes` | `number` | Minutes between scheduled runs (5-1440) |
-| `scheduled_execution.run_url_tests` | `boolean` | Include URL tests in schedule |
-| `scheduled_execution.run_dns_tests` | `boolean` | Include DNS tests in schedule |
-| `scheduled_execution.run_threat_tests` | `boolean` | Include threat tests in schedule |
-| `scheduled_execution.next_run_time` | `number \| null` | Timestamp of next scheduled run |
-| `scheduled_execution.last_run_time` | `number \| null` | Timestamp of last scheduled run |
+| `url_filtering_scheduler.enabled` | `boolean` | Enable/disable scheduled URL tests |
+| `url_filtering_scheduler.interval_minutes` | `number` | Minutes between URL test runs |
+| `dns_security_scheduler.enabled` | `boolean` | Enable/disable scheduled DNS tests |
+| `dns_security_scheduler.interval_minutes` | `number` | Minutes between DNS test runs |
+| `threat_prevention_scheduler.enabled` | `boolean` | Enable/disable scheduled threat tests |
+| `threat_prevention_scheduler.interval_minutes` | `number` | Minutes between threat test runs |
+| `statistics` | `object` | Counters for blocked/allowed tests |
 
 ---
 
@@ -520,75 +512,40 @@ Defined in `web-dashboard/src/data/security-categories.ts`
 
 ---
 
-## Scheduled Execution
+## Scheduled Execution (Split-Scheduler)
 
-### How It Works
+### How It Works (v1.1.0-patch.26+)
 
 1. **Initialization:**
-   - On server startup, checks `scheduled_execution.enabled`
-   - If enabled, starts interval timer
-   - Waits 5 seconds before first check
+   - On server startup, the backend initializes three separate cron-like intervals for:
+     - **URL Filtering**
+     - **DNS Security**
+     - **Threat Prevention**
+   - Each job checks its own `enabled` status and `interval_minutes` in `config/security-tests.json`.
 
 2. **Execution Cycle:**
-   ```
-   Every N minutes:
-     → runScheduledTests() executes
-     → Updates last_run_time
-     → Runs enabled tests (max 5 per category)
-     → Updates statistics
-     → Calculates next_run_time
-   ```
+   - Each category runs on its own independent timer.
+   - For example, you can run DNS tests every 5 minutes while running URL tests every 60 minutes.
+   - Each job updates its own `last_run_time` and `next_run_time` upon execution.
 
-3. **Test Limits:**
-   - URL Filtering: Max 5 categories per run
-   - DNS Security: Max 5 domains per run
-   - Threat Prevention: Max 3 endpoints per run
+3. **Test Limits (Batching):**
+   - **URL Filtering Scheduler:** Picks **5 random enabled categories** per run.
+   - **DNS Security Scheduler:** Picks **5 random enabled domains** per run.
+   - **Threat Prevention Scheduler:** Tests **all configured EICAR endpoints** (typically 1-3).
+   - *Manual batch runs* still execute ALL enabled tests at once.
 
 4. **Configuration Changes:**
-   - Changing interval restarts scheduler
-   - Disabling stops scheduler immediately
-   - Enabling starts scheduler with new settings
+   - Updating any scheduler setting via the UI will immediately restart only THAT specific scheduler with the new interval.
 
-### Implementation
+### Implementation Overview
 
 **Backend (server.ts):**
+The backend manages three separate interval handles:
+- `urlSchedulerHandle`
+- `dnsSchedulerHandle`
+- `threatSchedulerHandle`
 
-```typescript
-let scheduledTestInterval: NodeJS.Timeout | null = null;
-
-const runScheduledTests = async () => {
-  const config = getSecurityConfig();
-  if (!config?.scheduled_execution?.enabled) return;
-  
-  // Update last run time
-  config.scheduled_execution.last_run_time = Date.now();
-  saveSecurityConfig(config);
-  
-  // Run tests...
-  // Update statistics...
-};
-
-const startScheduledTests = () => {
-  const config = getSecurityConfig();
-  if (!config?.scheduled_execution?.enabled) return;
-  
-  const intervalMs = config.scheduled_execution.interval_minutes * 60 * 1000;
-  
-  // Set next run time
-  config.scheduled_execution.next_run_time = Date.now() + intervalMs;
-  saveSecurityConfig(config);
-  
-  scheduledTestInterval = setInterval(() => {
-    runScheduledTests();
-    // Update next run time
-    const cfg = getSecurityConfig();
-    if (cfg?.scheduled_execution) {
-      cfg.scheduled_execution.next_run_time = Date.now() + intervalMs;
-      saveSecurityConfig(cfg);
-    }
-  }, intervalMs);
-};
-```
+Each handle is managed by a `start[Type]Scheduler()` function that clears any existing interval before starting a new one.
 
 ---
 
@@ -786,6 +743,6 @@ For issues or questions:
 
 ---
 
-**Document Version:** 1.0  
-**Feature Version:** 1.1.0  
-**Last Updated:** 2026-01-16
+**Document Version:** 1.1  
+**Feature Version:** 1.1.0-patch.26  
+**Last Updated:** 2026-01-23
