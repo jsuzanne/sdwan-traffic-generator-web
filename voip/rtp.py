@@ -40,25 +40,33 @@ if __name__ == "__main__":
                                type=int, default=4500)
     options_group.add_argument("--max-count", help="Maximum number of packets to send (Default 90000)",
                                type=int, default=90000)
+    options_group.add_argument("--call-id", help="Call ID to embed in the payload for tracking",
+                               type=str, default="NONE")
 
     args = vars(parser.parse_args())
 
-    print("Setting up RTP Packets")
-    udp_payload = []
-    # 212 = 240 - IP headler len  - UDP header len - RTP header length ==> 240 - 20 - 8 - 12
+    # Generate jittery random payload padding
+    udp_payload_parts = []
     for i in range(200):
         tmp = "{:02x}".format(random.randrange(0, 255))
-        udp_payload.append(bytes.fromhex(tmp))
+        udp_payload_parts.append(bytes.fromhex(tmp))
+    payload_padding = b"".join(udp_payload_parts)
 
     # pull args for count.
     min_count = args['min_count']
     max_count = args['max_count']
     count = random.randrange(min_count, max_count)
-    print("sending: {0} packets".format(count))
-
+    
     source_port = args['source_port']
     if source_port == 0:
         source_port = random.randrange(10000, 65535)
+
+    # Create payload with embedded Call ID
+    call_id_tag = f"CID:{args.get('call_id', 'NONE')}:".encode()
+    final_payload = (call_id_tag + payload_padding)[:200]
+    
+    print(f"Setting up RTP Packets for {args['call_id']}")
+    print(f"sending: {count} packets to {args['destination_ip']}:{args['destination_port']}")
 
     # Pre-build packet template for performance
     if args['source_ip'] is None:
@@ -71,14 +79,13 @@ if __name__ == "__main__":
     # Sending loop
     for i in range(1, count, 1):
         packet = base_packet/RTP(version=2, payload_type=8, sequence=i, sourcesync=1, timestamp=int(time.time()))
-        packet = packet/Raw(load=b"".join(udp_payload))
+        packet = packet/Raw(load=final_payload)
 
         del packet[IP].chksum
         del packet[UDP].chksum
 
-        # Send using Layer 3 (Standard IP) - Let OS handle MAC/ARP/Interface
-        # We don't pass iface here to avoid Scapy 'SyntaxWarning'
+        # Send using Layer 3 (Standard IP)
         send(packet, verbose=False)
         time.sleep(0.03)
 
-    print("Call finished.")
+    print(f"Call {args['call_id']} finished.")

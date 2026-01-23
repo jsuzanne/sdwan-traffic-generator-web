@@ -150,7 +150,8 @@ def start_call(server, interface):
         "-sport", "5060",
         "--min-count", str(num_packets),
         "--max-count", str(num_packets + 1),
-        "--source-interface", interface
+        "--source-interface", interface,
+        "--call-id", call_id
     ]
     
     print(f"[{call_id}] 🚀 Executing: {' '.join(cmd)}")

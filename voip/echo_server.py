@@ -35,9 +35,31 @@ def run_server(ip, port):
                 s.sendto(data, addr)
                 
                 now = time.time()
+                
+                # Basic RTP decoding (Seq is bytes 2-3)
+                seq = -1
+                if len(data) >= 4:
+                    seq = (data[2] << 8) + data[3]
+                
+                # Extract embedded Call ID if present
+                detected_call_id = "Unknown"
+                try:
+                    payload_str = data[12:40].decode('utf-8', errors='ignore')
+                    if "CID:" in payload_str:
+                        detected_call_id = payload_str.split("CID:")[1].split(":")[0]
+                except: pass
+
                 if addr not in active_sessions:
-                    print(f"📞 [{time.strftime('%H:%M:%S')}] Incoming call from {addr[0]}:{addr[1]}")
-                active_sessions[addr] = now
+                    print(f"📞 [{time.strftime('%H:%M:%S')}] Incoming call: {detected_call_id} from {addr[0]}:{addr[1]}")
+                
+                # Periodic log with sequence if it's the first packet or every 200 packets
+                # (since we don't have a per-session counter easily, we just log the first packet 
+                # or when addr is new)
+                
+                active_sessions[addr] = {
+                    "last_seen": now,
+                    "call_id": detected_call_id
+                }
                 
             except timeout:
                 pass # Just a tick for maintenance
@@ -45,9 +67,9 @@ def run_server(ip, port):
             # Maintenance: Clean up old sessions (silence > 5s = end of call)
             now = time.time()
             to_remove = []
-            for addr, last_seen in active_sessions.items():
-                if now - last_seen > 5.0:
-                    print(f"✅ [{time.strftime('%H:%M:%S')}] Call from {addr[0]}:{addr[1]} finished")
+            for addr, session in active_sessions.items():
+                if now - session['last_seen'] > 5.0:
+                    print(f"✅ [{time.strftime('%H:%M:%S')}] Call {session['call_id']} finished (last from {addr[0]}:{addr[1]})")
                     to_remove.append(addr)
             
             for addr in to_remove:
