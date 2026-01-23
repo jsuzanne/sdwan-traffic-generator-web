@@ -42,8 +42,9 @@
         *   Ajout d'un **numéro de séquence** (`call_id`) pour identifier chaque appel (ex: CALL-0001).
         *   Fix **Active Calls** : Refonte de la logique UI pour afficher les appels en cours en fonction de l'ID.
         *   Amélioration de la lisibilité des logs orchestrateur.
+    *   **Patch 40** :
+        *   Nettoyage UI : Suppression du cadre "Internet Connectivity" dans l'onglet Security (doublon avec le Dashboard).
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.39)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.40)**.
 2.  Faire un `docker compose pull` sur **toutes les machines**.
-3.  Vérifier que les appels actifs s'affichent bien dans la colonne de gauche.
