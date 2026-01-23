@@ -1376,26 +1376,72 @@ const SECURITY_CONFIG_FILE = path.join(APP_CONFIG.configDir, 'security-tests.jso
 // Helper: Read security config
 const getSecurityConfig = () => {
     try {
+        const defaultConfig = {
+            url_filtering: { enabled_categories: [], protocol: 'http' },
+            dns_security: { enabled_tests: [] },
+            threat_prevention: { enabled: false, eicar_endpoint: 'http://192.168.203.100/eicar.com.txt', eicar_endpoints: ['http://192.168.203.100/eicar.com.txt'] },
+            scheduled_execution: {
+                url: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
+                dns: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
+                threat: { enabled: false, interval_minutes: 120, last_run_time: null, next_run_time: null }
+            },
+            statistics: {
+                total_tests_run: 0,
+                url_tests_blocked: 0,
+                url_tests_allowed: 0,
+                dns_tests_blocked: 0,
+                dns_tests_sinkholed: 0,
+                dns_tests_allowed: 0,
+                threat_tests_blocked: 0,
+                threat_tests_allowed: 0,
+                last_test_time: null
+            },
+            test_history: []
+        };
+
         if (!fs.existsSync(SECURITY_CONFIG_FILE)) {
-            const defaultConfig = {
-                url_filtering: { enabled_categories: [], protocol: 'http' },
-                dns_security: { enabled_tests: [] },
-                threat_prevention: { enabled: false, eicar_endpoint: 'http://192.168.203.100/eicar.com.txt' },
-                scheduled_execution: {
-                    enabled: false,
-                    interval_minutes: 60,
-                    run_url_tests: true,
-                    run_dns_tests: true,
-                    run_threat_tests: true,
-                    next_run_time: null,
-                    last_run_time: null
-                },
-                test_history: []
-            };
             fs.writeFileSync(SECURITY_CONFIG_FILE, JSON.stringify(defaultConfig, null, 2));
             return defaultConfig;
         }
-        return JSON.parse(fs.readFileSync(SECURITY_CONFIG_FILE, 'utf8'));
+
+        const config = JSON.parse(fs.readFileSync(SECURITY_CONFIG_FILE, 'utf8'));
+
+        // Migration: Old global scheduler to split scheduler
+        if (config.scheduled_execution && typeof config.scheduled_execution.enabled === 'boolean') {
+            console.log('Migrating old security scheduler config to split structure...');
+            const old = config.scheduled_execution;
+            config.scheduled_execution = {
+                url: {
+                    enabled: old.enabled && old.run_url_tests !== false,
+                    interval_minutes: old.interval_minutes || 60,
+                    last_run_time: old.last_run_time || null,
+                    next_run_time: old.next_run_time || null
+                },
+                dns: {
+                    enabled: old.enabled && old.run_dns_tests !== false,
+                    interval_minutes: old.interval_minutes || 60,
+                    last_run_time: old.last_run_time || null,
+                    next_run_time: old.next_run_time || null
+                },
+                threat: {
+                    enabled: old.enabled && old.run_threat_tests !== false,
+                    interval_minutes: old.interval_minutes || 60,
+                    last_run_time: old.last_run_time || null,
+                    next_run_time: old.next_run_time || null
+                }
+            };
+            saveSecurityConfig(config);
+        }
+
+        // Ensure new sub-objects exist even if partially migrated
+        if (config.scheduled_execution && !config.scheduled_execution.url) {
+            config.scheduled_execution.url = { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null };
+            config.scheduled_execution.dns = { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null };
+            config.scheduled_execution.threat = { enabled: false, interval_minutes: 120, last_run_time: null, next_run_time: null };
+            saveSecurityConfig(config);
+        }
+
+        return config;
     } catch (e) {
         console.error('Error reading security config:', e);
         return null;

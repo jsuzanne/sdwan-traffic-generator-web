@@ -19,10 +19,11 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 **Why:** Ubuntu LAB servers are AMD64, Mac development is ARM64. Single-platform builds cause "exec format error".
 
-### Docker Image Naming Convention
-- **Beta/Testing:** `jsuzanne/sdwan-web-ui:X.Y.Z-beta`
-- **Stable Release:** `jsuzanne/sdwan-web-ui:X.Y.Z` + `jsuzanne/sdwan-web-ui:latest`
-- **Never push untested code to `latest` tag**
+### Docker Image Tags & Usage
+- **`latest`** (Development): Always point to the last build from the `main` branch. Use this for testing new features in the LAB.
+- **`stable`** (Production/Demo): Manually promoted version. **Default for deployments.**
+- **`vX.Y.Z-patch.N`** (Versioned): Fixed releases triggered by Git tags.
+- **NEVER** use `latest` for critical demos or production sites.
 
 ### Required Images
 1. `jsuzanne/sdwan-web-ui` - Web dashboard + backend API
@@ -86,12 +87,12 @@ git log --oneline -5          # Verify recent commits look correct
 7. Wait for GitHub Actions to complete (~6-8 minutes)
 8. Test in LAB environment
 
-### 4. Stable Release (After LAB Validation)
-1. Update `VERSION` to `X.Y.Z` (remove `-beta`)
-2. Tag Docker images as `:latest`
-3. Update README.md with new features
-4. Commit to GitHub with proper commit message
-5. Create GitHub release tag
+### 4. Promotion to Stable (Production Release)
+1. After validation of a `vX.Y.Z-patch.N` or `latest` build in the LAB:
+2. Go to **GitHub Actions** → **Build and Push Multi-Platform Docker Images**.
+3. Click **"Run workflow"** and use the **"Promote to Stable"** field.
+4. Saisis la version choisie (ex: `1.1.0-patch.26`).
+5. This updates the `stable` tag on Docker Hub.
 
 ---
 
@@ -187,23 +188,12 @@ docker buildx build --platform linux/amd64,linux/arm64 \
   --push .
 ```
 
-### Promote Beta to Stable
-```bash
-# Tag as stable
-docker buildx build --platform linux/amd64,linux/arm64 \
-  -t jsuzanne/sdwan-web-ui:1.1.0 \
-  -t jsuzanne/sdwan-web-ui:latest \
-  -f web-dashboard/Dockerfile \
-  --push .
-
-docker buildx build --platform linux/amd64,linux/arm64 \
-  -t jsuzanne/sdwan-traffic-gen:1.1.0 \
-  -t jsuzanne/sdwan-traffic-gen:latest \
-  -f Dockerfile.traffic-gen \
-  --push .
-```
+### Promote to Stable (Manual)
+1. Trigger via GitHub Actions UI (**workflow_dispatch**).
+2. Input the target version string.
+3. The workflow pulls, retags, and pushes as `:stable`.
 
 ---
 
-**Last Updated:** 2026-01-16  
+**Last Updated:** 2026-01-23  
 **Workspace:** sdwan-traffic-generator

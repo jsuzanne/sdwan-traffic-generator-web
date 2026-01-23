@@ -25,11 +25,12 @@ interface SecurityConfig {
     threat_prevention: {
         enabled: boolean;
         eicar_endpoint: string;
+        eicar_endpoints?: string[];
     };
     scheduled_execution?: {
-        url: { enabled: boolean; interval_minutes: number };
-        dns: { enabled: boolean; interval_minutes: number };
-        threat: { enabled: boolean; interval_minutes: number };
+        url: { enabled: boolean; interval_minutes: number; last_run_time?: number | null; next_run_time?: number | null };
+        dns: { enabled: boolean; interval_minutes: number; last_run_time?: number | null; next_run_time?: number | null };
+        threat: { enabled: boolean; interval_minutes: number; last_run_time?: number | null; next_run_time?: number | null };
     };
     statistics?: {
         total_tests_run: number;
@@ -209,7 +210,9 @@ export default function Security({ token }: SecurityProps) {
 
     const SchedulerSettings = ({ type, title }: { type: 'url' | 'dns' | 'threat', title: string }) => {
         if (!config?.scheduled_execution) return null;
-        const schedule = config.scheduled_execution[type] || { enabled: false, interval_minutes: 15 };
+
+        // Robustness: ensure we have the expected structure
+        const schedule = (config.scheduled_execution as any)[type] || { enabled: false, interval_minutes: 15 };
 
         return (
             <div className="flex items-center gap-4 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50">
