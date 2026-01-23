@@ -46,6 +46,53 @@ interface SecurityConfig {
     test_history: TestResult[];
 }
 
+// Sub-component for scheduler settings to avoid unmounting on parent re-render
+const SchedulerSettings = ({
+    type,
+    title,
+    config,
+    onUpdate
+}: {
+    type: 'url' | 'dns' | 'threat',
+    title: string,
+    config: SecurityConfig | null,
+    onUpdate: (type: 'url' | 'dns' | 'threat', enabled: boolean, minutes: number) => Promise<void>
+}) => {
+    if (!config?.scheduled_execution) return null;
+
+    // Robustness: ensure we have the expected structure
+    const schedule = (config.scheduled_execution as any)[type] || { enabled: false, interval_minutes: 15 };
+
+    return (
+        <div className="flex items-center gap-4 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50">
+            <div className="flex items-center gap-2">
+                <Clock size={14} className={schedule.enabled ? "text-blue-400" : "text-slate-500"} />
+                <span className="text-xs font-medium text-slate-400">{title} Schedule:</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+                <select
+                    value={schedule.interval_minutes}
+                    onChange={(e) => onUpdate(type, schedule.enabled, parseInt(e.target.value))}
+                    disabled={!schedule.enabled}
+                    className="bg-slate-900 border-slate-700 text-slate-300 text-[10px] rounded p-0.5 focus:ring-blue-500 disabled:opacity-50"
+                >
+                    {[5, 10, 15, 30, 45, 60].map(m => (
+                        <option key={m} value={m}>{m}m</option>
+                    ))}
+                </select>
+
+                <button
+                    onClick={() => onUpdate(type, !schedule.enabled, schedule.interval_minutes)}
+                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none ${schedule.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
+                >
+                    <span className={`inline-block h-2 w-2 transform rounded-full bg-white transition-transform ${schedule.enabled ? 'translate-x-4' : 'translate-x-1'}`} />
+                </button>
+            </div>
+        </div>
+    );
+};
+
 export default function Security({ token }: SecurityProps) {
     const [config, setConfig] = useState<SecurityConfig | null>(null);
     const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -226,41 +273,6 @@ export default function Security({ token }: SecurityProps) {
         }
     };
 
-    const SchedulerSettings = ({ type, title }: { type: 'url' | 'dns' | 'threat', title: string }) => {
-        if (!config?.scheduled_execution) return null;
-
-        // Robustness: ensure we have the expected structure
-        const schedule = (config.scheduled_execution as any)[type] || { enabled: false, interval_minutes: 15 };
-
-        return (
-            <div className="flex items-center gap-4 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50">
-                <div className="flex items-center gap-2">
-                    <Clock size={14} className={schedule.enabled ? "text-blue-400" : "text-slate-500"} />
-                    <span className="text-xs font-medium text-slate-400">{title} Schedule:</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <select
-                        value={schedule.interval_minutes}
-                        onChange={(e) => updateSchedule(type, schedule.enabled, parseInt(e.target.value))}
-                        disabled={!schedule.enabled}
-                        className="bg-slate-900 border-slate-700 text-slate-300 text-[10px] rounded p-0.5 focus:ring-blue-500 disabled:opacity-50"
-                    >
-                        {[5, 10, 15, 30, 45, 60].map(m => (
-                            <option key={m} value={m}>{m}m</option>
-                        ))}
-                    </select>
-
-                    <button
-                        onClick={() => updateSchedule(type, !schedule.enabled, schedule.interval_minutes)}
-                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none ${schedule.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
-                    >
-                        <span className={`inline-block h-2 w-2 transform rounded-full bg-white transition-transform ${schedule.enabled ? 'translate-x-4' : 'translate-x-1'}`} />
-                    </button>
-                </div>
-            </div>
-        );
-    };
 
     const fetchResults = async (offset = 0, append = false) => {
         try {
@@ -800,7 +812,7 @@ export default function Security({ token }: SecurityProps) {
                                     <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Select All</span>
                                 </label>
 
-                                <SchedulerSettings type="url" title="URL" />
+                                <SchedulerSettings type="url" title="URL" config={config} onUpdate={updateSchedule} />
 
                                 <p className="text-slate-400 text-sm hidden lg:block">
                                     Test URL filtering policies using Palo Alto Networks test pages
@@ -894,7 +906,7 @@ export default function Security({ token }: SecurityProps) {
                                     <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Select All</span>
                                 </label>
 
-                                <SchedulerSettings type="dns" title="DNS" />
+                                <SchedulerSettings type="dns" title="DNS" config={config} onUpdate={updateSchedule} />
 
                                 <p className="text-slate-400 text-sm hidden lg:block">
                                     Test DNS Security policies using Palo Alto Networks test domains
@@ -1036,7 +1048,7 @@ export default function Security({ token }: SecurityProps) {
                             <p className="text-slate-400 text-sm">
                                 Test IPS/Threat Prevention by downloading EICAR test file
                             </p>
-                            <SchedulerSettings type="threat" title="Threat" />
+                            <SchedulerSettings type="threat" title="Threat" config={config} onUpdate={updateSchedule} />
                         </div>
 
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
