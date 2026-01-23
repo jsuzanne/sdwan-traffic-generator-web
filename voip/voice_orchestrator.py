@@ -5,6 +5,7 @@ import subprocess
 import random
 import signal
 import sys
+import sys
 from datetime import datetime
 
 # Configuration paths (aligned with Docker volumes)
@@ -33,6 +34,7 @@ def print_banner():
     print(f"📂 Config: {CONFIG_DIR}")
     print(f"📝 Logs: {STATS_FILE}")
     print("="*60)
+    sys.stdout.flush()
 
 def load_control():
     try:
@@ -109,8 +111,14 @@ def start_call(server, interface):
         "--source-interface", interface
     ]
     
+    print(f"🚀 Executing: {' '.join(cmd)}")
+    sys.stdout.flush()
+    
     try:
-        proc = subprocess.Popen(cmd)
+        # Pass environment to ensure unbuffered output from child
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        proc = subprocess.Popen(cmd, env=env)
         call_info = {
             "pid": proc.pid,
             "target": server['target'],
@@ -119,6 +127,7 @@ def start_call(server, interface):
         }
         log_call("start", call_info)
         print(f"📞 CALL STARTED: {server['target']} | Codec: {server['codec']} | Duration: {server['duration']}s")
+        sys.stdout.flush()
         return {"proc": proc, "info": call_info}
     except Exception as e:
         print(f"Failed to start rtp.py: {e}")
@@ -153,6 +162,7 @@ def main():
         
         for call in finished:
             print(f"✅ CALL ENDED: {call['info']['target']}")
+            sys.stdout.flush()
             active_calls.remove(call)
             
         if control.get("enabled"):

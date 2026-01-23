@@ -28,8 +28,14 @@
     *   Ajout du port source fixe (**5060**) pour passer les firewalls (Patch 36).
     *   **Patch 37** : Affichage de la version au démarrage des containers (`voice-gen` & `voice-echo`) pour un meilleur debug.
 
-### 📝 Next Steps (Si déconnexion)
-1.  Faire un `docker compose pull voice-gen` sur UbuntuBR8 pour récupérer le Patch 37.
-2.  Lancer `docker logs -f sdwan-voice-gen`.
-3.  Vérifier l'erreur Python qui s'affiche au clic sur "Start Voice".
-4.  Vérifier que l'interface spécifiée dans l'UI (ex: `eth0`) existe bien sur le host via `ip addr`.
+### 🛠️ Current Debugging (En cours)
+*   **Problème** : Logs Docker vides et appels instantanés.
+*   **Cause identifiée** : Buffering Python dans Docker (réglé par `-u`) et images non encore à jour sur le host.
+*   **Actions entreprises** :
+    *   **Patch 37** : Ajout de la version v1.1.0-patch.37, activation de `python3 -u` (Real-time logs), et intégration du fichier VERSION dans les containers.
+
+### 📝 Next Steps (IMPORTANT)
+1.  **Attendre la fin du build GitHub (Patch 37)**.
+2.  Faire un `docker compose pull` sur **les deux machines** (Source et Target).
+3.  Lancer `docker logs -f` sur les containers voix.
+4.  Si le "START" et "END" sont toujours à la même seconde, l'erreur Python sera enfin visible dans les logs.
