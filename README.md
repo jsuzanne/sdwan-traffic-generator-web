@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.1.0--patch.7-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.1.0--patch.34-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -20,6 +20,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **Traffic Rate Control** - Dynamically adjust generation speed from 0.1s to 5s delay via a slider
 - **Protocol & IP Flexibility** - Support for explicit `http://` or `https://` and full IP address identification
 - **Multi-interface Support** - Bind to specific network interfaces
+- **Voice Generation (RTP)** - Simulate real-time voice calls (G.711, G.729) with Scapy-based packet forging, weighted target distribution, and standalone echo server targets
 
 ### 🛡️ Security Testing (v1.1.0)
 - **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)
@@ -578,8 +579,10 @@ The SD-WAN Traffic Generator has **two separate systems**:
 
 Pre-built images are available on Docker Hub:
 
-- **Web UI:** [`jsuzanne/sdwan-web-ui:latest`](https://hub.docker.com/r/jsuzanne/sdwan-web-ui)
-- **Traffic Generator:** [`jsuzanne/sdwan-traffic-gen:latest`](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
+- **Web UI:** [`jsuzanne/sdwan-web-ui:stable`](https://hub.docker.com/r/jsuzanne/sdwan-web-ui)
+- **Traffic Generator:** [`jsuzanne/sdwan-traffic-gen:stable`](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
+- **Voice Generator:** [`jsuzanne/sdwan-voice-gen:stable`](https://hub.docker.com/r/jsuzanne/sdwan-voice-gen)
+- **Voice Echo:** [`jsuzanne/sdwan-voice-echo:stable`](https://hub.docker.com/r/jsuzanne/sdwan-voice-echo)
 
 Images are automatically built for **AMD64** and **ARM64** architectures.
 

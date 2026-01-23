@@ -1,8 +1,6 @@
-version: '3.8'
-
 # SD-WAN Traffic Generator - Production Configuration
-# Version: 1.1.0-patch.7
-# Last Updated: 2026-01-21
+# Version: 1.1.0-patch.34
+# Last Updated: 2026-01-23
 
 services:
   # Web Dashboard - User Interface and API
@@ -138,6 +136,41 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Voice Traffic Generator - RTP/Voice Simulation
+  sdwan-voice-gen:
+    image: jsuzanne/sdwan-voice-gen:stable
+    container_name: sdwan-voice-gen
+    hostname: sdwan-voice-gen
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    environment:
+      - TZ=UTC
+
+    volumes:
+      - ./config:/app/config
+      - ./logs:/var/log/sdwan-traffic-gen
+
+    depends_on:
+      sdwan-web-ui:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - sdwan-network
+
+  # Voice Echo Server - Target for Voice Tests
+  # (Deploy this on your target machine/site)
+  sdwan-voice-echo:
+    image: jsuzanne/sdwan-voice-echo:stable
+    container_name: sdwan-voice-echo
+    hostname: sdwan-voice-echo
+    ports:
+      - "6100:6100/udp"
+    restart: unless-stopped
+    networks:
+      - sdwan-network
+
 # Network Configuration
 networks:
   sdwan-network:
@@ -154,14 +187,14 @@ networks:
 #     driver: local
 
 # ============================================================================
-# WHAT'S NEW IN v1.1.0-patch.7
+# WHAT'S NEW IN v1.1.0-patch.34
 # ============================================================================
 #
-# ✅ Auto-detection of network interface on first start (no manual config!)
-# ✅ Improved startup reliability with healthcheck
-# ✅ No more "Configuration file not found" errors in logs
-# ✅ Traffic generator waits for web-ui to be fully initialized
-# ✅ Cleaner logs and better user experience
+# ✅ NEW: Voice Simulation (RTP) - Generate real-time voice traffic
+# ✅ NEW: CPU/RAM Monitoring - Real-time resource usage in dashboard
+# ✅ NEW: Integrated Traffic Rate Slider - Simple speed control
+# ✅ Dynamic Defaults: Traffic rate inherits from SLEEP_BETWEEN_REQUESTS
+# ✅ Multi-platform support: Native builds for AMD64 and ARM64
 #
 # ============================================================================
 # PRODUCTION DEPLOYMENT CHECKLIST

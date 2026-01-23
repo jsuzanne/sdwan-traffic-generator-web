@@ -68,11 +68,10 @@ if __name__ == "__main__":
             else:
                 packet = IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
         else:
-            packet = Ether()
             if args['source_ip'] is None:
-                packet = IP(dst=args['destination_ip'], proto=17, len=240)
+                packet = Ether() / IP(dst=args['destination_ip'], proto=17, len=240)
             else:
-                packet = IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
+                packet = Ether() / IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
         # do this for all streams
         packet = packet/UDP(sport=source_port, dport=args['destination_port'], len=220)
         packet = packet/RTP(version=2, payload_type=8, sequence=i, sourcesync=1, timestamp=time.time())

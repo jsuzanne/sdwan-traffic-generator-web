@@ -1,0 +1,10 @@
+services:
+  # Voice Echo Server - Standalone Target
+  # Deploy this on your remote sites (DMZ, Cloud, Branch)
+  voice-echo:
+    image: jsuzanne/sdwan-voice-echo:latest
+    container_name: sdwan-voice-echo
+    restart: unless-stopped
+    ports:
+      - "6100:6100/udp"
+    # No configuration needed, it just bounces back UDP packets
