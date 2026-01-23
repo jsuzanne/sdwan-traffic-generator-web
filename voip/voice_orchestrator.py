@@ -26,6 +26,7 @@ SERVERS_FILE = os.path.join(CONFIG_DIR, 'voice-servers.txt')
 STATS_FILE = os.path.join(LOG_DIR, 'voice-stats.jsonl')
 COUNTER_FILE = os.path.join(CONFIG_DIR, 'voice-counter.json')
 active_calls = []
+current_session_id = str(int(time.time()))
 
 def get_next_call_id():
     counter = 0
@@ -93,6 +94,7 @@ def log_call(event, call_info):
         log_entry = {
             "timestamp": datetime.now().isoformat(),
             "event": event,
+            "session_id": current_session_id,
             **call_info
         }
         with open(STATS_FILE, 'a') as f:
@@ -188,6 +190,9 @@ def main():
     print_banner()
     global active_calls
     
+    # Log session start
+    log_call("session_start", {"version": get_version()})
+    
     while True:
         control = load_control()
         servers = load_servers()
@@ -212,7 +217,9 @@ def main():
                     if new_call:
                         active_calls.append(new_call)
             else:
-                pass # Already at max
+                if time.time() % 30 < 5: # Periodic log to avoid flood
+                    print(f"ℹ️  Wait: Max simultaneous calls reached ({len(active_calls)}/{control.get('max_simultaneous_calls', 3)})")
+                    sys.stdout.flush()
         else:
             if len(active_calls) > 0:
                  print(f"⏳ Simulation disabled. Waiting for {len(active_calls)} calls to finish...")
