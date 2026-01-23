@@ -12,8 +12,13 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install system dependencies (curl for healthchecks and connectivity)
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    iputils-ping \
+    dnsutils \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY web-dashboard/package*.json ./
 # Install production deps

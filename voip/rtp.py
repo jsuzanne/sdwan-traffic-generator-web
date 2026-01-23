@@ -76,7 +76,7 @@ if __name__ == "__main__":
                 packet = Ether() / IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
         # do this for all streams
         packet = packet/UDP(sport=source_port, dport=args['destination_port'], len=220)
-        packet = packet/RTP(version=2, payload_type=8, sequence=i, sourcesync=1, timestamp=time.time())
+        packet = packet/RTP(version=2, payload_type=8, sequence=i, sourcesync=1, timestamp=int(time.time()))
         packet = packet/Raw(load=b"".join(udp_payload))
 
         if args['source_interface'] is not None:

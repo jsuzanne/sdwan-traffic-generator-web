@@ -11,6 +11,8 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     hostname: sdwan-web-ui
+    cap_add:
+      - NET_RAW
 
     # Port Mapping
     # Change 8080:8080 to 8081:8080 if port 8080 is already in use

@@ -116,8 +116,14 @@ const initializeCommands = async () => {
     availableCommands.dig = await checkCommand('dig -v 2>/dev/null');
     availableCommands.nslookup = await checkCommand('nslookup -version 2>/dev/null || nslookup localhost 2>/dev/null');
     availableCommands.curl = await checkCommand('curl --version 2>/dev/null');
+    availableCommands.ping = await checkCommand('ping -V 2>/dev/null || ping -h 2>/dev/null');
+    availableCommands.nc = await checkCommand('nc -h 2>/dev/null || nc -v localhost 1 2>/dev/null');
 
     console.log('[PLATFORM] Available commands:', availableCommands);
+
+    if (!availableCommands.ping) console.warn('⚠️  WARNING: "ping" command not found. ICMP tests will fail.');
+    if (!availableCommands.nc) console.warn('⚠️  WARNING: "nc" (netcat) command not found. TCP port tests will fail.');
+    if (!availableCommands.dig && !availableCommands.nslookup) console.warn('⚠️  WARNING: No DNS tool found (dig/nslookup). DNS resolution might fail.');
 };
 
 // Get the best DNS command for the current platform

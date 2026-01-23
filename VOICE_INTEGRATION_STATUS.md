@@ -29,13 +29,18 @@
     *   **Patch 37** : Affichage de la version au démarrage des containers (`voice-gen` & `voice-echo`) pour un meilleur debug.
 
 ### 🛠️ Current Debugging (En cours)
-*   **Problème** : Logs Docker vides et appels instantanés.
-*   **Cause identifiée** : Buffering Python dans Docker (réglé par `-u`) et images non encore à jour sur le host.
+*   **Problème** : `ValueError: While building field 'timestamp'` dans `rtp.py`.
+*   **Cause identifiée** : `time.time()` renvoie un float, Scapy attend un entier.
+*   **Problème Ping** : Ping HS dans l'UI alors que OK sur le host.
+*   **Causes identifiées** : Commande `ping` manquante dans le container UI et manque de droits `NET_RAW`.
 *   **Actions entreprises** :
-    *   **Patch 37** : Ajout de la version v1.1.0-patch.37, activation de `python3 -u` (Real-time logs), et intégration du fichier VERSION dans les containers.
+    *   **Patch 38** : 
+        *   Fix `rtp.py` : conversion du timestamp en `int`.
+        *   Fix UI : Installation de `iputils-ping`, `dnsutils`, `netcat` dans le container.
+        *   Fix Docker : Ajout de `cap_add: NET_RAW` pour l'UI.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre la fin du build GitHub (Patch 37)**.
-2.  Faire un `docker compose pull` sur **les deux machines** (Source et Target).
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.38)**.
+2.  Faire un `docker compose pull` sur **toutes les machines**.
 3.  Lancer `docker logs -f` sur les containers voix.
 4.  Si le "START" et "END" sont toujours à la même seconde, l'erreur Python sera enfin visible dans les logs.
