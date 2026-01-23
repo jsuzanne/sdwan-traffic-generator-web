@@ -56,9 +56,7 @@ services:
       dockerfile: Dockerfile.voice
     container_name: sdwan-voice-gen
     restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
+    network_mode: host
     volumes:
       - ./config:/app/config
       - traffic_logs:/var/log/sdwan-traffic-gen

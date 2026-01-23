@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM public.ecr.aws/docker/library/python:3.9-slim
 
 # Install dependencies (Scapy needs specialized libraries for packet forging)
 RUN apt-get update && apt-get install -y \

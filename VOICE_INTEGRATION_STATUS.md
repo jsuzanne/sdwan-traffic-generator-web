@@ -80,8 +80,11 @@
     *   **Patch 55** :
         *   **RTP SILENT MODE** : Nettoyage radical des logs du simulateur. Tous les avertissements Scapy (`SyntaxWarning`, `iface has no effect`) sont désormais masqués. On ne voit plus que l'essentiel.
         *   **L3 Optimized** : Envoi direct via la pile IP de l'OS pour une compatibilité maximale sans broadcast.
+    *   **Patch 56** :
+        *   **NETWORK HOST MODE** : Le container `sdwan-voice-gen` tourne désormais en mode réseau `host`. Il se comporte comme un script natif, voit toutes les interfaces de l'hôte et gère mieux le forgeage de paquets.
+        *   **BYPASS DOCKER LIMITS** : Migration de toutes les images de base (`debian`, `node`, `python`) vers les miroirs Amazon ECR Public. Terminé les erreurs "429 Too Many Requests" lors des builds GitHub !
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.55)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.56)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.
