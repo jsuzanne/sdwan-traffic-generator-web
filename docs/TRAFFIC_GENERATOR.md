@@ -8,14 +8,18 @@ The Traffic Generator is a **separate component** from Security Tests. It genera
 
 ### Traffic Generator vs Security Tests
 
-| Feature | Traffic Generator | Security Tests |
-|---------|------------------|----------------|
-| **Purpose** | Simulate user traffic | Test security policies |
-| **Source** | `config/applications.txt` | Hardcoded test URLs |
-| **Execution** | Continuous background | On-demand or scheduled |
-| **Logs** | `/var/log/sdwan-traffic-gen/traffic.log` | `test-results.jsonl` |
-| **Stats** | `stats.json` | Test history |
-| **Examples** | google.com, office365.com, facebook.com | urlfiltering.paloaltonetworks.com |
+| Feature | Traffic Generator | Security Tests | Voice Simulation |
+|---------|------------------|----------------|------------------|
+| **Purpose** | Simulate user traffic | Test security policies | Test QoS / Voice QoS |
+| **Source** | `config/applications.txt` | Hardcoded test URLs | `config/voice-servers.txt` |
+| **Execution** | Continuous background | On-demand or scheduled | Continuous background |
+| **Logs** | `traffic.log` | `test-results.jsonl` | `voice-stats.jsonl` |
+| **Stats** | `stats.json` | Test history | Voice Tab / Dashboard |
+| **Examples** | google.com, office365.com | urlfiltering.paloaltonetworks.com | CALL-0001 (RTP) |
+
+### Key Documentation
+- **[Voice Simulation (RTP) Guide](VOICE_SIMULATION.md)**
+- **[Security Testing Guide](SECURITY_TESTING.md)**
 
 ---
 
@@ -460,4 +464,4 @@ Add applications gradually and verify they're reachable before adding more.
 ---
 
 **Last Updated:** 2026-01-23  
-**Version:** 1.1.0-patch.30
+**Version:** 1.1.0-patch.41
