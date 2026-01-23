@@ -1,15 +1,15 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
 ## 🎯 Current Status (as of 2026-01-23)
-We are currently at version **v1.1.0-patch.62**.
-The Voice Simulation and DNS Security tests are now production-ready.
+We are currently at version **v1.1.0-patch.63**.
+DNS Security tests and Voice Simulation are now fully cross-platform resilient.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **DNS Hardening (v62)**: Re-engineered DNS security tests to prioritize explicit tools (`nslookup`, `dig`) and added keyword detection for "sinkhole". This solves issues where Palo Alto Networks redirects were misreported as execution failures.
-2.  **Flow Separation (v61)**: Every call now uses a unique source port for realistic SD-WAN load balancing and accurate Echo Server tracking.
-3.  **Clean Slate (v60)**: Orchestrator resets logs and counters at startup for 100% UI accuracy.
-4.  **Deep Inspection**: Call IDs are injected into RTP payloads for end-to-end tracing.
-5.  **Build Reliability**: Full migration to Amazon ECR Public mirrors.
+1.  **Universal DNS (v63)**: Normalized DNS security tests across Linux, macOS, and Windows. Prioritized `nslookup` as the standard tool to ensure identical sinkhole detection logic regardless of the host OS. Improved output parsing for Windows format.
+2.  **DNS Hardening (v62)**: Added keyword detection for "sinkhole" in both stdout and stderr. Reliable for Palo Alto Networks redirections (even with SERVFAIL).
+3.  **Flow Separation (v61)**: Unique source ports for every voice call. Improved SD-WAN traffic realism.
+4.  **Clean Slate (v60)**: Orchestrator reset at startup for 100% UI accuracy.
+5.  **Build Stability**: Switched to Amazon ECR Public mirrors.
 
 ## 🚀 Tomorrow's Roadmap (Windows Testing)
 1.  **Testing Environment**: Planning to test on Windows Docker Desktop.

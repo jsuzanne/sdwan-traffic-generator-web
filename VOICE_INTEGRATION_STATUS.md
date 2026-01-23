@@ -97,7 +97,10 @@
     *   **Patch 62** :
         *   **DNS HARDENING** : Refonte totale des tests de sécurité DNS. Priorité à `nslookup`/`dig` pour obtenir plus de détails. Ajout de la détection par mot-clé "sinkhole" dans les flux de sortie et d'erreur. Les domaines bloqués par Palo Alto (via redirect sinkhole) sont désormais détectés avec 100% de fiabilité, même si la commande retourne un code d'erreur.
 
+    *   **Patch 63** :
+        *   **UNIVERSAL DNS** : Optimisation cross-platform (macOS/Windows/Linux). `nslookup` devient l'outil de référence universel car il fournit les mêmes détails techniques sur tous les OS, garantissant une détection des menaces identique, que le host soit sous Windows ou Ubuntu.
+
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.62)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.63)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.

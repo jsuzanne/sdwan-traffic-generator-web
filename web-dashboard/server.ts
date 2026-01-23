@@ -158,21 +158,26 @@ const startIperfServer = () => {
 // Get the best DNS command for the current platform
 // For security tests, we prefer tools that bypass OS caching and provide more detail (nslookup/dig)
 const getDnsCommand = (domain: string): { command: string; type: string } => {
-    if (PLATFORM === 'linux') {
-        // Use nslookup or dig as priority for security tests to see CNAMEs and specific error codes
-        if (availableCommands.nslookup) return { command: `nslookup ${domain}`, type: 'nslookup' };
-        if (availableCommands.dig) return { command: `dig ${domain} +short`, type: 'dig' };
-        if (availableCommands.getent) return { command: `getent ahosts ${domain}`, type: 'getent' };
+    // Priority 1: nslookup (Universal and provides CNAME info which is vital for sinkhole detection)
+    if (availableCommands.nslookup) {
         return { command: `nslookup ${domain}`, type: 'nslookup' };
     }
 
-    if (PLATFORM === 'darwin') {
-        if (availableCommands.dig) return { command: `dig +short ${domain}`, type: 'dig' };
-        if (availableCommands.dscacheutil) return { command: `dscacheutil -q host -a name ${domain}`, type: 'dscacheutil' };
-        return { command: `nslookup ${domain}`, type: 'nslookup' };
+    // Priority 2: dig (Linux/Mac standard for deep inspection)
+    if (availableCommands.dig) {
+        return { command: `dig ${domain} +short`, type: 'dig' };
     }
 
-    // Windows or unknown
+    // Fallbacks for specific platforms if technical tools missing
+    if (PLATFORM === 'linux' && availableCommands.getent) {
+        return { command: `getent ahosts ${domain}`, type: 'getent' };
+    }
+
+    if (PLATFORM === 'darwin' && availableCommands.dscacheutil) {
+        return { command: `dscacheutil -q host -a name ${domain}`, type: 'dscacheutil' };
+    }
+
+    // Ultimate fallback
     return { command: `nslookup ${domain}`, type: 'nslookup' };
 };
 
@@ -200,7 +205,8 @@ const parseDnsOutput = (output: string, type: string): string | null => {
 
     if (type === 'nslookup') {
         // Format: "Address: 198.135.184.22" or "Addresses:  198.135.184.22"
-        const match = output.match(/Address(?:es)?:\s*(\d+\.\d+\.\d+\.\d+)/);
+        // Also captures Windows format (multiline Address field)
+        const match = output.match(/Address(?:es)?:\s+((?:\d{1,3}\.){3}\d{1,3})/);
         return match ? match[1] : null;
     }
 
