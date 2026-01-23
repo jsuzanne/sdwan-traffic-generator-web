@@ -158,10 +158,28 @@ export default function Security({ token }: SecurityProps) {
     const fetchConfig = async () => {
         try {
             const res = await fetch('/api/security/config', { headers: authHeaders() });
+            if (!res.ok) {
+                console.error(`Failed to fetch security config: ${res.status} ${res.statusText}`);
+                return;
+            }
             const data = await res.json();
 
+            if (!data) {
+                console.error('Security config data is empty');
+                return;
+            }
+
             // Ensure scheduled_execution has the new structure if it's from an old config
-            if (data.scheduled_execution && !data.scheduled_execution.url) {
+            if (data.scheduled_execution) {
+                if (typeof data.scheduled_execution !== 'object' || !data.scheduled_execution.url) {
+                    console.log('Migrating scheduled_execution in frontend...');
+                    data.scheduled_execution = {
+                        url: data.scheduled_execution?.url || { enabled: false, interval_minutes: 15 },
+                        dns: data.scheduled_execution?.dns || { enabled: false, interval_minutes: 15 },
+                        threat: data.scheduled_execution?.threat || { enabled: false, interval_minutes: 30 }
+                    };
+                }
+            } else {
                 data.scheduled_execution = {
                     url: { enabled: false, interval_minutes: 15 },
                     dns: { enabled: false, interval_minutes: 15 },

@@ -1406,45 +1406,86 @@ const getSecurityConfig = () => {
 
         const config = JSON.parse(fs.readFileSync(SECURITY_CONFIG_FILE, 'utf8'));
 
-        // Migration: Old global scheduler to split scheduler
-        if (config.scheduled_execution && typeof config.scheduled_execution.enabled === 'boolean') {
-            console.log('Migrating old security scheduler config to split structure...');
-            const old = config.scheduled_execution;
-            config.scheduled_execution = {
-                url: {
-                    enabled: old.enabled && old.run_url_tests !== false,
-                    interval_minutes: old.interval_minutes || 60,
-                    last_run_time: old.last_run_time || null,
-                    next_run_time: old.next_run_time || null
-                },
-                dns: {
-                    enabled: old.enabled && old.run_dns_tests !== false,
-                    interval_minutes: old.interval_minutes || 60,
-                    last_run_time: old.last_run_time || null,
-                    next_run_time: old.next_run_time || null
-                },
-                threat: {
-                    enabled: old.enabled && old.run_threat_tests !== false,
-                    interval_minutes: old.interval_minutes || 60,
-                    last_run_time: old.last_run_time || null,
-                    next_run_time: old.next_run_time || null
-                }
-            };
-            saveSecurityConfig(config);
+        // Robustness: Ensure config is an object
+        if (!config || typeof config !== 'object') {
+            console.log('Security config is invalid, returning default.');
+            return defaultConfig;
         }
 
-        // Ensure new sub-objects exist even if partially migrated
-        if (config.scheduled_execution && !config.scheduled_execution.url) {
-            config.scheduled_execution.url = { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null };
-            config.scheduled_execution.dns = { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null };
-            config.scheduled_execution.threat = { enabled: false, interval_minutes: 120, last_run_time: null, next_run_time: null };
+        let migrated = false;
+
+        // Migration: Handle old global scheduler to split scheduler
+        // Cases: scheduled_execution is missing, or is a boolean, or is an object with 'enabled' property
+        const sched = config.scheduled_execution;
+        const isOldStructure = sched && (typeof sched === 'boolean' || (typeof sched === 'object' && 'enabled' in sched && !sched.url));
+
+        if (isOldStructure) {
+            console.log('Migrating old security scheduler config to split structure...');
+            const oldEnabled = typeof sched === 'boolean' ? sched : (sched.enabled === true);
+            const oldInterval = (typeof sched === 'object' && sched.interval_minutes) || 60;
+
+            config.scheduled_execution = {
+                url: {
+                    enabled: oldEnabled && (sched.run_url_tests !== false),
+                    interval_minutes: oldInterval,
+                    last_run_time: (typeof sched === 'object' && sched.last_run_time) || null,
+                    next_run_time: (typeof sched === 'object' && sched.next_run_time) || null
+                },
+                dns: {
+                    enabled: oldEnabled && (sched.run_dns_tests !== false),
+                    interval_minutes: oldInterval,
+                    last_run_time: (typeof sched === 'object' && sched.last_run_time) || null,
+                    next_run_time: (typeof sched === 'object' && sched.next_run_time) || null
+                },
+                threat: {
+                    enabled: oldEnabled && (sched.run_threat_tests !== false),
+                    interval_minutes: oldInterval,
+                    last_run_time: (typeof sched === 'object' && sched.last_run_time) || null,
+                    next_run_time: (typeof sched === 'object' && sched.next_run_time) || null
+                }
+            };
+            migrated = true;
+        }
+
+        // Final safety check for each section
+        if (!config.scheduled_execution || typeof config.scheduled_execution !== 'object') {
+            config.scheduled_execution = { ...defaultConfig.scheduled_execution };
+            migrated = true;
+        } else {
+            const sections = ['url', 'dns', 'threat'] as const;
+            sections.forEach(s => {
+                if (!config.scheduled_execution[s] || typeof config.scheduled_execution[s] !== 'object') {
+                    config.scheduled_execution[s] = { ...defaultConfig.scheduled_execution[s] };
+                    migrated = true;
+                }
+            });
+        }
+
+        if (migrated) {
             saveSecurityConfig(config);
         }
 
         return config;
     } catch (e) {
-        console.error('Error reading security config:', e);
-        return null;
+        console.error('Error reading/migrating security config:', e);
+        // On error, return default config instead of null to prevent frontend crashes
+        try {
+            const data = fs.readFileSync(SECURITY_CONFIG_FILE, 'utf8');
+            return JSON.parse(data);
+        } catch (e2) {
+            return {
+                url_filtering: { enabled_categories: [], protocol: 'http' },
+                dns_security: { enabled_tests: [] },
+                threat_prevention: { enabled: false, eicar_endpoint: 'http://192.168.203.100/eicar.com.txt', eicar_endpoints: ['http://192.168.203.100/eicar.com.txt'] },
+                scheduled_execution: {
+                    url: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
+                    dns: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
+                    threat: { enabled: false, interval_minutes: 120, last_run_time: null, next_run_time: null }
+                },
+                statistics: { total_tests_run: 0, url_tests_blocked: 0, url_tests_allowed: 0, dns_tests_blocked: 0, dns_tests_sinkholed: 0, dns_tests_allowed: 0, threat_tests_blocked: 0, threat_tests_allowed: 0, last_test_time: null },
+                test_history: []
+            };
+        }
     }
 };
 

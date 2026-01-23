@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.28] - 2026-01-23
+
+### Fixed - Critical Robustness for Security Scheduler 🛠️
+- **Bulletproof Migration**: Enhanced migration logic in `server.ts` to handle extremely old configuration formats (including legacy boolean schedulers) and corrupt JSON.
+- **Frontend Crash Prevention**: Fixed a bug where the UI would crash and fail to render the scheduler if the server migration encountered issues.
+- **Improved Logging**: Added server-side logs to track migration steps and errors.
+- **Default Fallbacks**: Guaranteed valid configuration objects are returned even on major reading errors.
+
 ## [1.1.0-patch.27] - 2026-01-23
 
 ### Fixed - Security Scheduler Migration 🛠️
