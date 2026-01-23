@@ -459,5 +459,5 @@ Add applications gradually and verify they're reachable before adding more.
 
 ---
 
-**Last Updated:** 2026-01-19  
-**Version:** 1.1.0
+**Last Updated:** 2026-01-23  
+**Version:** 1.1.0-patch.30

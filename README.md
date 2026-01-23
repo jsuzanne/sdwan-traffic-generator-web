@@ -17,6 +17,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **Realistic Traffic Patterns** - Authentic HTTP requests with proper headers, User-Agents, and Referers
 - **Real-time Dashboard** - Live traffic visualization, metrics, and status monitoring
 - **Weighted Distribution** - Configure application traffic ratios using a visual Group/App percentage system
+- **Traffic Rate Control** - Dynamically adjust generation speed from 0.1s to 5s delay via a slider
 - **Protocol & IP Flexibility** - Support for explicit `http://` or `https://` and full IP address identification
 - **Multi-interface Support** - Bind to specific network interfaces
 
@@ -31,6 +32,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **Real-time Logs** - Live log streaming with WebSocket updates
 - **Statistics Dashboard** - Success/failure rates, latency metrics, bandwidth tracking
 - **Persistent Logging** - JSONL storage with 7-day retention and auto-rotation
+- **Resource Monitoring** - Real-time CPU and RAM usage tracking directly in the dashboard
 - **Search & Filter** - Find specific tests quickly with powerful search
 - **Export Capabilities** - Download results in JSON, CSV, or JSONL format
 

@@ -4,7 +4,7 @@
 
 The Security Testing feature enables controlled testing of Palo Alto Networks / Prisma Access security policies for demos and POCs. It provides automated testing of URL Filtering, DNS Security, and Threat Prevention capabilities.
 
-**Version:** 1.1.0-patch.26  
+**Version:** 1.1.0-patch.30  
 **Last Updated:** 2026-01-23
 
 ---
@@ -110,7 +110,7 @@ Independent Scheduler (URL, DNS, or Threat) triggers
 ### File Location
 `config/security-tests.json`
 
-### Schema (v1.1.0-patch.26)
+### Schema (v1.1.0-patch.30)
 
 ```json
 {
@@ -528,10 +528,11 @@ Defined in `web-dashboard/src/data/security-categories.ts`
    - For example, you can run DNS tests every 5 minutes while running URL tests every 60 minutes.
    - Each job updates its own `last_run_time` and `next_run_time` upon execution.
 
-3. **Test Limits (Batching):**
+3. **Test Limits (Batching) & Visibility:**
    - **URL Filtering Scheduler:** Picks **5 random enabled categories** per run.
    - **DNS Security Scheduler:** Picks **5 random enabled domains** per run.
    - **Threat Prevention Scheduler:** Tests **all configured EICAR endpoints** (typically 1-3).
+   - **Next Run Visibility:** The UI displays the exact time of the next scheduled test for each category (e.g., "Prochain test à 14:35").
    - *Manual batch runs* still execute ALL enabled tests at once.
 
 4. **Configuration Changes:**
@@ -743,6 +744,6 @@ For issues or questions:
 
 ---
 
-**Document Version:** 1.1  
-**Feature Version:** 1.1.0-patch.26  
+**Document Version:** 1.2  
+**Feature Version:** 1.1.0-patch.30  
 **Last Updated:** 2026-01-23
