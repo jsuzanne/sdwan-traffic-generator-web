@@ -126,13 +126,18 @@ export default function Voice({ token }: VoiceProps) {
         // Get all calls that have ended
         const endedIds = new Set(calls.filter(c => c.event === 'end').map(c => c.call_id));
 
+        // Find the latest timestamp in the logs as a reference point (to avoid timezone/clock skew issues)
+        const latestLogTime = calls.length > 0
+            ? Math.max(...calls.map(c => new Date(c.timestamp).getTime()))
+            : 0;
+
         // Find starts that don't have a corresponding end
         calls.forEach(c => {
             if (c.event === 'start' && !endedIds.has(c.call_id)) {
-                // Ghost call protection: ignore if started more than 30 mins ago
+                // Ghost call protection: ignore if started much earlier than the latest log entry
                 const startTime = new Date(c.timestamp).getTime();
-                const now = Date.now();
-                const isVeryOld = (now - startTime) > (30 * 60 * 1000); // 30 mins
+                const buffer = 60 * 60 * 1000; // 60 mins buffer relative to latest log
+                const isVeryOld = latestLogTime > 0 && (latestLogTime - startTime) > buffer;
 
                 if (!isVeryOld) {
                     active.push(c);

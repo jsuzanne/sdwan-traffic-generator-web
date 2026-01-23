@@ -57,8 +57,12 @@
     *   **Patch 46** :
         *   **HOTFIX Orchestrator** : Restauration des constantes `STATS_FILE` et `CONTROL_FILE` accidentellement supprimées dans la v45. La voix est de nouveau fonctionnelle.
     *   **Patch 47** :
-        *   **Stable Labels** : Mise à jour du workflow GitHub pour taguer automatiquement toutes les images en `:stable` lors de la création d'une version technique.
+        *   **Versions Alignement** : Tous les containers affichent maintenant la même version (47).
+        *   **Workflow Change** : Le tag `:stable` n'est plus automatique. Utilisez le bouton "Run Workflow" sur GitHub pour promouvoir un patch en stable.
+    *   **Patch 48** :
+        *   **FIX Final Active Calls** : Suppression définitive de la dépendance à l'heure locale du navigateur. Le nettoyage des appels "fantômes" se base maintenant sur le temps relatif des logs (immune au clock-skew).
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.47)**.
-2.  Faire un `docker compose pull` sur **toutes les machines**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.48)**.
+2.  Faire un `docker compose pull` sur **toute la pile**.
+3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.
