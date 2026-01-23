@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Config from './Config';
@@ -495,70 +495,72 @@ export default function App() {
       {view === 'dashboard' ? (
         <>
           {/* Traffic Control Panel */}
-          <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-6 mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Activity size={24} className={trafficRunning ? "text-green-400" : "text-slate-500"} />
+          <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-5 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              {/* Part 1: Status */}
+              <div className="min-w-[200px]">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Activity size={20} className={trafficRunning ? "text-green-400 animate-pulse" : "text-slate-500"} />
                   Traffic Generation
                 </h3>
-                <p className="text-slate-400 text-sm mt-1">
+                <p className="text-slate-400 text-xs mt-1">
                   Status: <span className={trafficRunning ? "text-green-400 font-semibold" : "text-slate-500"}>{trafficRunning ? 'Active' : 'Paused'}</span>
                   {' • '}
-                  Configuration: <span className={configValid ? "text-green-400" : "text-yellow-400"}>{configValid ? 'Valid' : 'Required'}</span>
+                  Config: <span className={configValid ? "text-green-400" : "text-yellow-400"}>{configValid ? 'Valid' : 'Required'}</span>
                 </p>
               </div>
 
+              {/* Part 2: Integrated Slider */}
+              <div className="flex-1 max-w-md bg-slate-900/40 p-3 rounded-lg border border-white/5">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Speed Control</span>
+                    <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                      {trafficRate <= 0.5 ? '🚀 Turbo' : trafficRate <= 2 ? '⚡ Fast' : trafficRate <= 5 ? '📱 Normal' : '🐢 Slow'}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono text-slate-400">{trafficRate}s delay</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">🚀</span>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="10"
+                    step="0.5"
+                    value={trafficRate}
+                    disabled={updatingRate}
+                    onChange={(e) => updateTrafficRate(parseFloat(e.target.value))}
+                    className="flex-1 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all"
+                  />
+                  <span className="text-lg">🐢</span>
+                </div>
+              </div>
+
+              {/* Part 3: Action Button */}
               <button
                 onClick={handleTrafficToggle}
                 disabled={!configValid}
                 className={cn(
-                  "px-8 py-3 rounded-lg font-semibold transition-all shadow-lg",
+                  "px-6 py-3 rounded-lg font-bold transition-all shadow-lg flex items-center gap-2 min-w-[160px] justify-center",
                   trafficRunning
                     ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-500/20'
-                    : 'bg-green-600 hover:bg-green-500 text-white shadow-green-500/20 disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-500 text-white shadow-green-500/20 disabled:bg-slate-800 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed'
                 )}
               >
-                {trafficRunning ? '⏸ Stop Traffic' : '▶ Start Traffic'}
+                {trafficRunning ? <><Pause size={18} fill="currentColor" /> Stop Traffic</> : <><Play size={18} fill="currentColor" /> Start Traffic</>}
               </button>
             </div>
 
             {!configValid && (
-              <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                <p className="text-yellow-400 text-sm flex items-center gap-2">
-                  <AlertCircle size={16} />
-                  Please configure at least one network interface in the <button onClick={() => setView('config')} className="underline font-semibold hover:text-yellow-300">Configuration</button> tab before starting traffic generation.
+              <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                <p className="text-yellow-400 text-xs flex items-center gap-2">
+                  <AlertCircle size={14} />
+                  Configure an interface in <button onClick={() => setView('config')} className="underline font-semibold hover:text-yellow-300 ml-1">Configuration</button> to enable traffic.
                 </p>
               </div>
             )}
-
-            {/* Traffic Rate Slider */}
-            <div className="mt-6 pt-6 border-t border-purple-500/20">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Activity size={16} className="text-purple-400" />
-                  <span className="text-sm font-medium text-slate-300">Traffic Generation Rate</span>
-                </div>
-                <span className="text-sm font-bold text-blue-400">
-                  {trafficRate <= 0.2 ? '🔥 Ultra Fast' : trafficRate <= 0.5 ? '⚡ Fast' : trafficRate <= 1.5 ? '📱 Normal' : '🐢 Slow'}
-                  ({trafficRate}s delay)
-                </span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Fast</span>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="5"
-                  step="0.1"
-                  value={trafficRate}
-                  disabled={updatingRate}
-                  onChange={(e) => updateTrafficRate(parseFloat(e.target.value))}
-                  className="flex-1 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                />
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Slow</span>
-              </div>
-            </div>
           </div>
 
           {/* Network Monitoring */}
