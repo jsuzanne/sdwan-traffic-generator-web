@@ -92,8 +92,10 @@
     *   **Patch 60** :
         *   **ZERO POLLUTION** : L'orchestrateur repart d'une "page blanche" à chaque démarrage (compteur reset à 1, logs vidés, simulation désactivée par défaut).
         *   **UI SYNC** : Suppression de toute la logique de session complexe côté Dashboard. Si c'est dans le log, c'est que c'est l'activité actuelle. Zéro confusion, 100% de synchronisation.
+    *   **Patch 61** :
+        *   **FLOW SEPARATION** : Suppression du port source fixe (5060). Chaque appel utilise désormais un port aléatoire, permettant au serveur cible de distinguer chaque appel individuellement et au SD-WAN de mieux répartir le trafic.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.60)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.61)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.

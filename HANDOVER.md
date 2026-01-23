@@ -1,15 +1,15 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
 ## 🎯 Current Status (as of 2026-01-23)
-We are currently at version **v1.1.0-patch.60**.
-Finalized 'Clean Slate' architecture for 100% UI accuracy.
+We are currently at version **v1.1.0-patch.61**.
+Finalized voice simulation with unique UDP flows for deep visibility.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **Zero Pollution (v60)**: Orchestrator now truncates stats logs and resets counters on every startup. This guarantees that anything shown in the UI is from the current run.
-2.  **UI Sync**: Simplified Dashboard logic to match the clean logs. No more session filtering needed.
-3.  **Deep Inspection**: Call IDs are embedded in RTP payloads and decoded by the Echo server.
-4.  **Host Networking**: Implemented for native performance.
-5.  **Build Stability**: Switched to Amazon ECR Public mirrors to avoid Docker Hub rate limits.
+1.  **Flow Separation (v61)**: Removed hardcoded source port 5060. Calls now use unique source ports, allowing the Echo server to correctly log and track multiple simultaneous calls.
+2.  **Zero Pollution (v60)**: Orchestrator truncates logs and resets counters on startup.
+3.  **Deep Inspection**: Call IDs are embedded in RTP payloads.
+4.  **Host Networking**: Implemented for native Scapy performance.
+5.  **Build Stability**: Switched to Amazon ECR Public mirrors.
 
 ## 🚀 Immediate Next Steps
 1.  **Verify v56**: Ensure the build passes and the host networking mode doesn't create port conflicts (unlikely).

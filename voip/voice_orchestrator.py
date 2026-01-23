@@ -147,7 +147,6 @@ def start_call(server, interface):
         "python3", "rtp.py",
         "-D", host,
         "-dport", port,
-        "-sport", "5060",
         "--min-count", str(num_packets),
         "--max-count", str(num_packets + 1),
         "--source-interface", interface,
