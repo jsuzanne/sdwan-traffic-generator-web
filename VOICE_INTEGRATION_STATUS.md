@@ -77,8 +77,11 @@
         *   **FIX Orchestrator Crash** : Installation du package `iputils-ping` dans le container voix. L'orchestrateur ne plante plus au démarrage lorsqu'il tente de vérifier la joignabilité des cibles.
     *   **Patch 54** :
         *   **DOCUMENTATION** : Mise à jour du `VOICE_SIMULATION.md` avec les instructions d'installation de Docker sur les cibles et des exemples de logs pour le debugging.
+    *   **Patch 55** :
+        *   **RTP SILENT MODE** : Nettoyage radical des logs du simulateur. Tous les avertissements Scapy (`SyntaxWarning`, `iface has no effect`) sont désormais masqués. On ne voit plus que l'essentiel.
+        *   **L3 Optimized** : Envoi direct via la pile IP de l'OS pour une compatibilité maximale sans broadcast.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.54)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.55)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.

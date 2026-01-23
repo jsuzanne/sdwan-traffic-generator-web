@@ -2,20 +2,19 @@
 import time
 import argparse
 import random
-
-# Set log level to benefit from Scapy warnings
 import logging
+import warnings
 
-from scapy.layers.inet import IP, UDP
-from scapy.layers.l2 import Ether
-from scapy.layers.rtp import RTP
-from scapy.packet import Raw
-from scapy.sendrecv import send, sendp
-
+# Disable all warnings for clean container logs
+warnings.filterwarnings("ignore")
 logging.getLogger("scapy").setLevel(logging.ERROR)
 
-if __name__ == "__main__":
+from scapy.layers.inet import IP, UDP
+from scapy.layers.rtp import RTP
+from scapy.packet import Raw
+from scapy.sendrecv import send
 
+if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser()
 
@@ -34,8 +33,7 @@ if __name__ == "__main__":
                                     "the kernel will auto-select.", type=int,
                                default=0)
     binding_group.add_argument("--source-interface",
-                               help="Source interface RTP stream. If not specified, "
-                                    "the kernel will auto-select.", type=str,
+                               help="Source interface RTP stream. (Ignored for L3 send)", type=str,
                                default=None)
     options_group = parser.add_argument_group('Options', "Configurable options for traffic sending.")
     options_group.add_argument("--min-count", "-C", help="Minimum number of packets to send (Default 4500)",
@@ -61,25 +59,26 @@ if __name__ == "__main__":
     source_port = args['source_port']
     if source_port == 0:
         source_port = random.randrange(10000, 65535)
-    # delete IP and UDP checksum so that they can be re computed.
+
+    # Pre-build packet template for performance
+    if args['source_ip'] is None:
+        base_packet = IP(dst=args['destination_ip'], proto=17, len=240)
+    else:
+        base_packet = IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
+        
+    base_packet = base_packet/UDP(sport=source_port, dport=args['destination_port'], len=220)
+
+    # Sending loop
     for i in range(1, count, 1):
-        if args['source_ip'] is None:
-            packet = IP(dst=args['destination_ip'], proto=17, len=240)
-        else:
-            packet = IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
-            
-        # do this for all streams
-        packet = packet/UDP(sport=source_port, dport=args['destination_port'], len=220)
-        packet = packet/RTP(version=2, payload_type=8, sequence=i, sourcesync=1, timestamp=int(time.time()))
+        packet = base_packet/RTP(version=2, payload_type=8, sequence=i, sourcesync=1, timestamp=int(time.time()))
         packet = packet/Raw(load=b"".join(udp_payload))
 
         del packet[IP].chksum
         del packet[UDP].chksum
 
-        # Send using Layer 3 (Standard IP) - Let OS handle MAC/ARP resolution
-        send(packet, iface=args['source_interface'], verbose=False)
+        # Send using Layer 3 (Standard IP) - Let OS handle MAC/ARP/Interface
+        # We don't pass iface here to avoid Scapy 'SyntaxWarning'
+        send(packet, verbose=False)
         time.sleep(0.03)
 
-    # enable these for additional debugs
-    # print(packet.show())
-    # print("Sending the above packet on interface {0}".format(args['source_interface']))
+    print("Call finished.")
