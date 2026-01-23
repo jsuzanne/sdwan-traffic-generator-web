@@ -17,6 +17,8 @@ env:
   REGISTRY: docker.io
   WEB_UI_IMAGE: jsuzanne/sdwan-web-ui
   TRAFFIC_GEN_IMAGE: jsuzanne/sdwan-traffic-gen
+  VOICE_GEN_IMAGE: jsuzanne/sdwan-voice-gen
+  VOICE_ECHO_IMAGE: jsuzanne/sdwan-voice-echo
 
 jobs:
   promote-to-stable:
@@ -41,6 +43,18 @@ jobs:
           docker pull ${{ env.TRAFFIC_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }}
           docker tag ${{ env.TRAFFIC_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.TRAFFIC_GEN_IMAGE }}:stable
           docker push ${{ env.TRAFFIC_GEN_IMAGE }}:stable
+
+      - name: Tag and Push Stable - Voice Generator
+        run: |
+          docker pull ${{ env.VOICE_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }}
+          docker tag ${{ env.VOICE_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.VOICE_GEN_IMAGE }}:stable
+          docker push ${{ env.VOICE_GEN_IMAGE }}:stable
+
+      - name: Tag and Push Stable - Voice Echo
+        run: |
+          docker pull ${{ env.VOICE_ECHO_IMAGE }}:${{ github.event.inputs.version_to_stable }}
+          docker tag ${{ env.VOICE_ECHO_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.VOICE_ECHO_IMAGE }}:stable
+          docker push ${{ env.VOICE_ECHO_IMAGE }}:stable
 
   build:
     name: Build and Push
@@ -69,10 +83,14 @@ jobs:
             VERSION=${GITHUB_REF#refs/tags/v}
             echo "tags=${{ env.WEB_UI_IMAGE }}:latest,${{ env.WEB_UI_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest,${{ env.TRAFFIC_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
+            echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:latest,${{ env.VOICE_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
+            echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:latest,${{ env.VOICE_ECHO_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           else
             echo "tags=${{ env.WEB_UI_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest" >> $GITHUB_OUTPUT
+            echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:latest" >> $GITHUB_OUTPUT
+            echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "version=latest" >> $GITHUB_OUTPUT
           fi
 
@@ -97,6 +115,28 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.tags.outputs.gen_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Voice Generator
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.voice
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.voice_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Voice Echo
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.voice-echo
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.echo_tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -129,6 +169,8 @@ jobs:
             ```bash
             docker pull jsuzanne/sdwan-web-ui:${{ steps.version.outputs.version }}
             docker pull jsuzanne/sdwan-traffic-gen:${{ steps.version.outputs.version }}
+            docker pull jsuzanne/sdwan-voice-gen:${{ steps.version.outputs.version }}
+            docker pull jsuzanne/sdwan-voice-echo:${{ steps.version.outputs.version }}
             ```
             
             ### What's Changed
