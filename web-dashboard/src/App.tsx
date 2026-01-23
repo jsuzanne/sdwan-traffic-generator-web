@@ -617,11 +617,11 @@ export default function App() {
                       <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
                         <div
                           className={cn("h-full transition-all duration-500",
-                            parseFloat(dockerStats.stats.cpu.load) > 0.8 ? "bg-red-500" : "bg-blue-500")}
-                          style={{ width: `${Math.min(100, (parseFloat(dockerStats.stats.cpu.load) / dockerStats.stats.cpu.cores) * 100)}%` }}
+                            parseFloat(dockerStats.stats.cpu.percent) > 80 ? "bg-red-500" : "bg-blue-500")}
+                          style={{ width: `${dockerStats.stats.cpu.percent}%` }}
                         />
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{(parseFloat(dockerStats.stats.cpu.load) * 100).toFixed(0)}%</span>
+                      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.cpu.percent}%</span>
                     </div>
 
                     {/* RAM */}

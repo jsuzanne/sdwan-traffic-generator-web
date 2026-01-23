@@ -51,6 +51,11 @@ const getNextTestId = (): number => {
     }
 };
 
+// Resource Monitoring State
+let prevCpuUsage: number | null = null;
+let prevCpuTimestamp: number | null = null;
+let currentCpuPercent = "0.0";
+
 // Test Logger - Dedicated log file for test execution with rotation
 const TEST_LOG_FILE = path.join(APP_CONFIG.logDir, 'test-execution.log');
 const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
@@ -629,25 +634,28 @@ app.get('/api/status', (req, res) => {
 // API: Traffic Control - Get Status
 app.get('/api/traffic/status', (req, res) => {
     const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
+    const defaultInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0');
+
     if (fs.existsSync(controlFile)) {
         try {
             const control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
             res.json({
                 running: control.enabled || false,
-                sleep_interval: control.sleep_interval || 1.0
+                sleep_interval: control.sleep_interval || defaultInterval
             });
         } catch (e) {
-            res.json({ running: false, sleep_interval: 1.0 });
+            res.json({ running: false, sleep_interval: defaultInterval });
         }
     } else {
-        res.json({ running: false, sleep_interval: 1.0 });
+        res.json({ running: false, sleep_interval: defaultInterval });
     }
 });
 
 // API: Traffic Control - Start
 app.post('/api/traffic/start', (req, res) => {
     const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
-    let control = { enabled: true, sleep_interval: 1.0 };
+    const defaultInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0');
+    let control = { enabled: true, sleep_interval: defaultInterval };
     if (fs.existsSync(controlFile)) {
         try {
             control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
@@ -662,7 +670,8 @@ app.post('/api/traffic/start', (req, res) => {
 // API: Traffic Control - Stop
 app.post('/api/traffic/stop', (req, res) => {
     const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
-    let control = { enabled: false, sleep_interval: 1.0 };
+    const defaultInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0');
+    let control = { enabled: false, sleep_interval: defaultInterval };
     if (fs.existsSync(controlFile)) {
         try {
             control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
@@ -680,7 +689,8 @@ app.post('/api/traffic/settings', authenticateToken, (req, res) => {
     if (typeof sleep_interval !== 'number') return res.status(400).json({ error: 'Invalid sleep_interval' });
 
     const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
-    let control = { enabled: false, sleep_interval: 1.0 };
+    const defaultInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0');
+    let control = { enabled: false, sleep_interval: defaultInterval };
     if (fs.existsSync(controlFile)) {
         try {
             control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
@@ -963,17 +973,35 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
             memoryStats.limit = os.totalmem();
         }
 
-        // 3. CPU Stats (Rough estimate using loadavg or cgroup)
+        // 3. CPU Stats (Delta calculation for container CPU %)
         try {
             const cpuUsageRaw = fs.readFileSync('/sys/fs/cgroup/cpu.stat', 'utf8');
             const lines = cpuUsageRaw.split('\n');
             const usageLine = lines.find(l => l.startsWith('usage_usec'));
             if (usageLine) {
+                const clockNow = Date.now();
                 const microseconds = parseInt(usageLine.split(' ')[1]);
-                cpuUsage = (microseconds / 1000000).toFixed(2) as any; // Cumulative seconds
+
+                if (prevCpuUsage !== null && prevCpuTimestamp !== null) {
+                    const deltaUsage = microseconds - prevCpuUsage;
+                    const deltaTime = (clockNow - prevCpuTimestamp) * 1000; // ms to us
+
+                    if (deltaTime > 0) {
+                        // usage_usec is total microseconds used by all cores.
+                        // So (delta_usec / delta_time_us) gives the average cores usage.
+                        // For a percentage, we divide by cores.
+                        const cores = os.cpus().length;
+                        const usageRatio = deltaUsage / deltaTime;
+                        currentCpuPercent = (Math.min(1.0, usageRatio / cores) * 100).toFixed(1);
+                    }
+                }
+
+                prevCpuUsage = microseconds;
+                prevCpuTimestamp = clockNow;
             }
         } catch (e) {
-            cpuUsage = os.loadavg()[0] as any;
+            // Fallback to load average if cgroups unavailable
+            currentCpuPercent = (os.loadavg()[0] * 10).toFixed(1); // Rough estimate
         }
 
         res.json({
@@ -991,7 +1019,7 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
                     percent: ((memoryStats.usage / memoryStats.limit) * 100).toFixed(1)
                 },
                 cpu: {
-                    load: cpuUsage,
+                    percent: currentCpuPercent,
                     cores: os.cpus().length
                 }
             },
