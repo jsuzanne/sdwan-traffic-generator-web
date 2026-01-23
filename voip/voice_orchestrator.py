@@ -10,12 +10,29 @@ from datetime import datetime
 # Configuration paths (aligned with Docker volumes)
 CONFIG_DIR = os.getenv('CONFIG_DIR', '/app/config')
 LOG_DIR = os.getenv('LOG_DIR', '/var/log/sdwan-traffic-gen')
+VERSION_FILE = '/app/VERSION'  # Optional
+
+def get_version():
+    try:
+        if os.path.exists(VERSION_FILE):
+            with open(VERSION_FILE, 'r') as f:
+                return f.read().strip()
+    except: pass
+    return "1.1.0-patch.35+"
 
 CONTROL_FILE = os.path.join(CONFIG_DIR, 'voice-control.json')
 SERVERS_FILE = os.path.join(CONFIG_DIR, 'voice-servers.txt')
 STATS_FILE = os.path.join(LOG_DIR, 'voice-stats.jsonl')
 
 active_calls = []
+
+def print_banner():
+    version = get_version()
+    print("="*60)
+    print(f"🚀 SD-WAN VOICE ORCHESTRATOR v{version}")
+    print(f"📂 Config: {CONFIG_DIR}")
+    print(f"📝 Logs: {STATS_FILE}")
+    print("="*60)
 
 def load_control():
     try:
@@ -100,6 +117,7 @@ def start_call(server, interface):
             "duration": server['duration']
         }
         log_call("start", call_info)
+        print(f"📞 CALL STARTED: {server['target']} | Codec: {server['codec']} | Duration: {server['duration']}s")
         return {"proc": proc, "info": call_info}
     except Exception as e:
         print(f"Failed to start rtp.py: {e}")
@@ -118,7 +136,7 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 def main():
-    print("Voice Orchestrator started")
+    print_banner()
     global active_calls
     
     while True:
@@ -133,14 +151,21 @@ def main():
                 finished.append(call)
         
         for call in finished:
+            print(f"✅ CALL ENDED: {call['info']['target']}")
             active_calls.remove(call)
             
-        if control.get("enabled") and len(active_calls) < control.get("max_simultaneous_calls", 3):
-            server = pick_server(servers)
-            if server:
-                new_call = start_call(server, control.get("interface", "eth0"))
-                if new_call:
-                    active_calls.append(new_call)
+        if control.get("enabled"):
+            if len(active_calls) < control.get("max_simultaneous_calls", 3):
+                server = pick_server(servers)
+                if server:
+                    new_call = start_call(server, control.get("interface", "eth0"))
+                    if new_call:
+                        active_calls.append(new_call)
+            else:
+                pass # Already at max
+        else:
+            if len(active_calls) > 0:
+                 print(f"⏳ Simulation disabled. Waiting for {len(active_calls)} calls to finish...")
         
         # Determine check interval
         sleep_time = control.get("sleep_between_calls", 5) if control.get("enabled") else 5

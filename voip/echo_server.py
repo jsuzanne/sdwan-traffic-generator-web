@@ -5,15 +5,23 @@ from socket import *
 # UDP Echo Server - Optimized for Docker
 BUFSIZE = 1024
 
+VERSION = "1.1.0-patch.35+"
+
 def run_server(ip, port):
     s = socket(AF_INET, SOCK_DGRAM)
+    packet_count = 0
     try:
         s.bind((ip, port))
-        print(f"UDP echo server ready on {ip}:{port}")
+        print("="*60)
+        print(f"🚀 SD-WAN VOICE ECHO SERVER v{VERSION}")
+        print(f"📡 Listening on: {ip}:{port}")
+        print("="*60)
         while True:
             data, addr = s.recvfrom(BUFSIZE)
-            # Just bounce it back
             s.sendto(data, addr)
+            packet_count += 1
+            if packet_count % 500 == 0:
+                print(f"🔄 Processed {packet_count} packets (Latest from {addr[0]}:{addr[1]})")
     except Exception as e:
         print(f"Server error: {e}")
     finally:
