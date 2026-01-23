@@ -75,8 +75,10 @@
         *   **CRITICAL FIX Ghost Calls** : Introduction d'un `session_id` pour chaque run de l'orchestrateur. Le Dashboard ignore désormais automatiquement les appels "pendus" des sessions précédentes. Plus de 6 appels affichés quand on en demande 3 !
     *   **Patch 53** :
         *   **FIX Orchestrator Crash** : Installation du package `iputils-ping` dans le container voix. L'orchestrateur ne plante plus au démarrage lorsqu'il tente de vérifier la joignabilité des cibles.
+    *   **Patch 54** :
+        *   **DOCUMENTATION** : Mise à jour du `VOICE_SIMULATION.md` avec les instructions d'installation de Docker sur les cibles et des exemples de logs pour le debugging.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.53)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.54)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.
