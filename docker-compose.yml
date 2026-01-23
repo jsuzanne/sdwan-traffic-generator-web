@@ -24,7 +24,7 @@ services:
       - LOG_MAX_SIZE_MB=${LOG_MAX_SIZE_MB:-100}
       - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
     healthcheck:
-      test: ["CMD", "test", "-f", "/app/config/applications.txt"]
+      test: [ "CMD", "test", "-f", "/app/config/applications.txt" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -49,6 +49,35 @@ services:
       web-ui:
         condition: service_healthy
 
+  # Voice Traffic Generator (RTP/Voice)
+  voice-gen:
+    build:
+      context: .
+      dockerfile: Dockerfile.voice
+    container_name: sdwan-voice-gen
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./config:/app/config
+      - traffic_logs:/var/log/sdwan-traffic-gen
+    depends_on:
+      web-ui:
+        condition: service_healthy
+
+  # Voice Echo Server (To be deployed on target machine)
+  voice-echo:
+    image: python:3.9-slim
+    container_name: sdwan-voice-echo
+    restart: unless-stopped
+    ports:
+      - "6100:6100/udp"
+    volumes:
+      - ./voip:/app/voip
+    command: python /app/voip/echo_server.py --port 6100
+
 volumes:
   traffic_logs:
+
 
