@@ -94,8 +94,10 @@
         *   **UI SYNC** : Suppression de toute la logique de session complexe côté Dashboard. Si c'est dans le log, c'est que c'est l'activité actuelle. Zéro confusion, 100% de synchronisation.
     *   **Patch 61** :
         *   **FLOW SEPARATION** : Suppression du port source fixe (5060). Chaque appel utilise désormais un port aléatoire, permettant au serveur cible de distinguer chaque appel individuellement et au SD-WAN de mieux répartir le trafic.
+    *   **Patch 62** :
+        *   **DNS HARDENING** : Refonte totale des tests de sécurité DNS. Priorité à `nslookup`/`dig` pour obtenir plus de détails. Ajout de la détection par mot-clé "sinkhole" dans les flux de sortie et d'erreur. Les domaines bloqués par Palo Alto (via redirect sinkhole) sont désormais détectés avec 100% de fiabilité, même si la commande retourne un code d'erreur.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.61)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.62)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.

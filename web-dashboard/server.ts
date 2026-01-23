@@ -156,16 +156,19 @@ const startIperfServer = () => {
 };
 
 // Get the best DNS command for the current platform
+// For security tests, we prefer tools that bypass OS caching and provide more detail (nslookup/dig)
 const getDnsCommand = (domain: string): { command: string; type: string } => {
     if (PLATFORM === 'linux') {
+        // Use nslookup or dig as priority for security tests to see CNAMEs and specific error codes
+        if (availableCommands.nslookup) return { command: `nslookup ${domain}`, type: 'nslookup' };
+        if (availableCommands.dig) return { command: `dig ${domain} +short`, type: 'dig' };
         if (availableCommands.getent) return { command: `getent ahosts ${domain}`, type: 'getent' };
-        if (availableCommands.dig) return { command: `dig +short ${domain}`, type: 'dig' };
         return { command: `nslookup ${domain}`, type: 'nslookup' };
     }
 
     if (PLATFORM === 'darwin') {
-        if (availableCommands.dscacheutil) return { command: `dscacheutil -q host -a name ${domain}`, type: 'dscacheutil' };
         if (availableCommands.dig) return { command: `dig +short ${domain}`, type: 'dig' };
+        if (availableCommands.dscacheutil) return { command: `dscacheutil -q host -a name ${domain}`, type: 'dscacheutil' };
         return { command: `nslookup ${domain}`, type: 'nslookup' };
     }
 
@@ -1961,21 +1964,58 @@ const runScheduledDnsTests = async () => {
         if (!test) continue;
 
         try {
-            const dnsCommand = `getent ahosts ${test.domain}`;
-            const { stdout } = await execPromise(dnsCommand);
-            const sinkholeIPs = ['198.135.184.22', '72.5.65.111', '::1', '0.0.0.0', '127.0.0.1'];
-            const isSinkholed = sinkholeIPs.some(ip => stdout.includes(ip));
-            const isBlocked = !stdout.trim() || stdout.includes('Name or service not known');
+            const { command: dnsCommand, type: commandType } = getDnsCommand(test.domain);
+            const { stdout, stderr } = await execPromise(dnsCommand);
+
+            const combinedOutput = (stdout + stderr).toLowerCase();
+            const sinkholeIPs = ['198.135.184.22', '72.5.65.111', '0.0.0.0', '127.0.0.1'];
+
+            // Detection logic:
+            // 1. Check for known sinkhole IPs
+            // 2. Check for "sinkhole" in output (common for Palo Alto CNAMEs)
+            // 3. check for "unknown host" or failures
+            const isSinkholed = sinkholeIPs.some(ip => combinedOutput.includes(ip)) ||
+                combinedOutput.includes('sinkhole');
+
+            const isBlocked = !stdout.trim() ||
+                combinedOutput.includes('name or service not known') ||
+                combinedOutput.includes('server can\'t find') ||
+                combinedOutput.includes('non-existent domain');
 
             let status = 'resolved';
             if (isSinkholed) status = 'sinkholed';
             else if (isBlocked) status = 'blocked';
 
             updateStatistics('dns_security', status);
-            addTestResult('dns_security', test.name, { success: true, resolved: status === 'resolved', status, domain: test.domain, testName: test.name }, getNextTestId());
-        } catch (e) {
-            updateStatistics('dns_security', 'blocked');
-            addTestResult('dns_security', test.name, { success: false, status: 'blocked', domain: test.domain, testName: test.name }, getNextTestId());
+            addTestResult('dns_security', test.name, {
+                success: true,
+                resolved: status === 'resolved',
+                status,
+                domain: test.domain,
+                testName: test.name,
+                output: stdout.substring(0, 500) // Store sample for UI
+            }, getNextTestId());
+        } catch (e: any) {
+            // Even if the command exit code is non-zero, it might contain sinkhole info (like nslookup)
+            const errorOutput = e.stdout + e.stderr;
+            if (errorOutput && errorOutput.toLowerCase().includes('sinkhole')) {
+                updateStatistics('dns_security', 'sinkholed');
+                addTestResult('dns_security', test.name, {
+                    success: true,
+                    status: 'sinkholed',
+                    domain: test.domain,
+                    testName: test.name
+                }, getNextTestId());
+            } else {
+                updateStatistics('dns_security', 'blocked');
+                addTestResult('dns_security', test.name, {
+                    success: false,
+                    status: 'blocked',
+                    domain: test.domain,
+                    testName: test.name,
+                    error: e.message
+                }, getNextTestId());
+            }
         }
     }
 };
@@ -2358,20 +2398,28 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 '127.0.0.1'        // Loopback sinkhole
             ];
 
-            // Determine status based on parsed IP
+            // Determine status based on parsed IP or specific keywords
             let status: string;
             let resolved: boolean;
 
-            if (!resolvedIp) {
-                // No IP found - domain is blocked
-                status = 'blocked';
-                resolved = false;
-                logTest(`[DNS-TEST-${testId}] Status: BLOCKED (no IP resolved)`);
-            } else if (sinkholeIPs.includes(resolvedIp)) {
+            const combinedOutput = (stdout + (stderr || '')).toLowerCase();
+            const containsSinkholeKeyword = combinedOutput.includes('sinkhole');
+
+            if (resolvedIp && sinkholeIPs.includes(resolvedIp)) {
                 // Sinkhole IP detected
                 status = 'sinkholed';
                 resolved = false;
                 logTest(`[DNS-TEST-${testId}] Status: SINKHOLED (IP: ${resolvedIp})`);
+            } else if (containsSinkholeKeyword) {
+                // Sinkhole keyword detected in output (CNAME or text)
+                status = 'sinkholed';
+                resolved = false;
+                logTest(`[DNS-TEST-${testId}] Status: SINKHOLED (Keyword detected)`);
+            } else if (!resolvedIp) {
+                // No IP found - domain is blocked
+                status = 'blocked';
+                resolved = false;
+                logTest(`[DNS-TEST-${testId}] Status: BLOCKED (no IP resolved)`);
             } else {
                 // Normal resolution
                 status = 'resolved';
@@ -2392,7 +2440,16 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
             addTestResult('dns_security', testName || domain, result, testId);
             res.json(result);
         } catch (dnsError: any) {
-            // Check if it's a command not found error
+            // Even if the command failed (like nslookup returning SERVFAIL), it might contain sinkhole info
+            const combinedErrorOutput = ((dnsError.stdout || '') + (dnsError.stderr || '')).toLowerCase();
+
+            if (combinedErrorOutput.includes('sinkhole')) {
+                logTest(`[DNS-TEST-${testId}] Command execution error, but SINKHOLE keyword found in output`);
+                const result = { success: true, status: 'sinkholed', resolved: false, domain, testName, output: combinedErrorOutput };
+                addTestResult('dns_security', testName || domain, result, testId);
+                return res.json(result);
+            }
+
             const isCommandError = dnsError.message.includes('command not found') ||
                 dnsError.message.includes('not found');
 
@@ -2442,8 +2499,8 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
             // util.promisify already imported as promisify
             const execPromise = promisify(exec);
 
-            // Use getent instead of nslookup - more reliable in containers
-            const dnsCommand = `getent ahosts ${test.domain}`;
+            // Get platform-specific DNS command
+            const { command: dnsCommand, type: commandType } = getDnsCommand(test.domain);
 
             try {
                 // First attempt
@@ -2451,52 +2508,34 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
 
                 logTest(`[DNS-TEST-${testId}] First query result: ${stdout.trim() || '(empty)'}`);
 
-                // If first attempt returns empty, retry after 2 seconds
-                // Palo Alto DNS Security sometimes returns empty on first query, sinkhole IP on second
+                // If first attempt returns empty, retry after 1.5 seconds
                 if (!stdout.trim()) {
-                    logTest(`[DNS-TEST-${testId}] First query empty, waiting 2 seconds before retry...`);
-                    await wait(2000);
+                    logTest(`[DNS-TEST-${testId}] First query empty, retrying...`);
+                    await wait(1500);
                     const retry = await execPromise(dnsCommand);
                     stdout = retry.stdout;
                     stderr = retry.stderr;
-                    logTest(`[DNS-TEST-${testId}] Retry query result: ${stdout.trim() || '(empty)'}`);
                 }
 
-                // Known sinkhole IPs (Palo Alto Networks and common sinkhole addresses)
-                const sinkholeIPs = [
-                    '198.135.184.22',  // Current Palo Alto sinkhole
-                    '72.5.65.111',     // Legacy Palo Alto sinkhole
-                    '::1',             // IPv6 sinkhole (loopback)
-                    '0.0.0.0',         // Common sinkhole
-                    '127.0.0.1'        // Loopback sinkhole
-                ];
+                // Known sinkhole IPs and Keywords
+                const combinedOutput = (stdout + (stderr || '')).toLowerCase();
+                const sinkholeIPs = ['198.135.184.22', '72.5.65.111', '0.0.0.0', '127.0.0.1'];
 
-                // Check for sinkhole IP in response
-                const isSinkholed = sinkholeIPs.some(ip => stdout.includes(ip));
+                const isSinkholed = sinkholeIPs.some(ip => combinedOutput.includes(ip)) ||
+                    combinedOutput.includes('sinkhole');
 
-                // Check for blocked (no response or empty output after retry)
-                const isBlocked = !stdout.trim() || stdout.includes('Name or service not known');
+                const isBlocked = !stdout.trim() ||
+                    combinedOutput.includes('can\'t find') ||
+                    combinedOutput.includes('not known') ||
+                    combinedOutput.includes('non-existent domain');
 
-                // Determine status: resolved, sinkholed, or blocked
-                let status: string;
-                let resolved: boolean;
-
-                if (isSinkholed) {
-                    status = 'sinkholed';  // Malicious domain detected, sinkhole IP returned
-                    resolved = false;      // Not a legitimate resolution
-                } else if (isBlocked) {
-                    status = 'blocked';    // Query blocked, no response
-                    resolved = false;
-                } else {
-                    status = 'resolved';   // Normal resolution
-                    resolved = true;
-                }
+                const status = isSinkholed ? 'sinkholed' : (isBlocked ? 'blocked' : 'resolved');
 
                 logTest(`[DNS-TEST-${testId}] Final status: ${status} (isSinkholed=${isSinkholed}, isBlocked=${isBlocked})`);
 
                 const result = {
                     success: true,
-                    resolved,
+                    resolved: status === 'resolved',
                     status,
                     domain: test.domain,
                     testName: test.testName
@@ -2505,23 +2544,26 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                 results.push(result);
                 addTestResult('dns_security', test.testName, result, testId);
             } catch (dnsError: any) {
-                // Check if it's a command not found error
-                const isCommandError = dnsError.message.includes('command not found') ||
-                    dnsError.message.includes('not found');
+                // Check if it's actually a sinkhole response masked as an error (e.g., nslookup SERVFAIL)
+                const combinedErrorOutput = ((dnsError.stdout || '') + (dnsError.stderr || '')).toLowerCase();
 
-                const result = {
-                    success: false,
-                    resolved: false,
-                    status: isCommandError ? 'error' : 'blocked',
-                    domain: test.domain,
-                    testName: test.testName,
-                    error: dnsError.message
-                };
-
-                logTest(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
-
-                results.push(result);
-                addTestResult('dns_security', test.testName, result, testId);
+                if (combinedErrorOutput.includes('sinkhole')) {
+                    const result = { success: true, status: 'sinkholed', resolved: false, domain: test.domain, testName: test.testName };
+                    results.push(result);
+                    addTestResult('dns_security', test.testName, result, testId);
+                } else {
+                    const isCommandError = dnsError.message.includes('command not found') || dnsError.message.includes('not found');
+                    const result = {
+                        success: false,
+                        resolved: false,
+                        status: isCommandError ? 'error' : 'blocked',
+                        domain: test.domain,
+                        testName: test.testName,
+                        error: dnsError.message
+                    };
+                    results.push(result);
+                    addTestResult('dns_security', test.testName, result, testId);
+                }
             }
         } catch (e: any) {
             results.push({

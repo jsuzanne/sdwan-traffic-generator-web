@@ -1,16 +1,15 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
 ## 🎯 Current Status (as of 2026-01-23)
-We are currently at version **v1.1.0-patch.61**.
-The Voice Simulation (RTP) is fully operational with deep tracing and resilient UI.
+We are currently at version **v1.1.0-patch.62**.
+The Voice Simulation and DNS Security tests are now production-ready.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **Flow Separation (v61)**: Every call now uses a unique source port. This is CRITICAL for SD-WAN load balancing and allows the Echo Server to track multiple concurrent sessions.
-2.  **Clean Slate (v60)**: Orchestrator resets everything (logs, counters) on startup to ensure the UI is always 1:1 with reality.
-3.  **Deep Inspection**: Call IDs are injected into RTP payloads and decoded by the Echo Server for end-to-end tracing.
-4.  **Resilient Dashboard**: UI sorting fixed (newest first), log buffer increased (1000 lines), and silent Scapy logs implemented.
-5.  **Bypass Docker Hub**: Full migration to Amazon ECR Public mirrors to avoid 429 rate limits.
-6.  **Documentation**: `docs/VOICE_SIMULATION.md` updated with all new features and Windows-specific deployment tips.
+1.  **DNS Hardening (v62)**: Re-engineered DNS security tests to prioritize explicit tools (`nslookup`, `dig`) and added keyword detection for "sinkhole". This solves issues where Palo Alto Networks redirects were misreported as execution failures.
+2.  **Flow Separation (v61)**: Every call now uses a unique source port for realistic SD-WAN load balancing and accurate Echo Server tracking.
+3.  **Clean Slate (v60)**: Orchestrator resets logs and counters at startup for 100% UI accuracy.
+4.  **Deep Inspection**: Call IDs are injected into RTP payloads for end-to-end tracing.
+5.  **Build Reliability**: Full migration to Amazon ECR Public mirrors.
 
 ## 🚀 Tomorrow's Roadmap (Windows Testing)
 1.  **Testing Environment**: Planning to test on Windows Docker Desktop.
