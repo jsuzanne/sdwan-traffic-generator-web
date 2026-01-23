@@ -58,7 +58,9 @@ if __name__ == "__main__":
     count = random.randrange(min_count, max_count)
     print("sending: {0} packets".format(count))
 
-    source_port = random.randrange(10000, 65535)
+    source_port = args['source_port']
+    if source_port == 0:
+        source_port = random.randrange(10000, 65535)
     # delete IP and UDP checksum so that they can be re computed.
     for i in range(1, count, 1):
 
