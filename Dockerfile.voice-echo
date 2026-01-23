@@ -9,5 +9,5 @@ COPY voip/echo_server.py /app/echo_server.py
 EXPOSE 6100/udp
 
 # Run the server
-ENTRYPOINT ["python", "echo_server.py"]
+ENTRYPOINT ["python3", "-u", "echo_server.py"]
 CMD ["--port", "6100"]

@@ -22,4 +22,4 @@ COPY voip/voice_orchestrator.py /app/voice_orchestrator.py
 RUN chmod +x /app/rtp.py
 
 # Runtime permissions are handled via docker-compose (cap_add)
-CMD ["python", "voice_orchestrator.py"]
+CMD ["python3", "-u", "voice_orchestrator.py"]
