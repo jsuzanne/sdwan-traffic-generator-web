@@ -10,6 +10,7 @@ import os from 'os';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { TestLogger, TestResult } from './test-logger.js';
+import { URL_CATEGORIES, DNS_TEST_DOMAINS } from './shared/security-categories.js';
 
 // Fix for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -631,29 +632,65 @@ app.get('/api/traffic/status', (req, res) => {
     if (fs.existsSync(controlFile)) {
         try {
             const control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
-            res.json({ running: control.enabled || false });
+            res.json({
+                running: control.enabled || false,
+                sleep_interval: control.sleep_interval || 1.0
+            });
         } catch (e) {
-            res.json({ running: false });
+            res.json({ running: false, sleep_interval: 1.0 });
         }
     } else {
-        res.json({ running: false });
+        res.json({ running: false, sleep_interval: 1.0 });
     }
 });
 
 // API: Traffic Control - Start
 app.post('/api/traffic/start', (req, res) => {
     const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
-    fs.writeFileSync(controlFile, JSON.stringify({ enabled: true }, null, 2), 'utf8');
+    let control = { enabled: true, sleep_interval: 1.0 };
+    if (fs.existsSync(controlFile)) {
+        try {
+            control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
+            control.enabled = true;
+        } catch (e) { }
+    }
+    fs.writeFileSync(controlFile, JSON.stringify(control, null, 2), 'utf8');
     console.log('Traffic generation started via API');
-    res.json({ success: true, running: true });
+    res.json({ success: true, running: true, sleep_interval: control.sleep_interval });
 });
 
 // API: Traffic Control - Stop
 app.post('/api/traffic/stop', (req, res) => {
     const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
-    fs.writeFileSync(controlFile, JSON.stringify({ enabled: false }, null, 2), 'utf8');
+    let control = { enabled: false, sleep_interval: 1.0 };
+    if (fs.existsSync(controlFile)) {
+        try {
+            control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
+            control.enabled = false;
+        } catch (e) { }
+    }
+    fs.writeFileSync(controlFile, JSON.stringify(control, null, 2), 'utf8');
     console.log('Traffic generation stopped via API');
-    res.json({ success: true, running: false });
+    res.json({ success: true, running: false, sleep_interval: control.sleep_interval });
+});
+
+// API: Traffic Control - Settings
+app.post('/api/traffic/settings', authenticateToken, (req, res) => {
+    const { sleep_interval } = req.body;
+    if (typeof sleep_interval !== 'number') return res.status(400).json({ error: 'Invalid sleep_interval' });
+
+    const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
+    let control = { enabled: false, sleep_interval: 1.0 };
+    if (fs.existsSync(controlFile)) {
+        try {
+            control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
+        } catch (e) { }
+    }
+
+    control.sleep_interval = Math.max(0.01, Math.min(60, sleep_interval));
+    fs.writeFileSync(controlFile, JSON.stringify(control, null, 2), 'utf8');
+    console.log(`Traffic sleep_interval updated to ${control.sleep_interval}s`);
+    res.json({ success: true, settings: control });
 });
 
 // API: Get Stats
@@ -899,34 +936,70 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
     });
 });
 
-// API: Docker Network Statistics
+// API: Docker Statistics (Network, CPU, RAM)
 app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) => {
     try {
         const execPromise = promisify(exec);
+        let networkStats = { received_bytes: 0, transmitted_bytes: 0 };
+        let cpuUsage = 0;
+        let memoryStats = { usage: 0, limit: 0 };
 
-        // Get container network stats from /sys/class/net
-        const { stdout } = await execPromise('cat /sys/class/net/eth0/statistics/rx_bytes /sys/class/net/eth0/statistics/tx_bytes');
-        const [rxBytes, txBytes] = stdout.trim().split('\n').map(Number);
+        // 1. Network Stats
+        try {
+            const { stdout } = await execPromise('cat /sys/class/net/eth0/statistics/rx_bytes /sys/class/net/eth0/statistics/tx_bytes');
+            const [rx, tx] = stdout.trim().split('\n').map(Number);
+            networkStats = { received_bytes: rx, transmitted_bytes: tx };
+        } catch (e) { }
 
+        // 2. Memory Stats (cgroup v2)
+        try {
+            const memoryCurrent = fs.readFileSync('/sys/fs/cgroup/memory.current', 'utf8').trim();
+            const memoryMax = fs.readFileSync('/sys/fs/cgroup/memory.max', 'utf8').trim();
+            memoryStats.usage = parseInt(memoryCurrent);
+            memoryStats.limit = memoryMax === 'max' ? os.totalmem() : parseInt(memoryMax);
+        } catch (e) {
+            // Fallback to OS memory if cgroups not accessible
+            memoryStats.usage = os.totalmem() - os.freemem();
+            memoryStats.limit = os.totalmem();
+        }
+
+        // 3. CPU Stats (Rough estimate using loadavg or cgroup)
+        try {
+            const cpuUsageRaw = fs.readFileSync('/sys/fs/cgroup/cpu.stat', 'utf8');
+            const lines = cpuUsageRaw.split('\n');
+            const usageLine = lines.find(l => l.startsWith('usage_usec'));
+            if (usageLine) {
+                const microseconds = parseInt(usageLine.split(' ')[1]);
+                cpuUsage = (microseconds / 1000000).toFixed(2) as any; // Cumulative seconds
+            }
+        } catch (e) {
+            cpuUsage = os.loadavg()[0] as any;
+        }
 
         res.json({
             success: true,
             stats: {
-                received_bytes: rxBytes,
-                transmitted_bytes: txBytes,
-                received_mb: (rxBytes / 1024 / 1024).toFixed(2),
-                transmitted_mb: (txBytes / 1024 / 1024).toFixed(2),
-                total_mb: ((rxBytes + txBytes) / 1024 / 1024).toFixed(2)
+                network: {
+                    received_bytes: networkStats.received_bytes,
+                    transmitted_bytes: networkStats.transmitted_bytes,
+                    received_mb: (networkStats.received_bytes / 1024 / 1024).toFixed(2),
+                    transmitted_mb: (networkStats.transmitted_bytes / 1024 / 1024).toFixed(2)
+                },
+                memory: {
+                    usage_bytes: memoryStats.usage,
+                    limit_bytes: memoryStats.limit,
+                    percent: ((memoryStats.usage / memoryStats.limit) * 100).toFixed(1)
+                },
+                cpu: {
+                    load: cpuUsage,
+                    cores: os.cpus().length
+                }
             },
             timestamp: Date.now()
         });
     } catch (error: any) {
         console.error('[CONNECTIVITY] Failed to get Docker stats:', error.message);
-        res.json({
-            success: false,
-            error: error.message,
-            stats: null
-        });
+        res.json({ success: false, error: error.message });
     }
 });
 
@@ -1598,8 +1671,15 @@ const runScheduledUrlTests = async () => {
     if (!config || !config.scheduled_execution?.url?.enabled) return;
 
     console.log('Running scheduled URL filtering tests...');
+
+    // Update next run time
+    if (config.scheduled_execution?.url) {
+        config.scheduled_execution.url.last_run_time = Date.now();
+        config.scheduled_execution.url.next_run_time = Date.now() + (config.scheduled_execution.url.interval_minutes * 60 * 1000);
+        saveSecurityConfig(config);
+    }
+
     const execPromise = promisify(exec);
-    const URL_CATEGORIES = (await import('./src/data/security-categories.js' as any)).URL_CATEGORIES;
 
     for (const categoryId of config.url_filtering.enabled_categories) {
         const category = URL_CATEGORIES.find((c: any) => c.id === categoryId);
@@ -1623,8 +1703,15 @@ const runScheduledDnsTests = async () => {
     if (!config || !config.scheduled_execution?.dns?.enabled) return;
 
     console.log('Running scheduled DNS security tests...');
+
+    // Update next run time
+    if (config.scheduled_execution?.dns) {
+        config.scheduled_execution.dns.last_run_time = Date.now();
+        config.scheduled_execution.dns.next_run_time = Date.now() + (config.scheduled_execution.dns.interval_minutes * 60 * 1000);
+        saveSecurityConfig(config);
+    }
+
     const execPromise = promisify(exec);
-    const DNS_TEST_DOMAINS = (await import('./src/data/security-categories.js' as any)).DNS_TEST_DOMAINS;
 
     for (const testId of config.dns_security.enabled_tests) {
         const test = DNS_TEST_DOMAINS.find((t: any) => t.id === testId);
@@ -1655,6 +1742,14 @@ const runScheduledThreatTests = async () => {
     if (!config || !config.scheduled_execution?.threat?.enabled) return;
 
     console.log('Running scheduled threat prevention tests...');
+
+    // Update next run time
+    if (config.scheduled_execution?.threat) {
+        config.scheduled_execution.threat.last_run_time = Date.now();
+        config.scheduled_execution.threat.next_run_time = Date.now() + (config.scheduled_execution.threat.interval_minutes * 60 * 1000);
+        saveSecurityConfig(config);
+    }
+
     const execPromise = promisify(exec);
     const endpoints = config.threat_prevention.eicar_endpoints || [config.threat_prevention.eicar_endpoint];
 
@@ -1675,11 +1770,15 @@ const startSchedulers = () => {
     const config = getSecurityConfig();
     if (!config || !config.scheduled_execution) return;
 
+    let modified = false;
+
     // URL Scheduler
     if (urlTestInterval) clearInterval(urlTestInterval);
     if (config.scheduled_execution.url?.enabled) {
         const interval = (config.scheduled_execution.url.interval_minutes || 15) * 60 * 1000;
         urlTestInterval = setInterval(runScheduledUrlTests, interval);
+        config.scheduled_execution.url.next_run_time = Date.now() + interval;
+        modified = true;
         console.log(`URL security scheduler enabled (every ${config.scheduled_execution.url.interval_minutes} minutes)`);
     }
 
@@ -1688,6 +1787,8 @@ const startSchedulers = () => {
     if (config.scheduled_execution.dns?.enabled) {
         const interval = (config.scheduled_execution.dns.interval_minutes || 15) * 60 * 1000;
         dnsTestInterval = setInterval(runScheduledDnsTests, interval);
+        config.scheduled_execution.dns.next_run_time = Date.now() + interval;
+        modified = true;
         console.log(`DNS security scheduler enabled (every ${config.scheduled_execution.dns.interval_minutes} minutes)`);
     }
 
@@ -1696,8 +1797,12 @@ const startSchedulers = () => {
     if (config.scheduled_execution.threat?.enabled) {
         const interval = (config.scheduled_execution.threat.interval_minutes || 30) * 60 * 1000;
         threatTestInterval = setInterval(runScheduledThreatTests, interval);
+        config.scheduled_execution.threat.next_run_time = Date.now() + interval;
+        modified = true;
         console.log(`Threat prevention scheduler enabled (every ${config.scheduled_execution.threat.interval_minutes} minutes)`);
     }
+
+    if (modified) saveSecurityConfig(config);
 };
 
 const stopAllSchedulers = () => {

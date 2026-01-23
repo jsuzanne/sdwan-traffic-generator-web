@@ -108,10 +108,15 @@ git log --oneline -5          # Verify recent commits look correct
 - Add toast notifications for user actions
 - Handle loading states and errors gracefully
 
-### Shell Scripts
-- Add auto-detection fallbacks (e.g., network interfaces)
-- Support both Linux and macOS when possible
-- Use `#!/bin/bash` shebang
+### Configuration & Migrations 🔄
+- **Robustness First**: When updating global configuration structures (like `security-tests.json`), ALWAYS implement aggressive migration logic in the backend. 
+- **Handle Legacy Formats**: Never assume the existing config file follows the latest schema. Handle legacy booleans, strings, or missing objects explicitly.
+- **Fail Gracefully**: Backend migration should never return `null` or throw errors that crash the API. Always return a valid default object if reading fails.
+- **Frontend Safety**: The UI should never assume data exists. Use optional chaining (`?.`) and provide local fallbacks for deeply nested configuration properties.
+
+### Environment-Specific Testing 🧪
+- **UI Components**: Even if it works perfectly in `npm run dev` (local), ALWAYS verify UI rendering in the Docker container before final validation.
+- **Persistent Storage**: Remember that Docker uses persistent volumes (like `./config`). Test with existing/old config files to verify migrations work as expected.
 
 ---
 

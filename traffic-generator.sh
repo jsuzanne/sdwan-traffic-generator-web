@@ -349,7 +349,10 @@ function main() {
         # Check if traffic generation is enabled
         local control_file="${CONFIG_DIR}/traffic-control.json"
         if [[ -f "$control_file" ]]; then
-            local enabled=$(jq -r '.enabled // false' "$control_file" 2>/dev/null)
+            local control_data=$(cat "$control_file" 2>/dev/null)
+            local enabled=$(echo "$control_data" | jq -r '.enabled // false' 2>/dev/null)
+            SLEEP_BETWEEN_REQUESTS=$(echo "$control_data" | jq -r '.sleep_interval // 1' 2>/dev/null)
+            
             if [[ "$enabled" != "true" ]]; then
                 # Traffic is paused, sleep and check again
                 sleep 5

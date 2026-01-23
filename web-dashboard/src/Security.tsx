@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Play, AlertTriangle, CheckCircle, XCircle, Clock, Download, Trash2, ChevronDown, ChevronUp, Copy, Filter } from 'lucide-react';
-import { URL_CATEGORIES, DNS_TEST_DOMAINS } from './data/security-categories';
+import { URL_CATEGORIES, DNS_TEST_DOMAINS } from '../shared/security-categories';
 
 interface SecurityProps {
     token: string;
@@ -63,32 +63,45 @@ const SchedulerSettings = ({
     // Robustness: ensure we have the expected structure
     const schedule = (config.scheduled_execution as any)[type] || { enabled: false, interval_minutes: 15 };
 
+    const formatTime = (ts: number | null | undefined) => {
+        if (!ts) return null;
+        return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
-        <div className="flex items-center gap-4 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50">
-            <div className="flex items-center gap-2">
-                <Clock size={14} className={schedule.enabled ? "text-blue-400" : "text-slate-500"} />
-                <span className="text-xs font-medium text-slate-400">{title} Schedule:</span>
-            </div>
+        <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-4 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50">
+                <div className="flex items-center gap-2">
+                    <Clock size={14} className={schedule.enabled ? "text-blue-400" : "text-slate-500"} />
+                    <span className="text-xs font-medium text-slate-400">{title} Schedule:</span>
+                </div>
 
-            <div className="flex items-center gap-2">
-                <select
-                    value={schedule.interval_minutes}
-                    onChange={(e) => onUpdate(type, schedule.enabled, parseInt(e.target.value))}
-                    disabled={!schedule.enabled}
-                    className="bg-slate-900 border-slate-700 text-slate-300 text-[10px] rounded p-0.5 focus:ring-blue-500 disabled:opacity-50"
-                >
-                    {[5, 10, 15, 30, 45, 60].map(m => (
-                        <option key={m} value={m}>{m}m</option>
-                    ))}
-                </select>
+                <div className="flex items-center gap-2">
+                    <select
+                        value={schedule.interval_minutes}
+                        onChange={(e) => onUpdate(type, schedule.enabled, parseInt(e.target.value))}
+                        disabled={!schedule.enabled}
+                        className="bg-slate-900 border-slate-700 text-slate-300 text-[10px] rounded p-0.5 focus:ring-blue-500 disabled:opacity-50"
+                    >
+                        {[5, 10, 15, 30, 45, 60].map(m => (
+                            <option key={m} value={m}>{m}m</option>
+                        ))}
+                    </select>
 
-                <button
-                    onClick={() => onUpdate(type, !schedule.enabled, schedule.interval_minutes)}
-                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none ${schedule.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
-                >
-                    <span className={`inline-block h-2 w-2 transform rounded-full bg-white transition-transform ${schedule.enabled ? 'translate-x-4' : 'translate-x-1'}`} />
-                </button>
+                    <button
+                        onClick={() => onUpdate(type, !schedule.enabled, schedule.interval_minutes)}
+                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none ${schedule.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
+                    >
+                        <span className={`inline-block h-2 w-2 transform rounded-full bg-white transition-transform ${schedule.enabled ? 'translate-x-4' : 'translate-x-1'}`} />
+                    </button>
+                </div>
             </div>
+            {schedule.enabled && schedule.next_run_time && (
+                <div className="flex items-center gap-1 text-[10px] text-blue-400/80 font-medium px-2">
+                    <Clock size={10} />
+                    Prochain test à {formatTime(schedule.next_run_time)}
+                </div>
+            )}
         </div>
     );
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Config from './Config';
@@ -40,6 +40,8 @@ export default function App() {
 
   // Traffic Control State
   const [trafficRunning, setTrafficRunning] = useState(false);
+  const [trafficRate, setTrafficRate] = useState(1.0);
+  const [updatingRate, setUpdatingRate] = useState(false);
   const [configValid, setConfigValid] = useState(false);
 
   // Version State
@@ -210,6 +212,7 @@ export default function App() {
       const res = await fetch('/api/traffic/status', { headers: authHeaders() });
       const data = await res.json();
       setTrafficRunning(data.running || false);
+      if (data.sleep_interval) setTrafficRate(data.sleep_interval);
     } catch (e) {
       console.error('Failed to fetch traffic status');
     }
@@ -237,9 +240,29 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         setTrafficRunning(data.running);
+        if (data.sleep_interval) setTrafficRate(data.sleep_interval);
       }
     } catch (e) {
       console.error('Failed to toggle traffic');
+    }
+  };
+
+  const updateTrafficRate = async (val: number) => {
+    if (!token) return;
+    setUpdatingRate(true);
+    try {
+      const res = await fetch('/api/traffic/settings', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sleep_interval: val })
+      });
+      if (res.ok) {
+        setTrafficRate(val);
+      }
+    } catch (e) {
+      console.error('Failed to update traffic rate');
+    } finally {
+      setUpdatingRate(false);
     }
   };
 
@@ -508,6 +531,34 @@ export default function App() {
                 </p>
               </div>
             )}
+
+            {/* Traffic Rate Slider */}
+            <div className="mt-6 pt-6 border-t border-purple-500/20">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Activity size={16} className="text-purple-400" />
+                  <span className="text-sm font-medium text-slate-300">Traffic Generation Rate</span>
+                </div>
+                <span className="text-sm font-bold text-blue-400">
+                  {trafficRate <= 0.2 ? '🔥 Ultra Fast' : trafficRate <= 0.5 ? '⚡ Fast' : trafficRate <= 1.5 ? '📱 Normal' : '🐢 Slow'}
+                  ({trafficRate}s delay)
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Fast</span>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="5"
+                  step="0.1"
+                  value={trafficRate}
+                  disabled={updatingRate}
+                  onChange={(e) => updateTrafficRate(parseFloat(e.target.value))}
+                  className="flex-1 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Slow</span>
+              </div>
+            </div>
           </div>
 
           {/* Network Monitoring */}
@@ -527,7 +578,7 @@ export default function App() {
 
             {/* Compact Summary */}
             <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-6">
                 {/* Connectivity Status */}
                 {connectivity && (
                   <div className="flex items-center gap-2">
@@ -537,9 +588,6 @@ export default function App() {
                         <span className="text-slate-300">
                           {connectivity.results?.filter((r: any) => r.status === 'connected').length || 0}/{connectivity.results?.length || 0} endpoints
                         </span>
-                        {connectivity.latency && (
-                          <span className="text-slate-500">({Math.round(connectivity.latency)}ms avg)</span>
-                        )}
                       </>
                     ) : (
                       <>
@@ -552,11 +600,42 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Docker Stats */}
+                {/* Docker Stats: Network */}
+                {dockerStats?.success && dockerStats.stats.network && (
+                  <div className="flex items-center gap-3 text-slate-400 text-xs">
+                    <span className="flex items-center gap-1"><ChevronDown size={12} className="text-blue-400" /> {dockerStats.stats.network.received_mb} MB</span>
+                    <span className="flex items-center gap-1"><ChevronUp size={12} className="text-purple-400" /> {dockerStats.stats.network.transmitted_mb} MB</span>
+                  </div>
+                )}
+
+                {/* Docker Stats: Resource Monitoring */}
                 {dockerStats?.success && (
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <span>↓ {dockerStats.stats.received_mb} MB</span>
-                    <span>↑ {dockerStats.stats.transmitted_mb} MB</span>
+                  <div className="hidden md:flex items-center gap-6">
+                    {/* CPU */}
+                    <div className="flex items-center gap-2 min-w-[100px]">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold w-8">CPU</span>
+                      <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={cn("h-full transition-all duration-500",
+                            parseFloat(dockerStats.stats.cpu.load) > 0.8 ? "bg-red-500" : "bg-blue-500")}
+                          style={{ width: `${Math.min(100, (parseFloat(dockerStats.stats.cpu.load) / dockerStats.stats.cpu.cores) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{(parseFloat(dockerStats.stats.cpu.load) * 100).toFixed(0)}%</span>
+                    </div>
+
+                    {/* RAM */}
+                    <div className="flex items-center gap-2 min-w-[100px]">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold w-8">RAM</span>
+                      <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={cn("h-full transition-all duration-500",
+                            parseFloat(dockerStats.stats.memory.percent) > 80 ? "bg-red-500" : "bg-purple-500")}
+                          style={{ width: `${dockerStats.stats.memory.percent}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.memory.percent}%</span>
+                    </div>
                   </div>
                 )}
               </div>

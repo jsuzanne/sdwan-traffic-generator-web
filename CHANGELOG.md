@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.30] - 2026-01-23
+
+### Fixed
+- **Critical Crash**: Resolved `ERR_MODULE_NOT_FOUND` in security scheduler by moving shared data to `/shared` directory and updating Docker configurations.
+- **Dynamic Imports**: Switched to static ESM imports for security categories to improve reliability in containerized environments.
+
+### Added
+- **Traffic Rate Control**: New UI slider on the Dashboard to adjust traffic generation speed (0.1s to 5s delay) in real-time.
+- **Resource Monitoring**: Real-time CPU and RAM gauges added to the Network Monitoring panel.
+- **Scheduler "Next Run"**: Display of the next scheduled execution time for URL, DNS, and Threat tests in the Security tab.
+- **Persistence**: Traffic generation settings (run status and speed) are now preserved across container restarts.
+
 ## [1.1.0-patch.29] - 2026-01-23
 
 ### Fixed - Scheduler UI Stability 🛡️
