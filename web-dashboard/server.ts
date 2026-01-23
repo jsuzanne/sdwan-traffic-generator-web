@@ -593,6 +593,12 @@ app.get('/api/connectivity/speedtest', async (req, res) => {
                 timestamp: Date.now()
             });
         }
+    } catch (e) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to run speed test',
+            timestamp: Date.now()
+        });
     }
 });
 

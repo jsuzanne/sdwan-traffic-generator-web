@@ -21,12 +21,26 @@ def get_version():
     except: pass
     return "1.1.0-patch.35+"
 
-CONTROL_FILE = os.path.join(CONFIG_DIR, 'voice-control.json')
-SERVERS_FILE = os.path.join(CONFIG_DIR, 'voice-servers.txt')
-STATS_FILE = os.path.join(LOG_DIR, 'voice-stats.jsonl')
-
+COUNTER_FILE = os.path.join(CONFIG_DIR, 'voice-counter.json')
 active_calls = []
-call_counter = 0
+
+def get_next_call_id():
+    counter = 0
+    try:
+        if os.path.exists(COUNTER_FILE):
+            with open(COUNTER_FILE, 'r') as f:
+                data = json.load(f)
+                counter = data.get('counter', 0)
+    except: pass
+    
+    counter += 1
+    
+    try:
+        with open(COUNTER_FILE, 'w') as f:
+            json.dump({'counter': counter}, f)
+    except: pass
+    
+    return f"CALL-{counter:04d}"
 
 def print_banner():
     version = get_version()
@@ -96,9 +110,7 @@ def pick_server(servers):
     return servers[0]
 
 def start_call(server, interface):
-    global call_counter
-    call_counter += 1
-    call_id = f"CALL-{call_counter:04d}"
+    call_id = get_next_call_id()
     
     # Calculate packet count based on duration and 0.03s sleep in rtp.py
     num_packets = int(server['duration'] / 0.03)

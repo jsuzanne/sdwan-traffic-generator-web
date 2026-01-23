@@ -49,7 +49,12 @@
     *   **Patch 43** :
         *   Ajout du **Speedtest** (via Cloudflare) sur le Dashboard.
         *   Intégration de **Iperf3** : L'application fait maintenant office de **Client** (bouton test) et de **Serveur** (port 5201 exposé).
+    *   **Patch 44** :
+        *   Persistent Call IDs : Le numéro de séquence des appels voix est maintenant sauvegardé sur disque (survit au redémarrage).
+        *   Ghost Call Protection : L'interface ignore les appels orphelins de plus de 30 minutes.
+    *   **Patch 45** :
+        *   **CRITICAL FIX** : Correction d'une erreur de syntaxe (missing catch) dans `server.ts` qui empêchait le Dashboard de démarrer.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.43)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.45)**.
 2.  Faire un `docker compose pull` sur **toutes les machines**.

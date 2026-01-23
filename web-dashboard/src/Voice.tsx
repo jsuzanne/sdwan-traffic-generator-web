@@ -129,7 +129,14 @@ export default function Voice({ token }: VoiceProps) {
         // Find starts that don't have a corresponding end
         calls.forEach(c => {
             if (c.event === 'start' && !endedIds.has(c.call_id)) {
-                active.push(c);
+                // Ghost call protection: ignore if started more than 30 mins ago
+                const startTime = new Date(c.timestamp).getTime();
+                const now = Date.now();
+                const isVeryOld = (now - startTime) > (30 * 60 * 1000); // 30 mins
+
+                if (!isVeryOld) {
+                    active.push(c);
+                }
             }
         });
         return active;
