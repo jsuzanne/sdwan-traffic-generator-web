@@ -109,7 +109,7 @@ def start_call(server, interface):
     ]
     
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proc = subprocess.Popen(cmd)
         call_info = {
             "pid": proc.pid,
             "target": server['target'],
