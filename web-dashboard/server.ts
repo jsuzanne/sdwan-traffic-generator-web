@@ -887,7 +887,7 @@ app.get('/api/voice/stats', authenticateToken, (req, res) => {
         }
         // Read last 100 lines
         const execPromise = promisify(exec);
-        exec(`tail -n 100 ${VOICE_STATS_FILE}`, (error, stdout) => {
+        exec(`tail -n 500 ${VOICE_STATS_FILE}`, (error, stdout) => {
             if (error) return res.json({ success: true, stats: [] });
             const lines = stdout.trim().split('\n').filter(l => l.trim());
             const stats = lines.map(l => JSON.parse(l));

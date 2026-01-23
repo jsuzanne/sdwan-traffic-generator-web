@@ -125,10 +125,6 @@ export default function Voice({ token }: VoiceProps) {
     const activeCalls = React.useMemo(() => {
         const active: VoiceCall[] = [];
 
-        // Find latest session_id in the logs
-        const sessions = calls.filter(c => c.event === 'session_start');
-        const latestSessionId = sessions.length > 0 ? sessions[sessions.length - 1].session_id : null;
-
         // Get all calls that have ended
         const endedIds = new Set(calls.filter(c => c.event === 'end').map(c => c.call_id));
 
@@ -140,18 +136,15 @@ export default function Voice({ token }: VoiceProps) {
         // Find starts that don't have a corresponding end
         calls.forEach(c => {
             if (c.event === 'start' && !endedIds.has(c.call_id)) {
-                // SESSION FILTER: If we have session info, only show calls from the current session
-                const isCurrentSession = !latestSessionId || c.session_id === latestSessionId;
+                const startTime = new Date(c.timestamp).getTime();
 
-                if (isCurrentSession) {
-                    // Ghost call protection (secondary safety)
-                    const startTime = new Date(c.timestamp).getTime();
-                    const buffer = 30 * 60 * 1000; // 30 mins buffer
-                    const isVeryOld = latestLogTime > 0 && (latestLogTime - startTime) > buffer;
+                // If the call started within a reasonable window (2 hours) of the latest log entry
+                // and has no END event, we consider it potentially active.
+                const buffer = 2 * 60 * 60 * 1000;
+                const isRecent = latestLogTime === 0 || (latestLogTime - startTime) < buffer;
 
-                    if (!isVeryOld) {
-                        active.push(c);
-                    }
+                if (isRecent) {
+                    active.push(c);
                 }
             }
         });
