@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import os
 from socket import *
 
 # UDP Echo Server - Optimized for Docker
@@ -11,7 +12,7 @@ def get_version():
             with open('/app/VERSION', 'r') as f:
                 return f.read().strip()
     except: pass
-    return "1.1.0-patch.37"
+    return "1.1.0-patch.47"
 
 def run_server(ip, port):
     version = get_version()

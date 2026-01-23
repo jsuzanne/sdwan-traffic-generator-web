@@ -15,6 +15,7 @@ WORKDIR /app
 # But for a self-contained image, we copy it.
 
 COPY traffic-generator.sh /app/
+COPY VERSION /app/VERSION
 RUN dos2unix /app/traffic-generator.sh && chmod +x /app/traffic-generator.sh
 
 # Create directories

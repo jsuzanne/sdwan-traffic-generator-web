@@ -14,6 +14,14 @@ CONFIG_DIR="${SCRIPT_DIR}/config"
 LOG_DIR="/var/log/sdwan-traffic-gen"
 LOGFILE="${LOG_DIR}/traffic.log"
 STATS_FILE="${LOG_DIR}/stats.json"
+VERSION_FILE="/app/VERSION"
+
+# Get version
+if [[ -f "$VERSION_FILE" ]]; then
+    VERSION=$(cat "$VERSION_FILE")
+else
+    VERSION="1.1.0-patch.47"
+fi
 
 CLIENTID="${1:-client01}"
 MAX_TIMEOUT=15
@@ -28,6 +36,12 @@ B5=10800    # 3h - site persistemment injoignable
 
 # Stats counters
 declare -A APP_COUNTERS
+
+echo "============================================================================"
+echo "🚀 SD-WAN TRAFFIC GENERATOR v${VERSION}"
+echo "📝 Logs: ${LOGFILE}"
+echo "📱 Client ID: ${CLIENTID}"
+echo "============================================================================"
 declare -A APP_ERRORS
 declare -A BACKOFF_LEVEL
 TOTAL_REQUESTS=0

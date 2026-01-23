@@ -19,7 +19,7 @@ def get_version():
             with open(VERSION_FILE, 'r') as f:
                 return f.read().strip()
     except: pass
-    return "1.1.0-patch.35+"
+    return "1.1.0-patch.47"
 
 CONTROL_FILE = os.path.join(CONFIG_DIR, 'voice-control.json')
 SERVERS_FILE = os.path.join(CONFIG_DIR, 'voice-servers.txt')
