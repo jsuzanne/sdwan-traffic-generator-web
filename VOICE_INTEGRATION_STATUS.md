@@ -44,7 +44,12 @@
         *   Amélioration de la lisibilité des logs orchestrateur.
     *   **Patch 40** :
         *   Nettoyage UI : Suppression du cadre "Internet Connectivity" dans l'onglet Security (doublon avec le Dashboard).
+    *   **Patch 42** :
+        *   Fix **Active Calls** : Suppression de la vérification temporelle (Date.now) qui bloquait l'affichage à cause des décalages d'horloge.
+    *   **Patch 43** :
+        *   Ajout du **Speedtest** (via Cloudflare) sur le Dashboard.
+        *   Intégration de **Iperf3** : L'application fait maintenant office de **Client** (bouton test) et de **Serveur** (port 5201 exposé).
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.40)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.43)**.
 2.  Faire un `docker compose pull` sur **toutes les machines**.

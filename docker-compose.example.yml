@@ -18,6 +18,7 @@ services:
     # Change 8080:8080 to 8081:8080 if port 8080 is already in use
     ports:
       - "8080:8080"
+      - "5201:5201"
 
     # Environment Variables
     environment:

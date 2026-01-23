@@ -5,7 +5,7 @@ import Security from './Security';
 import Voice from './Voice';
 import Config from './Config';
 import Login from './Login';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -54,6 +54,13 @@ export default function App() {
   const [networkExpanded, setNetworkExpanded] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(1000);
   const [appConfig, setAppConfig] = useState<any[]>([]);
+  const [speedtestResult, setSpeedtestResult] = useState<any>(null);
+  const [runningSpeedtest, setRunningSpeedtest] = useState(false);
+  const [iperfResult, setIperfResult] = useState<any>(null);
+  const [runningIperf, setRunningIperf] = useState(false);
+  const [showIperfModal, setShowIperfModal] = useState(false);
+  const [iperfTarget, setIperfTarget] = useState('192.168.203.100');
+  const [iperfServerInfo, setIperfServerInfo] = useState<any>(null);
 
   // Rate Calculation State - Use Refs to avoid stale closures in setInterval
   const prevTotalRequestsRef = useRef<number | null>(null);
@@ -331,6 +338,56 @@ export default function App() {
     }
   };
 
+  const runSpeedtest = async () => {
+    if (!token || runningSpeedtest) return;
+    setRunningSpeedtest(true);
+    setSpeedtestResult(null);
+    try {
+      const res = await fetch('/api/connectivity/speedtest', { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) {
+        setSpeedtestResult(data);
+      }
+    } catch (e) {
+      console.error("Speedtest failed");
+    } finally {
+      setRunningSpeedtest(false);
+    }
+  };
+
+  const runIperf = async () => {
+    if (!token || runningIperf) return;
+    setRunningIperf(true);
+    setIperfResult(null);
+    try {
+      const res = await fetch('/api/connectivity/iperf/client', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target: iperfTarget })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIperfResult(data.result);
+        setShowIperfModal(false);
+      } else {
+        alert(data.error || 'Iperf test failed');
+      }
+    } catch (e) {
+      console.error("Iperf failed");
+    } finally {
+      setRunningIperf(false);
+    }
+  };
+
+  const fetchIperfStatus = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/connectivity/iperf/server', { headers: authHeaders() });
+      const data = await res.json();
+      setIperfServerInfo(data);
+    } catch (e) { }
+  };
+
 
   useEffect(() => {
     if (!token) return;
@@ -344,6 +401,7 @@ export default function App() {
     fetchDockerStats();
     fetchConfigUi();
     fetchAppConfig();
+    fetchIperfStatus();
 
     // Poll every refreshInterval (default 1s)
     const interval = setInterval(() => {
@@ -356,6 +414,7 @@ export default function App() {
     // Poll connectivity every 30s (less frequent)
     const connectivityInterval = setInterval(() => {
       fetchConnectivity();
+      fetchIperfStatus();
     }, 30000);
 
     return () => {
@@ -446,6 +505,62 @@ export default function App() {
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowPwdModal(false)} className="px-4 py-2 text-slate-400 hover:text-slate-200">Cancel</button>
               <button onClick={changePassword} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Iperf Client Modal */}
+      {showIperfModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full max-w-md shadow-2xl animate-fade-in">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-purple-500/20 rounded-lg text-purple-400">
+                <Activity size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-100">Iperf Client Test</h3>
+                <p className="text-slate-400 text-xs">Test bandwidth against an iperf3 server</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-8">
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Target IP / Hostname</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 192.168.1.100"
+                  value={iperfTarget}
+                  onChange={e => setIperfTarget(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
+                />
+              </div>
+              <div className="p-3 bg-slate-800/30 rounded-lg border border-slate-800">
+                <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                  Note: The test will run for 5 seconds using TCP. Results will appear in the Network Status bar once complete.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowIperfModal(false)}
+                className="px-6 py-2.5 text-slate-400 hover:text-slate-200 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={runIperf}
+                disabled={runningIperf || !iperfTarget}
+                className={cn(
+                  "px-8 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg",
+                  runningIperf
+                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                    : "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20"
+                )}
+              >
+                {runningIperf ? <><Gauge size={18} className="animate-spin" /> Running...</> : 'Launch Test'}
+              </button>
             </div>
           </div>
         </div>
@@ -579,13 +694,44 @@ export default function App() {
               <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
                 <Wifi size={20} className="text-blue-400" />
                 Network Status
+
+                {/* Iperf Status Badge */}
+                {iperfServerInfo?.running && (
+                  <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded text-[10px] font-bold text-green-400">
+                    <Server size={10} /> IPERF SERVER UP (5201)
+                  </div>
+                )}
               </h3>
-              <button
-                onClick={() => setNetworkExpanded(!networkExpanded)}
-                className="text-slate-400 hover:text-slate-200 transition-colors"
-              >
-                <ChevronDown size={18} className={`transform transition-transform ${networkExpanded ? 'rotate-180' : ''}`} />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={runSpeedtest}
+                  disabled={runningSpeedtest}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                    runningSpeedtest
+                      ? "bg-blue-500/10 text-blue-400 cursor-not-allowed"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700"
+                  )}
+                >
+                  <Gauge size={14} className={runningSpeedtest ? "animate-spin" : ""} />
+                  {runningSpeedtest ? 'Testing...' : 'Speedtest'}
+                </button>
+
+                <button
+                  onClick={() => setShowIperfModal(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all"
+                >
+                  <Activity size={14} />
+                  Iperf Client
+                </button>
+
+                <button
+                  onClick={() => setNetworkExpanded(!networkExpanded)}
+                  className="text-slate-400 hover:text-slate-200 transition-colors ml-2"
+                >
+                  <ChevronDown size={18} className={`transform transition-transform ${networkExpanded ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
             </div>
 
             {/* Compact Summary */}
@@ -609,6 +755,22 @@ export default function App() {
                         </span>
                       </>
                     )}
+                  </div>
+                )}
+
+                {/* Speedtest Result */}
+                {speedtestResult && (
+                  <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                    <Gauge size={12} className="text-blue-400" />
+                    <span className="text-blue-300 font-bold">{speedtestResult.download_mbps} <span className="text-[10px] opacity-70">Mbps</span></span>
+                  </div>
+                )}
+
+                {/* Iperf Result */}
+                {iperfResult && (
+                  <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20">
+                    <Activity size={12} className="text-purple-400" />
+                    <span className="text-purple-300 font-bold">{Math.round(iperfResult.received_mbps || iperfResult.sent_mbps)} <span className="text-[10px] opacity-70">Mbps (iperf)</span></span>
                   </div>
                 )}
 
@@ -735,8 +897,9 @@ export default function App() {
         <Voice token={token!} />
       ) : (
         <Config token={token!} />
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 

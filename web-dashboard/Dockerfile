@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     dnsutils \
     netcat-openbsd \
+    iperf3 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY web-dashboard/package*.json ./

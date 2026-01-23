@@ -118,12 +118,38 @@ const initializeCommands = async () => {
     availableCommands.curl = await checkCommand('curl --version 2>/dev/null');
     availableCommands.ping = await checkCommand('ping -V 2>/dev/null || ping -h 2>/dev/null');
     availableCommands.nc = await checkCommand('nc -h 2>/dev/null || nc -v localhost 1 2>/dev/null');
+    availableCommands.iperf3 = await checkCommand('iperf3 -v 2>/dev/null');
 
     console.log('[PLATFORM] Available commands:', availableCommands);
 
     if (!availableCommands.ping) console.warn('⚠️  WARNING: "ping" command not found. ICMP tests will fail.');
     if (!availableCommands.nc) console.warn('⚠️  WARNING: "nc" (netcat) command not found. TCP port tests will fail.');
     if (!availableCommands.dig && !availableCommands.nslookup) console.warn('⚠️  WARNING: No DNS tool found (dig/nslookup). DNS resolution might fail.');
+
+    // Start iperf3 server if available
+    if (availableCommands.iperf3) {
+        startIperfServer();
+    }
+};
+
+let iperfServerProcess: any = null;
+const startIperfServer = () => {
+    try {
+        console.log('[IPERF] Starting iperf3 server on port 5201...');
+        iperfServerProcess = spawn('iperf3', ['-s', '-p', '5201']);
+
+        iperfServerProcess.on('error', (err: any) => {
+            console.error('[IPERF] Server failed to start:', err.message);
+        });
+
+        iperfServerProcess.stdout.on('data', (data: any) => {
+            // Optional: log or ignore
+        });
+
+        process.on('exit', () => iperfServerProcess?.kill());
+    } catch (e: any) {
+        console.error('[IPERF] Error starting server:', e.message);
+    }
 };
 
 // Get the best DNS command for the current platform
@@ -567,13 +593,54 @@ app.get('/api/connectivity/speedtest', async (req, res) => {
                 timestamp: Date.now()
             });
         }
-    } catch (e) {
-        res.status(500).json({
-            success: false,
-            error: 'Failed to run speed test',
-            timestamp: Date.now()
-        });
     }
+});
+
+// API: Iperf Client
+app.post('/api/connectivity/iperf/client', async (req, res) => {
+    const { target, duration = 5, parallel = 1, reverse = false } = req.body;
+
+    if (!target) {
+        return res.status(400).json({ error: 'Target is required' });
+    }
+
+    if (!availableCommands.iperf3) {
+        return res.status(503).json({ error: 'iperf3 not installed on server' });
+    }
+
+    try {
+        // Basic sanitization for target (very important!)
+        const sanitizedTarget = target.replace(/[^a-zA-Z0-9.-]/g, '');
+        const args = ['-c', sanitizedTarget, '-t', duration.toString(), '-P', parallel.toString(), '-J'];
+        if (reverse) args.push('-R');
+
+        const { stdout } = await promisify(exec)(`iperf3 ${args.join(' ')}`);
+        const result = JSON.parse(stdout);
+
+        res.json({
+            success: true,
+            result: {
+                sent_mbps: (result.end.sum_sent?.bits_per_second / 1000000) || 0,
+                received_mbps: (result.end.sum_received?.bits_per_second / 1000000) || 0,
+                target: sanitizedTarget,
+                timestamp: Date.now()
+            },
+            raw: result
+        });
+    } catch (e: any) {
+        console.error('[IPERF] Client test failed:', e.message);
+        res.status(500).json({ error: 'Iperf test failed', message: e.message });
+    }
+});
+
+// API: Iperf Server Status
+app.get('/api/connectivity/iperf/server', (req, res) => {
+    res.json({
+        success: true,
+        available: availableCommands.iperf3,
+        running: !!iperfServerProcess && !iperfServerProcess.killed,
+        port: 5201
+    });
 });
 
 // Protect sensitive endpoints
