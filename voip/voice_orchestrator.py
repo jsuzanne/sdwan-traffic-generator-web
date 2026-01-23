@@ -112,13 +112,33 @@ def pick_server(servers):
         upto += s['weight']
     return servers[0]
 
+def check_reachability(ip):
+    try:
+        # Quick ping check (1 packet, 1 second timeout)
+        subprocess.check_output(["ping", "-c", "1", "-W", "1", ip], stderr=subprocess.STDOUT)
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
 def start_call(server, interface):
     call_id = get_next_call_id()
+    host, port = server['target'].split(':')
     
+    # Pre-flight check: is the target reachable?
+    if not check_reachability(host):
+        print(f"[{call_id}] ⚠️  Target {host} is unreachable. Skipping call.")
+        sys.stdout.flush()
+        log_call("skipped", {
+            "call_id": call_id,
+            "target": server['target'],
+            "codec": server['codec'],
+            "duration": server['duration'],
+            "error": "Destination unreachable"
+        })
+        return None
+
     # Calculate packet count based on duration and 0.03s sleep in rtp.py
     num_packets = int(server['duration'] / 0.03)
-    
-    host, port = server['target'].split(':')
     
     cmd = [
         "python3", "rtp.py",

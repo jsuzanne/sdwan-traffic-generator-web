@@ -68,8 +68,11 @@
     *   **Patch 50** :
         *   **UI Voice History** : Ajout d'un scroll interne et d'un en-tête fixe pour le tableau "Recent History". Les nouveaux appels apparaissent en haut.
         *   **Log Optimization** : Réduction drastique du bruit dans les logs de connectivité. On ne logue désormais une ligne que si le statut d'une destination change (Online <-> Offline).
+    *   **Patch 51** :
+        *   **VOICE Pre-flight Check** : L'orchestrateur vérifie maintenant la joignabilité (ping) de la cible AVANT de lancer un appel. Si la cible ne répond pas, l'appel est "Skipped" et ne pollue plus la liste active.
+        *   **ECHO Server Logging** : Le serveur d'écho gère désormais des sessions. Il logue explicitement `📞 Incoming call` et `✅ Call finished` (après 5s de silence).
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.50)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.51)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.
