@@ -73,8 +73,10 @@
         *   **ECHO Server Logging** : Le serveur d'écho gère désormais des sessions. Il logue explicitement `📞 Incoming call` et `✅ Call finished` (après 5s de silence).
     *   **Patch 52** :
         *   **CRITICAL FIX Ghost Calls** : Introduction d'un `session_id` pour chaque run de l'orchestrateur. Le Dashboard ignore désormais automatiquement les appels "pendus" des sessions précédentes. Plus de 6 appels affichés quand on en demande 3 !
+    *   **Patch 53** :
+        *   **FIX Orchestrator Crash** : Installation du package `iputils-ping` dans le container voix. L'orchestrateur ne plante plus au démarrage lorsqu'il tente de vérifier la joignabilité des cibles.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.52)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.53)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.
