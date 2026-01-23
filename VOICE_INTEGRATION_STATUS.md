@@ -85,8 +85,10 @@
         *   **BYPASS DOCKER LIMITS** : Migration de toutes les images de base (`debian`, `node`, `python`) vers les miroirs Amazon ECR Public. Terminé les erreurs "429 Too Many Requests" lors des builds GitHub !
     *   **Patch 57** :
         *   **UI RESILIENCE** : Refonte de la détection des appels actifs. On ne dépend plus d'une session fixe, ce qui permet de voir les appels même si l'orchestrateur redémarre. Augmentation de l'historique visible (500 lignes).
+    *   **Patch 58** :
+        *   **SMART DASHBOARD** : Correction finale du tri (le plus récent en haut). Les vieux appels orphelins (Ghost Calls) sont désormais automatiquement nettoyés à chaque redémarrage grâce au filtrage par session ID optimisé. Augmentation du buffer (1000 lignes) et ajout d'un flush real-time sur les logs.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.57)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.58)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.

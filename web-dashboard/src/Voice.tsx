@@ -125,30 +125,32 @@ export default function Voice({ token }: VoiceProps) {
     const activeCalls = React.useMemo(() => {
         const active: VoiceCall[] = [];
 
+        // Find latest session_id in the logs
+        const sessions = calls.filter(c => c.event === 'session_start');
+        const latestSessionId = sessions.length > 0 ? sessions[sessions.length - 1].session_id : null;
+
         // Get all calls that have ended
         const endedIds = new Set(calls.filter(c => c.event === 'end').map(c => c.call_id));
-
-        // Find the latest timestamp in the logs as a reference point
-        const latestLogTime = calls.length > 0
-            ? Math.max(...calls.map(c => new Date(c.timestamp).getTime()))
-            : 0;
 
         // Find starts that don't have a corresponding end
         calls.forEach(c => {
             if (c.event === 'start' && !endedIds.has(c.call_id)) {
-                const startTime = new Date(c.timestamp).getTime();
+                // If we have sessions, only show calls from the latest session
+                const isCurrentSession = !latestSessionId || c.session_id === latestSessionId;
 
-                // If the call started within a reasonable window (2 hours) of the latest log entry
-                // and has no END event, we consider it potentially active.
-                const buffer = 2 * 60 * 60 * 1000;
-                const isRecent = latestLogTime === 0 || (latestLogTime - startTime) < buffer;
-
-                if (isRecent) {
+                if (isCurrentSession) {
                     active.push(c);
                 }
             }
         });
         return active;
+    }, [calls]);
+
+    // Newest history first
+    const sortedHistory = React.useMemo(() => {
+        return [...calls]
+            .filter(c => c.event === 'start' || c.event === 'end' || c.event === 'skipped')
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }, [calls]);
 
     return (
@@ -254,7 +256,7 @@ export default function Voice({ token }: VoiceProps) {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-400">
-                                    {[...calls].reverse().map((call, idx) => (
+                                    {sortedHistory.map((call, idx) => (
                                         <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/10">
                                             <td className="py-3 px-2 text-xs font-mono">{new Date(call.timestamp).toLocaleTimeString()}</td>
                                             <td className="py-3 px-2">

@@ -99,6 +99,7 @@ def log_call(event, call_info):
         }
         with open(STATS_FILE, 'a') as f:
             f.write(json.dumps(log_entry) + '\n')
+            f.flush()
     except Exception as e:
         print(f"Error logging call: {e}")
 
