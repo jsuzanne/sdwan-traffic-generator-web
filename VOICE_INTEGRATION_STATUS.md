@@ -89,8 +89,11 @@
         *   **SMART DASHBOARD** : Correction finale du tri (le plus récent en haut). Les vieux appels orphelins (Ghost Calls) sont désormais automatiquement nettoyés à chaque redémarrage grâce au filtrage par session ID optimisé. Augmentation du buffer (1000 lignes) et ajout d'un flush real-time sur les logs.
     *   **Patch 59** :
         *   **DEEP INSPECTION** : Le `CALL-ID` est désormais injecté directement dans le payload RTP. Le serveur d'écho décode ces informations pour afficher exactement quel appel il reçoit. On voit enfin la correspondance directe entre le générateur et la cible dans les logs !
+    *   **Patch 60** :
+        *   **ZERO POLLUTION** : L'orchestrateur repart d'une "page blanche" à chaque démarrage (compteur reset à 1, logs vidés, simulation désactivée par défaut).
+        *   **UI SYNC** : Suppression de toute la logique de session complexe côté Dashboard. Si c'est dans le log, c'est que c'est l'activité actuelle. Zéro confusion, 100% de synchronisation.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.59)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.60)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.

@@ -124,23 +124,11 @@ export default function Voice({ token }: VoiceProps) {
     // Calculate metrics
     const activeCalls = React.useMemo(() => {
         const active: VoiceCall[] = [];
-
-        // Find latest session_id in the logs
-        const sessions = calls.filter(c => c.event === 'session_start');
-        const latestSessionId = sessions.length > 0 ? sessions[sessions.length - 1].session_id : null;
-
-        // Get all calls that have ended
         const endedIds = new Set(calls.filter(c => c.event === 'end').map(c => c.call_id));
 
-        // Find starts that don't have a corresponding end
         calls.forEach(c => {
             if (c.event === 'start' && !endedIds.has(c.call_id)) {
-                // If we have sessions, only show calls from the latest session
-                const isCurrentSession = !latestSessionId || c.session_id === latestSessionId;
-
-                if (isCurrentSession) {
-                    active.push(c);
-                }
+                active.push(c);
             }
         });
         return active;

@@ -192,6 +192,26 @@ def main():
     print_banner()
     global active_calls
     
+    # CLEAN SLATE : Reset everything on startup
+    print("🧹 Cleaning slate for new session...")
+    try:
+        # 1. Reset Counter
+        with open(COUNTER_FILE, 'w') as f:
+            json.dump({'counter': 0}, f)
+        # 2. Disable simulation by default
+        if os.path.exists(CONTROL_FILE):
+            with open(CONTROL_FILE, 'r') as f:
+                ctrl = json.load(f)
+            ctrl['enabled'] = False
+            with open(CONTROL_FILE, 'w') as f:
+                json.dump(ctrl, f)
+        # 3. Clear logs to stay perfectly synchronized with the UI
+        with open(STATS_FILE, 'w') as f:
+            f.write("")
+    except Exception as e:
+        print(f"Warning during cleanup: {e}")
+    sys.stdout.flush()
+
     # Log session start
     log_call("session_start", {"version": get_version()})
     

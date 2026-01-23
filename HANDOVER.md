@@ -1,15 +1,15 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
 ## 🎯 Current Status (as of 2026-01-23)
-We are currently at version **v1.1.0-patch.58**.
-Final polish of the Voice Dashboard and logging.
+We are currently at version **v1.1.0-patch.60**.
+Finalized 'Clean Slate' architecture for 100% UI accuracy.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **Ghost Calls Fix**: Strict session-based filtering restored. The UI identifies the latest `session_start` and wipes all calls from previous sessions.
-2.  **History Sorting**: Explicit descending sort (newest first) implemented in the UI.
-3.  **Real-time Logs**: Added file flushing in the orchestrator and increased tail buffer to 1000 lines.
-4.  **Host Networking**: Successfully implemented for native Scapy performance.
-5.  **Bypass Docker Hub**: Full migration to Amazon ECR Public mirrors.
+1.  **Zero Pollution (v60)**: Orchestrator now truncates stats logs and resets counters on every startup. This guarantees that anything shown in the UI is from the current run.
+2.  **UI Sync**: Simplified Dashboard logic to match the clean logs. No more session filtering needed.
+3.  **Deep Inspection**: Call IDs are embedded in RTP payloads and decoded by the Echo server.
+4.  **Host Networking**: Implemented for native performance.
+5.  **Build Stability**: Switched to Amazon ECR Public mirrors to avoid Docker Hub rate limits.
 
 ## 🚀 Immediate Next Steps
 1.  **Verify v56**: Ensure the build passes and the host networking mode doesn't create port conflicts (unlikely).
