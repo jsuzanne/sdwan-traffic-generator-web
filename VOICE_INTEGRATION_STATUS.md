@@ -61,8 +61,12 @@
         *   **Workflow Change** : Le tag `:stable` n'est plus automatique. Utilisez le bouton "Run Workflow" sur GitHub pour promouvoir un patch en stable.
     *   **Patch 48** :
         *   **FIX Final Active Calls** : Suppression définitive de la dépendance à l'heure locale du navigateur. Le nettoyage des appels "fantômes" se base maintenant sur le temps relatif des logs (immune au clock-skew).
+    *   **Patch 49** :
+        *   **FIX Iperf Results** : Optimisation du moteur Iperf (backend) pour mieux capturer les résultats JSON et gérer les erreurs de connexion.
+        *   **NEW Iperf UI** : Affichage du "Dernier résultat" directement dans la fenêtre modale de test.
+        *   **FIX RTP Noise** : Suppression des warnings "Broadcast MAC" dans les logs du simulateur voix (passage en Layer 3 pur).
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.48)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.49)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.

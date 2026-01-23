@@ -614,28 +614,54 @@ app.post('/api/connectivity/iperf/client', async (req, res) => {
         return res.status(503).json({ error: 'iperf3 not installed on server' });
     }
 
+    console.log(`[IPERF] Starting client test to ${target} (duration=${duration}s)...`);
+
     try {
-        // Basic sanitization for target (very important!)
+        // Basic sanitization for target
         const sanitizedTarget = target.replace(/[^a-zA-Z0-9.-]/g, '');
         const args = ['-c', sanitizedTarget, '-t', duration.toString(), '-P', parallel.toString(), '-J'];
         if (reverse) args.push('-R');
 
-        const { stdout } = await promisify(exec)(`iperf3 ${args.join(' ')}`);
-        const result = JSON.parse(stdout);
+        const iperfCmd = `iperf3 ${args.join(' ')}`;
 
-        res.json({
-            success: true,
-            result: {
-                sent_mbps: (result.end.sum_sent?.bits_per_second / 1000000) || 0,
-                received_mbps: (result.end.sum_received?.bits_per_second / 1000000) || 0,
-                target: sanitizedTarget,
-                timestamp: Date.now()
-            },
-            raw: result
-        });
+        try {
+            const { stdout } = await promisify(exec)(iperfCmd);
+            const result = JSON.parse(stdout);
+
+            // Handle iperf3 internal errors reported in JSON
+            if (result.error) {
+                return res.status(500).json({ error: 'Iperf test failed', message: result.error });
+            }
+
+            const sent_mbps = (result.end?.sum_sent?.bits_per_second / 1000000) ||
+                (result.end?.sum?.bits_per_second / 1000000) || 0;
+            const received_mbps = (result.end?.sum_received?.bits_per_second / 1000000) || 0;
+
+            res.json({
+                success: true,
+                result: {
+                    sent_mbps: parseFloat(sent_mbps.toFixed(2)),
+                    received_mbps: parseFloat(received_mbps.toFixed(2)),
+                    target: sanitizedTarget,
+                    timestamp: Date.now()
+                },
+                raw: result
+            });
+        } catch (execError: any) {
+            // iperf3 often exits with non-zero but might still have JSON in stdout (on partial failure)
+            if (execError.stdout) {
+                try {
+                    const result = JSON.parse(execError.stdout);
+                    if (result.error) {
+                        return res.status(500).json({ error: 'Iperf test failed', message: result.error });
+                    }
+                } catch (e) { }
+            }
+            throw execError;
+        }
     } catch (e: any) {
         console.error('[IPERF] Client test failed:', e.message);
-        res.status(500).json({ error: 'Iperf test failed', message: e.message });
+        res.status(500).json({ error: 'Iperf connection failed', message: e.message });
     }
 });
 

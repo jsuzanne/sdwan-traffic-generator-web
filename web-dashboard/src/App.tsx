@@ -535,9 +535,23 @@ export default function App() {
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
                 />
               </div>
+
+              {/* Show last result if exists */}
+              {iperfResult && (
+                <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Activity size={14} className="text-purple-400" />
+                    <span className="text-xs text-slate-300">Last Test ({iperfResult.target}):</span>
+                  </div>
+                  <span className="text-sm font-bold text-purple-300">
+                    {Math.round(iperfResult.received_mbps || iperfResult.sent_mbps)} Mbps
+                  </span>
+                </div>
+              )}
+
               <div className="p-3 bg-slate-800/30 rounded-lg border border-slate-800">
                 <p className="text-[10px] text-slate-500 leading-relaxed italic">
-                  Note: The test will run for 5 seconds using TCP. Results will appear in the Network Status bar once complete.
+                  Note: The test will run for 5 seconds using TCP. Results will also appear in the top Network Status bar.
                 </p>
               </div>
             </div>

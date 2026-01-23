@@ -12,7 +12,7 @@ from scapy.layers.rtp import RTP
 from scapy.packet import Raw
 from scapy.sendrecv import send, sendp
 
-logging.getLogger("scapy").setLevel(1)
+logging.getLogger("scapy").setLevel(logging.ERROR)
 
 if __name__ == "__main__":
 
@@ -63,32 +63,21 @@ if __name__ == "__main__":
         source_port = random.randrange(10000, 65535)
     # delete IP and UDP checksum so that they can be re computed.
     for i in range(1, count, 1):
-
-        if args['source_interface'] is None:
-            if args['source_ip'] is None:
-                packet = IP(dst=args['destination_ip'], proto=17, len=240)
-            else:
-                packet = IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
+        if args['source_ip'] is None:
+            packet = IP(dst=args['destination_ip'], proto=17, len=240)
         else:
-            if args['source_ip'] is None:
-                packet = Ether() / IP(dst=args['destination_ip'], proto=17, len=240)
-            else:
-                packet = Ether() / IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
+            packet = IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
+            
         # do this for all streams
         packet = packet/UDP(sport=source_port, dport=args['destination_port'], len=220)
         packet = packet/RTP(version=2, payload_type=8, sequence=i, sourcesync=1, timestamp=int(time.time()))
         packet = packet/Raw(load=b"".join(udp_payload))
 
-        if args['source_interface'] is not None:
-            del packet[Ether].chksum
         del packet[IP].chksum
         del packet[UDP].chksum
 
-        if args['source_interface'] is None:
-            output = send(packet, verbose=False)
-        else:
-            output = sendp(packet, iface=args['source_interface'], verbose=False)
-        # output = send(packet, verbose=False)
+        # Send using Layer 3 (Standard IP) - Let OS handle MAC/ARP resolution
+        send(packet, iface=args['source_interface'], verbose=False)
         time.sleep(0.03)
 
     # enable these for additional debugs
