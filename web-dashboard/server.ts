@@ -59,6 +59,9 @@ let prevCpuUsage: number | null = null;
 let prevCpuTimestamp: number | null = null;
 let currentCpuPercent = "0.0";
 
+// State tracking for logs reduction
+const lastConnectivityStatusMap = new Map<string, string>();
+
 // Test Logger - Dedicated log file for test execution with rotation
 const TEST_LOG_FILE = path.join(APP_CONFIG.logDir, 'test-execution.log');
 const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
@@ -1017,15 +1020,13 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
         }
     });
 
-    console.log(`[CONNECTIVITY] Testing ${testEndpoints.length} endpoints (${testEndpoints.filter(e => e.type === 'http').length} HTTP, ${testEndpoints.filter(e => e.type === 'ping').length} PING, ${testEndpoints.filter(e => e.type === 'tcp').length} TCP)`);
-
     const results = [];
     let connected = false;
     let avgLatency = 0;
 
     for (const endpoint of testEndpoints) {
-        console.log(`[CONNECTIVITY] Testing ${endpoint.name} [${endpoint.type.toUpperCase()}] (${endpoint.target})...`);
         const startTime = Date.now();
+        let result: any = null;
 
         try {
             if (endpoint.type === 'http') {
@@ -1038,22 +1039,22 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
                 const latency = Date.now() - startTime;
 
                 if (response.ok || response.status < 500) {
-                    results.push({
+                    result = {
                         name: endpoint.name,
                         type: endpoint.type,
                         status: 'connected',
                         latency,
                         details: `HTTP ${response.status}`
-                    });
+                    };
                     connected = true;
                     avgLatency += latency;
                 } else {
-                    results.push({
+                    result = {
                         name: endpoint.name,
                         type: endpoint.type,
                         status: 'error',
                         error: `HTTP ${response.status}`
-                    });
+                    };
                 }
             } else if (endpoint.type === 'ping') {
                 // ICMP Ping test
@@ -1068,22 +1069,22 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
                     const timeMatch = stdout.match(/time[=<](\d+\.?\d*)/);
                     const pingTime = timeMatch ? parseFloat(timeMatch[1]) : latency;
 
-                    results.push({
+                    result = {
                         name: endpoint.name,
                         type: endpoint.type,
                         status: 'connected',
                         latency: Math.round(pingTime),
                         details: 'ICMP Echo Reply'
-                    });
+                    };
                     connected = true;
                     avgLatency += pingTime;
                 } catch (pingError: any) {
-                    results.push({
+                    result = {
                         name: endpoint.name,
                         type: endpoint.type,
                         status: 'failed',
                         error: 'No response'
-                    });
+                    };
                 }
             } else if (endpoint.type === 'tcp') {
                 // TCP Port test
@@ -1095,31 +1096,43 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
                     await execPromise(ncCommand);
                     const latency = Date.now() - startTime;
 
-                    results.push({
+                    result = {
                         name: endpoint.name,
                         type: endpoint.type,
                         status: 'connected',
                         latency,
                         details: `TCP Port ${port}`
-                    });
+                    };
                     connected = true;
                     avgLatency += latency;
                 } catch (tcpError: any) {
-                    results.push({
+                    result = {
                         name: endpoint.name,
                         type: endpoint.type,
                         status: 'failed',
                         error: `Port ${port} closed`
-                    });
+                    };
                 }
             }
         } catch (error: any) {
-            results.push({
+            result = {
                 name: endpoint.name,
                 type: endpoint.type,
                 status: 'failed',
                 error: error.message
-            });
+            };
+        }
+
+        if (result) {
+            results.push(result);
+
+            // Only log if status changed
+            const endpointKey = `${endpoint.type}:${endpoint.name}`;
+            const lastStatus = lastConnectivityStatusMap.get(endpointKey);
+            if (lastStatus !== result.status) {
+                console.log(`[CONNECTIVITY] ${endpoint.name} status changed: ${lastStatus || 'unknown'} -> ${result.status} (${result.latency || '-'}ms)`);
+                lastConnectivityStatusMap.set(endpointKey, result.status);
+            }
         }
     }
 
@@ -1128,7 +1141,17 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
         avgLatency = Math.round(avgLatency / successfulTests);
     }
 
-    console.log(`[CONNECTIVITY] Test complete: ${connected ? 'Connected' : 'No connection'}, avg latency: ${avgLatency}ms, successful: ${successfulTests}/${testEndpoints.length}`);
+    if (results.length > 0) {
+        const anyChange = results.some(r => {
+            const key = `${r.type}:${r.name}`;
+            return lastConnectivityStatusMap.get(key) !== r.status;
+        });
+
+        // Log summary only if there was a change or if it's been a while (optional)
+        // For now, let's keep the summary log but make it less frequent? 
+        // Actually, user said logs are useful, so a single summary line per test cycle is a good compromise.
+        // console.log(`[CONNECTIVITY] Cycle complete: ${connected ? 'Connected' : 'No connection'}, successful: ${successfulTests}/${testEndpoints.length}`);
+    }
 
     res.json({
         connected,

@@ -239,18 +239,18 @@ export default function Voice({ token }: VoiceProps) {
                         <h3 className="text-slate-200 font-bold mb-4 flex items-center gap-2">
                             <BarChart2 size={18} className="text-blue-400" /> Recent History
                         </h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead className="text-slate-500 text-left border-b border-slate-800">
+                        <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                            <table className="w-full text-sm relative">
+                                <thead className="text-slate-500 text-left border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
                                     <tr>
-                                        <th className="pb-3 px-2 font-medium">Time</th>
-                                        <th className="pb-3 px-2 font-medium">Event</th>
-                                        <th className="pb-3 px-2 font-medium">Target</th>
-                                        <th className="pb-3 px-2 font-medium">Codec</th>
+                                        <th className="pb-3 px-2 font-medium bg-slate-900">Time</th>
+                                        <th className="pb-3 px-2 font-medium bg-slate-900">Event</th>
+                                        <th className="pb-3 px-2 font-medium bg-slate-900">Target</th>
+                                        <th className="pb-3 px-2 font-medium bg-slate-900">Codec</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-400">
-                                    {calls.map((call, idx) => (
+                                    {[...calls].reverse().map((call, idx) => (
                                         <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/10">
                                             <td className="py-3 px-2 text-xs font-mono">{new Date(call.timestamp).toLocaleTimeString()}</td>
                                             <td className="py-3 px-2">

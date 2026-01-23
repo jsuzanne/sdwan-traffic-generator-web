@@ -65,8 +65,11 @@
         *   **FIX Iperf Results** : Optimisation du moteur Iperf (backend) pour mieux capturer les résultats JSON et gérer les erreurs de connexion.
         *   **NEW Iperf UI** : Affichage du "Dernier résultat" directement dans la fenêtre modale de test.
         *   **FIX RTP Noise** : Suppression des warnings "Broadcast MAC" dans les logs du simulateur voix (passage en Layer 3 pur).
+    *   **Patch 50** :
+        *   **UI Voice History** : Ajout d'un scroll interne et d'un en-tête fixe pour le tableau "Recent History". Les nouveaux appels apparaissent en haut.
+        *   **Log Optimization** : Réduction drastique du bruit dans les logs de connectivité. On ne logue désormais une ligne que si le statut d'une destination change (Online <-> Offline).
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.49)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.50)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
 3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.
