@@ -38,9 +38,12 @@
         *   Fix `rtp.py` : conversion du timestamp en `int`.
         *   Fix UI : Installation de `iputils-ping`, `dnsutils`, `netcat` dans le container.
         *   Fix Docker : Ajout de `cap_add: NET_RAW` pour l'UI.
+    *   **Patch 39** :
+        *   Ajout d'un **numéro de séquence** (`call_id`) pour identifier chaque appel (ex: CALL-0001).
+        *   Fix **Active Calls** : Refonte de la logique UI pour afficher les appels en cours en fonction de l'ID.
+        *   Amélioration de la lisibilité des logs orchestrateur.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.38)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.39)**.
 2.  Faire un `docker compose pull` sur **toutes les machines**.
-3.  Lancer `docker logs -f` sur les containers voix.
-4.  Si le "START" et "END" sont toujours à la même seconde, l'erreur Python sera enfin visible dans les logs.
+3.  Vérifier que les appels actifs s'affichent bien dans la colonne de gauche.

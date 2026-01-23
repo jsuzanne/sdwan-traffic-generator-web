@@ -26,6 +26,7 @@ SERVERS_FILE = os.path.join(CONFIG_DIR, 'voice-servers.txt')
 STATS_FILE = os.path.join(LOG_DIR, 'voice-stats.jsonl')
 
 active_calls = []
+call_counter = 0
 
 def print_banner():
     version = get_version()
@@ -95,8 +96,11 @@ def pick_server(servers):
     return servers[0]
 
 def start_call(server, interface):
+    global call_counter
+    call_counter += 1
+    call_id = f"CALL-{call_counter:04d}"
+    
     # Calculate packet count based on duration and 0.03s sleep in rtp.py
-    # count = duration / 0.03
     num_packets = int(server['duration'] / 0.03)
     
     host, port = server['target'].split(':')
@@ -105,28 +109,28 @@ def start_call(server, interface):
         "python3", "rtp.py",
         "-D", host,
         "-dport", port,
-        "-sport", "5060",  # SIP default port, easy to track
+        "-sport", "5060",
         "--min-count", str(num_packets),
         "--max-count", str(num_packets + 1),
         "--source-interface", interface
     ]
     
-    print(f"🚀 Executing: {' '.join(cmd)}")
+    print(f"[{call_id}] 🚀 Executing: {' '.join(cmd)}")
     sys.stdout.flush()
     
     try:
-        # Pass environment to ensure unbuffered output from child
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
         proc = subprocess.Popen(cmd, env=env)
         call_info = {
+            "call_id": call_id,
             "pid": proc.pid,
             "target": server['target'],
             "codec": server['codec'],
             "duration": server['duration']
         }
         log_call("start", call_info)
-        print(f"📞 CALL STARTED: {server['target']} | Codec: {server['codec']} | Duration: {server['duration']}s")
+        print(f"[{call_id}] 📞 CALL STARTED: {server['target']} | {server['codec']} | {server['duration']}s")
         sys.stdout.flush()
         return {"proc": proc, "info": call_info}
     except Exception as e:
@@ -161,7 +165,7 @@ def main():
                 finished.append(call)
         
         for call in finished:
-            print(f"✅ CALL ENDED: {call['info']['target']}")
+            print(f"[{call['info']['call_id']}] ✅ CALL ENDED: {call['info']['target']}")
             sys.stdout.flush()
             active_calls.remove(call)
             

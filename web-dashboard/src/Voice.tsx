@@ -14,6 +14,7 @@ interface VoiceProps {
 interface VoiceCall {
     timestamp: string;
     event: 'start' | 'end';
+    call_id: string;
     pid: number;
     target: string;
     codec: string;
@@ -120,14 +121,24 @@ export default function Voice({ token }: VoiceProps) {
     };
 
     // Calculate metrics
-    const activeCalls = calls.filter(c => {
-        const isStart = c.event === 'start';
-        if (!isStart) return false;
-        // If it's a start, check if it's within its duration window
-        const startTime = new Date(c.timestamp).getTime();
-        const endTime = startTime + (c.duration * 1000);
-        return Date.now() < endTime;
-    });
+    const activeCalls = React.useMemo(() => {
+        const active: VoiceCall[] = [];
+        // Get all calls that have ended
+        const endedIds = new Set(calls.filter(c => c.event === 'end').map(c => c.call_id));
+
+        // Find starts that don't have a corresponding end
+        calls.forEach(c => {
+            if (c.event === 'start' && !endedIds.has(c.call_id)) {
+                // Safety: check if call is likely timed out (container might have restarted)
+                const startTime = new Date(c.timestamp).getTime();
+                const buffer = 10000; // 10s buffer
+                if (Date.now() < startTime + (c.duration * 1000) + buffer) {
+                    active.push(c);
+                }
+            }
+        });
+        return active;
+    }, [calls]);
 
     return (
         <div className="space-y-6">
@@ -200,8 +211,11 @@ export default function Voice({ token }: VoiceProps) {
                                 activeCalls.map((call, idx) => (
                                     <div key={idx} className="bg-slate-800/40 p-3 rounded-lg border border-slate-700/30 flex items-center justify-between">
                                         <div>
-                                            <div className="text-xs font-mono text-blue-400">{call.target}</div>
-                                            <div className="text-[10px] text-slate-500">{call.codec} • {call.duration}s</div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-1 rounded">{call.call_id}</span>
+                                                <div className="text-xs font-mono text-slate-200">{call.target}</div>
+                                            </div>
+                                            <div className="text-[10px] text-slate-500 mt-1">{call.codec} • {call.duration}s</div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-ping" />
@@ -233,14 +247,17 @@ export default function Voice({ token }: VoiceProps) {
                                         <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/10">
                                             <td className="py-3 px-2 text-xs font-mono">{new Date(call.timestamp).toLocaleTimeString()}</td>
                                             <td className="py-3 px-2">
-                                                <span className={cn(
-                                                    "text-[10px] font-bold uppercase px-1.5 py-0.5 rounded",
-                                                    call.event === 'start' ? "bg-blue-500/10 text-blue-400" : "bg-slate-800 text-slate-500"
-                                                )}>
-                                                    {call.event}
-                                                </span>
+                                                <div className="flex flex-col">
+                                                    <span className={cn(
+                                                        "text-[10px] font-bold uppercase px-1.5 py-0.5 rounded w-fit",
+                                                        call.event === 'start' ? "bg-blue-500/10 text-blue-400" : "bg-slate-800 text-slate-500"
+                                                    )}>
+                                                        {call.event}
+                                                    </span>
+                                                    <span className="text-[9px] text-slate-600 mt-1">{call.call_id}</span>
+                                                </div>
                                             </td>
-                                            <td className="py-3 px-2 text-xs">{call.target}</td>
+                                            <td className="py-3 px-2 text-xs font-mono">{call.target}</td>
                                             <td className="py-3 px-2 text-xs">{call.codec}</td>
                                         </tr>
                                     ))}
