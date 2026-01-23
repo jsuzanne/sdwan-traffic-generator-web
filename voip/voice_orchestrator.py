@@ -21,6 +21,9 @@ def get_version():
     except: pass
     return "1.1.0-patch.35+"
 
+CONTROL_FILE = os.path.join(CONFIG_DIR, 'voice-control.json')
+SERVERS_FILE = os.path.join(CONFIG_DIR, 'voice-servers.txt')
+STATS_FILE = os.path.join(LOG_DIR, 'voice-stats.jsonl')
 COUNTER_FILE = os.path.join(CONFIG_DIR, 'voice-counter.json')
 active_calls = []
 
