@@ -5,17 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.30.2] - 2026-01-23
+
+### Changed
+- **Traffic UI Refresh**: Compact integrated slider for better layout.
+- **Improved UX**: Coarser slider steps (0.5s instead of 0.1s) for easier speed control. Slider range extended to 10s.
+
+## [1.1.0-patch.30.1] - 2026-01-23
+
+### Fixed
+- **CPU Monitoring**: Logic updated to use delta-based calculation (real-time %) instead of cumulative load.
+- **Dynamic Defaults**: Traffic rate slider now defaults to `SLEEP_BETWEEN_REQUESTS` env var value if no config exists.
+
 ## [1.1.0-patch.30] - 2026-01-23
 
 ### Fixed
-- **Critical Crash**: Resolved `ERR_MODULE_NOT_FOUND` in security scheduler by moving shared data to `/shared` directory and updating Docker configurations.
-- **Dynamic Imports**: Switched to static ESM imports for security categories to improve reliability in containerized environments.
+- **Critical Crash**: Resolved `ERR_MODULE_NOT_FOUND` in security scheduler by moving shared data to `/shared` directory.
+- **Dynamic Imports**: Switched to static ESM imports for reliability.
 
 ### Added
-- **Traffic Rate Control**: New UI slider on the Dashboard to adjust traffic generation speed (0.1s to 5s delay) in real-time.
-- **Resource Monitoring**: Real-time CPU and RAM gauges added to the Network Monitoring panel.
-- **Scheduler "Next Run"**: Display of the next scheduled execution time for URL, DNS, and Threat tests in the Security tab.
-- **Persistence**: Traffic generation settings (run status and speed) are now preserved across container restarts.
+- **Traffic Rate Control**: New UI slider on the Dashboard (real-time speed adjustment).
+- **Resource Monitoring**: Real-time CPU and RAM gauges in Network Monitoring panel.
+- **Scheduler "Next Run"**: Display of next scheduled execution time in Security tab.
+- **Persistence**: Traffic settings preserved across container restarts.
 
 ## [1.1.0-patch.29] - 2026-01-23
 

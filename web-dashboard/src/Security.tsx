@@ -99,7 +99,7 @@ const SchedulerSettings = ({
             {schedule.enabled && schedule.next_run_time && (
                 <div className="flex items-center gap-1 text-[10px] text-blue-400/80 font-medium px-2">
                     <Clock size={10} />
-                    Prochain test à {formatTime(schedule.next_run_time)}
+                    Next test at {formatTime(schedule.next_run_time)}
                 </div>
             )}
         </div>
