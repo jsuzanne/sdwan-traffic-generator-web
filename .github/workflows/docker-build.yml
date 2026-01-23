@@ -81,10 +81,10 @@ jobs:
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
-            echo "tags=${{ env.WEB_UI_IMAGE }}:latest,${{ env.WEB_UI_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
-            echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest,${{ env.TRAFFIC_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
-            echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:latest,${{ env.VOICE_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
-            echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:latest,${{ env.VOICE_ECHO_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.WEB_UI_IMAGE }}:latest,${{ env.WEB_UI_IMAGE }}:$VERSION,${{ env.WEB_UI_IMAGE }}:stable" >> $GITHUB_OUTPUT
+            echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest,${{ env.TRAFFIC_GEN_IMAGE }}:$VERSION,${{ env.TRAFFIC_GEN_IMAGE }}:stable" >> $GITHUB_OUTPUT
+            echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:latest,${{ env.VOICE_GEN_IMAGE }}:$VERSION,${{ env.VOICE_GEN_IMAGE }}:stable" >> $GITHUB_OUTPUT
+            echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:latest,${{ env.VOICE_ECHO_IMAGE }}:$VERSION,${{ env.VOICE_ECHO_IMAGE }}:stable" >> $GITHUB_OUTPUT
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           else
             echo "tags=${{ env.WEB_UI_IMAGE }}:latest" >> $GITHUB_OUTPUT

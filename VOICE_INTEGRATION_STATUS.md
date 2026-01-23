@@ -56,7 +56,9 @@
         *   **CRITICAL FIX** : Correction d'une erreur de syntaxe (missing catch) dans `server.ts` qui empêchait le Dashboard de démarrer.
     *   **Patch 46** :
         *   **HOTFIX Orchestrator** : Restauration des constantes `STATS_FILE` et `CONTROL_FILE` accidentellement supprimées dans la v45. La voix est de nouveau fonctionnelle.
+    *   **Patch 47** :
+        *   **Stable Labels** : Mise à jour du workflow GitHub pour taguer automatiquement toutes les images en `:stable` lors de la création d'une version technique.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.46)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.47)**.
 2.  Faire un `docker compose pull` sur **toutes les machines**.
