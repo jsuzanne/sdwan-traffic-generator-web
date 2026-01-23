@@ -26,10 +26,10 @@
     *   Activation du mode **Unbuffered** dans Docker pour voir les erreurs Python.
     *   Fix sur le forgeage des paquets **Ethernet / IP** (Patch 35).
     *   Ajout du port source fixe (**5060**) pour passer les firewalls (Patch 36).
-    *   Ajout de la commande `python3 -u` pour avoir les logs en temps réel.
+    *   **Patch 37** : Affichage de la version au démarrage des containers (`voice-gen` & `voice-echo`) pour un meilleur debug.
 
 ### 📝 Next Steps (Si déconnexion)
-1.  Faire un `docker compose pull voice-gen` sur UbuntuBR8 pour récupérer le Patch 36.1.
+1.  Faire un `docker compose pull voice-gen` sur UbuntuBR8 pour récupérer le Patch 37.
 2.  Lancer `docker logs -f sdwan-voice-gen`.
 3.  Vérifier l'erreur Python qui s'affiche au clic sur "Start Voice".
 4.  Vérifier que l'interface spécifiée dans l'UI (ex: `eth0`) existe bien sur le host via `ip addr`.

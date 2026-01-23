@@ -5,15 +5,22 @@ from socket import *
 # UDP Echo Server - Optimized for Docker
 BUFSIZE = 1024
 
-VERSION = "1.1.0-patch.35+"
+def get_version():
+    try:
+        if os.path.exists('/app/VERSION'):
+            with open('/app/VERSION', 'r') as f:
+                return f.read().strip()
+    except: pass
+    return "1.1.0-patch.37"
 
 def run_server(ip, port):
+    version = get_version()
     s = socket(AF_INET, SOCK_DGRAM)
     packet_count = 0
     try:
         s.bind((ip, port))
         print("="*60)
-        print(f"🚀 SD-WAN VOICE ECHO SERVER v{VERSION}")
+        print(f"🚀 SD-WAN VOICE ECHO SERVER v{version}")
         print(f"📡 Listening on: {ip}:{port}")
         print("="*60)
         while True:
