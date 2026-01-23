@@ -1,0 +1,150 @@
+import json
+import os
+import time
+import subprocess
+import random
+import signal
+import sys
+from datetime import datetime
+
+# Configuration paths (aligned with Docker volumes)
+CONFIG_DIR = os.getenv('CONFIG_DIR', '/app/config')
+LOG_DIR = os.getenv('LOG_DIR', '/var/log/sdwan-traffic-gen')
+
+CONTROL_FILE = os.path.join(CONFIG_DIR, 'voice-control.json')
+SERVERS_FILE = os.path.join(CONFIG_DIR, 'voice-servers.txt')
+STATS_FILE = os.path.join(LOG_DIR, 'voice-stats.jsonl')
+
+active_calls = []
+
+def load_control():
+    try:
+        if os.path.exists(CONTROL_FILE):
+            with open(CONTROL_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Error loading control file: {e}")
+    return {"enabled": False, "max_simultaneous_calls": 3, "sleep_between_calls": 5, "interface": "eth0"}
+
+def load_servers():
+    servers = []
+    try:
+        if os.path.exists(SERVERS_FILE):
+            with open(SERVERS_FILE, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    parts = line.split('|')
+                    if len(parts) >= 4:
+                        target = parts[0]
+                        codec = parts[1]
+                        weight = int(parts[2])
+                        duration = int(parts[3])
+                        servers.append({
+                            "target": target,
+                            "codec": codec,
+                            "weight": weight,
+                            "duration": duration
+                        })
+    except Exception as e:
+        print(f"Error loading servers file: {e}")
+    return servers
+
+def log_call(event, call_info):
+    try:
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "event": event,
+            **call_info
+        }
+        with open(STATS_FILE, 'a') as f:
+            f.write(json.dumps(log_entry) + '\n')
+    except Exception as e:
+        print(f"Error logging call: {e}")
+
+def pick_server(servers):
+    if not servers:
+        return None
+    total_weight = sum(s['weight'] for s in servers)
+    r = random.uniform(0, total_weight)
+    upto = 0
+    for s in servers:
+        if upto + s['weight'] >= r:
+            return s
+        upto += s['weight']
+    return servers[0]
+
+def start_call(server, interface):
+    # Calculate packet count based on duration and 0.03s sleep in rtp.py
+    # count = duration / 0.03
+    num_packets = int(server['duration'] / 0.03)
+    
+    host, port = server['target'].split(':')
+    
+    cmd = [
+        "python3", "rtp.py",
+        "-D", host,
+        "-dport", port,
+        "--min-count", str(num_packets),
+        "--max-count", str(num_packets + 1),
+        "--source-interface", interface
+    ]
+    
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        call_info = {
+            "pid": proc.pid,
+            "target": server['target'],
+            "codec": server['codec'],
+            "duration": server['duration']
+        }
+        log_call("start", call_info)
+        return {"proc": proc, "info": call_info}
+    except Exception as e:
+        print(f"Failed to start rtp.py: {e}")
+        return None
+
+def signal_handler(sig, frame):
+    print("Shutting down voice orchestrator...")
+    for call in active_calls:
+        try:
+            call['proc'].terminate()
+        except:
+            pass
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+def main():
+    print("Voice Orchestrator started")
+    global active_calls
+    
+    while True:
+        control = load_control()
+        servers = load_servers()
+        
+        # Clean up finished calls
+        finished = []
+        for call in active_calls:
+            if call['proc'].poll() is not None:
+                log_call("end", call['info'])
+                finished.append(call)
+        
+        for call in finished:
+            active_calls.remove(call)
+            
+        if control.get("enabled") and len(active_calls) < control.get("max_simultaneous_calls", 3):
+            server = pick_server(servers)
+            if server:
+                new_call = start_call(server, control.get("interface", "eth0"))
+                if new_call:
+                    active_calls.append(new_call)
+        
+        # Determine check interval
+        sleep_time = control.get("sleep_between_calls", 5) if control.get("enabled") else 5
+        time.sleep(sleep_time)
+
+if __name__ == "__main__":
+    main()

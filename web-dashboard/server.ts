@@ -35,6 +35,9 @@ console.log(`Test Logger initialized: retention=${LOG_RETENTION_DAYS} days, max_
 
 // Test Counter - Persistent sequential ID for all tests
 const TEST_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'test-counter.json');
+const VOICE_CONTROL_FILE = path.join(APP_CONFIG.configDir, 'voice-control.json');
+const VOICE_SERVERS_FILE = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
+const VOICE_STATS_FILE = path.join(APP_CONFIG.logDir, 'voice-stats.jsonl');
 
 const getNextTestId = (): number => {
     try {
@@ -701,6 +704,90 @@ app.post('/api/traffic/settings', authenticateToken, (req, res) => {
     fs.writeFileSync(controlFile, JSON.stringify(control, null, 2), 'utf8');
     console.log(`Traffic sleep_interval updated to ${control.sleep_interval}s`);
     res.json({ success: true, settings: control });
+});
+
+// API: Voice Control - Status
+app.get('/api/voice/status', authenticateToken, (req, res) => {
+    try {
+        let control = { enabled: false, max_simultaneous_calls: 3, interface: 'eth0' };
+        if (fs.existsSync(VOICE_CONTROL_FILE)) {
+            control = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+        }
+        res.json({ success: true, ...control });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// API: Voice Control - Toggle
+app.post('/api/voice/control', authenticateToken, (req, res) => {
+    try {
+        const { enabled } = req.body;
+        let control = { enabled: false, max_simultaneous_calls: 3, interface: 'eth0' };
+        if (fs.existsSync(VOICE_CONTROL_FILE)) {
+            control = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+        }
+        control.enabled = !!enabled;
+        fs.writeFileSync(VOICE_CONTROL_FILE, JSON.stringify(control, null, 2));
+        res.json({ success: true, enabled: control.enabled });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// API: Voice Configuration - Get
+app.get('/api/voice/config', authenticateToken, (req, res) => {
+    try {
+        let servers = "";
+        if (fs.existsSync(VOICE_SERVERS_FILE)) {
+            servers = fs.readFileSync(VOICE_SERVERS_FILE, 'utf8');
+        }
+        let control = { max_simultaneous_calls: 3, interface: 'eth0', sleep_between_calls: 5 };
+        if (fs.existsSync(VOICE_CONTROL_FILE)) {
+            control = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+        }
+        res.json({ success: true, servers, control });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// API: Voice Configuration - Save
+app.post('/api/voice/config', authenticateToken, (req, res) => {
+    try {
+        const { servers, control } = req.body;
+        if (servers !== undefined) fs.writeFileSync(VOICE_SERVERS_FILE, servers);
+        if (control !== undefined) {
+            let currentControl = {};
+            if (fs.existsSync(VOICE_CONTROL_FILE)) {
+                currentControl = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+            }
+            const newControl = { ...currentControl, ...control };
+            fs.writeFileSync(VOICE_CONTROL_FILE, JSON.stringify(newControl, null, 2));
+        }
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// API: Voice Stats
+app.get('/api/voice/stats', authenticateToken, (req, res) => {
+    try {
+        if (!fs.existsSync(VOICE_STATS_FILE)) {
+            return res.json({ success: true, stats: [] });
+        }
+        // Read last 100 lines
+        const execPromise = promisify(exec);
+        exec(`tail -n 100 ${VOICE_STATS_FILE}`, (error, stdout) => {
+            if (error) return res.json({ success: true, stats: [] });
+            const lines = stdout.trim().split('\n').filter(l => l.trim());
+            const stats = lines.map(l => JSON.parse(l));
+            res.json({ success: true, stats: stats.reverse() });
+        });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
 // API: Get Stats

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.33] - 2026-01-23
+
+### Added
+- **Voice API Backend**: Implemented Express routes for voice configuration, control, and statistics.
+- **Voice Component**: Created dedicated React tab for RTP/Voice simulation management (WIP).
+
+## [1.1.0-patch.32] - 2026-01-23
+
+### Added
+- **Voice Orchestration**: Python wrapper (`voice_orchestrator.py`) to manage parallel RTP calls, weighted selection, and logs.
+
+## [1.1.0-patch.31] - 2026-01-23
+
+### Added
+- **Voice Infrastructure**: Added `Dockerfile.voice`, initialized `voice-servers.txt` and `voice-control.json`.
+- **RTP Update**: Modernized `rtp.py` for Python 3 compatibility (Scapy).
+- **Docker Compose**: Integrated `voice-gen` and `voice-echo` services.
+
 ## [1.1.0-patch.30.2] - 2026-01-23
 
 ### Changed

@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import Config from './Config';
-import Login from './Login';
 import Statistics from './Statistics';
 import Security from './Security';
+import Voice from './Voice';
+import Config from './Config';
+import Login from './Login';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone } from 'lucide-react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -25,7 +26,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice'>('dashboard');
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
@@ -490,6 +491,15 @@ export default function App() {
         >
           <Shield size={18} /> Security
         </button>
+        <button
+          onClick={() => setView('voice')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
+            view === 'voice' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Phone size={18} /> Voice
+        </button>
       </div>
 
       {view === 'dashboard' ? (
@@ -721,6 +731,8 @@ export default function App() {
         <Statistics stats={stats} appConfig={appConfig} />
       ) : view === 'security' ? (
         <Security token={token!} />
+      ) : view === 'voice' ? (
+        <Voice token={token!} />
       ) : (
         <Config token={token!} />
       )}
