@@ -129,12 +129,7 @@ export default function Voice({ token }: VoiceProps) {
         // Find starts that don't have a corresponding end
         calls.forEach(c => {
             if (c.event === 'start' && !endedIds.has(c.call_id)) {
-                // Safety: check if call is likely timed out (container might have restarted)
-                const startTime = new Date(c.timestamp).getTime();
-                const buffer = 10000; // 10s buffer
-                if (Date.now() < startTime + (c.duration * 1000) + buffer) {
-                    active.push(c);
-                }
+                active.push(c);
             }
         });
         return active;
