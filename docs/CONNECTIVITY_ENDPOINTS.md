@@ -1,89 +1,70 @@
-# Custom Connectivity Endpoints (Beta.14+)
+# Connectivity & Performance Monitoring (DEM)
 
 ## Overview
 
-Configure custom connectivity test endpoints to verify network reachability before running security tests. Supports HTTP/HTTPS, ICMP Ping, and TCP port tests.
+Configure synthetic endpoints to monitor network health and user experience. The system provides a **Digital Experience Management (DEM)** score (0-100) for each path, breaking down latency into protocol-level metrics.
 
 ## Configuration
 
 Add environment variables to your `docker-compose.yml`:
 
 ### HTTP/HTTPS Endpoints
-Test web applications and APIs:
+High-resolution metrics including DNS, TCP, TLS handshake, and TTFB:
 ```yaml
 environment:
   - CONNECTIVITY_HTTP_1=DC-App:https://app.datacenter.local
-  - CONNECTIVITY_HTTP_2=API-Server:https://api.company.com:8443
+  - CONNECTIVITY_HTTP_2=SaaS:https://api.salesforce.com
 ```
 
 ### ICMP Ping Endpoints
-Test network-layer connectivity to routers, firewalls, gateways:
+Network-layer reachability and round-trip time:
 ```yaml
 environment:
   - CONNECTIVITY_PING_1=HQ-Firewall:10.0.0.1
-  - CONNECTIVITY_PING_2=Branch-Router:192.168.1.1
-  - CONNECTIVITY_PING_3=Backup-Link:192.168.2.1
 ```
 
 ### TCP Port Tests
-Test specific service availability:
+Validate specific service availability:
 ```yaml
 environment:
-  - CONNECTIVITY_TCP_1=DC-SSH:10.0.0.100:22
-  - CONNECTIVITY_TCP_2=DC-RDP:10.0.0.100:3389
-  - CONNECTIVITY_TCP_3=DB-Server:10.0.0.200:5432
+  - CONNECTIVITY_TCP_1=Database:10.0.0.200:5432
 ```
 
-## Format
+## Performance Scoring (DEM)
 
-```
-CONNECTIVITY_<TYPE>_<NUMBER>=<Name>:<Target>
-```
+Each reachable endpoint receives a score based on a weighted algorithm:
 
-- **TYPE**: `HTTP`, `PING`, or `TCP`
-- **NUMBER**: Sequential number (1, 2, 3, ...)
-- **Name**: Display name for the endpoint
-- **Target**: 
-  - HTTP: Full URL (e.g., `https://app.local`)
-  - PING: IP address (e.g., `10.0.0.1`)
-  - TCP: IP:Port (e.g., `10.0.0.1:22`)
+| Metric | Weight | Description |
+| :--- | :--- | :--- |
+| **Total Latency** | 30% | Overall round-trip response time. |
+| **TTFB** | 35% | Time To First Byte (Application/Backend latency). |
+| **TLS/SSL** | 25% | Handshake timing (Path inspection overhead). |
+| **DNS/TCP** | 10% | Network setup overhead. |
 
-## UI Display
+> [!NOTE]
+> Scores above **80** are considered Excellent (Green). Scores below **50** indicate path degradation or heavy SSL inspection (Orange/Red).
 
-The connectivity status badge shows:
-- ✅ **Green checkmark**: Endpoint reachable
-- ❌ **Red X**: Endpoint unreachable
-- **Type badge**: HTTP, PING, or TCP
-- **Latency**: Response time in milliseconds
-- **Error**: Failure reason if unreachable
+## Timing Breakdown
 
-## Example
+When using HTTP/HTTPS probes, the system captures:
+- **DNS Lookup**: Name resolution speed.
+- **TCP Connect**: Three-way handshake timing.
+- **App Connect (TLS)**: SSL negotiation duration (key for SASE analysis).
+- **TTFB**: Time between request and first byte of response.
+- **Total**: End-to-end execution time.
 
-```yaml
-services:
-  sdwan-web-ui:
-    image: jsuzanne/sdwan-web-ui:1.1.0-beta.14
-    environment:
-      # Test DC application
-      - CONNECTIVITY_HTTP_1=DC-App:https://app.dc.local
-      
-      # Test HQ firewall
-      - CONNECTIVITY_PING_1=HQ-FW:10.0.0.1
-      
-      # Test SSH access
-      - CONNECTIVITY_TCP_1=SSH:10.0.0.100:22
-```
+## Historical Logging
 
-## Default Endpoints
+All results are logged with millisecond precision in:
+`/app/logs/connectivity-results.jsonl`
 
-These are always tested (cannot be disabled):
-- Cloudflare DNS (1.1.1.1)
-- Google DNS (8.8.8.8)
-- Google.com
+History is accessible via the **Performance** tab in the dashboard, featuring:
+- Time-series charts of timing breakdowns.
+- Global Health Score summary.
+- Reliability (Uptime %) per endpoint.
 
 ## Use Cases
 
-- **SD-WAN Testing**: Verify branch-to-HQ connectivity
-- **POC Demos**: Ensure demo environment is ready
-- **Multi-site**: Test reachability to remote sites
-- **Pre-flight Checks**: Validate network before security tests
+- **SASE/SD-WAN Validation**: Measure the impact of SSL inspection on application performance.
+- **Path Selection**: Compare performance across different ISP links or VPN tunnels.
+- **SaaS Monitoring**: Track performance trends for critical cloud applications.

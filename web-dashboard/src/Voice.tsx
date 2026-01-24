@@ -43,6 +43,16 @@ export default function Voice({ token }: VoiceProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [qualityFilter, setQualityFilter] = useState<'all' | 'excellent' | 'fair' | 'poor'>('all');
 
+    // New Guided Editor State
+    const [newProbe, setNewProbe] = useState({
+        host: '',
+        port: '6100',
+        codec: 'G.711-ulaw',
+        weight: '50',
+        duration: '30'
+    });
+    const [showGuided, setShowGuided] = useState(true);
+
     useEffect(() => {
         fetchStatus();
         fetchConfig();
@@ -138,6 +148,44 @@ export default function Voice({ token }: VoiceProps) {
         } catch (e) { }
         setSaving(false);
     };
+
+    const addProbeFromForm = () => {
+        const { host, port, codec, weight, duration } = newProbe;
+        if (!host || !port) return alert("Host and Port are required");
+
+        const newLine = `${host}:${port}|${codec}|${weight}|${duration}`;
+        setRawServers(prev => {
+            const trimmed = prev.trim();
+            return trimmed ? `${trimmed}\n${newLine}` : newLine;
+        });
+        setNewProbe({ ...newProbe, host: '' }); // Clear host for next entry
+    };
+
+    const removeProbeAt = (lineIndex: number) => {
+        const lines = rawServers.split('\n');
+        const newLines = lines.filter((_, i) => i !== lineIndex);
+        setRawServers(newLines.join('\n'));
+    };
+
+    const parsedProbes = React.useMemo(() => {
+        return rawServers.split('\n')
+            .map((line, index) => ({ line, index }))
+            .filter(item => item.line.trim() && !item.line.trim().startsWith('#'))
+            .map(item => {
+                const parts = item.line.trim().split('|');
+                const targetParts = parts[0]?.split(':') || [];
+                return {
+                    id: item.index,
+                    target: parts[0],
+                    host: targetParts[0],
+                    port: targetParts[1],
+                    codec: parts[1] || 'default',
+                    weight: parts[2] || '—',
+                    duration: parts[3] ? `${parts[3]}s` : '—',
+                    raw: item.line
+                };
+            });
+    }, [rawServers]);
 
     // Calculate metrics
     const activeCalls = React.useMemo(() => {
@@ -479,16 +527,125 @@ export default function Voice({ token }: VoiceProps) {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] text-slate-500 uppercase font-bold">Server List (Raw text)</label>
-                                <textarea
-                                    value={rawServers}
-                                    onChange={(e) => setRawServers(e.target.value)}
-                                    rows={10}
-                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-4 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="host:port|codec|weight|duration_sec"
-                                />
-                                <p className="text-[10px] text-slate-500 italic">One target per line. Format: host:port|codec|weight|duration</p>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="text-[10px] text-slate-500 uppercase font-bold">Guided Probe Editor</label>
+                                    <button
+                                        onClick={() => setShowGuided(!showGuided)}
+                                        className="text-[10px] text-blue-400 hover:text-blue-300 font-bold"
+                                    >
+                                        {showGuided ? 'Hide Form' : 'Show Form'}
+                                    </button>
+                                </div>
+
+                                {showGuided && (
+                                    <div className="bg-slate-950/40 border border-slate-800/50 p-4 rounded-xl space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Target IP / Host</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="192.168.1.1"
+                                                    value={newProbe.host}
+                                                    onChange={e => setNewProbe({ ...newProbe, host: e.target.value })}
+                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Port</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="5060"
+                                                    value={newProbe.port}
+                                                    onChange={e => setNewProbe({ ...newProbe, port: e.target.value })}
+                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Codec</label>
+                                                <select
+                                                    value={newProbe.codec}
+                                                    onChange={e => setNewProbe({ ...newProbe, codec: e.target.value })}
+                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                >
+                                                    <option value="G.711-ulaw">G.711-ulaw</option>
+                                                    <option value="G.711-alaw">G.711-alaw</option>
+                                                    <option value="G.729">G.729</option>
+                                                    <option value="OPUS">OPUS</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Weight (1-100)</label>
+                                                <input
+                                                    type="number"
+                                                    value={newProbe.weight}
+                                                    onChange={e => setNewProbe({ ...newProbe, weight: e.target.value })}
+                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Duration (sec)</label>
+                                                <input
+                                                    type="number"
+                                                    value={newProbe.duration}
+                                                    onChange={e => setNewProbe({ ...newProbe, duration: e.target.value })}
+                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={addProbeFromForm}
+                                            className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Plus size={14} /> Add Target to List
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] text-slate-500 uppercase font-bold">Raw Configuration (JSONL-like)</label>
+                                        <span className="text-[9px] text-slate-600 italic">Advanced users only</span>
+                                    </div>
+                                    <textarea
+                                        value={rawServers}
+                                        onChange={(e) => setRawServers(e.target.value)}
+                                        rows={8}
+                                        className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-3 text-[10px] font-mono focus:ring-1 focus:ring-blue-500 outline-none"
+                                        placeholder="host:port|codec|weight|duration_sec"
+                                    />
+
+                                    <div className="space-y-2 mt-4">
+                                        <label className="text-[10px] text-slate-500 uppercase font-bold">Configured Probes ({parsedProbes.length})</label>
+                                        <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
+                                            {parsedProbes.map((p, i) => (
+                                                <div key={i} className="flex items-center justify-between bg-slate-800/30 border border-slate-700/30 px-3 py-1.5 rounded-lg group">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="text-[10px] font-mono text-slate-300">{p.target}</div>
+                                                        <div className="text-[9px] font-bold text-slate-500 bg-slate-800 px-1 rounded">{p.codec}</div>
+                                                        <div className="text-[9px] text-slate-600">Weight: {p.weight}</div>
+                                                        <div className="text-[9px] text-slate-600">{p.duration}</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeProbeAt(p.id)}
+                                                        className="p-1 text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {parsedProbes.length === 0 && (
+                                                <div className="text-center py-4 text-[10px] text-slate-600 italic border border-dashed border-slate-800 rounded-lg">
+                                                    No targets defined
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
