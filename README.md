@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.1.0--patch.41-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.1.0--patch.68-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -61,23 +61,23 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 ---
 
 ### Dashboard - Real-time Monitoring
-<img src="docs/screenshots/dashboard.png" alt="Dashboard" width="800">
+<img src="docs/images/dashboard_main.png" alt="Dashboard" width="800">
 
-*Monitor traffic generation status, total requests, success rate, and active applications in real-time*
-
----
-
-### Security Testing - URL Filtering
-<img src="docs/screenshots/security/url-filtering.png" alt="URL Filtering Tests" width="800">
-
-*Test 66 different URL categories to validate firewall policies*
+*Monitor traffic generation status, success rate, and active apps with real-time analytics*
 
 ---
 
-### Security Testing - DNS Security
-<img src="docs/screenshots/security/dns-security.png" alt="DNS Security Tests" width="800">
+### Security Testing - Batch Processing
+<img src="docs/images/security_page.png" alt="Security Batch Testing" width="800">
 
-*Validate DNS security with malware, phishing, and advanced threat domains*
+*Run 66+ security tests with real-time "Testing..." progress animation*
+
+---
+
+### Voice Simulation - QoS Analytics
+<img src="docs/images/voice_analytics.png" alt="Voice QoS Analytics" width="800">
+
+*Measure Network Proof of Performance (RTT, Loss, Jitter) with SLA color coding*
 
 ---
 

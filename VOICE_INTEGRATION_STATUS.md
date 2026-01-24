@@ -1,6 +1,6 @@
 # 🎙️ Voice Integration Status Report
 
-## 📦 Version: 1.1.0-patch.36.1
+## 📦 Version: 1.1.0-patch.68
 **Date:** 2026-01-23
 
 ### ✅ Completed Tasks
@@ -109,6 +109,9 @@
         *   **VOICE QoS METRICS** : Transformation du simulateur de voix en outil de diagnostic. Capture du retour des paquets RTP pour mesurer le RTT (latence), les pertes (Packet Loss) et la gigue (Jitter RFC 3550). Affichage avec code couleur (SLA) sur le dashboard.
     *   **Patch 68** :
         *   **UX & ANALYTICS** : Amélioration de l'expérience utilisateur. Ajout d'indicateurs de progression pour les tests de sécurité en lot. Nouveau widget de résumé QoS voix (Moyennes, Min, Max) et filtres de recherche avancés pour l'historique des appels.
+
+![Voice Analytics](docs/images/voice_analytics.png)
+![Security Testing](docs/images/security_page.png)
 
 ### 📝 Next Steps (IMPORTANT)
 1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.68)**.
