@@ -159,13 +159,15 @@ export class ConnectivityLogger {
                 .sort((a, b) => (a.reliability + a.avgScore) - (b.reliability + b.avgScore))
                 .slice(0, 3);
 
+            const uniqueHttpEndpoints = new Set(httpResults.map(r => r.endpointId)).size;
+
             return {
-                globalHealth: reachableHttp.length > 0 ? Math.round(reachableHttp.reduce((acc, r) => acc + r.score, 0) / reachableHttp.length) : 0,
+                globalHealth: httpResults.length > 0 ? Math.round(httpResults.reduce((acc, r) => acc + (r.score || 0), 0) / httpResults.length) : 0,
                 httpEndpoints: {
-                    total: httpResults.length,
-                    avgScore: reachableHttp.length > 0 ? Math.round(reachableHttp.reduce((acc, r) => acc + r.score, 0) / reachableHttp.length) : 0,
-                    minScore: reachableHttp.length > 0 ? Math.min(...reachableHttp.map(r => r.score)) : 0,
-                    maxScore: reachableHttp.length > 0 ? Math.max(...reachableHttp.map(r => r.score)) : 0
+                    total: uniqueHttpEndpoints,
+                    avgScore: httpResults.length > 0 ? Math.round(httpResults.reduce((acc, r) => acc + (r.score || 0), 0) / httpResults.length) : 0,
+                    minScore: httpResults.length > 0 ? Math.min(...httpResults.map(r => r.score || 0)) : 0,
+                    maxScore: httpResults.length > 0 ? Math.max(...httpResults.map(r => r.score || 0)) : 0
                 },
                 flakyEndpoints,
                 lastCheckTime: allResults.length > 0 ? allResults[0].timestamp : null
