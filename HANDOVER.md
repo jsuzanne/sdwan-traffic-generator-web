@@ -1,16 +1,16 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
 ## 🎯 Current Status (as of 2026-01-24)
-We are currently at version **v1.1.0-patch.67**.
-The system is now a full-featured network diagnostic and traffic simulation suite.
+We are currently at version **v1.1.0-patch.68**.
+Enhanced UX for batch testing and advanced Voice QoS analytics are now live.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **Voice QoS (v67)**: Integrated real-time network measurement (Loss, RTT, Jitter) into voice calls using RTP echo reflection. Each call now provides a Precise SLA assessment (Excellent/Fair/Poor).
-2.  **Global Reset (v66)**: Implemented "Reset Statistics" buttons across Traffic, Security, and Voice modules.
-3.  **URL Deep Inspection (v65)**: Accurate distinction between Palo Alto Test Pages and security block pages.
+1.  **UX & Analytics (v68)**: Implemented batch progress indicators for Security tests and a comprehensive QoS Summary widget (Avg/Min/Max) for Voice simulation. Added advanced filtering/search for voice history.
+2.  **Voice QoS (v67)**: Integrated real-time network measurement (Loss, RTT, Jitter) into voice calls.
+3.  **Global Reset (v66)**: Added "Reset Statistics" buttons across all modules.
 4.  **Universal DNS (v63)**: Normalized DNS tests using `nslookup`.
-4.  **Flow Separation (v61)**: Unique source ports for voice calls.
-5.  **Clean Slate (v60)**: Orchestrator reset at startup.
+5.  **Flow Separation (v61)**: Unique source ports for voice calls.
+6.  **Clean Slate (v60)**: Orchestrator reset at startup.
 
 ## 🚀 Tomorrow's Roadmap (Windows Testing)
 1.  **Testing Environment**: Planning to test on Windows Docker Desktop.

@@ -110,6 +110,8 @@ export default function Security({ token }: SecurityProps) {
     const [config, setConfig] = useState<SecurityConfig | null>(null);
     const [testResults, setTestResults] = useState<TestResult[]>([]);
     const [loading, setLoading] = useState(false);
+    const [batchProcessingUrl, setBatchProcessingUrl] = useState(false);
+    const [batchProcessingDns, setBatchProcessingDns] = useState(false);
     const [testing, setTesting] = useState<{ [key: string]: boolean }>({});
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
@@ -430,8 +432,8 @@ export default function Security({ token }: SecurityProps) {
     };
 
     const runURLBatchTest = async () => {
-        if (!config) return;
-        setLoading(true);
+        if (!config || batchProcessingUrl) return;
+        setBatchProcessingUrl(true);
         showToast(`Running ${config.url_filtering.enabled_categories.length} URL filtering tests...`, 'info');
         try {
             const enabledCategories = URL_CATEGORIES.filter(cat =>
@@ -440,7 +442,7 @@ export default function Security({ token }: SecurityProps) {
 
             const tests = enabledCategories.map(cat => ({ url: cat.url, category: cat.name }));
 
-            const res = await fetch('/api/security/url-test-batch', {
+            await fetch('/api/security/url-test-batch', {
                 method: 'POST',
                 headers: { ...authHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tests })
@@ -452,7 +454,7 @@ export default function Security({ token }: SecurityProps) {
             console.error('Batch URL test failed:', e);
             showToast('URL filtering tests failed', 'error');
         } finally {
-            setLoading(false);
+            setBatchProcessingUrl(false);
         }
     };
 
@@ -474,8 +476,8 @@ export default function Security({ token }: SecurityProps) {
     };
 
     const runDNSBatchTest = async () => {
-        if (!config) return;
-        setLoading(true);
+        if (!config || batchProcessingDns) return;
+        setBatchProcessingDns(true);
         showToast(`Running ${config.dns_security.enabled_tests.length} DNS security tests...`, 'info');
         try {
             const enabledTests = DNS_TEST_DOMAINS.filter(test =>
@@ -484,7 +486,7 @@ export default function Security({ token }: SecurityProps) {
 
             const tests = enabledTests.map(test => ({ domain: test.domain, testName: test.name }));
 
-            const res = await fetch('/api/security/dns-test-batch', {
+            await fetch('/api/security/dns-test-batch', {
                 method: 'POST',
                 headers: { ...authHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tests })
@@ -496,7 +498,7 @@ export default function Security({ token }: SecurityProps) {
             console.error('Batch DNS test failed:', e);
             showToast('DNS security tests failed', 'error');
         } finally {
-            setLoading(false);
+            setBatchProcessingDns(false);
         }
     };
 
@@ -790,11 +792,20 @@ export default function Security({ token }: SecurityProps) {
                             </div>
                             <button
                                 onClick={runURLBatchTest}
-                                disabled={loading || config.url_filtering.enabled_categories.length === 0 || (systemHealth && !systemHealth.ready)}
+                                disabled={loading || batchProcessingUrl || config.url_filtering.enabled_categories.length === 0 || (systemHealth && !systemHealth.ready)}
                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                                 title={systemHealth && !systemHealth.ready ? 'System not ready - missing required commands' : ''}
                             >
-                                <Play size={16} /> Run All Enabled
+                                {batchProcessingUrl ? (
+                                    <>
+                                        <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                        Testing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play size={16} /> Run All Enabled
+                                    </>
+                                )}
                             </button>
                         </div>
 
@@ -884,11 +895,20 @@ export default function Security({ token }: SecurityProps) {
                             </div>
                             <button
                                 onClick={runDNSBatchTest}
-                                disabled={loading || config.dns_security.enabled_tests.length === 0 || (systemHealth && !systemHealth.ready)}
+                                disabled={loading || batchProcessingDns || config.dns_security.enabled_tests.length === 0 || (systemHealth && !systemHealth.ready)}
                                 className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                                 title={systemHealth && !systemHealth.ready ? 'System not ready - missing required commands' : ''}
                             >
-                                <Play size={16} /> Run All Enabled
+                                {batchProcessingDns ? (
+                                    <>
+                                        <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                        Testing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play size={16} /> Run All Enabled
+                                    </>
+                                )}
                             </button>
                         </div>
 

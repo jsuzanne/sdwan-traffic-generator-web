@@ -107,8 +107,10 @@
         *   **STATISTICS RESET** : Ajout de boutons "Reset" sur toutes les pages (Trafic, Sécurité, Voix). Permet de remettre à zéro les compteurs et l'historique sans redémarrer les services, facilitant les cycles de démonstration successifs.
     *   **Patch 67** :
         *   **VOICE QoS METRICS** : Transformation du simulateur de voix en outil de diagnostic. Capture du retour des paquets RTP pour mesurer le RTT (latence), les pertes (Packet Loss) et la gigue (Jitter RFC 3550). Affichage avec code couleur (SLA) sur le dashboard.
+    *   **Patch 68** :
+        *   **UX & ANALYTICS** : Amélioration de l'expérience utilisateur. Ajout d'indicateurs de progression pour les tests de sécurité en lot. Nouveau widget de résumé QoS voix (Moyennes, Min, Max) et filtres de recherche avancés pour l'historique des appels.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.67)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.68)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
-3.  **Promotion en Stable** : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.67`.
+3.  **Promotion en Stable** : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.68`.

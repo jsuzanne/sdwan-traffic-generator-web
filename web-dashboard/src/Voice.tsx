@@ -39,7 +39,9 @@ export default function Voice({ token }: VoiceProps) {
     const [calls, setCalls] = useState<VoiceCall[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<'status' | 'config' | 'stats'>('status');
+    const [activeTab, setActiveTab] = useState<'status' | 'config'>('status');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [qualityFilter, setQualityFilter] = useState<'all' | 'excellent' | 'fair' | 'poor'>('all');
 
     useEffect(() => {
         fetchStatus();
@@ -150,12 +152,49 @@ export default function Voice({ token }: VoiceProps) {
         return active;
     }, [calls]);
 
-    // Newest history first
-    const sortedHistory = React.useMemo(() => {
+    // Calculate history metrics (Summary)
+    const qosSummary = React.useMemo(() => {
+        const finishedCalls = calls.filter(c => c.event === 'end' && c.loss_pct !== undefined);
+        if (finishedCalls.length === 0) return null;
+
+        const totalLoss = finishedCalls.reduce((acc, c) => acc + (c.loss_pct || 0), 0);
+        const rtts = finishedCalls.map(c => c.avg_rtt_ms || 0).filter(v => v > 0);
+        const jitters = finishedCalls.map(c => c.jitter_ms || 0).filter(v => v > 0);
+
+        return {
+            totalCalls: finishedCalls.length,
+            avgLoss: (totalLoss / finishedCalls.length).toFixed(1),
+            avgRtt: rtts.length > 0 ? (rtts.reduce((a, b) => a + b, 0) / rtts.length).toFixed(1) : '0',
+            minRtt: rtts.length > 0 ? Math.min(...rtts).toFixed(1) : '0',
+            maxRtt: rtts.length > 0 ? Math.max(...rtts).toFixed(1) : '0',
+            avgJitter: jitters.length > 0 ? (jitters.reduce((a, b) => a + b, 0) / jitters.length).toFixed(1) : '0'
+        };
+    }, [calls]);
+
+    // Newest history first with Filters
+    const filteredHistory = React.useMemo(() => {
         return [...calls]
             .filter(c => c.event === 'start' || c.event === 'end' || c.event === 'skipped')
+            .filter(c => {
+                // Search filter
+                const matchesSearch = c.call_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    c.target.toLowerCase().includes(searchTerm.toLowerCase());
+
+                if (!matchesSearch) return false;
+
+                // Quality filter (only applies to 'end' events)
+                if (qualityFilter !== 'all' && c.event === 'end') {
+                    const loss = c.loss_pct || 0;
+                    const rtt = c.avg_rtt_ms || 0;
+                    const quality = (loss < 1 && rtt < 100) ? 'excellent' :
+                        (loss < 5 && rtt < 200) ? 'fair' : 'poor';
+                    return quality === qualityFilter;
+                }
+
+                return true;
+            })
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }, [calls]);
+    }, [calls, searchTerm, qualityFilter]);
 
     return (
         <div className="space-y-6">
@@ -192,6 +231,36 @@ export default function Voice({ token }: VoiceProps) {
                         {enabled ? <><Pause size={20} fill="currentColor" /> Stop Voice</> : <><Play size={20} fill="currentColor" /> Start Voice</>}
                     </button>
                 </div>
+
+                {/* QoS Summary Widget */}
+                {qosSummary && (
+                    <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Total Calls</div>
+                            <div className="text-lg font-bold text-white">{qosSummary.totalCalls}</div>
+                        </div>
+                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Avg Loss</div>
+                            <div className={cn("text-lg font-bold", parseFloat(qosSummary.avgLoss) < 1 ? "text-green-400" : "text-yellow-400")}>
+                                {qosSummary.avgLoss}%
+                            </div>
+                        </div>
+                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Avg RTT</div>
+                            <div className="text-lg font-bold text-blue-400">{qosSummary.avgRtt}ms</div>
+                        </div>
+                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Min / Max RTT</div>
+                            <div className="text-sm font-bold text-slate-300">
+                                {qosSummary.minRtt} <span className="text-slate-600">/</span> {qosSummary.maxRtt}ms
+                            </div>
+                        </div>
+                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Avg Jitter</div>
+                            <div className="text-lg font-bold text-purple-400">{qosSummary.avgJitter}ms</div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Main Tabs */}
@@ -246,16 +315,40 @@ export default function Voice({ token }: VoiceProps) {
 
                     {/* Stats Summary */}
                     <div className="lg:col-span-2 bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                             <h3 className="text-slate-200 font-bold flex items-center gap-2">
                                 <BarChart2 size={18} className="text-blue-400" /> Recent History
                             </h3>
+
+                            <div className="flex flex-1 max-w-md gap-2">
+                                <div className="relative flex-1">
+                                    <Clock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search calls..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-lg pl-8 pr-3 py-1.5 outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <select
+                                    value={qualityFilter}
+                                    onChange={(e) => setQualityFilter(e.target.value as any)}
+                                    className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 outline-none focus:border-blue-500"
+                                >
+                                    <option value="all">All Qualities</option>
+                                    <option value="excellent">Excellent 🟢</option>
+                                    <option value="fair">Fair 🟡</option>
+                                    <option value="poor">Poor 🔴</option>
+                                </select>
+                            </div>
+
                             <button
                                 onClick={resetLogs}
                                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 border border-red-500/30 rounded-lg transition-colors"
                             >
                                 <Trash2 size={12} />
-                                Reset Logs
+                                Reset
                             </button>
                         </div>
                         <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
@@ -270,7 +363,7 @@ export default function Voice({ token }: VoiceProps) {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-400">
-                                    {sortedHistory.map((call, idx) => (
+                                    {filteredHistory.map((call, idx) => (
                                         <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/10">
                                             <td className="py-3 px-2 text-xs font-mono">{new Date(call.timestamp).toLocaleTimeString()}</td>
                                             <td className="py-3 px-2">
