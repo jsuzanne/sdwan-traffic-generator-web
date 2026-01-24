@@ -20,6 +20,9 @@ interface VoiceCall {
     codec: string;
     duration: number;
     session_id?: string;
+    loss_pct?: number;
+    avg_rtt_ms?: number;
+    jitter_ms?: number;
 }
 
 interface VoiceControl {
@@ -262,7 +265,8 @@ export default function Voice({ token }: VoiceProps) {
                                         <th className="pb-3 px-2 font-medium bg-slate-900">Time</th>
                                         <th className="pb-3 px-2 font-medium bg-slate-900">Event</th>
                                         <th className="pb-3 px-2 font-medium bg-slate-900">Target</th>
-                                        <th className="pb-3 px-2 font-medium bg-slate-900">Codec</th>
+                                        <th className="pb-3 px-2 font-medium bg-slate-900">Loss</th>
+                                        <th className="pb-3 px-2 font-medium bg-slate-900 text-right">RTT / Jitter</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-400">
@@ -281,7 +285,42 @@ export default function Voice({ token }: VoiceProps) {
                                                 </div>
                                             </td>
                                             <td className="py-3 px-2 text-xs font-mono">{call.target}</td>
-                                            <td className="py-3 px-2 text-xs">{call.codec}</td>
+                                            <td className="py-3 px-2">
+                                                {call.event === 'end' && call.loss_pct !== undefined ? (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className={cn(
+                                                            "h-2 w-2 rounded-full",
+                                                            call.loss_pct < 1 ? "bg-green-500" :
+                                                                call.loss_pct < 5 ? "bg-yellow-500" : "bg-red-500"
+                                                        )} />
+                                                        <span className={cn(
+                                                            "text-[10px] font-bold",
+                                                            call.loss_pct < 1 ? "text-green-400" :
+                                                                call.loss_pct < 5 ? "text-yellow-400" : "text-red-400"
+                                                        )}>
+                                                            {call.loss_pct}%
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-600">—</span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 px-2 text-right">
+                                                {call.event === 'end' && call.avg_rtt_ms !== undefined ? (
+                                                    <div className="flex flex-col items-end">
+                                                        <span className={cn(
+                                                            "text-[11px] font-medium",
+                                                            call.avg_rtt_ms < 100 ? "text-slate-200" :
+                                                                call.avg_rtt_ms < 200 ? "text-yellow-400" : "text-red-400"
+                                                        )}>
+                                                            {call.avg_rtt_ms}ms
+                                                        </span>
+                                                        <span className="text-[9px] text-slate-500">Jitter: {call.jitter_ms}ms</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-600">—</span>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

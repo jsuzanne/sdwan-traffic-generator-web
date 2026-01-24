@@ -5,7 +5,6 @@ import subprocess
 import random
 import signal
 import sys
-import sys
 from datetime import datetime
 
 # Configuration paths (aligned with Docker volumes)
@@ -159,7 +158,8 @@ def start_call(server, interface):
     try:
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
-        proc = subprocess.Popen(cmd, env=env)
+        # Capture stdout for QoS data
+        proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         call_info = {
             "call_id": call_id,
             "pid": proc.pid,
@@ -222,7 +222,19 @@ def main():
         finished = []
         for call in active_calls:
             if call['proc'].poll() is not None:
-                log_call("end", call['info'])
+                # Capture QoS metrics from stdout
+                stdout, _ = call['proc'].communicate()
+                qos_data = {}
+                if stdout:
+                    for line in stdout.decode().split('\n'):
+                        if line.startswith("RESULT:"):
+                            try:
+                                qos_data = json.loads(line.replace("RESULT:", "").strip())
+                            except: pass
+                
+                # Merge QoS data into info for logging
+                final_info = {**call['info'], **qos_data}
+                log_call("end", final_info)
                 finished.append(call)
         
         for call in finished:

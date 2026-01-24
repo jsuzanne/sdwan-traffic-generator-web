@@ -105,8 +105,10 @@
         *   **URL DEEP INSPECTION** : Raffinement de la détection de blocage. Le système distingue maintenant les pages de "Test" Palo Alto (autorisées) des pages de "Blocage" (interdites) en scannant le contenu HTML. Élimine les faux positifs sur les URLs de test marquées du nom de l'éditeur.
     *   **Patch 66** :
         *   **STATISTICS RESET** : Ajout de boutons "Reset" sur toutes les pages (Trafic, Sécurité, Voix). Permet de remettre à zéro les compteurs et l'historique sans redémarrer les services, facilitant les cycles de démonstration successifs.
+    *   **Patch 67** :
+        *   **VOICE QoS METRICS** : Transformation du simulateur de voix en outil de diagnostic. Capture du retour des paquets RTP pour mesurer le RTT (latence), les pertes (Packet Loss) et la gigue (Jitter RFC 3550). Affichage avec code couleur (SLA) sur le dashboard.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.66)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.67)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
-3.  **Promotion en Stable** : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.66`.
+3.  **Promotion en Stable** : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.67`.
