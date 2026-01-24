@@ -185,11 +185,19 @@ export default function Security({ token }: SecurityProps) {
         document.body.removeChild(textArea);
     };
 
-    // Load configuration
+    // Load configuration and start polling
     useEffect(() => {
         fetchConfig();
         fetchResults();
         fetchHealth();
+
+        // Background polling for statistics (refreshes counters from scheduled tests)
+        const pollInterval = setInterval(() => {
+            fetchConfig();
+            fetchHealth();
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(pollInterval);
     }, []);
 
     const fetchHealth = async () => {
@@ -413,6 +421,7 @@ export default function Security({ token }: SecurityProps) {
             });
             const result = await res.json();
             await fetchResults();
+            await fetchConfig();
         } catch (e) {
             console.error('URL test failed:', e);
         } finally {
@@ -456,6 +465,7 @@ export default function Security({ token }: SecurityProps) {
                 body: JSON.stringify({ domain: test.domain, testName: test.name })
             });
             await fetchResults();
+            await fetchConfig();
         } catch (e) {
             console.error('DNS test failed:', e);
         } finally {
@@ -500,6 +510,7 @@ export default function Security({ token }: SecurityProps) {
                 body: JSON.stringify({ endpoint: eicarEndpoint })
             });
             await fetchResults();
+            await fetchConfig();
             showToast('EICAR threat test completed!', 'success');
 
             // Save endpoint to config

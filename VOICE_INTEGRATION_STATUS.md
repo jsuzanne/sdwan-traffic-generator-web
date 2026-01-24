@@ -99,8 +99,10 @@
 
     *   **Patch 63** :
         *   **UNIVERSAL DNS** : Optimisation cross-platform (macOS/Windows/Linux). `nslookup` devient l'outil de référence universel car il fournit les mêmes détails techniques sur tous les OS, garantissant une détection des menaces identique, que le host soit sous Windows ou Ubuntu.
+    *   **Patch 64** :
+        *   **LIVE COUNTERS** : Les compteurs de sécurité (Total, Blocked, Sinkholed) sont désormais mis à jour en temps réel. Ajout d'un rafraîchissement automatique toutes les 30 secondes pour capter les tests planifiés en arrière-plan, et mise à jour immédiate après chaque test manuel.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.63)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.64)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
-3.  Pour passer en "Stable" : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.48`.
+3.  **Promotion en Stable** : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.64`.

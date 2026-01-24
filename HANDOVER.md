@@ -1,15 +1,15 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
-## 🎯 Current Status (as of 2026-01-23)
-We are currently at version **v1.1.0-patch.63**.
-DNS Security tests and Voice Simulation are now fully cross-platform resilient.
+## 🎯 Current Status (as of 2026-01-24)
+We are currently at version **v1.1.0-patch.64**.
+DNS Security, Voice Simulation, and Real-time Monitoring are fully hardened.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **Universal DNS (v63)**: Normalized DNS security tests across Linux, macOS, and Windows. Prioritized `nslookup` as the standard tool to ensure identical sinkhole detection logic regardless of the host OS. Improved output parsing for Windows format.
-2.  **DNS Hardening (v62)**: Added keyword detection for "sinkhole" in both stdout and stderr. Reliable for Palo Alto Networks redirections (even with SERVFAIL).
-3.  **Flow Separation (v61)**: Unique source ports for every voice call. Improved SD-WAN traffic realism.
-4.  **Clean Slate (v60)**: Orchestrator reset at startup for 100% UI accuracy.
-5.  **Build Stability**: Switched to Amazon ECR Public mirrors.
+1.  **Live Counters (v64)**: Implemented real-time updates for security gauges. Added background polling (30s) and immediate refresh after manual tests to ensure the dashboard always reflects current data.
+2.  **Universal DNS (v63)**: Normalized DNS security tests across Linux, macOS, and Windows. Prioritized `nslookup` for consistent trace detection.
+3.  **DNS Hardening (v62)**: Reliable "sinkhole" detection in stdout/stderr.
+4.  **Flow Separation (v61)**: Unique source ports for voice calls.
+5.  **Clean Slate (v60)**: Orchestrator reset at startup.
 
 ## 🚀 Tomorrow's Roadmap (Windows Testing)
 1.  **Testing Environment**: Planning to test on Windows Docker Desktop.
