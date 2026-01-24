@@ -381,6 +381,11 @@ export default function Config({ token }: ConfigProps) {
                                 value={newProbe.target}
                                 onChange={e => setNewProbe({ ...newProbe, target: e.target.value })}
                             />
+                            <p className="text-[9px] text-slate-500 ml-1 italic">
+                                {newProbe.type === 'HTTP' || newProbe.type === 'HTTPS' ?
+                                    "Must start with http:// or https://" :
+                                    "IP or Domain only (No http://)"}
+                            </p>
                         </div>
                         <div className="flex items-end">
                             <button
