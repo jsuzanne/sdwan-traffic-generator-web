@@ -10,6 +10,15 @@ import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, 
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+function formatBitrate(mbpsStr: string) {
+  const mbps = parseFloat(mbpsStr);
+  if (isNaN(mbps)) return '0.00 Mbps';
+  if (mbps < 1 && mbps > 0) {
+    return `${(mbps * 1000).toFixed(0)} Kbps`;
+  }
+  return `${mbps.toFixed(2)} Mbps`;
+}
+
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
@@ -829,20 +838,18 @@ export default function App() {
                     <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800">
                       <span className="flex items-center gap-1.5 font-mono text-[11px]">
                         <ChevronDown size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.rx_mbps) > 5 ? "text-green-400" : "text-blue-400")} />
-                        <span className="text-slate-200 font-bold">{dockerStats.stats.network.rx_mbps}</span>
-                        <span className="text-slate-500 font-medium">Mbps</span>
+                        <span className="text-slate-200 font-bold min-w-[60px]">{formatBitrate(dockerStats.stats.network.rx_mbps)}</span>
                       </span>
                       <div className="w-px h-3 bg-slate-800" />
                       <span className="flex items-center gap-1.5 font-mono text-[11px]">
                         <ChevronUp size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.tx_mbps) > 5 ? "text-green-400" : "text-purple-400")} />
-                        <span className="text-slate-200 font-bold">{dockerStats.stats.network.tx_mbps}</span>
-                        <span className="text-slate-500 font-medium">Mbps</span>
+                        <span className="text-slate-200 font-bold min-w-[60px]">{formatBitrate(dockerStats.stats.network.tx_mbps)}</span>
                       </span>
                     </div>
                     <div className="hidden lg:flex items-center gap-3 text-[10px] text-slate-500 font-mono">
-                      <span>TOT: {dockerStats.stats.network.received_mb} MB</span>
+                      <span>TOT: {dockerStats.stats.network.rx_mb || dockerStats.stats.network.received_mb} MB</span>
                       <span>/</span>
-                      <span>{dockerStats.stats.network.transmitted_mb} MB</span>
+                      <span>{dockerStats.stats.network.tx_mb || dockerStats.stats.network.transmitted_mb} MB</span>
                     </div>
                   </div>
                 )}
@@ -897,9 +904,9 @@ export default function App() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <span className="text-[10px] text-slate-500 uppercase font-bold block">Bitrate</span>
-                          <div className="flex flex-col text-[11px] font-mono">
-                            <span className="text-blue-400">↓ {c.network.rx_mbps} Mbps</span>
-                            <span className="text-purple-400">↑ {c.network.tx_mbps} Mbps</span>
+                          <div className="flex flex-col text-[11px] font-mono whitespace-nowrap">
+                            <span className="text-blue-400">↓ {formatBitrate(c.network.rx_mbps)}</span>
+                            <span className="text-purple-400">↑ {formatBitrate(c.network.tx_mbps)}</span>
                           </div>
                         </div>
                         <div className="space-y-1">

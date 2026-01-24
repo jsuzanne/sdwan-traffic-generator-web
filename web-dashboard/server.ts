@@ -1377,6 +1377,8 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
                         tx_bytes: totalTx,
                         rx_mb: (totalRx / 1024 / 1024).toFixed(2),
                         tx_mb: (totalTx / 1024 / 1024).toFixed(2),
+                        received_mb: (totalRx / 1024 / 1024).toFixed(2),
+                        transmitted_mb: (totalTx / 1024 / 1024).toFixed(2),
                         rx_mbps,
                         tx_mbps
                     },
@@ -1400,14 +1402,37 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
                         const memMax = fs.readFileSync('/sys/fs/cgroup/memory.max', 'utf8').trim();
                         const memLimit = memMax === 'max' ? os.totalmem() : parseInt(memMax);
 
-                        const cStats = containerStatsMap.get(cName)!; // Get current stats for web-ui
+                        const cStats = containerStatsMap.get(cName)!;
+                        let rx_mbps = '0.00';
+                        let tx_mbps = '0.00';
+
+                        if (cStats.prevNetwork) {
+                            const deltaRx = rx - cStats.prevNetwork.rx;
+                            const deltaTx = tx - cStats.prevNetwork.tx;
+                            const deltaTime = (clockNow - cStats.prevNetwork.time) / 1000;
+                            if (deltaTime > 0) {
+                                rx_mbps = ((deltaRx * 8) / (deltaTime * 1000000)).toFixed(2);
+                                tx_mbps = ((deltaTx * 8) / (deltaTime * 1000000)).toFixed(2);
+                            }
+                        }
+                        cStats.prevNetwork = { rx, tx, time: clockNow };
+                        cStats.currentBitrate = { rx_low: rx, tx_low: tx, rx_mbps, tx_mbps };
 
                         results.push({
                             name: cName,
                             fallback: true,
-                            network: { rx_bytes: rx, tx_bytes: tx, rx_mb: (rx / 1024 / 1024).toFixed(2), tx_mb: (tx / 1024 / 1024).toFixed(2), rx_mbps: cStats.currentBitrate.rx_mbps, tx_mbps: cStats.currentBitrate.tx_mbps },
+                            network: {
+                                rx_bytes: rx,
+                                tx_bytes: tx,
+                                rx_mb: (rx / 1024 / 1024).toFixed(2),
+                                tx_mb: (tx / 1024 / 1024).toFixed(2),
+                                received_mb: (rx / 1024 / 1024).toFixed(2),
+                                transmitted_mb: (tx / 1024 / 1024).toFixed(2),
+                                rx_mbps,
+                                tx_mbps
+                            },
                             memory: { usage_bytes: memUsage, limit_bytes: memLimit, percent: ((memUsage / memLimit) * 100).toFixed(1) },
-                            cpu: { percent: cStats.currentCpuPercent }
+                            cpu: { percent: cStats.currentCpuPercent } // Reverted to cStats.currentCpuPercent as currentCpuPercent is not defined in this scope
                         });
                     } catch (err) { }
                 }
