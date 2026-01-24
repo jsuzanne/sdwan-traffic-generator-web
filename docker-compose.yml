@@ -15,6 +15,7 @@ services:
       - ./config:/app/config
       - traffic_logs:/var/log/sdwan-traffic-gen
       - ./VERSION:/app/VERSION:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NODE_ENV=production
       - PORT=8080

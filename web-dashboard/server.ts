@@ -78,9 +78,26 @@ const getNextTestId = (): number => {
 };
 
 // Resource Monitoring State
-let prevCpuUsage: number | null = null;
-let prevCpuTimestamp: number | null = null;
-let currentCpuPercent = "0.0";
+// State for stats tracking (bitrate and CPU percentage)
+interface ContainerStats {
+    prevNetwork: { rx: number, tx: number, time: number } | null;
+    prevCpu: { usage: number, system: number, time: number } | null;
+    currentBitrate: { rx_low: number, tx_low: number, rx_mbps: string, tx_mbps: string };
+    currentCpuPercent: string;
+}
+
+const containerStatsMap = new Map<string, ContainerStats>();
+const monitoredContainers = ['sdwan-web-ui', 'sdwan-traffic-gen', 'sdwan-voice-gen'];
+
+// Initialize map
+monitoredContainers.forEach(name => {
+    containerStatsMap.set(name, {
+        prevNetwork: null,
+        prevCpu: null,
+        currentBitrate: { rx_low: 0, tx_low: 0, rx_mbps: '0', tx_mbps: '0' },
+        currentCpuPercent: '0.0'
+    });
+});
 
 // State tracking for logs reduction
 const lastConnectivityStatusMap = new Map<string, string>();
@@ -1298,84 +1315,111 @@ const startConnectivityMonitor = (intervalMinutes: number = 5) => {
 // Start monitor
 startConnectivityMonitor(5);
 
-// API: Docker Statistics (Network, CPU, RAM)
+// API: Docker Statistics (Network, CPU, RAM) for all project containers
 app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) => {
     try {
         const execPromise = promisify(exec);
-        let networkStats = { received_bytes: 0, transmitted_bytes: 0 };
-        let cpuUsage = 0;
-        let memoryStats = { usage: 0, limit: 0 };
+        const results: any[] = [];
+        const clockNow = Date.now();
 
-        // 1. Network Stats
-        try {
-            const { stdout } = await execPromise('cat /sys/class/net/eth0/statistics/rx_bytes /sys/class/net/eth0/statistics/tx_bytes');
-            const [rx, tx] = stdout.trim().split('\n').map(Number);
-            networkStats = { received_bytes: rx, transmitted_bytes: tx };
-        } catch (e) { }
+        for (const cName of monitoredContainers) {
+            try {
+                // Get stats via Docker Socket
+                const { stdout } = await execPromise(`curl --unix-socket /var/run/docker.sock http://localhost/containers/${cName}/stats?stream=false`);
+                const stats = JSON.parse(stdout);
 
-        // 2. Memory Stats (cgroup v2)
-        try {
-            const memoryCurrent = fs.readFileSync('/sys/fs/cgroup/memory.current', 'utf8').trim();
-            const memoryMax = fs.readFileSync('/sys/fs/cgroup/memory.max', 'utf8').trim();
-            memoryStats.usage = parseInt(memoryCurrent);
-            memoryStats.limit = memoryMax === 'max' ? os.totalmem() : parseInt(memoryMax);
-        } catch (e) {
-            // Fallback to OS memory if cgroups not accessible
-            memoryStats.usage = os.totalmem() - os.freemem();
-            memoryStats.limit = os.totalmem();
-        }
+                const cStats = containerStatsMap.get(cName)!;
 
-        // 3. CPU Stats (Delta calculation for container CPU %)
-        try {
-            const cpuUsageRaw = fs.readFileSync('/sys/fs/cgroup/cpu.stat', 'utf8');
-            const lines = cpuUsageRaw.split('\n');
-            const usageLine = lines.find(l => l.startsWith('usage_usec'));
-            if (usageLine) {
-                const clockNow = Date.now();
-                const microseconds = parseInt(usageLine.split(' ')[1]);
+                // 1. Bitrate Calculation (Mbps)
+                let rx_mbps = '0.00';
+                let tx_mbps = '0.00';
 
-                if (prevCpuUsage !== null && prevCpuTimestamp !== null) {
-                    const deltaUsage = microseconds - prevCpuUsage;
-                    const deltaTime = (clockNow - prevCpuTimestamp) * 1000; // ms to us
-
-                    if (deltaTime > 0) {
-                        // usage_usec is total microseconds used by all cores.
-                        // So (delta_usec / delta_time_us) gives the average cores usage.
-                        // For a percentage, we divide by cores.
-                        const cores = os.cpus().length;
-                        const usageRatio = deltaUsage / deltaTime;
-                        currentCpuPercent = (Math.min(1.0, usageRatio / cores) * 100).toFixed(1);
-                    }
+                // For Docker, we might have multiple interfaces, take the sum
+                let totalRx = 0;
+                let totalTx = 0;
+                if (stats.networks) {
+                    Object.values(stats.networks).forEach((net: any) => {
+                        totalRx += net.rx_bytes;
+                        totalTx += net.tx_bytes;
+                    });
                 }
 
-                prevCpuUsage = microseconds;
-                prevCpuTimestamp = clockNow;
+                if (cStats.prevNetwork) {
+                    const deltaRx = totalRx - cStats.prevNetwork.rx;
+                    const deltaTx = totalTx - cStats.prevNetwork.tx;
+                    const deltaTime = (clockNow - cStats.prevNetwork.time) / 1000; // in seconds
+
+                    if (deltaTime > 0) {
+                        // bits per second = (bytes * 8) / seconds
+                        // Mbps = bits / 1,000,000
+                        rx_mbps = ((deltaRx * 8) / (deltaTime * 1000000)).toFixed(2);
+                        tx_mbps = ((deltaTx * 8) / (deltaTime * 1000000)).toFixed(2);
+                    }
+                }
+                cStats.prevNetwork = { rx: totalRx, tx: totalTx, time: clockNow };
+                cStats.currentBitrate = { rx_low: totalRx, tx_low: totalTx, rx_mbps, tx_mbps };
+
+                // 2. CPU Calculation
+                let cpuPercent = '0.0';
+                const cpuDelta = stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
+                const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage;
+                if (systemDelta > 0 && cpuDelta > 0) {
+                    const onlineCpus = stats.cpu_stats.online_cpus || 1;
+                    cpuPercent = ((cpuDelta / systemDelta) * onlineCpus * 100).toFixed(1);
+                }
+                cStats.currentCpuPercent = cpuPercent;
+
+                results.push({
+                    name: cName,
+                    id: stats.id?.substring(0, 12),
+                    network: {
+                        rx_bytes: totalRx,
+                        tx_bytes: totalTx,
+                        rx_mb: (totalRx / 1024 / 1024).toFixed(2),
+                        tx_mb: (totalTx / 1024 / 1024).toFixed(2),
+                        rx_mbps,
+                        tx_mbps
+                    },
+                    memory: {
+                        usage_bytes: stats.memory_stats.usage,
+                        limit_bytes: stats.memory_stats.limit,
+                        percent: ((stats.memory_stats.usage / stats.memory_stats.limit) * 100).toFixed(1)
+                    },
+                    cpu: {
+                        percent: cpuPercent
+                    }
+                });
+            } catch (e: any) {
+                // If container not found or stats fail, return minimal info or fallback for current node
+                if (cName === 'sdwan-web-ui') {
+                    // Fallback to legacy single container check for the dashboard itself if socket fails
+                    try {
+                        const { stdout: netOut } = await execPromise('cat /sys/class/net/eth0/statistics/rx_bytes /sys/class/net/eth0/statistics/tx_bytes');
+                        const [rx, tx] = netOut.trim().split('\n').map(Number);
+                        const memUsage = parseInt(fs.readFileSync('/sys/fs/cgroup/memory.current', 'utf8').trim());
+                        const memMax = fs.readFileSync('/sys/fs/cgroup/memory.max', 'utf8').trim();
+                        const memLimit = memMax === 'max' ? os.totalmem() : parseInt(memMax);
+
+                        const cStats = containerStatsMap.get(cName)!; // Get current stats for web-ui
+
+                        results.push({
+                            name: cName,
+                            fallback: true,
+                            network: { rx_bytes: rx, tx_bytes: tx, rx_mb: (rx / 1024 / 1024).toFixed(2), tx_mb: (tx / 1024 / 1024).toFixed(2), rx_mbps: cStats.currentBitrate.rx_mbps, tx_mbps: cStats.currentBitrate.tx_mbps },
+                            memory: { usage_bytes: memUsage, limit_bytes: memLimit, percent: ((memUsage / memLimit) * 100).toFixed(1) },
+                            cpu: { percent: cStats.currentCpuPercent }
+                        });
+                    } catch (err) { }
+                }
             }
-        } catch (e) {
-            // Fallback to load average if cgroups unavailable
-            currentCpuPercent = (os.loadavg()[0] * 10).toFixed(1); // Rough estimate
         }
 
         res.json({
             success: true,
-            stats: {
-                network: {
-                    received_bytes: networkStats.received_bytes,
-                    transmitted_bytes: networkStats.transmitted_bytes,
-                    received_mb: (networkStats.received_bytes / 1024 / 1024).toFixed(2),
-                    transmitted_mb: (networkStats.transmitted_bytes / 1024 / 1024).toFixed(2)
-                },
-                memory: {
-                    usage_bytes: memoryStats.usage,
-                    limit_bytes: memoryStats.limit,
-                    percent: ((memoryStats.usage / memoryStats.limit) * 100).toFixed(1)
-                },
-                cpu: {
-                    percent: currentCpuPercent,
-                    cores: os.cpus().length
-                }
-            },
-            timestamp: Date.now()
+            containers: results,
+            // For backward compatibility
+            stats: results.find(r => r.name === 'sdwan-web-ui') || results[0],
+            timestamp: clockNow
         });
     } catch (error: any) {
         console.error('[CONNECTIVITY] Failed to get Docker stats:', error.message);

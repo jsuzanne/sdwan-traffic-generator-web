@@ -823,11 +823,27 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Docker Stats: Network */}
+                {/* Docker Stats: Network Bitrate */}
                 {dockerStats?.success && dockerStats.stats.network && (
-                  <div className="flex items-center gap-3 text-slate-400 text-xs">
-                    <span className="flex items-center gap-1"><ChevronDown size={12} className="text-blue-400" /> {dockerStats.stats.network.received_mb} MB</span>
-                    <span className="flex items-center gap-1"><ChevronUp size={12} className="text-purple-400" /> {dockerStats.stats.network.transmitted_mb} MB</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800">
+                      <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                        <ChevronDown size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.rx_mbps) > 5 ? "text-green-400" : "text-blue-400")} />
+                        <span className="text-slate-200 font-bold">{dockerStats.stats.network.rx_mbps}</span>
+                        <span className="text-slate-500 font-medium">Mbps</span>
+                      </span>
+                      <div className="w-px h-3 bg-slate-800" />
+                      <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                        <ChevronUp size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.tx_mbps) > 5 ? "text-green-400" : "text-purple-400")} />
+                        <span className="text-slate-200 font-bold">{dockerStats.stats.network.tx_mbps}</span>
+                        <span className="text-slate-500 font-medium">Mbps</span>
+                      </span>
+                    </div>
+                    <div className="hidden lg:flex items-center gap-3 text-[10px] text-slate-500 font-mono">
+                      <span>TOT: {dockerStats.stats.network.received_mb} MB</span>
+                      <span>/</span>
+                      <span>{dockerStats.stats.network.transmitted_mb} MB</span>
+                    </div>
                   </div>
                 )}
 
@@ -863,6 +879,49 @@ export default function App() {
                 )}
               </div>
             </div>
+
+            {/* Container Breakdown (Expanded) */}
+            {networkExpanded && dockerStats?.containers && (
+              <div className="mt-4 pt-4 border-t border-slate-800 animate-in slide-in-from-top-4 duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {dockerStats.containers.map((c: any) => (
+                    <div key={c.name} className="bg-slate-950/40 border border-slate-800/60 p-4 rounded-xl flex flex-col gap-3 group hover:border-blue-500/30 transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-2 h-2 rounded-full", c.fallback ? "bg-orange-500" : "bg-green-500")} />
+                          <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">{c.name.replace('sdwan-', '')}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-mono">{c.id || 'LOCAL'}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-500 uppercase font-bold block">Bitrate</span>
+                          <div className="flex flex-col text-[11px] font-mono">
+                            <span className="text-blue-400">↓ {c.network.rx_mbps} Mbps</span>
+                            <span className="text-purple-400">↑ {c.network.tx_mbps} Mbps</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-500 uppercase font-bold block">CPU / RAM</span>
+                          <div className="flex flex-col text-[11px] font-mono text-slate-300">
+                            <span>{c.cpu.percent}% CPU</span>
+                            <span>{c.memory.percent}% RAM</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-1 h-1 bg-slate-900 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500/50 transition-all duration-500"
+                          style={{ width: `${Math.min(100, (parseFloat(c.network.rx_mbps) + parseFloat(c.network.tx_mbps)) * 5)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Expanded Details */}
             {networkExpanded && connectivity?.results && (
