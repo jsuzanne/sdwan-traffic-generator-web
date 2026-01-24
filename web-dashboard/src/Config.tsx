@@ -26,7 +26,7 @@ interface InterfaceInfo {
 
 interface CustomProbe {
     name: string;
-    type: 'HTTP' | 'HTTPS' | 'TCP' | 'PING';
+    type: 'HTTP' | 'HTTPS' | 'TCP' | 'PING' | 'DNS';
     target: string;
     timeout: number;
 }
@@ -369,13 +369,14 @@ export default function Config({ token }: ConfigProps) {
                                 <option value="HTTPS">HTTPS (Scoring)</option>
                                 <option value="PING">ICMP Ping</option>
                                 <option value="TCP">TCP Port</option>
+                                <option value="DNS">DNS Resolution</option>
                             </select>
                         </div>
                         <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Target</label>
                             <input
                                 type="text"
-                                placeholder={newProbe.type === 'TCP' ? '8.8.8.8:53' : (newProbe.type === 'PING' ? '8.8.8.8' : 'https://google.com')}
+                                placeholder={newProbe.type === 'TCP' ? '8.8.8.8:53' : (newProbe.type === 'PING' ? '8.8.8.8' : (newProbe.type === 'DNS' ? '8.8.8.8' : 'https://google.com'))}
                                 className="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
                                 value={newProbe.target}
                                 onChange={e => setNewProbe({ ...newProbe, target: e.target.value })}

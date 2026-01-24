@@ -1049,12 +1049,35 @@ const calculateDEMScore = (type: string, reachable: boolean, httpCode: number | 
     if (!reachable || (httpCode && httpCode >= 500)) return 0;
     if (httpCode && httpCode >= 400) return 20;
 
+    const lat = metrics.total_ms || 0;
+
     if (type === 'HTTP' || type === 'HTTPS') {
-        const total_norm = Math.min(metrics.total_ms / 2000, 1.0);
+        const total_norm = Math.min(lat / 2000, 1.0);
         const ttfb_norm = Math.min(metrics.ttfb_ms / 1000, 1.0);
         const tls_norm = Math.min((metrics.tls_ms || 0) / 800, 1.0);
 
         let score = 100 - (30 * total_norm + 35 * ttfb_norm + 25 * tls_norm);
+        return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    if (type === 'PING') {
+        // Ping scoring: < 100ms = 100, > 500ms = 0
+        if (lat < 100) return 100;
+        const score = 100 - ((lat - 100) / 400) * 100;
+        return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    if (type === 'TCP') {
+        // TCP Connect scoring: < 150ms = 100, > 800ms = 0
+        if (lat < 150) return 100;
+        const score = 100 - ((lat - 150) / 650) * 100;
+        return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    if (type === 'DNS') {
+        // DNS Resolution scoring: < 80ms = 100, > 400ms = 0
+        if (lat < 80) return 100;
+        const score = 100 - ((lat - 80) / 320) * 100;
         return Math.max(0, Math.min(100, Math.round(score)));
     }
 
@@ -1116,7 +1139,7 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
                 const pingTime = timeMatch ? parseFloat(timeMatch[1]) : duration;
                 result.reachable = true;
                 result.metrics.total_ms = Math.round(pingTime);
-                result.score = 100;
+                result.score = calculateDEMScore(result.endpointType, result.reachable, undefined, result.metrics);
             } catch (e) { }
         } else if (endpoint.type.toLowerCase() === 'tcp') {
             const [ip, port] = endpoint.target.split(':');
@@ -1126,7 +1149,19 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
                 await execPromise(ncCommand);
                 result.reachable = true;
                 result.metrics.total_ms = Date.now() - tStart;
-                result.score = 100;
+                result.score = calculateDEMScore(result.endpointType, result.reachable, undefined, result.metrics);
+            } catch (e) { }
+        } else if (endpoint.type.toLowerCase() === 'dns') {
+            // DNS resolution check using dig
+            const dnsCommand = `dig +short +time=${Math.floor(endpoint.timeout / 1000)} google.com @${endpoint.target}`;
+            const dStart = Date.now();
+            try {
+                const { stdout } = await execPromise(dnsCommand);
+                if (stdout.trim().length > 0) {
+                    result.reachable = true;
+                    result.metrics.total_ms = Date.now() - dStart;
+                    result.score = calculateDEMScore(result.endpointType, result.reachable, undefined, result.metrics);
+                }
             } catch (e) { }
         }
     } catch (e) { }
@@ -1139,9 +1174,10 @@ const CUSTOM_CONNECTIVITY_FILE = path.join(APP_CONFIG.configDir, 'connectivity-c
 // Helper: Get base endpoints from Envs
 const getEnvConnectivityEndpoints = () => {
     const endpoints: any[] = [
-        { name: 'Cloudflare DNS', type: 'HTTP', target: 'https://1.1.1.1', timeout: 5000 },
-        { name: 'Google DNS', type: 'HTTP', target: 'https://8.8.8.8', timeout: 5000 },
-        { name: 'Google', type: 'HTTP', target: 'https://www.google.com', timeout: 5000 }
+        { name: 'Cloudflare ICMP', type: 'PING', target: '1.1.1.1', timeout: 2000 },
+        { name: 'Google ICMP', type: 'PING', target: '8.8.8.8', timeout: 2000 },
+        { name: 'Google DNS Res', type: 'DNS', target: '8.8.8.8', timeout: 3000 },
+        { name: 'Google Search', type: 'HTTP', target: 'https://www.google.com', timeout: 5000 }
     ];
 
     Object.keys(process.env).forEach(key => {
