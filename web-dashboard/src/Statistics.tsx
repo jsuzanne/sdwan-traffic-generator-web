@@ -11,9 +11,10 @@ interface Stats {
 interface StatsProps {
     stats: Stats | null;
     appConfig: any[];
+    onReset?: () => void;
 }
 
-export default function Statistics({ stats, appConfig }: StatsProps) {
+export default function Statistics({ stats, appConfig, onReset }: StatsProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState<'requests' | 'errors' | 'name' | 'group'>('requests');
 
@@ -170,6 +171,14 @@ export default function Statistics({ stats, appConfig }: StatsProps) {
                     >
                         By Name
                     </button>
+                    {onReset && (
+                        <button
+                            onClick={onReset}
+                            className="px-4 py-2 rounded-lg font-medium bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 transition-all ml-2"
+                        >
+                            Reset
+                        </button>
+                    )}
                 </div>
             </div>
 

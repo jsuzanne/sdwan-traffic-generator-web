@@ -103,6 +103,19 @@ export default function Voice({ token }: VoiceProps) {
         } catch (e) { }
     };
 
+    const resetLogs = async () => {
+        if (!confirm('Are you sure you want to reset all voice call history?')) return;
+        try {
+            const res = await fetch('/api/voice/stats', {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                // Next poll will clear it
+            }
+        } catch (e) { }
+    };
+
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -230,9 +243,18 @@ export default function Voice({ token }: VoiceProps) {
 
                     {/* Stats Summary */}
                     <div className="lg:col-span-2 bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-                        <h3 className="text-slate-200 font-bold mb-4 flex items-center gap-2">
-                            <BarChart2 size={18} className="text-blue-400" /> Recent History
-                        </h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-slate-200 font-bold flex items-center gap-2">
+                                <BarChart2 size={18} className="text-blue-400" /> Recent History
+                            </h3>
+                            <button
+                                onClick={resetLogs}
+                                className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 border border-red-500/30 rounded-lg transition-colors"
+                            >
+                                <Trash2 size={12} />
+                                Reset Logs
+                            </button>
+                        </div>
                         <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
                             <table className="w-full text-sm relative">
                                 <thead className="text-slate-500 text-left border-b border-slate-800 sticky top-0 bg-slate-900 z-10">

@@ -539,6 +539,28 @@ export default function Security({ token }: SecurityProps) {
         }
     };
 
+    const resetCounters = async () => {
+        if (!confirm('Are you sure you want to reset all security statistics and history?')) return;
+        setLoading(true);
+        try {
+            const res = await fetch('/api/security/statistics', {
+                method: 'DELETE',
+                headers: authHeaders()
+            });
+            const data = await res.json();
+            if (data.success) {
+                await fetchConfig();
+                await fetchResults();
+                showToast('Statistics and history reset successfully', 'success');
+            }
+        } catch (e) {
+            console.error('Failed to reset statistics:', e);
+            showToast('Failed to reset statistics', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const exportResults = () => {
         const dataStr = JSON.stringify(testResults, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -643,75 +665,87 @@ export default function Security({ token }: SecurityProps) {
 
             {/* Statistics Dashboard */}
             {config.statistics && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-slate-400 text-sm">Total Tests</span>
-                            <Shield size={16} className="text-blue-400" />
-                        </div>
-                        <div className="text-2xl font-bold text-white">{config.statistics.total_tests_run}</div>
-                        {config.statistics.last_test_time && (
-                            <div className="text-xs text-slate-500 mt-1">
-                                Last: {new Date(config.statistics.last_test_time).toLocaleTimeString()}
-                            </div>
-                        )}
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Test Statistics</h3>
+                        <button
+                            onClick={resetCounters}
+                            className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 border border-red-500/30 rounded-lg transition-colors"
+                        >
+                            <Trash2 size={12} />
+                            Reset Counters
+                        </button>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-slate-400 text-sm">Total Tests</span>
+                                <Shield size={16} className="text-blue-400" />
+                            </div>
+                            <div className="text-2xl font-bold text-white">{config.statistics.total_tests_run}</div>
+                            {config.statistics.last_test_time && (
+                                <div className="text-xs text-slate-500 mt-1">
+                                    Last: {new Date(config.statistics.last_test_time).toLocaleTimeString()}
+                                </div>
+                            )}
+                        </div>
 
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-slate-400 text-sm">URL Filtering</span>
-                            <Shield size={16} className="text-blue-400" />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div>
-                                <div className="text-lg font-bold text-red-400">{config.statistics.url_tests_blocked}</div>
-                                <div className="text-xs text-slate-500">Blocked</div>
+                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-slate-400 text-sm">URL Filtering</span>
+                                <Shield size={16} className="text-blue-400" />
                             </div>
-                            <div className="text-slate-600">/</div>
-                            <div>
-                                <div className="text-lg font-bold text-green-400">{config.statistics.url_tests_allowed}</div>
-                                <div className="text-xs text-slate-500">Allowed</div>
+                            <div className="flex items-center gap-3">
+                                <div>
+                                    <div className="text-lg font-bold text-red-400">{config.statistics.url_tests_blocked}</div>
+                                    <div className="text-xs text-slate-500">Blocked</div>
+                                </div>
+                                <div className="text-slate-600">/</div>
+                                <div>
+                                    <div className="text-lg font-bold text-green-400">{config.statistics.url_tests_allowed}</div>
+                                    <div className="text-xs text-slate-500">Allowed</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-slate-400 text-sm">DNS Security</span>
-                            <Shield size={16} className="text-purple-400" />
+                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-slate-400 text-sm">DNS Security</span>
+                                <Shield size={16} className="text-purple-400" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div>
+                                    <div className="text-lg font-bold text-red-400">{config.statistics.dns_tests_blocked}</div>
+                                    <div className="text-xs text-slate-500">Blocked</div>
+                                </div>
+                                <div className="text-slate-600">/</div>
+                                <div>
+                                    <div className="text-lg font-bold text-yellow-400">{config.statistics.dns_tests_sinkholed || 0}</div>
+                                    <div className="text-xs text-slate-500">Sinkholed</div>
+                                </div>
+                                <div className="text-slate-600">/</div>
+                                <div>
+                                    <div className="text-lg font-bold text-green-400">{config.statistics.dns_tests_allowed}</div>
+                                    <div className="text-xs text-slate-500">Resolved</div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div>
-                                <div className="text-lg font-bold text-red-400">{config.statistics.dns_tests_blocked}</div>
-                                <div className="text-xs text-slate-500">Blocked</div>
-                            </div>
-                            <div className="text-slate-600">/</div>
-                            <div>
-                                <div className="text-lg font-bold text-yellow-400">{config.statistics.dns_tests_sinkholed || 0}</div>
-                                <div className="text-xs text-slate-500">Sinkholed</div>
-                            </div>
-                            <div className="text-slate-600">/</div>
-                            <div>
-                                <div className="text-lg font-bold text-green-400">{config.statistics.dns_tests_allowed}</div>
-                                <div className="text-xs text-slate-500">Resolved</div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-slate-400 text-sm">Threat Prevention</span>
-                            <Shield size={16} className="text-red-400" />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div>
-                                <div className="text-lg font-bold text-red-400">{config.statistics.threat_tests_blocked}</div>
-                                <div className="text-xs text-slate-500">Blocked</div>
+                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-slate-400 text-sm">Threat Prevention</span>
+                                <Shield size={16} className="text-red-400" />
                             </div>
-                            <div className="text-slate-600">/</div>
-                            <div>
-                                <div className="text-lg font-bold text-green-400">{config.statistics.threat_tests_allowed}</div>
-                                <div className="text-xs text-slate-500">Allowed</div>
+                            <div className="flex items-center gap-3">
+                                <div>
+                                    <div className="text-lg font-bold text-red-400">{config.statistics.threat_tests_blocked}</div>
+                                    <div className="text-xs text-slate-500">Blocked</div>
+                                </div>
+                                <div className="text-slate-600">/</div>
+                                <div>
+                                    <div className="text-lg font-bold text-green-400">{config.statistics.threat_tests_allowed}</div>
+                                    <div className="text-xs text-slate-500">Allowed</div>
+                                </div>
                             </div>
                         </div>
                     </div>

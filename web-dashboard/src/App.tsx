@@ -136,8 +136,25 @@ export default function App() {
     } catch (e) { alert('Error changing password'); }
   };
 
-  // Auth Headers helper
   const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
+
+  const resetTrafficStats = async () => {
+    if (!token) return;
+    if (!confirm('Are you sure you want to reset all traffic statistics?')) return;
+    try {
+      const res = await fetch('/api/stats', {
+        method: 'DELETE',
+        headers: authHeaders()
+      });
+      if (res.ok) {
+        fetchStats();
+      } else {
+        alert('Failed to reset statistics');
+      }
+    } catch (e) {
+      alert('Error resetting statistics');
+    }
+  };
 
   const fetchStats = async () => {
     if (!token) return;
@@ -904,7 +921,7 @@ export default function App() {
           </div>
         </>
       ) : view === 'statistics' ? (
-        <Statistics stats={stats} appConfig={appConfig} />
+        <Statistics stats={stats} appConfig={appConfig} onReset={resetTrafficStats} />
       ) : view === 'security' ? (
         <Security token={token!} />
       ) : view === 'voice' ? (

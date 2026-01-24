@@ -899,9 +899,25 @@ app.get('/api/voice/stats', authenticateToken, (req, res) => {
         exec(`tail -n 1000 ${VOICE_STATS_FILE}`, (error, stdout) => {
             if (error) return res.json({ success: true, stats: [] });
             const lines = stdout.trim().split('\n').filter(l => l.trim());
-            const stats = lines.map(l => JSON.parse(l));
-            res.json({ success: true, stats: stats.reverse() });
+            try {
+                const stats = lines.map(l => JSON.parse(l));
+                res.json({ success: true, stats: stats.reverse() });
+            } catch (err) {
+                res.json({ success: true, stats: [] });
+            }
         });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// API: Reset Voice Stats
+app.delete('/api/voice/stats', authenticateToken, (req, res) => {
+    try {
+        if (fs.existsSync(VOICE_STATS_FILE)) {
+            fs.writeFileSync(VOICE_STATS_FILE, '');
+        }
+        res.json({ success: true });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
     }
@@ -915,6 +931,22 @@ app.get('/api/stats', (req, res) => {
         res.json(JSON.parse(content));
     } catch (e) {
         res.json({ error: 'Invalid JSON' });
+    }
+});
+
+// API: Reset Stats
+app.delete('/api/stats', authenticateToken, (req, res) => {
+    try {
+        const emptyStats = {
+            timestamp: Math.floor(Date.now() / 1000),
+            total_requests: 0,
+            requests_by_app: {},
+            errors_by_app: {}
+        };
+        fs.writeFileSync(STATS_FILE, JSON.stringify(emptyStats, null, 2));
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
@@ -2207,6 +2239,37 @@ app.get('/api/security/results/stats', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('[API] Failed to get test stats:', error);
         res.status(500).json({ error: 'Failed to retrieve statistics' });
+    }
+});
+
+// API: Reset Security Statistics
+app.delete('/api/security/statistics', authenticateToken, (req, res) => {
+    try {
+        const config = getSecurityConfig();
+        if (config) {
+            config.statistics = {
+                total_tests_run: 0,
+                url_tests_blocked: 0,
+                url_tests_allowed: 0,
+                dns_tests_blocked: 0,
+                dns_tests_sinkholed: 0,
+                dns_tests_allowed: 0,
+                threat_tests_blocked: 0,
+                threat_tests_allowed: 0,
+                last_test_time: null
+            };
+            config.test_history = [];
+            saveSecurityConfig(config);
+
+            // Also clear persistent logs via testLogger
+            testLogger.deleteAll().catch(err => console.error('Failed to clear testLogger:', err));
+
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Config not found' });
+        }
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
