@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, ChevronUp, ChevronDown, Flame, Plus } from 'lucide-react';
+import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, ChevronUp, ChevronDown, Flame, Plus, XCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface ConnectivityPerformanceProps {
@@ -16,6 +16,8 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedEndpoint, setSelectedEndpoint] = useState<any>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
+    const [activeProbes, setActiveProbes] = useState<string[]>([]); // List of active endpoint IDs
+    const [showDeleted, setShowDeleted] = useState(false);
 
     // Sorting state
     const [sortField, setSortField] = useState<string>('name');
@@ -37,6 +39,12 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             const resultsRes = await fetch(`/api/connectivity/results?timeRange=${timeRange}&limit=500`, { headers: authHeaders() });
             const resultsData = await resultsRes.json();
             setResults(resultsData.results || []);
+
+            const activeRes = await fetch('/api/connectivity/active-probes', { headers: authHeaders() });
+            const activeData = await activeRes.json();
+            if (activeData.success) {
+                setActiveProbes(activeData.probes.map((p: any) => p.id));
+            }
         } catch (e) {
             console.error("Failed to fetch connectivity data", e);
         } finally {
@@ -80,6 +88,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             lastResult: last
         };
     }).filter(e => {
+        if (!showDeleted && activeProbes.length > 0 && !activeProbes.includes(e.id)) return false;
         if (filterType !== 'ALL' && e.type !== filterType) return false;
         if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
@@ -209,6 +218,9 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                         <span className="text-blue-400 font-semibold ml-1">TTFB (35%)</span>, and
                         <span className="text-blue-400 font-semibold ml-1">TLS Handshake (25%)</span>.
                         Errors/Timeouts result in a score of <span className="text-red-400 font-bold">0</span>.
+                        <span className="block mt-1 text-slate-500 font-bold flex items-center gap-1">
+                            <Clock size={10} /> Probes run automatically every 5 minutes.
+                        </span>
                     </p>
                 </div>
             </div>
@@ -239,6 +251,18 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                             </button>
                         ))}
                     </div>
+                    <button
+                        onClick={() => setShowDeleted(!showDeleted)}
+                        className={cn(
+                            "px-3 py-2 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-2",
+                            showDeleted
+                                ? "bg-slate-800 text-slate-200 border-slate-700"
+                                : "bg-slate-900/40 text-slate-500 border-slate-800 hover:border-slate-700"
+                        )}
+                    >
+                        <Clock size={14} className={showDeleted ? "text-blue-400" : ""} />
+                        {showDeleted ? "HIDE DELETED" : "SHOW DELETED"}
+                    </button>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -481,17 +505,6 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                 </div>
             )}
         </div>
-    );
-}
-
-// Utility icon components
-function XCircle({ size }: { size: number }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x-circle">
-            <circle cx="12" cy="12" r="10" />
-            <path d="m15 9-6 6" />
-            <path d="m9 9 6 6" />
-        </svg>
     );
 }
 

@@ -1168,6 +1168,26 @@ const saveCustomConnectivityEndpoints = (endpoints: any[]) => {
 };
 
 // API: Internet Connectivity Test
+// API: Get active probes list (dynamic + static)
+app.get('/api/connectivity/active-probes', authenticateToken, (req, res) => {
+    try {
+        const envProbes = getEnvConnectivityEndpoints();
+        const customProbes = getCustomConnectivityEndpoints();
+        const allProbes = [...envProbes, ...customProbes];
+        res.json({
+            success: true,
+            probes: allProbes.map(p => ({
+                id: p.name.toLowerCase().replace(/\s+/g, '-'),
+                name: p.name,
+                type: p.type.toUpperCase(),
+                target: p.target
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch active probes' });
+    }
+});
+
 app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
     // console.log('[CONNECTIVITY] Starting internet connectivity test...'); // Silenced to reduce noise
 
