@@ -1,13 +1,14 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
 ## 🎯 Current Status (as of 2026-01-24)
-We are currently at version **v1.1.0-patch.64**.
-DNS Security, Voice Simulation, and Real-time Monitoring are fully hardened.
+We are currently at version **v1.1.0-patch.65**.
+All security engines (URL, DNS, Threat) are fully hardened with deep inspection.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **Live Counters (v64)**: Implemented real-time updates for security gauges. Added background polling (30s) and immediate refresh after manual tests to ensure the dashboard always reflects current data.
-2.  **Universal DNS (v63)**: Normalized DNS security tests across Linux, macOS, and Windows. Prioritized `nslookup` for consistent trace detection.
-3.  **DNS Hardening (v62)**: Reliable "sinkhole" detection in stdout/stderr.
+1.  **URL Deep Inspection (v65)**: Enhanced URL filtering to distinguish between legitimate Palo Alto Test Pages (Allowed) and actual Block Pages (Blocked). The engine now inspects response content for signatures, eliminating false positives for branded test URLs.
+2.  **Live Counters (v64)**: Real-time update for security gauges with 30s background polling.
+3.  **Universal DNS (v63)**: Normalized DNS tests for Linux, macOS, and Windows using `nslookup`.
+4.  **DNS Hardening (v62)**: Reliable "sinkhole" detection in stdout/stderr.
 4.  **Flow Separation (v61)**: Unique source ports for voice calls.
 5.  **Clean Slate (v60)**: Orchestrator reset at startup.
 

@@ -1938,11 +1938,32 @@ const runScheduledUrlTests = async () => {
         if (!category) continue;
 
         try {
-            const { stdout } = await execPromise(`curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${category.url}'`);
-            const httpCode = parseInt(stdout);
-            const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
+            // Capture HTTP code and content for keyword detection
+            const { stdout, stderr } = await execPromise(`curl -fsSL --max-time 10 -w '%{http_code}' '${category.url}'`);
+
+            const httpCode = parseInt(stdout.slice(-3));
+            const content = stdout.slice(0, -3).toLowerCase();
+
+            const isTestPage = content.includes('pandb test page') ||
+                content.includes('categorized as');
+
+            const isBlockPage = !isTestPage && (
+                content.includes('palo alto networks') ||
+                content.includes('access denied') ||
+                content.includes('web-block-page'));
+
+            const status = (httpCode >= 200 && httpCode < 400 && !isBlockPage) ? 'allowed' : 'blocked';
+
             updateStatistics('url_filtering', status);
-            addTestResult('url_filtering', category.name, { success: httpCode >= 200 && httpCode < 400, httpCode, status, url: category.url, category: category.name }, getNextTestId());
+            addTestResult('url_filtering', category.name, {
+                success: status === 'allowed',
+                httpCode,
+                status,
+                url: category.url,
+                category: category.name,
+                blockPageDetected: isBlockPage,
+                testPageDetected: isTestPage
+            }, getNextTestId());
         } catch (e) {
             updateStatistics('url_filtering', 'blocked');
             addTestResult('url_filtering', category.name, { success: false, status: 'blocked', url: category.url, category: category.name }, getNextTestId());
@@ -2226,20 +2247,44 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
         // util.promisify already imported as promisify
         const execPromise = promisify(exec);
 
-        const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${url}'`;
+        const curlCommand = `curl -fsSL --max-time 10 -w '%{http_code}' '${url}'`;
         logTest(`[URL-TEST-${testId}] Executing URL test for ${url} (${category || 'Uncategorized'}): ${curlCommand}`);
 
         try {
-            const { stdout } = await execPromise(curlCommand);
-            const httpCode = parseInt(stdout);
+            const { stdout, stderr } = await execPromise(curlCommand);
+
+            // The last 3 chars of stdout are the HTTP code
+            const httpCodeString = stdout.trim().slice(-3);
+            const httpCode = parseInt(httpCodeString);
+            const content = stdout.slice(0, -httpCodeString.length).toLowerCase();
+
             logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
 
+            const isTestPage = content.includes('pandb test page') ||
+                content.includes('categorized as') ||
+                content.includes('palo alto networks url filtering - test a site');
+
+            const isBlockPage = !isTestPage && (
+                content.includes('palo alto networks') ||
+                content.includes('access denied') ||
+                content.includes('web-block-page'));
+
+            if (isTestPage) {
+                logTest(`[URL-TEST-${testId}] Legitimate Palo Alto Test Page detected`);
+            } else if (isBlockPage) {
+                logTest(`[URL-TEST-${testId}] Block page detected in response content`);
+            }
+
+            const status = (httpCode >= 200 && httpCode < 400 && !isBlockPage) ? 'allowed' : 'blocked';
+
             const result = {
-                success: httpCode >= 200 && httpCode < 400,
+                success: status === 'allowed',
                 httpCode,
-                status: httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked',
+                status,
                 url,
-                category
+                category,
+                blockPageDetected: isBlockPage,
+                testPageDetected: isTestPage
             };
 
             logTest(`[URL-TEST-${testId}] Final status: ${result.status} (HTTP ${httpCode})`);
@@ -2286,23 +2331,37 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
             logTest(`[URL-BATCH-${batchId}][URL-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.url} (${test.category})`);
 
             const execPromise = promisify(exec);
-            const curlCommand = `curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${test.url}'`;
+            const curlCommand = `curl -fsSL --max-time 10 -w '%{http_code}' '${test.url}'`;
 
             logTest(`[URL-TEST-${testId}] Executing URL test for ${test.url} (${test.category}): ${curlCommand}`);
 
             try {
-                const { stdout } = await execPromise(curlCommand);
-                const httpCode = parseInt(stdout);
+                const { stdout, stderr } = await execPromise(curlCommand);
+
+                const httpCodeString = stdout.trim().slice(-3);
+                const httpCode = parseInt(httpCodeString);
+                const content = stdout.slice(0, -httpCodeString.length).toLowerCase();
 
                 logTest(`[URL-TEST-${testId}] HTTP response code: ${httpCode}`);
 
-                const status = httpCode >= 200 && httpCode < 400 ? 'allowed' : 'blocked';
+                const isTestPage = content.includes('pandb test page') ||
+                    content.includes('categorized as');
+
+                const isBlockPage = !isTestPage && (
+                    content.includes('palo alto networks') ||
+                    content.includes('access denied') ||
+                    content.includes('web-block-page'));
+
+                const status = (httpCode >= 200 && httpCode < 400 && !isBlockPage) ? 'allowed' : 'blocked';
+
                 const result = {
-                    success: httpCode >= 200 && httpCode < 400,
+                    success: status === 'allowed',
                     httpCode,
                     status,
                     url: test.url,
-                    category: test.category
+                    category: test.category,
+                    blockPageDetected: isBlockPage,
+                    testPageDetected: isTestPage
                 };
 
                 logTest(`[URL-TEST-${testId}] Final status: ${status} (HTTP ${httpCode})`);
@@ -2311,7 +2370,9 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                 await addTestResult('url_filtering', test.category, result, testId, {
                     url: test.url,
                     httpCode,
-                    command: curlCommand
+                    command: curlCommand,
+                    blockPageDetected: isBlockPage,
+                    testPageDetected: isTestPage
                 });
             } catch (curlError: any) {
                 logTest(`[URL-TEST-${testId}] Final status: blocked (curl error: ${curlError.message})`);

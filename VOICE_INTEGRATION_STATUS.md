@@ -101,8 +101,10 @@
         *   **UNIVERSAL DNS** : Optimisation cross-platform (macOS/Windows/Linux). `nslookup` devient l'outil de référence universel car il fournit les mêmes détails techniques sur tous les OS, garantissant une détection des menaces identique, que le host soit sous Windows ou Ubuntu.
     *   **Patch 64** :
         *   **LIVE COUNTERS** : Les compteurs de sécurité (Total, Blocked, Sinkholed) sont désormais mis à jour en temps réel. Ajout d'un rafraîchissement automatique toutes les 30 secondes pour capter les tests planifiés en arrière-plan, et mise à jour immédiate après chaque test manuel.
+    *   **Patch 65** :
+        *   **URL DEEP INSPECTION** : Raffinement de la détection de blocage. Le système distingue maintenant les pages de "Test" Palo Alto (autorisées) des pages de "Blocage" (interdites) en scannant le contenu HTML. Élimine les faux positifs sur les URLs de test marquées du nom de l'éditeur.
 
 ### 📝 Next Steps (IMPORTANT)
-1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.64)**.
+1.  **Attendre le signal ✅ sur GitHub (v1.1.0-patch.65)**.
 2.  Faire un `docker compose pull` sur **toute la pile**.
-3.  **Promotion en Stable** : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.64`.
+3.  **Promotion en Stable** : Allez dans GitHub Actions > Build and Push > Run Workflow > `1.1.0-patch.65`.
