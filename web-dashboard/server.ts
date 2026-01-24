@@ -1100,7 +1100,7 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
 
 // API: Internet Connectivity Test
 app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
-    console.log('[CONNECTIVITY] Starting internet connectivity test...');
+    // console.log('[CONNECTIVITY] Starting internet connectivity test...'); // Silenced to reduce noise
 
     const testEndpoints: any[] = [
         { name: 'Cloudflare DNS', type: 'http', target: 'https://1.1.1.1', timeout: 5000 },
@@ -2270,6 +2270,14 @@ app.delete('/api/security/statistics', authenticateToken, (req, res) => {
             // Also clear persistent logs via testLogger
             testLogger.deleteAll().catch(err => console.error('Failed to clear testLogger:', err));
 
+            // ✅ Reset test counter to 0!
+            try {
+                fs.writeFileSync(TEST_COUNTER_FILE, JSON.stringify({ counter: 0 }));
+                console.log('[SECURITY] Test counter reset to 0');
+            } catch (err) {
+                console.error('Failed to reset test counter:', err);
+            }
+
             res.json({ success: true });
         } else {
             res.status(404).json({ error: 'Config not found' });
@@ -2353,7 +2361,10 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 url,
                 category,
                 blockPageDetected: isBlockPage,
-                testPageDetected: isTestPage
+                testPageDetected: isTestPage,
+                reason: isTestPage ? 'Legitimate Palo Alto Test Page detected' :
+                    isBlockPage ? 'Security Block Page detected in response content' :
+                        (httpCode >= 200 && httpCode < 400) ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`
             };
 
             logTest(`[URL-TEST-${testId}] Final status: ${result.status} (HTTP ${httpCode})`);
@@ -2365,9 +2376,9 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 success: false,
                 httpCode: 0,
                 status: 'blocked',
-                url,
                 category,
-                error: curlError.message
+                error: curlError.message,
+                reason: `CURL Error: ${curlError.message.includes('timeout') ? 'Connection Timeout (Blocked by firewall drop?)' : curlError.message}`
             };
 
             logTest(`[URL-TEST-${testId}] Final status: blocked (curl error: ${curlError.message})`);
@@ -2430,7 +2441,10 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                     url: test.url,
                     category: test.category,
                     blockPageDetected: isBlockPage,
-                    testPageDetected: isTestPage
+                    testPageDetected: isTestPage,
+                    reason: isTestPage ? 'Legitimate Palo Alto Test Page detected' :
+                        isBlockPage ? 'Security Block Page detected in response content' :
+                            (httpCode >= 200 && httpCode < 400) ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`
                 };
 
                 logTest(`[URL-TEST-${testId}] Final status: ${status} (HTTP ${httpCode})`);
@@ -2451,8 +2465,8 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                     httpCode: 0,
                     status: 'blocked',
                     url: test.url,
-                    category: test.category,
-                    error: curlError.message
+                    error: curlError.message,
+                    reason: `CURL Error: ${curlError.message.includes('timeout') ? 'Connection Timeout (Blocked by firewall drop?)' : curlError.message}`
                 };
 
                 results.push(result);
@@ -2569,7 +2583,9 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 status,
                 domain,
                 testName,
-                output: stdout
+                output: stdout,
+                reason: status === 'sinkholed' ? `Resolved to Palo Alto Sinkhole IP: ${resolvedIp || 'Keyword detected'}` :
+                    status === 'blocked' ? 'DNS Resolution failed or returned empty' : `Resolved to IP: ${resolvedIp}`
             };
 
             logTest(`[DNS-TEST-${testId}] Test result:`, { domain, status, resolved });
@@ -2581,7 +2597,15 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
 
             if (combinedErrorOutput.includes('sinkhole')) {
                 logTest(`[DNS-TEST-${testId}] Command execution error, but SINKHOLE keyword found in output`);
-                const result = { success: true, status: 'sinkholed', resolved: false, domain, testName, output: combinedErrorOutput };
+                const result = {
+                    success: true,
+                    status: 'sinkholed',
+                    resolved: false,
+                    domain,
+                    testName,
+                    output: combinedErrorOutput,
+                    reason: 'DNS error occurred, but Palo Alto Sinkhole keyword detected in response'
+                };
                 addTestResult('dns_security', testName || domain, result, testId);
                 return res.json(result);
             }
@@ -2595,7 +2619,8 @@ app.post('/api/security/dns-test', authenticateToken, async (req, res) => {
                 status: isCommandError ? 'error' : 'blocked',
                 domain,
                 testName,
-                error: dnsError.message
+                error: dnsError.message,
+                reason: isCommandError ? 'DNS tool (dig/nslookup) not available' : `DNS Error: ${dnsError.message}`
             };
 
             logTest(`[DNS-TEST-${testId}] Error: ${isCommandError ? 'Command not available' : 'DNS blocked'} - ${dnsError.message}`);
@@ -2674,7 +2699,9 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                     resolved: status === 'resolved',
                     status,
                     domain: test.domain,
-                    testName: test.testName
+                    testName: test.testName,
+                    reason: status === 'sinkholed' ? 'Sinkhole IP/Keyword detected' :
+                        status === 'blocked' ? 'DNS Resolution failed/empty' : 'Normal resolution'
                 };
 
                 results.push(result);
@@ -2684,7 +2711,14 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
                 const combinedErrorOutput = ((dnsError.stdout || '') + (dnsError.stderr || '')).toLowerCase();
 
                 if (combinedErrorOutput.includes('sinkhole')) {
-                    const result = { success: true, status: 'sinkholed', resolved: false, domain: test.domain, testName: test.testName };
+                    const result = {
+                        success: true,
+                        status: 'sinkholed',
+                        resolved: false,
+                        domain: test.domain,
+                        testName: test.testName,
+                        reason: 'Sinkhole keyword detected in error output'
+                    };
                     results.push(result);
                     addTestResult('dns_security', test.testName, result, testId);
                 } else {
@@ -2802,7 +2836,8 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
                     status,
                     endpoint: ep,
                     message,
-                    error: curlError.message
+                    error: curlError.message,
+                    reason: status === 'unreachable' ? 'Host unreachable or connection timeout' : 'CURL error (IPS likely dropped connection)'
                 };
 
                 logTest(`[THREAT-TEST-${testId}] EICAR test result: ${status.toUpperCase()}`, { endpoint: ep, error: curlError.message });

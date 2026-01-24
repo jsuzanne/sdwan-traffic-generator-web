@@ -542,7 +542,7 @@ export default function Security({ token }: SecurityProps) {
     };
 
     const resetCounters = async () => {
-        if (!confirm('Are you sure you want to reset all security statistics and history?')) return;
+        if (!confirm('Are you sure you want to reset all security statistics, clear the entire test history, and reset the test counter to #1? This action cannot be undone.')) return;
         setLoading(true);
         try {
             const res = await fetch('/api/security/statistics', {
@@ -1301,6 +1301,12 @@ export default function Security({ token }: SecurityProps) {
                                             <div>
                                                 <span className="text-slate-400">Execution Time:</span>
                                                 <span className="text-slate-200 ml-2">{selectedTest.details.executionTime}ms</span>
+                                            </div>
+                                        )}
+                                        {selectedTest.details.reason && (
+                                            <div className="mt-4 pt-4 border-t border-slate-700">
+                                                <span className="text-blue-400 font-bold uppercase text-[10px] tracking-wider block mb-1">Decision Reason</span>
+                                                <p className="text-slate-200 font-medium">{selectedTest.details.reason}</p>
                                             </div>
                                         )}
                                     </div>
