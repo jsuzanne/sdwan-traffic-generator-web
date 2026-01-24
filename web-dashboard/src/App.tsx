@@ -5,7 +5,8 @@ import Security from './Security';
 import Voice from './Voice';
 import Config from './Config';
 import Login from './Login';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge } from 'lucide-react';
+import ConnectivityPerformance from './ConnectivityPerformance';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -26,7 +27,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance'>('performance');
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
@@ -638,6 +639,15 @@ export default function App() {
           <Shield size={18} /> Security
         </button>
         <button
+          onClick={() => setView('performance')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
+            view === 'performance' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Gauge size={18} /> Performance
+        </button>
+        <button
           onClick={() => setView('voice')}
           className={cn(
             "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
@@ -861,7 +871,19 @@ export default function App() {
                       {result.type || 'http'}
                     </span>
                     {result.status === 'connected' && result.latency && (
-                      <span className="text-slate-400 ml-auto">{Math.round(result.latency)}ms</span>
+                      <div className="flex items-center gap-3 ml-auto">
+                        {result.score !== undefined && (
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold border flex items-center gap-1",
+                            result.score >= 80 ? "text-green-400 bg-green-400/10 border-green-400/20" :
+                              result.score >= 50 ? "text-orange-400 bg-orange-400/10 border-orange-400/20" :
+                                "text-red-400 bg-red-400/10 border-red-400/20"
+                          )}>
+                            <Gauge size={10} /> {result.score}
+                          </span>
+                        )}
+                        <span className="text-slate-400 font-mono">{Math.round(result.latency)}ms</span>
+                      </div>
                     )}
                     {result.status !== 'connected' && result.error && (
                       <span className="text-red-400 ml-auto text-[10px]">{result.error}</span>
@@ -920,6 +942,8 @@ export default function App() {
             </div>
           </div>
         </>
+      ) : view === 'performance' ? (
+        <ConnectivityPerformance token={token!} />
       ) : view === 'statistics' ? (
         <Statistics stats={stats} appConfig={appConfig} onReset={resetTrafficStats} />
       ) : view === 'security' ? (
