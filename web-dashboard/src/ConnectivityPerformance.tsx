@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, ChevronUp, ChevronDown, Flame } from 'lucide-react';
+import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, ChevronUp, ChevronDown, Flame, Plus } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface ConnectivityPerformanceProps {
     token: string;
+    onManage?: () => void;
 }
 
-export default function ConnectivityPerformance({ token }: ConnectivityPerformanceProps) {
+export default function ConnectivityPerformance({ token, onManage }: ConnectivityPerformanceProps) {
     const [results, setResults] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -257,6 +258,14 @@ export default function ConnectivityPerformance({ token }: ConnectivityPerforman
                     <button className="flex items-center gap-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 px-4 py-2 rounded-lg text-xs font-bold transition-all">
                         <Download size={14} /> EXPORT
                     </button>
+                    {onManage && (
+                        <button
+                            onClick={onManage}
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-900/20"
+                        >
+                            <Plus size={14} /> MANAGE ENDPOINTS
+                        </button>
+                    )}
                 </div>
             </div>
 

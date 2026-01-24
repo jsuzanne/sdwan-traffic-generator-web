@@ -44,6 +44,24 @@ const VOICE_CONTROL_FILE = path.join(APP_CONFIG.configDir, 'voice-control.json')
 const VOICE_SERVERS_FILE = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
 const VOICE_STATS_FILE = path.join(APP_CONFIG.logDir, 'voice-stats.jsonl');
 
+// Batch Counter - Persistent rotating ID for batch tests
+const BATCH_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'batch-counter.json');
+
+const getNextBatchId = (): string => {
+    try {
+        if (!fs.existsSync(BATCH_COUNTER_FILE)) {
+            fs.writeFileSync(BATCH_COUNTER_FILE, JSON.stringify({ counter: 0 }));
+        }
+        const data = JSON.parse(fs.readFileSync(BATCH_COUNTER_FILE, 'utf8'));
+        let nextId = (data.counter || 0) + 1;
+        if (nextId > 999) nextId = 1; // Rotate at 1000
+        fs.writeFileSync(BATCH_COUNTER_FILE, JSON.stringify({ counter: nextId }));
+        return nextId.toString().padStart(3, '0');
+    } catch (e) {
+        return Math.floor(Math.random() * 999).toString().padStart(3, '0');
+    }
+};
+
 const getNextTestId = (): number => {
     try {
         if (!fs.existsSync(TEST_COUNTER_FILE)) {
@@ -1041,7 +1059,7 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
 
     try {
         const execPromise = promisify(exec);
-        if (endpoint.type === 'http') {
+        if (endpoint.type.toLowerCase() === 'http' || endpoint.type.toLowerCase() === 'https') {
             const curlCmd = `curl -o /dev/null -s -L -w "time_namelookup=%{time_namelookup}\\ntime_connect=%{time_connect}\\ntime_appconnect=%{time_appconnect}\\ntime_starttransfer=%{time_starttransfer}\\ntime_total=%{time_total}\\nhttp_code=%{http_code}\\nremote_ip=%{remote_ip}\\nremote_port=%{remote_port}\\nsize_download=%{size_download}\\nspeed_download=%{speed_download}\\nssl_verify_result=%{ssl_verify_result}\\n" -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' --max-time ${Math.floor(endpoint.timeout / 1000)} "${endpoint.target}"`;
 
             try {
@@ -1071,7 +1089,7 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
                     result.score = calculateDEMScore(result.endpointType, result.reachable, result.httpCode, result.metrics);
                 }
             } catch (e) { }
-        } else if (endpoint.type === 'ping') {
+        } else if (endpoint.type.toLowerCase() === 'ping') {
             const pingCommand = `ping -c 1 -W ${Math.floor(endpoint.timeout / 1000)} ${endpoint.target}`;
             const pStart = Date.now();
             try {
@@ -1083,7 +1101,7 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
                 result.metrics.total_ms = Math.round(pingTime);
                 result.score = 100;
             } catch (e) { }
-        } else if (endpoint.type === 'tcp') {
+        } else if (endpoint.type.toLowerCase() === 'tcp') {
             const [ip, port] = endpoint.target.split(':');
             const ncCommand = `nc -zv -w ${Math.floor(endpoint.timeout / 1000)} ${ip} ${port} 2>&1`;
             const tStart = Date.now();
@@ -2450,7 +2468,7 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
         return res.status(400).json({ error: 'Tests array is required' });
     }
 
-    const batchId = Date.now();
+    const batchId = getNextBatchId();
     const results = [];
 
     logTest(`[URL-BATCH-${batchId}] Starting batch URL filtering test with ${tests.length} tests`);
@@ -2694,7 +2712,7 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
     }
 
     const results = [];
-    const batchId = Date.now(); // Unique batch ID
+    const batchId = getNextBatchId(); // Unique rotating batch ID
 
     // Helper function to wait
     const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

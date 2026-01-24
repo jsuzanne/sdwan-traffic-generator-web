@@ -6,7 +6,7 @@ import Voice from './Voice';
 import Config from './Config';
 import Login from './Login';
 import ConnectivityPerformance from './ConnectivityPerformance';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -767,6 +767,14 @@ export default function App() {
                 </button>
 
                 <button
+                  onClick={() => setView('config')}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 transition-all"
+                >
+                  <Plus size={14} />
+                  Manage
+                </button>
+
+                <button
                   onClick={() => setNetworkExpanded(!networkExpanded)}
                   className="text-slate-400 hover:text-slate-200 transition-colors ml-2"
                 >
@@ -943,7 +951,7 @@ export default function App() {
           </div>
         </>
       ) : view === 'performance' ? (
-        <ConnectivityPerformance token={token!} />
+        <ConnectivityPerformance token={token!} onManage={() => setView('config')} />
       ) : view === 'statistics' ? (
         <Statistics stats={stats} appConfig={appConfig} onReset={resetTrafficStats} />
       ) : view === 'security' ? (
