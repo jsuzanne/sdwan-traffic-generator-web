@@ -24,6 +24,13 @@ interface InterfaceInfo {
     ip: string;
 }
 
+interface CustomProbe {
+    name: string;
+    type: 'HTTP' | 'HTTPS' | 'TCP' | 'PING';
+    target: string;
+    timeout: number;
+}
+
 interface ConfigProps {
     token: string;
 }
@@ -34,6 +41,10 @@ export default function Config({ token }: ConfigProps) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [savedMsg, setSavedMsg] = useState<string | null>(null);
+
+    // Custom Probes State
+    const [customProbes, setCustomProbes] = useState<CustomProbe[]>([]);
+    const [newProbe, setNewProbe] = useState<CustomProbe>({ name: '', type: 'HTTP', target: '', timeout: 5000 });
 
     // Helper to show temporary success message
     const showSuccess = (msg: string) => {
@@ -49,12 +60,14 @@ export default function Config({ token }: ConfigProps) {
     useEffect(() => {
         Promise.all([
             fetch('/api/config/apps', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
-            fetch('/api/config/interfaces', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
-        ]).then(([catsData, ifaceData]) => {
+            fetch('/api/config/interfaces', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
+            fetch('/api/connectivity/custom', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
+        ]).then(([catsData, ifaceData, probesData]) => {
             // Initialize expanded state
             const CatsWithState = catsData.map((c: any) => ({ ...c, expanded: true }));
             setCategories(CatsWithState);
             setInterfaces(ifaceData);
+            setCustomProbes(probesData || []);
             setLoading(false);
         }).catch(() => setLoading(false));
     }, [token]);
@@ -189,6 +202,34 @@ export default function Config({ token }: ConfigProps) {
         }
     };
 
+    const addProbe = async () => {
+        if (!newProbe.name || !newProbe.target) return;
+
+        const updatedProbes = [...customProbes, newProbe];
+        await saveProbes(updatedProbes);
+        setCustomProbes(updatedProbes);
+        setNewProbe({ name: '', type: 'HTTP', target: '', timeout: 5000 });
+    };
+
+    const deleteProbe = async (index: number) => {
+        const updatedProbes = customProbes.filter((_, i) => i !== index);
+        await saveProbes(updatedProbes);
+        setCustomProbes(updatedProbes);
+    };
+
+    const saveProbes = async (probes: CustomProbe[]) => {
+        try {
+            await fetch('/api/connectivity/custom', {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify({ endpoints: probes })
+            });
+            showSuccess('Probes updated');
+        } catch (e) {
+            console.error('Failed to save probes');
+        }
+    };
+
 
     if (loading) return <div className="p-8 text-center text-slate-400">Loading configuration...</div>;
 
@@ -285,18 +326,105 @@ export default function Config({ token }: ConfigProps) {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        {interfaces.map(iface => (
-                            <div key={iface} className="group relative bg-slate-950 border border-purple-500/30 text-purple-300 px-4 py-2 rounded-lg flex items-center gap-3">
-                                <span className="font-mono text-sm">{iface}</span>
-                                <button
-                                    onClick={() => toggleInterface(iface)}
-                                    className="hover:text-red-400 transition-colors"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                            </div>
-                        ))}
                         {interfaces.length === 0 && <span className="text-slate-500 italic text-sm">No interfaces configured</span>}
+                    </div>
+                </div>
+            </div>
+
+            {/* Connectivity Probes Section */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-3 text-slate-200">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                            <Network size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold">Connectivity Probes (DEM)</h2>
+                            <p className="text-sm text-slate-400">Add custom synthetic endpoints for real-time monitoring</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                    {/* Form to add probe */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Name</label>
+                            <input
+                                type="text"
+                                placeholder="Branch-Office"
+                                className="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                value={newProbe.name}
+                                onChange={e => setNewProbe({ ...newProbe, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Type</label>
+                            <select
+                                className="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                value={newProbe.type}
+                                onChange={e => setNewProbe({ ...newProbe, type: e.target.value as any, timeout: e.target.value === 'PING' ? 2000 : 5000 })}
+                            >
+                                <option value="HTTP">HTTP (Scoring)</option>
+                                <option value="HTTPS">HTTPS (Scoring)</option>
+                                <option value="PING">ICMP Ping</option>
+                                <option value="TCP">TCP Port</option>
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Target</label>
+                            <input
+                                type="text"
+                                placeholder={newProbe.type === 'TCP' ? '8.8.8.8:53' : (newProbe.type === 'PING' ? '8.8.8.8' : 'https://google.com')}
+                                className="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                value={newProbe.target}
+                                onChange={e => setNewProbe({ ...newProbe, target: e.target.value })}
+                            />
+                        </div>
+                        <div className="flex items-end">
+                            <button
+                                onClick={addProbe}
+                                disabled={!newProbe.name || !newProbe.target}
+                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm"
+                            >
+                                <Plus size={18} />
+                                Add Probe
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Probes List */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Active Custom Probes</label>
+                        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                            {customProbes.map((probe, idx) => (
+                                <div key={idx} className="group bg-slate-950 border border-slate-800 hover:border-blue-500/30 rounded-xl p-4 flex items-center justify-between transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn(
+                                            "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold",
+                                            probe.type === 'PING' ? "bg-orange-500/10 text-orange-400" : "bg-blue-500/10 text-blue-400"
+                                        )}>
+                                            {probe.type.substring(0, 1)}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">{probe.name}</div>
+                                            <div className="text-[10px] text-slate-500 font-mono truncate max-w-[150px]">{probe.target}</div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => deleteProbe(idx)}
+                                        className="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                            {customProbes.length === 0 && (
+                                <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-800 rounded-xl">
+                                    <span className="text-slate-500 text-sm">No custom probes added yet. These will appear alongside endpoints from your environment files.</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

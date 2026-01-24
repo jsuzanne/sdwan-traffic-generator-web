@@ -1098,14 +1098,15 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
     return result;
 };
 
-// API: Internet Connectivity Test
-app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
-    // console.log('[CONNECTIVITY] Starting internet connectivity test...'); // Silenced to reduce noise
+// ===== CONNECTIVITY TEST HELPERS =====
+const CUSTOM_CONNECTIVITY_FILE = path.join(APP_CONFIG.configDir, 'connectivity-custom.json');
 
-    const testEndpoints: any[] = [
-        { name: 'Cloudflare DNS', type: 'http', target: 'https://1.1.1.1', timeout: 5000 },
-        { name: 'Google DNS', type: 'http', target: 'https://8.8.8.8', timeout: 5000 },
-        { name: 'Google', type: 'http', target: 'https://www.google.com', timeout: 5000 }
+// Helper: Get base endpoints from Envs
+const getEnvConnectivityEndpoints = () => {
+    const endpoints: any[] = [
+        { name: 'Cloudflare DNS', type: 'HTTP', target: 'https://1.1.1.1', timeout: 5000 },
+        { name: 'Google DNS', type: 'HTTP', target: 'https://8.8.8.8', timeout: 5000 },
+        { name: 'Google', type: 'HTTP', target: 'https://www.google.com', timeout: 5000 }
     ];
 
     Object.keys(process.env).forEach(key => {
@@ -1113,15 +1114,49 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
         if (!value) return;
         if (key.startsWith('CONNECTIVITY_HTTP_')) {
             const idx = value.indexOf(':');
-            if (idx > 0) testEndpoints.push({ name: value.substring(0, idx), type: 'http', target: value.substring(idx + 1), timeout: 5000 });
+            if (idx > 0) endpoints.push({ name: value.substring(0, idx), type: 'HTTP', target: value.substring(idx + 1), timeout: 5000 });
         } else if (key.startsWith('CONNECTIVITY_PING_')) {
             const [name, ip] = value.split(':');
-            if (name && ip) testEndpoints.push({ name, type: 'ping', target: ip, timeout: 2000 });
+            if (name && ip) endpoints.push({ name, type: 'PING', target: ip, timeout: 2000 });
         } else if (key.startsWith('CONNECTIVITY_TCP_')) {
             const parts = value.split(':');
-            if (parts.length === 3) testEndpoints.push({ name: parts[0], type: 'tcp', target: `${parts[1]}:${parts[2]}`, timeout: 3000 });
+            if (parts.length === 3) endpoints.push({ name: parts[0], type: 'TCP', target: `${parts[1]}:${parts[2]}`, timeout: 3000 });
         }
     });
+
+    return endpoints;
+};
+
+// Helper: Get custom endpoints from file
+const getCustomConnectivityEndpoints = () => {
+    try {
+        if (!fs.existsSync(CUSTOM_CONNECTIVITY_FILE)) return [];
+        return JSON.parse(fs.readFileSync(CUSTOM_CONNECTIVITY_FILE, 'utf8'));
+    } catch (e) {
+        console.error('Failed to read custom connectivity endpoints:', e);
+        return [];
+    }
+};
+
+// Helper: Save custom endpoints
+const saveCustomConnectivityEndpoints = (endpoints: any[]) => {
+    try {
+        fs.writeFileSync(CUSTOM_CONNECTIVITY_FILE, JSON.stringify(endpoints, null, 2));
+        return true;
+    } catch (e) {
+        console.error('Failed to save custom connectivity endpoints:', e);
+        return false;
+    }
+};
+
+// API: Internet Connectivity Test
+app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
+    // console.log('[CONNECTIVITY] Starting internet connectivity test...'); // Silenced to reduce noise
+
+    const testEndpoints: any[] = [
+        ...getEnvConnectivityEndpoints(),
+        ...getCustomConnectivityEndpoints()
+    ];
 
     const results = [];
     for (const endpoint of testEndpoints) {
@@ -1150,6 +1185,23 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
         results,
         timestamp: Date.now()
     });
+});
+
+// API: Get Custom Connectivity Endpoints
+app.get('/api/connectivity/custom', authenticateToken, (req, res) => {
+    res.json(getCustomConnectivityEndpoints());
+});
+
+// API: Update Custom Connectivity Endpoints
+app.post('/api/connectivity/custom', authenticateToken, (req, res) => {
+    const { endpoints } = req.body;
+    if (!Array.isArray(endpoints)) return res.status(400).json({ error: 'Invalid format, expected array' });
+
+    if (saveCustomConnectivityEndpoints(endpoints)) {
+        res.json({ success: true, endpoints });
+    } else {
+        res.status(500).json({ error: 'Failed to save endpoints' });
+    }
 });
 
 // New DEM APIs

@@ -81,7 +81,7 @@ export class ConnectivityLogger {
     async cleanup(): Promise<number> {
         try {
             const files = await readdir(this.logDir);
-            const logFiles = files.filter(f => f.startsWith('connectivity-results') && f.endsWith('.jsonl'));
+            const logFiles = files.filter((f: string) => f.startsWith('connectivity-results') && f.endsWith('.jsonl'));
             const cutoffDate = Date.now() - (this.retentionDays * 24 * 60 * 60 * 1000);
             let deletedCount = 0;
             for (const file of logFiles) {
@@ -138,6 +138,27 @@ export class ConnectivityLogger {
             const httpResults = allResults.filter(r => r.endpointType === 'HTTP' || r.endpointType === 'HTTPS');
             const reachableHttp = httpResults.filter(r => r.reachable && r.score > 0);
 
+            // Group by endpoint to find flaky ones
+            const endpointStats = new Map<string, { name: string, count: number, success: number, totalScore: number }>();
+            allResults.forEach(r => {
+                const stats = endpointStats.get(r.endpointId) || { name: r.endpointName, count: 0, success: 0, totalScore: 0 };
+                stats.count++;
+                if (r.reachable) stats.success++;
+                stats.totalScore += r.score;
+                endpointStats.set(r.endpointId, stats);
+            });
+
+            const flakyEndpoints = Array.from(endpointStats.entries())
+                .map(([id, stats]) => ({
+                    id,
+                    name: stats.name,
+                    reliability: Math.round((stats.success / stats.count) * 100),
+                    avgScore: Math.round(stats.totalScore / stats.count)
+                }))
+                .filter(e => e.reliability < 95 || e.avgScore < 70) // Definition of flaky
+                .sort((a, b) => (a.reliability + a.avgScore) - (b.reliability + b.avgScore))
+                .slice(0, 3);
+
             return {
                 globalHealth: reachableHttp.length > 0 ? Math.round(reachableHttp.reduce((acc, r) => acc + r.score, 0) / reachableHttp.length) : 0,
                 httpEndpoints: {
@@ -146,6 +167,7 @@ export class ConnectivityLogger {
                     minScore: reachableHttp.length > 0 ? Math.min(...reachableHttp.map(r => r.score)) : 0,
                     maxScore: reachableHttp.length > 0 ? Math.max(...reachableHttp.map(r => r.score)) : 0
                 },
+                flakyEndpoints,
                 lastCheckTime: allResults.length > 0 ? allResults[0].timestamp : null
             };
         } catch (error) {
@@ -157,11 +179,11 @@ export class ConnectivityLogger {
     private async readAllResults(): Promise<ConnectivityResult[]> {
         try {
             const files = await readdir(this.logDir);
-            const logFiles = files.filter(f => f.startsWith('connectivity-results') && f.endsWith('.jsonl'));
+            const logFiles = files.filter((f: string) => f.startsWith('connectivity-results') && f.endsWith('.jsonl'));
             const allResults: ConnectivityResult[] = [];
             for (const file of logFiles) {
                 const content = await readFile(path.join(this.logDir, file), 'utf8');
-                const lines = content.trim().split('\n').filter(l => l.length > 0);
+                const lines = content.trim().split('\n').filter((l: string) => l.length > 0);
                 for (const line of lines) {
                     try { allResults.push(JSON.parse(line)); } catch (e) { }
                 }

@@ -214,6 +214,8 @@ def main():
     # Log session start
     log_call("session_start", {"version": get_version()})
     
+    last_wait_log_time = 0
+    
     while True:
         control = load_control()
         servers = load_servers()
@@ -250,9 +252,11 @@ def main():
                     if new_call:
                         active_calls.append(new_call)
             else:
-                if time.time() % 30 < 5: # Periodic log to avoid flood
+                current_time = time.time()
+                if current_time - last_wait_log_time > 60: # Cooldown of 60 seconds
                     print(f"ℹ️  Wait: Max simultaneous calls reached ({len(active_calls)}/{control.get('max_simultaneous_calls', 3)})")
                     sys.stdout.flush()
+                    last_wait_log_time = current_time
         else:
             if len(active_calls) > 0:
                  print(f"⏳ Simulation disabled. Waiting for {len(active_calls)} calls to finish...")

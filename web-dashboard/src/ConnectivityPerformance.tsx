@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info } from 'lucide-react';
+import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, ChevronUp, ChevronDown, Flame } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface ConnectivityPerformanceProps {
@@ -15,6 +15,10 @@ export default function ConnectivityPerformance({ token }: ConnectivityPerforman
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedEndpoint, setSelectedEndpoint] = useState<any>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
+
+    // Sorting state
+    const [sortField, setSortField] = useState<string>('name');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
     const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
 
@@ -78,7 +82,40 @@ export default function ConnectivityPerformance({ token }: ConnectivityPerforman
         if (filterType !== 'ALL' && e.type !== filterType) return false;
         if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
+    }).sort((a: any, b: any) => {
+        let valA: any = a[sortField];
+        let valB: any = b[sortField];
+
+        // Custom mappings for special fields
+        if (sortField === 'reliability') {
+            valA = a.successRate;
+            valB = b.successRate;
+        } else if (sortField === 'latency') {
+            valA = a.avgLatency;
+            valB = b.avgLatency;
+        } else if (sortField === 'score') {
+            valA = a.lastScore;
+            valB = b.lastScore;
+        }
+
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
     });
+
+    const handleSort = (field: string) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDirection('asc');
+        }
+    };
+
+    const SortIndicator = ({ field }: { field: string }) => {
+        if (sortField !== field) return null;
+        return sortDirection === 'asc' ? <ChevronUp size={12} className="ml-1" /> : <ChevronDown size={12} className="ml-1" />;
+    };
 
     // Prepare chart data
     const chartData = results.slice(0, 50).reverse().map(r => ({
@@ -114,6 +151,26 @@ export default function ConnectivityPerformance({ token }: ConnectivityPerforman
                         {stats?.httpEndpoints?.total || 0}
                     </div>
                     <div className="text-xs text-slate-500 tracking-tight">Active Synthetic Endpoints</div>
+                </div>
+
+                <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl flex flex-col">
+                    <div className="text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2">
+                        <Flame size={14} className="text-orange-500" /> Flaky Endpoints
+                    </div>
+                    <div className="space-y-2">
+                        {stats?.flakyEndpoints?.length > 0 ? stats.flakyEndpoints.map((e: any) => (
+                            <div key={e.id} className="flex items-center justify-between text-[11px] bg-red-500/5 border border-red-500/10 p-1.5 rounded">
+                                <span className="text-slate-200 font-medium truncate max-w-[80px]">{e.name}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-red-400 font-bold">{e.reliability}%</span>
+                                    <div className="w-1 h-1 rounded-full bg-slate-700" />
+                                    <span className="text-slate-400">{e.avgScore}</span>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="text-xs text-slate-500 italic py-2">All probes stable</div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="md:col-span-2 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
@@ -208,11 +265,36 @@ export default function ConnectivityPerformance({ token }: ConnectivityPerforman
                 <table className="w-full text-left">
                     <thead className="bg-slate-800/50 border-b border-slate-700">
                         <tr>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Endpoint</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Type</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Last Score</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Avg Latency</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Reliability</th>
+                            <th
+                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('name')}
+                            >
+                                <div className="flex items-center">Endpoint <SortIndicator field="name" /></div>
+                            </th>
+                            <th
+                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('type')}
+                            >
+                                <div className="flex items-center justify-center">Type <SortIndicator field="type" /></div>
+                            </th>
+                            <th
+                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('score')}
+                            >
+                                <div className="flex items-center justify-center">Last Score <SortIndicator field="score" /></div>
+                            </th>
+                            <th
+                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('latency')}
+                            >
+                                <div className="flex items-center justify-center">Avg Latency <SortIndicator field="latency" /></div>
+                            </th>
+                            <th
+                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors"
+                                onClick={() => handleSort('reliability')}
+                            >
+                                <div className="flex items-center justify-center">Reliability <SortIndicator field="reliability" /></div>
+                            </th>
                             <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                         </tr>
                     </thead>
