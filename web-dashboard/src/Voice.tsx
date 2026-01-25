@@ -23,6 +23,7 @@ interface VoiceCall {
     loss_pct?: number;
     avg_rtt_ms?: number;
     jitter_ms?: number;
+    mos_score?: number;
 }
 
 interface VoiceControl {
@@ -406,7 +407,7 @@ export default function Voice({ token }: VoiceProps) {
                                         <th className="pb-3 px-2 font-medium bg-slate-900">Time</th>
                                         <th className="pb-3 px-2 font-medium bg-slate-900">Event</th>
                                         <th className="pb-3 px-2 font-medium bg-slate-900">Target</th>
-                                        <th className="pb-3 px-2 font-medium bg-slate-900">Loss</th>
+                                        <th className="pb-3 px-2 font-medium bg-slate-900">Loss / MOS</th>
                                         <th className="pb-3 px-2 font-medium bg-slate-900 text-right">RTT / Jitter</th>
                                     </tr>
                                 </thead>
@@ -428,19 +429,32 @@ export default function Voice({ token }: VoiceProps) {
                                             <td className="py-3 px-2 text-xs font-mono">{call.target}</td>
                                             <td className="py-3 px-2">
                                                 {call.event === 'end' && call.loss_pct !== undefined ? (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className={cn(
-                                                            "h-2 w-2 rounded-full",
-                                                            call.loss_pct < 1 ? "bg-green-500" :
-                                                                call.loss_pct < 5 ? "bg-yellow-500" : "bg-red-500"
-                                                        )} />
-                                                        <span className={cn(
-                                                            "text-[10px] font-bold",
-                                                            call.loss_pct < 1 ? "text-green-400" :
-                                                                call.loss_pct < 5 ? "text-yellow-400" : "text-red-400"
-                                                        )}>
-                                                            {call.loss_pct}%
-                                                        </span>
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className={cn(
+                                                                "h-2 w-2 rounded-full",
+                                                                call.loss_pct < 1 ? "bg-green-500" :
+                                                                    call.loss_pct < 5 ? "bg-yellow-500" : "bg-red-500"
+                                                            )} />
+                                                            <span className={cn(
+                                                                "text-[10px] font-bold",
+                                                                call.loss_pct < 1 ? "text-green-400" :
+                                                                    call.loss_pct < 5 ? "text-yellow-400" : "text-red-400"
+                                                            )}>
+                                                                {call.loss_pct}% loss
+                                                            </span>
+                                                        </div>
+                                                        {call.mos_score !== undefined && (
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className={cn(
+                                                                    "text-[10px] font-black px-1 rounded",
+                                                                    call.mos_score >= 4.0 ? "bg-green-500/20 text-green-400" :
+                                                                        call.mos_score >= 3.0 ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"
+                                                                )}>
+                                                                    MOS: {call.mos_score}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <span className="text-slate-600">—</span>

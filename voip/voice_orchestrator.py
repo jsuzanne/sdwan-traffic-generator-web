@@ -88,8 +88,49 @@ def load_servers():
         print(f"Error loading servers file: {e}")
     return servers
 
+def calculate_mos(latency_ms, jitter_ms, loss_pct):
+    """
+    Simplified E-model (ITU-T G.107) for R-factor and MOS.
+    R = 94.2 - Id - Ie
+    Id: Delay impairment
+    Ie: Equipment impairment (loss/jitter)
+    """
+    # 1. Effective latency calculation (including jitter buffer approximation)
+    effective_latency = latency_ms + (jitter_ms * 2) + 10
+    
+    # 2. Delay Impairment (Id)
+    if effective_latency <= 160:
+        id_impairment = effective_latency / 40
+    else:
+        id_impairment = (effective_latency - 120) / 10
+        
+    # 3. Equipment Impairment (Ie) - Loss
+    # For G.711 (PLC), loss impact is high
+    ie_impairment = loss_pct * 2.5
+    
+    # 4. Final R-factor
+    r_factor = 94.2 - id_impairment - ie_impairment
+    
+    # Clamp R-factor
+    r_factor = max(0, min(94.2, r_factor))
+    
+    # 5. MOS Calculation
+    if r_factor < 0: return 1.0
+    mos = 1 + (0.035 * r_factor) + (0.000007 * r_factor * (r_factor - 60) * (100 - r_factor))
+    
+    return round(max(1.0, min(4.4, mos)), 2)
+
 def log_call(event, call_info):
     try:
+        # Calculate MOS if it's an end event with QoS data
+        if event == "end" and "loss_pct" in call_info:
+            mos = calculate_mos(
+                call_info.get("avg_rtt_ms", 0),
+                call_info.get("jitter_ms", 0),
+                call_info.get("loss_pct", 0)
+            )
+            call_info["mos_score"] = mos
+
         log_entry = {
             "timestamp": datetime.now().isoformat(),
             "event": event,
