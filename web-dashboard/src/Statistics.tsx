@@ -16,7 +16,7 @@ interface StatsProps {
 
 export default function Statistics({ stats, appConfig, onReset }: StatsProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState<'requests' | 'errors' | 'name' | 'group'>('requests');
+    const [sortBy, setSortBy] = useState<'requests' | 'errors' | 'name' | 'group' | 'successRate'>('requests');
 
     if (!stats) {
         return (
@@ -74,12 +74,14 @@ export default function Statistics({ stats, appConfig, onReset }: StatsProps) {
         .sort((a, b) => {
             if (sortBy === 'requests') return b.requests - a.requests;
             if (sortBy === 'errors') return b.errors - a.errors;
+            if (sortBy === 'name') return a.name.localeCompare(b.name);
             if (sortBy === 'group') {
                 const groupComp = a.group.localeCompare(b.group);
                 if (groupComp !== 0) return groupComp;
                 return a.name.localeCompare(b.name);
             }
-            return a.name.localeCompare(b.name);
+            if (sortBy === 'successRate') return parseFloat(b.successRate) - parseFloat(a.successRate);
+            return 0;
         });
 
     const totalErrors = Object.values(stats.errors_by_app).reduce((a, b) => a + b, 0);
@@ -188,11 +190,36 @@ export default function Statistics({ stats, appConfig, onReset }: StatsProps) {
                     <table className="w-full">
                         <thead className="bg-slate-800/50">
                             <tr>
-                                <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Application</th>
-                                <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Group</th>
-                                <th className="text-right px-6 py-4 text-sm font-semibold text-slate-300">Requests</th>
-                                <th className="text-right px-6 py-4 text-sm font-semibold text-slate-300">Errors</th>
-                                <th className="text-right px-6 py-4 text-sm font-semibold text-slate-300">Success Rate</th>
+                                <th
+                                    className="text-left px-6 py-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-700/50 transition-colors"
+                                    onClick={() => setSortBy('name')}
+                                >
+                                    Application {sortBy === 'name' && '↓'}
+                                </th>
+                                <th
+                                    className="text-left px-6 py-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-700/50 transition-colors"
+                                    onClick={() => setSortBy('group')}
+                                >
+                                    Group {sortBy === 'group' && '↓'}
+                                </th>
+                                <th
+                                    className="text-right px-6 py-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-700/50 transition-colors"
+                                    onClick={() => setSortBy('requests')}
+                                >
+                                    Requests {sortBy === 'requests' && '↓'}
+                                </th>
+                                <th
+                                    className="text-right px-6 py-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-700/50 transition-colors"
+                                    onClick={() => setSortBy('errors')}
+                                >
+                                    Errors {sortBy === 'errors' && '↓'}
+                                </th>
+                                <th
+                                    className="text-right px-6 py-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-700/50 transition-colors"
+                                    onClick={() => setSortBy('successRate')}
+                                >
+                                    Success Rate {sortBy === 'successRate' && '↓'}
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">

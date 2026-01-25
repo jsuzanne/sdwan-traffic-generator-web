@@ -1952,6 +1952,20 @@ app.post('/api/config/applications/import', (req, res) => {
 
 // API: Get Interfaces
 app.get('/api/config/interfaces', (req, res) => {
+    const showAll = req.query.all === 'true';
+    if (showAll) {
+        const autoDetectedInterfaces = os.networkInterfaces();
+        const result = [];
+        for (const name of Object.keys(autoDetectedInterfaces)) {
+            for (const iface of autoDetectedInterfaces[name] || []) {
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    result.push(name);
+                    break;
+                }
+            }
+        }
+        return res.json(result);
+    }
     const content = readFile(INTERFACES_FILE);
     if (!content) return res.json([]);
     const interfaces = content.split('\n').filter(line => line && !line.startsWith('#'));
@@ -2878,6 +2892,16 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                     category: test.category,
                     blockPageDetected: isBlockPage,
                     testPageDetected: isTestPage,
+                    testId,
+                    label: test.category || test.url, // Assuming label is category or url
+                    target: test.url, // Assuming target is url
+                    port: null, // Not applicable for URL tests, or derive if needed
+                    rate: null, // Not applicable for URL tests, or derive if needed
+                    timestamp: Date.now(),
+                    max_blackout_ms: 0, // Not applicable for URL tests
+                    loss_pct: 0, // Not applicable for URL tests
+                    source_port: 0, // Not applicable for URL tests
+                    rate_pps: 0, // Not applicable for URL tests
                     reason: isTestPage ? 'Legitimate Palo Alto Test Page detected' :
                         isBlockPage ? 'Security Block Page detected in response content' :
                             (httpCode >= 200 && httpCode < 400) ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`

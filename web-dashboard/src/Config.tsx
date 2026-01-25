@@ -41,6 +41,7 @@ export default function Config({ token }: ConfigProps) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [savedMsg, setSavedMsg] = useState<string | null>(null);
+    const [availableInterfaces, setAvailableInterfaces] = useState<string[]>([]); // All detected interfaces
 
     // Custom Probes State
     const [customProbes, setCustomProbes] = useState<CustomProbe[]>([]);
@@ -69,6 +70,13 @@ export default function Config({ token }: ConfigProps) {
             setCategories(CatsWithState);
             setInterfaces(ifaceData);
             setCustomProbes(probesData || []);
+
+            // Fetch ALL detected interfaces for comparison
+            fetch('/api/config/interfaces?all=true', { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(r => r.json())
+                .then(setAvailableInterfaces)
+                .catch(() => { });
+
             setLoading(false);
         }).catch(() => setLoading(false));
     }, [token]);
@@ -350,7 +358,36 @@ export default function Config({ token }: ConfigProps) {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        {interfaces.length === 0 && <span className="text-slate-500 italic text-sm">No interfaces configured</span>}
+                        {availableInterfaces.map(iface => {
+                            const isSelected = interfaces.includes(iface);
+                            return (
+                                <button
+                                    key={iface}
+                                    onClick={() => toggleInterface(iface)}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-2",
+                                        isSelected
+                                            ? "bg-purple-500/20 border-purple-500/50 text-purple-400"
+                                            : "bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600"
+                                    )}
+                                >
+                                    <div className={cn("w-2 h-2 rounded-full", isSelected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-slate-600")} />
+                                    {iface}
+                                    {isSelected && <CheckCircle2 size={12} />}
+                                </button>
+                            );
+                        })}
+                        {availableInterfaces.length === 0 && interfaces.map(iface => (
+                            <button
+                                key={iface}
+                                onClick={() => toggleInterface(iface)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-500/20 border border-purple-500/50 text-purple-400 flex items-center gap-2"
+                            >
+                                <div className="w-2 h-2 rounded-full bg-green-500" />
+                                {iface}
+                                <Plus size={12} className="rotate-45" />
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>

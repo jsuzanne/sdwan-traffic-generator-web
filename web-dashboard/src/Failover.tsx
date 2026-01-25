@@ -323,42 +323,46 @@ export default function Failover({ token }: FailoverProps) {
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Verdict</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Max Blackout</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Loss</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">Source Port</th>
+                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">PPS</th>
+                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">SOURCE PORT</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800">
-                                {history.map((h, i) => {
-                                    const verdict = getVerdict(h.max_blackout_ms);
+                                {history.map((test, idx) => {
+                                    const verdict = getVerdict(test.max_blackout_ms);
                                     return (
-                                        <tr key={i} className="hover:bg-slate-800/40 group transition-colors">
+                                        <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
                                             <td className="px-6 py-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-slate-200 font-bold group-hover:text-blue-400 transition-colors uppercase tracking-tight">{h.test_id}</span>
-                                                    <span className="text-[10px] text-slate-500 mt-0.5">{new Date(h.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                                                </div>
+                                                <div className="font-medium text-slate-200">{test.label} ({test.test_id})</div>
+                                                <div className="text-xs text-slate-500">{new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <div className={`inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] border ${verdict.bg} ${verdict.color} border-${verdict.color.split('-')[1]}-500/20`}>
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] border ${verdict.bg.replace('/10', '/30')} ${verdict.color}`}>
                                                     {verdict.label}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`font-mono text-sm font-bold ${h.max_blackout_ms > 0 ? 'text-orange-400' : 'text-slate-400'}`}>
-                                                    {formatMs(h.max_blackout_ms)}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-center font-mono text-slate-400">
-                                                {h.loss_pct}%
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`font-mono text-sm font-bold ${test.max_blackout_ms > 0 ? 'text-orange-400' : 'text-slate-400'}`}>
+                                                    {formatMs(test.max_blackout_ms)}
+                                                </span>
                                             </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-500">
-                                                {h.source_port}
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`font-mono text-sm font-bold ${test.loss_pct > 2 ? 'text-red-400' : 'text-slate-400'}`}>
+                                                    {test.loss_pct}%
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-blue-400 font-mono text-xs">{test.rate_pps || test.rate || '--'} pps</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-slate-500 font-mono text-xs">{test.source_port}</span>
                                             </td>
                                         </tr>
                                     );
                                 })}
                                 {history.length === 0 && !loadingHistory && (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">
+                                        <td colSpan={6} className="px-6 py-12 text-center text-slate-500 italic">
                                             No failover tests recorded yet.
                                         </td>
                                     </tr>
