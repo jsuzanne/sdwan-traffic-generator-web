@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.95] - 2026-01-25
+
+### Added
+- **Global Control**: Added "Stop All Probes" button to Convergence Lab.
+- **Directional Loss Time**: History table now displays estimated "Loss Time" in ms for both RX and TX directions.
+- **DEM Documentation**: Created **[Connectivity Probes Guide](docs/CONNECTIVITY_ENDPOINTS.md)** for background monitoring.
+
+### Fixed
+- **Startup Performance**: Optimized test initiation (parallelizing spawns) to reduce UI delay.
+- **Selection Logic**: Fixed a bug where the selection counter would get out of sync after target deletion.
+- **Log Aesthetics**: Harmonized all terminal logs (🚀, 📡, ⏹️, ✅) and fixed redundant `[CALL-CALL-XXX]` prefixes.
+- **Visual Harmony**: Removed redundant parentheses and cleaned up `[CONV-XXX]` labels in Live Cards and History.
+
 ## [1.1.0-patch.94] - 2026-01-25
 
 ### Added

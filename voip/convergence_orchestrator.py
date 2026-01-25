@@ -28,6 +28,8 @@ class ConvergenceOrchestrator:
             "loss_pct": 0,
             "tx_loss_pct": 0,
             "rx_loss_pct": 0,
+            "tx_loss_ms": 0,
+            "rx_loss_ms": 0,
             "current_blackout_ms": 0,
             "max_blackout_ms": 0,
             "last_seq": 0,
@@ -92,10 +94,15 @@ class ConvergenceOrchestrator:
         
         # Consistent label format: [CONV-XXX] Label
         log_id = self.test_id
-        if "(" in log_id: # Clean up old format if passed
-            log_id = log_id.split("(")[-1].replace(")", "")
+        label = "Unknown"
+        if " (" in log_id:
+            label = log_id.split(" (")[0]
+            log_id = log_id.split(" (")[-1].replace(")", "")
+        elif "(" in log_id:
+             log_id = log_id.split("(")[-1].replace(")", "")
         
-        print(f"[{log_id}] 🚀 START: Convergence test to {self.target_ip}:{self.target_port} ({self.rate} pps)", flush=True)
+        print(f"[{log_id}] 📡 CONVERGENCE STARTED: {self.target_ip}:{self.target_port} | Rate: {self.rate}pps | Label: {label}", flush=True)
+        print(f"[{log_id}] ⚙️  Source Port: {source_port} | Warmup: {self.warmup_duration}s", flush=True)
         
         t = threading.Thread(target=self.receiver, args=(sock,))
         t.daemon = True
@@ -140,15 +147,21 @@ class ConvergenceOrchestrator:
                         if srv_rcvd > 0:
                             tx_loss = round((1 - (srv_rcvd / denominator)) * 100, 1)
                             rx_loss = round((1 - (total_rcvd / srv_rcvd)) * 100, 1)
+                            tx_lost_pkts = max(0, denominator - srv_rcvd)
+                            rx_lost_pkts = max(0, srv_rcvd - total_rcvd)
                         else:
                             # If no server feedback yet, we can't separate but it's likely TX if total loss > 0
                             tx_loss = loss_val
                             rx_loss = 0
+                            tx_lost_pkts = max(0, denominator - total_rcvd)
+                            rx_lost_pkts = 0
 
                         if not is_warmup:
                             self.metrics["loss_pct"] = max(0, loss_val)
                             self.metrics["tx_loss_pct"] = max(0, tx_loss)
                             self.metrics["rx_loss_pct"] = max(0, rx_loss)
+                            self.metrics["tx_loss_ms"] = round(tx_lost_pkts * self.interval * 1000)
+                            self.metrics["rx_loss_ms"] = round(rx_lost_pkts * self.interval * 1000)
 
                 if seq % 10 == 0:
                     self.update_stats_file()
@@ -162,7 +175,7 @@ class ConvergenceOrchestrator:
             self.metrics["end_time"] = time.time()
             self.update_stats_file()
             sock.close()
-            print(f"[{log_id}] 🏁 FINISH: Max Blackout: {self.metrics['max_blackout_ms']}ms, Loss: {self.metrics['loss_pct']}% (TX: {self.metrics['tx_loss_pct']}%, RX: {self.metrics['rx_loss_pct']}%)")
+            print(f"[{log_id}] ⏹️  CONVERGENCE STOPPED: Max Blackout: {self.metrics['max_blackout_ms']}ms", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

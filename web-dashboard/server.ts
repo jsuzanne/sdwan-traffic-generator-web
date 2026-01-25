@@ -1482,6 +1482,9 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         '--stats-file', statsFile
     ];
 
+    const cmdStr = `python3 convergence_orchestrator.py -D ${target} -dport ${port || 6100} --rate ${rate || 50}pps --label "${label || ''}"`;
+    console.log(`[${testId}] 🚀 Executing: ${cmdStr}`);
+
     try {
         const proc = spawn('python3', args);
         convergenceProcesses.set(testId, proc);
@@ -1492,11 +1495,14 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         });
 
         proc.stdout.on('data', (data: any) => {
-            console.log(`[CONVERGENCE-STDOUT] ${data}`);
+            const lines = data.toString().split('\n');
+            lines.forEach((line: string) => {
+                if (line.trim()) console.log(line);
+            });
         });
 
         proc.on('close', (code: any) => {
-            console.log(`[CONVERGENCE] Test ${testId} finished with code ${code}`);
+            console.log(`[${testId}] ✅ Process finished with code ${code}`);
             convergenceProcesses.delete(testId);
 
             // Finalize history entry

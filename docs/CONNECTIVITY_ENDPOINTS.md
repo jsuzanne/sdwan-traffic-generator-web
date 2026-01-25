@@ -1,70 +1,58 @@
-# Connectivity & Performance Monitoring (DEM)
+# Connectivity Probes: Digital Experience Monitoring (DEM)
 
-## Overview
+The **Connectivity Probes** (formerly Synthetic Endpoints) provide real-time visibility into the health and performance of critical application targets by simulating user traffic patterns.
 
-Configure synthetic endpoints to monitor network health and user experience. The system provides a **Digital Experience Management (DEM)** score (0-100) for each path, breaking down latency into protocol-level metrics.
+---
 
-## Configuration
+## 📡 Available Probe Types
 
-Add environment variables to your `docker-compose.yml`:
+The platform supports three primary probe types, each measuring different aspects of the digital experience:
 
-### HTTP/HTTPS Endpoints
-High-resolution metrics including DNS, TCP, TLS handshake, and TTFB:
-```yaml
-environment:
-  - CONNECTIVITY_HTTP_1=DC-App:https://app.datacenter.local
-  - CONNECTIVITY_HTTP_2=SaaS:https://api.salesforce.com
-```
+### 1. HTTP (Digital Experience)
+- **Mechanism**: Performs a standard HTTP/HTTPS `GET` request to the target.
+- **Metrics**: 
+  - **Latency (ms)**: Time to first byte.
+  - **Status**: Success (2xx/3xx) or Failure (4xx/5xx/Timeout).
+- **Scoring**: Impacted by DNS resolution time, TCP handshake, and TLS negotiation.
 
-### ICMP Ping Endpoints
-Network-layer reachability and round-trip time:
-```yaml
-environment:
-  - CONNECTIVITY_PING_1=HQ-Firewall:10.0.0.1
-```
+### 2. PING (Network Reachability)
+- **Mechanism**: Sends standard ICMP Echo Requests.
+- **Metrics**: 
+  - **RTT (ms)**: Round-trip time.
+  - **Loss (%)**: Percentage of packets timed out.
+- **Scoring**: Basic network layer reachability across the SD-WAN fabric.
 
-### TCP Port Tests
-Validate specific service availability:
-```yaml
-environment:
-  - CONNECTIVITY_TCP_1=Database:10.0.0.200:5432
-```
+### 3. DNS (Resolution Speed)
+- **Mechanism**: Queries the target domain against the system's configured DNS servers.
+- **Metrics**:
+  - **Resolution Time (ms)**: How long it takes to map the hostname to an IP.
+- **Scoring**: Critical for monitoring umbrella/SIG performance or local DNS cache issues.
 
-## Performance Scoring (DEM)
+---
 
-Each reachable endpoint receives a score based on a weighted algorithm:
+## ⚙️ How it Works
 
-| Metric | Weight | Description |
-| :--- | :--- | :--- |
-| **Total Latency** | 30% | Overall round-trip response time. |
-| **TTFB** | 35% | Time To First Byte (Application/Backend latency). |
-| **TLS/SSL** | 25% | Handshake timing (Path inspection overhead). |
-| **DNS/TCP** | 10% | Network setup overhead. |
+### 1. Background Execution
+Probes are managed by the **Background Monitor** in the Node.js backend (`server.ts`).
+- **Interval**: Probes run every **60 seconds** (default) or at the specified interval.
+- **Lifecycle**: The monitor iterates through all configured endpoints, executes the specialized probe, and updates the shared global state.
 
-> [!NOTE]
-> Scores above **80** are considered Excellent (Green). Scores below **50** indicate path degradation or heavy SSL inspection (Orange/Red).
+### 2. Flaky Detection
+The platform tracks "Flakiness" to distinguish between a temporary blip and a hard outage:
+- An endpoint is marked as **FLAKY** if it fails a probe but recently succeeded.
+- It is marked as **DOWN** if it fails multiple consecutive probes.
 
-## Timing Breakdown
+### 3. Automatic Updates
+The UI (`Dashboard.tsx`) receives these updates in real-time via the `/api/status` endpoint. The labels and status colors (Green = UP, Yellow = FLAKY, Red = DOWN) are adjusted dynamically.
 
-When using HTTP/HTTPS probes, the system captures:
-- **DNS Lookup**: Name resolution speed.
-- **TCP Connect**: Three-way handshake timing.
-- **App Connect (TLS)**: SSL negotiation duration (key for SASE analysis).
-- **TTFB**: Time between request and first byte of response.
-- **Total**: End-to-end execution time.
+---
 
-## Historical Logging
+## 🛠️ Configuration
 
-All results are logged with millisecond precision in:
-`/app/logs/connectivity-results.jsonl`
+You can add custom probes via the **Configuration** tab:
+- **Name**: A descriptive label (e.g., "Webex", "Office 365").
+- **Type**: Select from HTTP, PING, or DNS.
+- **Target**: The FQDN (google.com) or IP address. For HTTP, the `http://` prefix is added automatically if missing.
 
-History is accessible via the **Performance** tab in the dashboard, featuring:
-- Time-series charts of timing breakdowns.
-- Global Health Score summary.
-- Reliability (Uptime %) per endpoint.
-
-## Use Cases
-
-- **SASE/SD-WAN Validation**: Measure the impact of SSL inspection on application performance.
-- **Path Selection**: Compare performance across different ISP links or VPN tunnels.
-- **SaaS Monitoring**: Track performance trends for critical cloud applications.
+> [!TIP]
+> Use the **HTTP (Scoring)** type for public SaaS applications to get a realistic measure of application-level latency.

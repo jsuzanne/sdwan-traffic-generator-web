@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Clock, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, Play, Pause, Trash2, Zap, Server, Globe, Hash, Plus, Target, X } from 'lucide-react';
+import { Activity, Clock, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, Play, Pause, Trash2, Zap, Server, Globe, Hash, Plus, Target, X, Square } from 'lucide-react';
 
 interface FailoverProps {
     token: string;
@@ -89,14 +89,19 @@ export default function Failover({ token }: FailoverProps) {
         try {
             await fetch(`/api/convergence/endpoints/${id}`, { method: 'DELETE', headers: authHeaders() });
             fetchEndpoints();
+            // Fix selection counter: remove from selected if deleted
+            setSelectedEndpoints(prev => prev.filter(eId => eId !== id));
         } catch (e) { }
     };
 
     const startTest = async (endpointIds: string[]) => {
         const targets = endpoints.filter(e => endpointIds.includes(e.id));
-        for (const endpoint of targets) {
-            try {
-                await fetch('/api/convergence/start', {
+
+        // Immediate UI feedback: Clear selection and show loading if needed
+        // Running tests in parallel for speed
+        try {
+            await Promise.all(targets.map(endpoint =>
+                fetch('/api/convergence/start', {
                     method: 'POST',
                     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -105,9 +110,10 @@ export default function Failover({ token }: FailoverProps) {
                         rate,
                         label: endpoint.label
                     })
-                });
-            } catch (e) { }
-        }
+                })
+            ));
+        } catch (e) { }
+
         fetchStatus();
         setSelectedEndpoints([]);
     };
@@ -155,6 +161,8 @@ export default function Failover({ token }: FailoverProps) {
         return `${(ms / 1000).toFixed(2)}s`;
     };
 
+    const selectedCount = endpoints.filter(e => selectedEndpoints.includes(e.id)).length;
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header Controls */}
@@ -198,12 +206,20 @@ export default function Failover({ token }: FailoverProps) {
                             </select>
                         </div>
                         <div className="flex items-center gap-4">
-                            {selectedEndpoints.length > 0 && (
+                            {activeTests.length > 0 && (
+                                <button
+                                    onClick={() => stopTest()}
+                                    className="mt-5 flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg text-sm font-bold transition-all border border-red-500/30 shadow-lg shadow-red-900/20 group"
+                                >
+                                    <Square size={16} fill="currentColor" className="group-hover:animate-pulse" /> STOP ALL PROBES
+                                </button>
+                            )}
+                            {selectedCount > 0 && (
                                 <button
                                     onClick={() => startTest(selectedEndpoints)}
                                     className="mt-5 flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/40 border border-blue-400/30"
                                 >
-                                    <Play size={18} fill="currentColor" /> START {selectedEndpoints.length} TESTS
+                                    <Play size={18} fill="currentColor" /> START {selectedCount} {selectedCount === 1 ? 'TEST' : 'TESTS'}
                                 </button>
                             )}
                             <button
@@ -287,10 +303,10 @@ export default function Failover({ token }: FailoverProps) {
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-2">
                                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500 text-white uppercase tracking-tighter">
-                                            [CONV-{test.testId}]
+                                            {test.testId}
                                         </span>
                                         <span className="text-sm font-bold text-slate-200 uppercase tracking-tight">
-                                            {test.test_id?.split('(')[0] || 'Loading...'}
+                                            {test.test_id?.split(' (')[0] || 'Loading...'}
                                         </span>
                                     </div>
                                     <span className="text-[10px] text-slate-500 font-mono mt-0.5 flex items-center gap-1">
@@ -378,7 +394,7 @@ export default function Failover({ token }: FailoverProps) {
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight">Date / ID</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Verdict</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Max Blackout</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Loss</th>
+                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Loss (↑TX / ↓RX)</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">PPS</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">SOURCE PORT</th>
                                 </tr>
@@ -389,7 +405,10 @@ export default function Failover({ token }: FailoverProps) {
                                     return (
                                         <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-slate-200">{test.label} ({test.test_id})</div>
+                                                <div className="font-medium text-slate-200 flex items-center gap-2">
+                                                    <span className="bg-blue-500/10 text-blue-400 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">{test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || 'CONV-??'}</span>
+                                                    <span>{test.label || test.test_id?.split(' (')[0]}</span>
+                                                </div>
                                                 <div className="text-xs text-slate-500">{new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
@@ -403,9 +422,15 @@ export default function Failover({ token }: FailoverProps) {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className={`font-mono text-sm font-bold ${test.loss_pct > 2 ? 'text-red-400' : 'text-slate-400'}`}>
-                                                    {test.loss_pct}%
-                                                </span>
+                                                <div className="flex flex-col items-center">
+                                                    <span className={`font-mono text-sm font-bold ${test.loss_pct > 2 ? 'text-red-400' : 'text-slate-400'}`}>
+                                                        {test.loss_pct}%
+                                                    </span>
+                                                    <div className="flex gap-2 text-[9px] mt-1 font-mono">
+                                                        <span className="text-red-400/70" title="Uplink Loss">↑ {test.tx_loss_pct || 0}% ({test.tx_loss_ms || 0}ms)</span>
+                                                        <span className="text-blue-400/70" title="Downlink Loss">↓ {test.rx_loss_pct || 0}% ({test.rx_loss_ms || 0}ms)</span>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <span className="text-blue-400 font-mono text-xs">{test.rate_pps || test.rate || '--'} pps</span>

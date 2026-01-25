@@ -57,10 +57,19 @@ def run_server(ip, port):
                 except: pass
 
                 if addr not in active_sessions:
-                    print(f"📉 [{time.strftime('%H:%M:%S')}] [{detected_id}] START: Incoming traffic from {addr[0]}:{addr[1]}", flush=True)
+                    label = detected_id
+                    # Clean label for log prefix
+                    log_id = detected_id
+                    if log_id.startswith("CONV-"): log_id = log_id
+                    elif log_id.startswith("CALL-"): log_id = log_id
+                    else:
+                        prefix = "CONV" if session_type == "Convergence" else "CALL"
+                        log_id = f"{prefix}-{log_id}"
+
+                    print(f"[{log_id}] 📥 [{time.strftime('%H:%M:%S')}] RECEIVING: {addr[0]}:{addr[1]} | Label: {label}", flush=True)
                 
                 # Update session
-                session = active_sessions.get(addr, {"packet_count": 0})
+                session = active_sessions.get(addr, {"packet_count": 0, "start_time": now})
                 session["last_seen"] = now
                 session["id"] = detected_id
                 session["type"] = session_type
@@ -71,8 +80,6 @@ def run_server(ip, port):
                 if session_type == "Convergence":
                     try:
                         # Append :S<count> to payload
-                        # Original: CONV-021:Hetzner DC:1737827186000:seq
-                        # New:      CONV-021:Hetzner DC:1737827186000:seq:S123
                         echo_payload = data + f":S{session['packet_count']}".encode('utf-8')
                         s.sendto(echo_payload, addr)
                     except:
@@ -88,12 +95,16 @@ def run_server(ip, port):
             to_remove = []
             for addr, session in active_sessions.items():
                 if now - session['last_seen'] > 5.0:
-                    icon = "✅" if session['type'] == "Voice" else "🏁"
-                    prefix = "CALL" if session['type'] == "Voice" else "CONV"
+                    icon = "✅"
                     id_val = session['id']
-                    if id_val.startswith('CONV-'): id_val = id_val[5:]
                     
-                    print(f"{icon} [{time.strftime('%H:%M:%S')}] [{prefix}-{id_val}] FINISH: {session['type']} from {addr[0]}:{addr[1]}. Total packets: {session['packet_count']}", flush=True)
+                    # Harmonize prefix
+                    if not (id_val.startswith("CONV-") or id_val.startswith("CALL-")):
+                        prefix = "CONV" if session["type"] == "Convergence" else "CALL"
+                        id_val = f"{prefix}-{id_val}"
+                    
+                    duration = int(now - session['start_time'] - 5.0) # Subtract silence period
+                    print(f"[{id_val}] {icon} [{time.strftime('%H:%M:%S')}] COMPLETED: {addr[0]}:{addr[1]} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
                     to_remove.append(addr)
             
             for addr in to_remove:

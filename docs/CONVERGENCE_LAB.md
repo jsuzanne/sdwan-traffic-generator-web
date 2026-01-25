@@ -23,7 +23,7 @@ The core logic resides in the `convergence_orchestrator.py`. It detects "Blackou
 Unlike standard "Round Trip" loss, the Convergence Lab breaks down loss by direction:
 - **TX Loss (Uplink)**: Calculated by comparing the number of packets sent by the generator vs. the number received by the echo server (reported in the echoed payload).
 - **RX Loss (Downlink)**: Calculated by comparing the number of packets echoed by the server vs. the number actually received back by the generator.
-- **Total Loss**: The aggregate percentage of packets that failed the full round trip.
+- **Loss Time (ms)**: The history table displays the estimated total "outage time" for each direction (e.g., `↑ 2% (240ms)`). This is calculated by multiplying the lost packet count by the sampling interval.
 
 ---
 
