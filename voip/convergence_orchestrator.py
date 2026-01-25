@@ -24,7 +24,10 @@ class ConvergenceOrchestrator:
             "start_time": self.start_time,
             "sent": 0,
             "received": 0,
+            "server_received": 0,
             "loss_pct": 0,
+            "tx_loss_pct": 0,
+            "rx_loss_pct": 0,
             "current_blackout_ms": 0,
             "max_blackout_ms": 0,
             "last_seq": 0,
@@ -39,7 +42,7 @@ class ConvergenceOrchestrator:
 
     def update_stats_file(self):
         try:
-            with open("/tmp/convergence_stats.json", "w") as f:
+            with open(self.stats_file, "w") as f:
                 json.dump(self.metrics, f)
         except: pass
 
@@ -50,19 +53,28 @@ class ConvergenceOrchestrator:
                 data, addr = sock.recvfrom(1024)
                 now = time.time()
                 
-                # Payload format: TEST_ID:SEQ:TIMESTAMP
+                # Payload format: TEST_ID:SEQ:TIMESTAMP[:S<server_count>]
                 try:
                     payload = data.decode('utf-8', errors='ignore')
                     parts = payload.split(':')
                     if len(parts) >= 2:
                         seq = int(parts[1])
+                        server_count = 0
+                        
+                        # Look for :S<count> suffix
+                        for part in parts:
+                            if part.startswith('S') and part[1:].isdigit():
+                                server_count = int(part[1:])
+                                break
+
                         with self.lock:
                             self.received_seqs.add(seq)
                             self.metrics["received"] += 1
+                            if server_count > self.metrics["server_received"]:
+                                self.metrics["server_received"] = server_count
+                            
                             self.last_received_time = now
                             
-                            # Update history (bitmask of last 100)
-                            # 1 = success, 0 = loss
                             self.metrics["history"].append(1)
                             if len(self.metrics["history"]) > 100:
                                 self.metrics["history"].pop(0)
@@ -74,14 +86,16 @@ class ConvergenceOrchestrator:
 
     def run(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Random source port for correlation
         source_port = random.randrange(30000, 60000)
         sock.bind(('0.0.0.0', source_port))
         self.metrics["source_port"] = source_port
         
-        print(f"[{self.test_id}] Starting convergence test to {self.target_ip}:{self.target_port}", flush=True)
-        print(f"[{self.test_id}] Source Port: {source_port}, Rate: {self.rate} pkts/sec", flush=True)
-        print(f"[{self.test_id}] Warmup period: {self.warmup_duration}s (ignoring initial bursts)", flush=True)
+        # Consistent label format: [CONV-XXX] Label
+        log_id = self.test_id
+        if "(" in log_id: # Clean up old format if passed
+            log_id = log_id.split("(")[-1].replace(")", "")
+        
+        print(f"[{log_id}] 🚀 START: Convergence test to {self.target_ip}:{self.target_port} ({self.rate} pps)", flush=True)
         
         t = threading.Thread(target=self.receiver, args=(sock,))
         t.daemon = True
@@ -102,10 +116,7 @@ class ConvergenceOrchestrator:
                 with self.lock:
                     self.metrics["sent"] = seq
                     
-                    # Check for blackout logic
                     outage_duration = (ts - self.last_received_time) * 1000
-                    
-                    # We detect blackout if we missed > 2 packets (roughly)
                     if outage_duration > (self.interval * 2000):
                         cur_blackout = round(outage_duration)
                         self.metrics["current_blackout_ms"] = cur_blackout
@@ -116,18 +127,28 @@ class ConvergenceOrchestrator:
                     else:
                         self.metrics["current_blackout_ms"] = 0
                     
-                    # Refined Loss Calculation: Use sent-1 as denominator to avoid flight-offset
                     if seq > 1:
-                        denominator = seq - 1 # We don't expect the packet we JUST sent yet
-                        loss_val = round((1 - (self.metrics["received"] / denominator)) * 100, 1)
+                        denominator = seq - 1
+                        total_rcvd = self.metrics["received"]
+                        srv_rcvd = self.metrics["server_received"]
+                        
+                        # Overall Loss
+                        loss_val = round((1 - (total_rcvd / denominator)) * 100, 1)
+                        
+                        # TX Loss (Client -> Server)
+                        # Only calculate if we have server feedback
+                        if srv_rcvd > 0:
+                            tx_loss = round((1 - (srv_rcvd / denominator)) * 100, 1)
+                            rx_loss = round((1 - (total_rcvd / srv_rcvd)) * 100, 1)
+                        else:
+                            # If no server feedback yet, we can't separate but it's likely TX if total loss > 0
+                            tx_loss = loss_val
+                            rx_loss = 0
+
                         if not is_warmup:
                             self.metrics["loss_pct"] = max(0, loss_val)
-
-                    # Add loss to history (this part was removed from the original, but the instruction didn't explicitly remove it,
-                    # and it's good to keep some history update logic, though the new loss calculation is separate)
-                    # The original logic for history update based on blackout was a bit simplified.
-                    # For now, we'll keep the history update only in the receiver for received packets.
-                    # If a packet is sent but not received, it's implicitly a loss in the overall loss_pct.
+                            self.metrics["tx_loss_pct"] = max(0, tx_loss)
+                            self.metrics["rx_loss_pct"] = max(0, rx_loss)
 
                 if seq % 10 == 0:
                     self.update_stats_file()
@@ -141,7 +162,7 @@ class ConvergenceOrchestrator:
             self.metrics["end_time"] = time.time()
             self.update_stats_file()
             sock.close()
-            print(f"[{self.test_id}] Test finished. Max Blackout: {self.metrics['max_blackout_ms']}ms")
+            print(f"[{log_id}] 🏁 FINISH: Max Blackout: {self.metrics['max_blackout_ms']}ms, Loss: {self.metrics['loss_pct']}% (TX: {self.metrics['tx_loss_pct']}%, RX: {self.metrics['rx_loss_pct']}%)")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -149,7 +170,9 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=6100)
     parser.add_argument("--rate", type=int, default=50)
     parser.add_argument("--id", default="TEST-000")
+    parser.add_argument("--stats-file", default="/tmp/convergence_stats.json")
     args = parser.parse_args()
 
     orchestrator = ConvergenceOrchestrator(args.target, args.port, args.rate, args.id)
+    orchestrator.stats_file = args.stats_file # Override default
     orchestrator.run()

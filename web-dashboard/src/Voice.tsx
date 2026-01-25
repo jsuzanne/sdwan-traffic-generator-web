@@ -43,6 +43,7 @@ export default function Voice({ token }: VoiceProps) {
     const [activeTab, setActiveTab] = useState<'status' | 'config'>('status');
     const [searchTerm, setSearchTerm] = useState('');
     const [qualityFilter, setQualityFilter] = useState<'all' | 'excellent' | 'fair' | 'poor'>('all');
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'timestamp', direction: 'desc' });
 
     // New Guided Editor State
     const [newProbe, setNewProbe] = useState({
@@ -150,6 +151,25 @@ export default function Voice({ token }: VoiceProps) {
         setSaving(false);
     };
 
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedCalls = React.useMemo(() => {
+        if (!sortConfig) return calls;
+        return [...calls].sort((a: any, b: any) => {
+            const aVal = a[sortConfig.key];
+            const bVal = b[sortConfig.key];
+            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [calls, sortConfig]);
+
     const addProbeFromForm = () => {
         const { host, port, codec, weight, duration } = newProbe;
         if (!host || !port) return alert("Host and Port are required");
@@ -242,8 +262,17 @@ export default function Voice({ token }: VoiceProps) {
 
                 return true;
             })
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }, [calls, searchTerm, qualityFilter]);
+            .sort((a, b) => {
+                if (!sortConfig) {
+                    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+                }
+                const aVal = a[sortConfig.key as keyof typeof a];
+                const bVal = b[sortConfig.key as keyof typeof b];
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+    }, [calls, searchTerm, qualityFilter, sortConfig]);
 
     return (
         <div className="space-y-6">
@@ -403,16 +432,31 @@ export default function Voice({ token }: VoiceProps) {
                         <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
                             <table className="w-full text-sm relative">
                                 <thead className="text-slate-500 text-left border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
-                                    <tr>
-                                        <th className="pb-3 px-2 font-medium bg-slate-900">Time</th>
-                                        <th className="pb-3 px-2 font-medium bg-slate-900">Event</th>
-                                        <th className="pb-3 px-2 font-medium bg-slate-900">Target</th>
-                                        <th className="pb-3 px-2 font-medium bg-slate-900">Loss / MOS</th>
-                                        <th className="pb-3 px-2 font-medium bg-slate-900 text-right">RTT / Jitter</th>
+                                    <tr className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
+                                        {[
+                                            { key: 'timestamp', label: 'Time' },
+                                            { key: 'event', label: 'Event' },
+                                            { key: 'target', label: 'Target' },
+                                            { key: 'loss_pct', label: 'Loss / MOS' },
+                                            { key: 'avg_rtt_ms', label: 'RTT / Jitter' }
+                                        ].map(col => (
+                                            <th
+                                                key={col.key}
+                                                onClick={() => handleSort(col.key)}
+                                                className={`pb-3 px-2 font-medium bg-slate-900 cursor-pointer hover:text-blue-400 transition-colors ${col.key === 'avg_rtt_ms' ? 'text-right' : ''}`}
+                                            >
+                                                <div className={`flex items-center gap-1 ${col.key === 'avg_rtt_ms' ? 'justify-end' : ''}`}>
+                                                    {col.label}
+                                                    {sortConfig?.key === col.key && (
+                                                        <Activity size={10} className={`text-blue-400 transform transition-transform ${sortConfig.direction === 'desc' ? 'rotate-180' : ''}`} />
+                                                    )}
+                                                </div>
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-400">
-                                    {filteredHistory.map((call, idx) => (
+                                    {sortedHistory.map((call, idx) => (
                                         <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/10">
                                             <td className="py-3 px-2 text-xs font-mono">{new Date(call.timestamp).toLocaleTimeString()}</td>
                                             <td className="py-3 px-2">

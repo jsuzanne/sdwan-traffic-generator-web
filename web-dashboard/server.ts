@@ -81,7 +81,7 @@ const getNextTestId = (): number => {
     }
 };
 
-let convergenceProcess: any = null;
+let convergenceProcesses: Map<string, any> = new Map();
 
 const getNextFailoverTestId = (): string => {
     try {
@@ -1459,21 +1459,17 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
 
     if (!target) return res.status(400).json({ error: 'Target IP required' });
 
-    if (convergenceProcess) {
-        return res.status(409).json({ error: 'A convergence test is already running' });
-    }
-
     const testId = getNextFailoverTestId();
     const displayId = label ? `${label} (${testId})` : testId;
+    const statsFile = `/tmp/convergence_stats_${testId}.json`;
 
-    // Dynamic path resolution (dev vs container)
+    // Dynamic path resolution
     let orchestratorPath = path.join(__dirname, '../voip/convergence_orchestrator.py');
     if (!fs.existsSync(orchestratorPath)) {
         orchestratorPath = path.join(__dirname, 'voip/convergence_orchestrator.py');
     }
 
     if (!fs.existsSync(orchestratorPath)) {
-        console.error(`[CONVERGENCE] Orchestrator script NOT FOUND at ${orchestratorPath}`);
         return res.status(500).json({ error: 'Convergence orchestrator script missing' });
     }
 
@@ -1482,76 +1478,83 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         '--target', target,
         '--port', (port || 6100).toString(),
         '--rate', (rate || 50).toString(),
-        '--id', displayId
+        '--id', displayId,
+        '--stats-file', statsFile
     ];
 
-    console.log(`[CONVERGENCE] Starting test ${displayId} against ${target} using ${orchestratorPath}`);
-
     try {
-        convergenceProcess = spawn('python3', args);
+        const proc = spawn('python3', args);
+        convergenceProcesses.set(testId, proc);
 
-        convergenceProcess.on('error', (err: any) => {
-            console.error(`[CONVERGENCE-ERROR] Failed to start: ${err.message}`);
-            convergenceProcess = null;
+        proc.on('error', (err: any) => {
+            console.error(`[CONVERGENCE-ERROR] Failed to start ${testId}: ${err.message}`);
+            convergenceProcesses.delete(testId);
         });
 
-        convergenceProcess.stdout.on('data', (data: any) => {
+        proc.stdout.on('data', (data: any) => {
             console.log(`[CONVERGENCE-STDOUT] ${data}`);
         });
 
-        convergenceProcess.stderr.on('data', (data: any) => {
-            console.error(`[CONVERGENCE-STDERR] ${data}`);
-        });
-
-        convergenceProcess.on('close', (code: any) => {
-            console.log(`[CONVERGENCE] Process finished with code ${code}`);
-            convergenceProcess = null;
+        proc.on('close', (code: any) => {
+            console.log(`[CONVERGENCE] Test ${testId} finished with code ${code}`);
+            convergenceProcesses.delete(testId);
 
             // Finalize history entry
-            if (fs.existsSync(CONVERGENCE_STATS_FILE)) {
+            if (fs.existsSync(statsFile)) {
                 try {
-                    const finalStats = JSON.parse(fs.readFileSync(CONVERGENCE_STATS_FILE, 'utf8'));
+                    const finalStats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
                     fs.appendFileSync(CONVERGENCE_HISTORY_FILE, JSON.stringify({
                         ...finalStats,
                         timestamp: Date.now()
                     }) + '\n');
-                } catch (e) {
-                    console.error('Failed to save convergence history:', e);
-                }
+                    // Cleanup tmp file
+                    fs.unlinkSync(statsFile);
+                } catch (e) { }
             }
         });
 
         res.json({ success: true, testId: testId });
     } catch (e: any) {
-        console.error(`[CONVERGENCE-CRASH] ${e.message}`);
-        convergenceProcess = null;
         return res.status(500).json({ error: 'Failed to launch convergence orchestrator' });
     }
 });
 
 app.post('/api/convergence/stop', authenticateToken, (req, res) => {
-    console.log('[CONVERGENCE] Incoming Stop Request');
-    if (!convergenceProcess) {
-        return res.status(404).json({ error: 'No convergence test running' });
+    const { testId } = req.body;
+    if (testId) {
+        const proc = convergenceProcesses.get(testId);
+        if (proc) {
+            proc.kill('SIGINT');
+            return res.json({ success: true });
+        }
+        return res.status(404).json({ error: 'Test not found' });
+    } else {
+        // Stop all
+        convergenceProcesses.forEach((proc, id) => {
+            proc.kill('SIGINT');
+        });
+        res.json({ success: true, count: convergenceProcesses.size });
     }
-
-    convergenceProcess.kill('SIGINT');
-    res.json({ success: true });
 });
 
 app.get('/api/convergence/status', authenticateToken, (req, res) => {
-    if (fs.existsSync(CONVERGENCE_STATS_FILE)) {
-        try {
-            const stats = JSON.parse(fs.readFileSync(CONVERGENCE_STATS_FILE, 'utf8'));
-            return res.json({
-                ...stats,
-                running: convergenceProcess !== null
-            });
-        } catch (e) {
-            return res.status(500).json({ error: 'Failed to read status' });
+    const results: any[] = [];
+    try {
+        const files = fs.readdirSync('/tmp').filter(f => f.startsWith('convergence_stats_') && f.endsWith('.json'));
+        for (const file of files) {
+            try {
+                const stats = JSON.parse(fs.readFileSync(path.join('/tmp', file), 'utf8'));
+                const testId = file.replace('convergence_stats_', '').replace('.json', '');
+                results.push({
+                    ...stats,
+                    testId,
+                    running: convergenceProcesses.has(testId)
+                });
+            } catch (e) { }
         }
-    }
-    res.json({ running: convergenceProcess !== null });
+    } catch (e) { }
+
+    res.json(results);
 });
 
 app.get('/api/convergence/history', authenticateToken, (req, res) => {

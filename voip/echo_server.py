@@ -57,19 +57,28 @@ def run_server(ip, port):
                 except: pass
 
                 if addr not in active_sessions:
-                    icon = "📉" if session_type == "Convergence" else "📞"
-                    print(f"{icon} [{time.strftime('%H:%M:%S')}] Incoming {session_type}: {detected_id} from {addr[0]}:{addr[1]}", flush=True)
+                    print(f"📉 [{time.strftime('%H:%M:%S')}] [{detected_id}] START: Incoming traffic from {addr[0]}:{addr[1]}", flush=True)
                 
-                active_sessions[addr] = {
-                    "last_seen": now,
-                    "id": detected_id,
-                    "type": session_type,
-                    "packet_count": active_sessions.get(addr, {}).get("packet_count", 0) + 1
-                }
-                
-                # Heartbeat log every 100 packets for convergence to show activity
-                if session_type == "Convergence" and active_sessions[addr]["packet_count"] % 100 == 0:
-                    print(f"🔄 [{time.strftime('%H:%M:%S')}] {detected_id}: Still receiving traffic... ({active_sessions[addr]['packet_count']} pkts total)", flush=True)
+                # Update session
+                session = active_sessions.get(addr, {"packet_count": 0})
+                session["last_seen"] = now
+                session["id"] = detected_id
+                session["type"] = session_type
+                session["packet_count"] += 1
+                active_sessions[addr] = session
+
+                # For convergence, append server's packet count for RX/TX loss calculation
+                if session_type == "Convergence":
+                    try:
+                        # Append :S<count> to payload
+                        # Original: CONV-021:Hetzner DC:1737827186000:seq
+                        # New:      CONV-021:Hetzner DC:1737827186000:seq:S123
+                        echo_payload = data + f":S{session['packet_count']}".encode('utf-8')
+                        s.sendto(echo_payload, addr)
+                    except:
+                        s.sendto(data, addr)
+                else:
+                    s.sendto(data, addr)
                 
             except timeout:
                 pass # Just a tick for maintenance
@@ -80,7 +89,11 @@ def run_server(ip, port):
             for addr, session in active_sessions.items():
                 if now - session['last_seen'] > 5.0:
                     icon = "✅" if session['type'] == "Voice" else "🏁"
-                    print(f"{icon} [{time.strftime('%H:%M:%S')}] {session['type']} {session['id']} finished (last from {addr[0]}:{addr[1]}). Total packets: {session['packet_count']}", flush=True)
+                    prefix = "CALL" if session['type'] == "Voice" else "CONV"
+                    id_val = session['id']
+                    if id_val.startswith('CONV-'): id_val = id_val[5:]
+                    
+                    print(f"{icon} [{time.strftime('%H:%M:%S')}] [{prefix}-{id_val}] FINISH: {session['type']} from {addr[0]}:{addr[1]}. Total packets: {session['packet_count']}", flush=True)
                     to_remove.append(addr)
             
             for addr in to_remove:
