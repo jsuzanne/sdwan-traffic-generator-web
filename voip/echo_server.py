@@ -58,13 +58,18 @@ def run_server(ip, port):
 
                 if addr not in active_sessions:
                     icon = "📉" if session_type == "Convergence" else "📞"
-                    print(f"{icon} [{time.strftime('%H:%M:%S')}] Incoming {session_type}: {detected_id} from {addr[0]}:{addr[1]}")
+                    print(f"{icon} [{time.strftime('%H:%M:%S')}] Incoming {session_type}: {detected_id} from {addr[0]}:{addr[1]}", flush=True)
                 
                 active_sessions[addr] = {
                     "last_seen": now,
                     "id": detected_id,
-                    "type": session_type
+                    "type": session_type,
+                    "packet_count": active_sessions.get(addr, {}).get("packet_count", 0) + 1
                 }
+                
+                # Heartbeat log every 100 packets for convergence to show activity
+                if session_type == "Convergence" and active_sessions[addr]["packet_count"] % 100 == 0:
+                    print(f"🔄 [{time.strftime('%H:%M:%S')}] {detected_id}: Still receiving traffic... ({active_sessions[addr]['packet_count']} pkts total)", flush=True)
                 
             except timeout:
                 pass # Just a tick for maintenance
@@ -75,14 +80,14 @@ def run_server(ip, port):
             for addr, session in active_sessions.items():
                 if now - session['last_seen'] > 5.0:
                     icon = "✅" if session['type'] == "Voice" else "🏁"
-                    print(f"{icon} [{time.strftime('%H:%M:%S')}] {session['type']} {session['id']} finished (last from {addr[0]}:{addr[1]})")
+                    print(f"{icon} [{time.strftime('%H:%M:%S')}] {session['type']} {session['id']} finished (last from {addr[0]}:{addr[1]}). Total packets: {session['packet_count']}", flush=True)
                     to_remove.append(addr)
             
             for addr in to_remove:
                 del active_sessions[addr]
                 
     except Exception as e:
-        print(f"Server error: {e}")
+        print(f"Server error: {e}", flush=True)
     finally:
         s.close()
 

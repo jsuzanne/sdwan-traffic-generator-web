@@ -12,6 +12,7 @@ export default function Failover({ token }: FailoverProps) {
 
     const [rate, setRate] = useState(50);
     const [running, setRunning] = useState(false);
+    const [activeInterfaces, setActiveInterfaces] = useState<string[]>([]);
     const [currentTest, setCurrentTest] = useState<any>(null);
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
@@ -23,6 +24,10 @@ export default function Failover({ token }: FailoverProps) {
             const res = await fetch('/api/convergence/endpoints', { headers: authHeaders() });
             const data = await res.json();
             setEndpoints(data);
+
+            const ifaceRes = await fetch('/api/config/interfaces', { headers: authHeaders() });
+            const ifaceData = await ifaceRes.json();
+            setActiveInterfaces(ifaceData);
         } catch (e) { }
     };
 
@@ -121,9 +126,9 @@ export default function Failover({ token }: FailoverProps) {
 
     const getVerdict = (maxBlackout: number) => {
         if (maxBlackout === 0) return { label: 'PERFECT', color: 'text-green-400', bg: 'bg-green-400/10', desc: 'No packet loss detected.' };
-        if (maxBlackout < 200) return { label: 'GOOD', color: 'text-green-400', bg: 'bg-green-400/10', desc: 'Sub-second failover. Voice calls might jitter but stay up.' };
-        if (maxBlackout < 1000) return { label: 'DEGRADED', color: 'text-orange-400', bg: 'bg-orange-400/10', desc: 'Significant outage. Real-time apps will drop.' };
-        return { label: 'CRITICAL', color: 'text-red-400', bg: 'bg-red-400/10', desc: 'Major blackout. TCP sessions likely to disconnect.' };
+        if (maxBlackout < 1000) return { label: 'GOOD', color: 'text-green-400', bg: 'bg-green-400/10', desc: 'Typical SD-WAN failover range. Sessions usually stay up.' };
+        if (maxBlackout < 5000) return { label: 'DEGRADED', color: 'text-orange-400', bg: 'bg-orange-400/10', desc: 'Extended outage. Voice calls will likely drop.' };
+        return { label: 'CRITICAL', color: 'text-red-400', bg: 'bg-red-400/10', desc: 'Major blackout. Application sessions will disconnect.' };
     };
 
     const formatMs = (ms: number) => {
@@ -142,7 +147,17 @@ export default function Failover({ token }: FailoverProps) {
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">Convergence Lab</h2>
-                            <p className="text-sm text-slate-400">Manage multiple failover targets for specialized test plans</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <p className="text-sm text-slate-400">Manage multiple failover targets for specialized test plans</p>
+                                {activeInterfaces.length > 0 && (
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                        <span className="text-[10px] font-bold text-green-400 uppercase tracking-tighter">
+                                            {activeInterfaces.join(' + ')} ACTIVE
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -252,9 +267,17 @@ export default function Failover({ token }: FailoverProps) {
                                 />
                             ))}
                         </div>
-                        <div className="mt-2 flex justify-between text-[10px] text-slate-500 font-bold">
-                            <span>LAST 100 PACKETS</span>
-                            <span>REAL-TIME STREAMING</span>
+                        <div className="mt-2 flex justify-between items-center">
+                            <span className="text-[10px] text-slate-500 font-bold">LAST 100 PACKETS</span>
+
+                            <button
+                                onClick={stopTest}
+                                className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-extrabold transition-all shadow-lg shadow-red-900/20 flex items-center gap-2"
+                            >
+                                <Pause size={12} fill="currentColor" /> STOP TEST
+                            </button>
+
+                            <span className="text-[10px] text-slate-500 font-bold">REAL-TIME STREAMING</span>
                         </div>
                     </div>
                 </div>
@@ -268,9 +291,9 @@ export default function Failover({ token }: FailoverProps) {
                     </h3>
                     <div className="space-y-3">
                         {[
-                            { color: 'text-green-400', label: 'GOOD', range: '< 200ms', desc: 'Imperceptible or minor glitch in voice/video.' },
-                            { color: 'text-orange-400', label: 'DEGRADED', range: '200ms - 1s', desc: 'Audio gaps, video freeze, packet retransmissions.' },
-                            { color: 'text-red-400', label: 'CRITICAL', range: '> 1s', desc: 'Application session drop risk. Major outage.' }
+                            { color: 'text-green-400', label: 'GOOD', range: '< 1s', desc: 'Typical SD-WAN sub-second or near-second convergence.' },
+                            { color: 'text-orange-400', label: 'DEGRADED', range: '1s - 5s', desc: 'Noticeable outage. Video freeze and voice drops expected.' },
+                            { color: 'text-red-400', label: 'CRITICAL', range: '> 5s', desc: 'Major network blackout. Application session risk.' }
                         ].map(v => (
                             <div key={v.label} className="bg-slate-900/30 border border-slate-800 p-3 rounded-xl flex gap-3">
                                 <div className={`font-bold text-xs min-w-[70px] ${v.color}`}>{v.label}</div>

@@ -1466,6 +1466,8 @@ app.delete('/api/convergence/endpoints/:id', authenticateToken, (req, res) => {
 
 app.post('/api/convergence/start', authenticateToken, (req, res) => {
     const { target, port, rate, label } = req.body;
+    console.log(`[CONVERGENCE] Incoming Start Request: Target=${target}:${port}, Rate=${rate}pps, Label=${label || 'None'}`);
+
     if (!target) return res.status(400).json({ error: 'Target IP required' });
 
     if (convergenceProcess) {
@@ -1539,6 +1541,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
 });
 
 app.post('/api/convergence/stop', authenticateToken, (req, res) => {
+    console.log('[CONVERGENCE] Incoming Stop Request');
     if (!convergenceProcess) {
         return res.status(404).json({ error: 'No convergence test running' });
     }
