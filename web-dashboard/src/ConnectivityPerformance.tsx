@@ -32,7 +32,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
 
     const fetchData = async () => {
         try {
-            const statsRes = await fetch('/api/connectivity/stats', { headers: authHeaders() });
+            const statsRes = await fetch(`/api/connectivity/stats?range=${timeRange}`, { headers: authHeaders() });
             const statsData = await statsRes.json();
             setStats(statsData);
 
@@ -214,9 +214,9 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     <h4 className="text-xs font-bold text-blue-300 uppercase tracking-wider">How is the score calculated?</h4>
                     <p className="text-[11px] text-slate-400 leading-relaxed italic">
                         The performance score (0-100) is a weighted calculation for SD-WAN path quality:
-                        <span className="text-blue-400 font-semibold ml-1">Total Latency (30%)</span>,
-                        <span className="text-blue-400 font-semibold ml-1">TTFB (35%)</span>, and
-                        <span className="text-blue-400 font-semibold ml-1">TLS Handshake (25%)</span>.
+                        <span className="text-blue-400 font-semibold ml-1">Total Latency</span>,
+                        <span className="text-blue-400 font-semibold ml-1">Jitter/Loss (UDP)</span>, and
+                        <span className="text-blue-400 font-semibold ml-1">TTFB (HTTP)</span>.
                         Errors/Timeouts result in a score of <span className="text-red-400 font-bold">0</span>.
                         <span className="block mt-1 text-slate-500 font-bold flex items-center gap-1">
                             <Clock size={10} /> Probes run automatically every 5 minutes.
@@ -238,7 +238,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                         />
                     </div>
                     <div className="flex p-1 bg-slate-900 rounded-lg border border-slate-700">
-                        {['ALL', 'HTTP', 'HTTPS', 'PING', 'TCP'].map(t => (
+                        {['ALL', 'HTTP', 'HTTPS', 'PING', 'TCP', 'UDP', 'DNS'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => setFilterType(t)}
@@ -273,6 +273,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                             onChange={(e) => setTimeRange(e.target.value)}
                             className="bg-transparent border-none text-slate-400 text-xs font-semibold focus:ring-0 cursor-pointer hover:text-slate-200"
                         >
+                            <option value="15m">Last 15 Min</option>
                             <option value="1h">Last Hour</option>
                             <option value="6h">Last 6 Hours</option>
                             <option value="24h">Last 24 Hours</option>

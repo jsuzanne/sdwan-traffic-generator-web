@@ -1081,6 +1081,21 @@ const calculateDEMScore = (type: string, reachable: boolean, httpCode: number | 
         return Math.max(0, Math.min(100, Math.round(score)));
     }
 
+    if (type === 'UDP') {
+        // UDP Quality scoring: Jitter < 30ms, Loss < 1%
+        const jitter = metrics.jitter_ms || 0;
+        const loss = metrics.loss_pct || 0;
+
+        let score = 100;
+        // Deduct for loss: 0% = -0, 5% = -50, 10% = -100
+        score -= (loss * 10);
+        // Deduct for jitter: < 30ms = -0, 100ms = -50
+        if (jitter > 30) {
+            score -= Math.min(50, (jitter - 30) * 0.7);
+        }
+        return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
     return reachable ? 100 : 0;
 };
 
@@ -1090,7 +1105,7 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
         timestamp: startTime,
         endpointId: endpoint.name.toLowerCase().replace(/\s+/g, '-'),
         endpointName: endpoint.name,
-        endpointType: endpoint.type.toUpperCase() as 'HTTP' | 'HTTPS' | 'PING' | 'TCP',
+        endpointType: endpoint.type.toUpperCase() as 'HTTP' | 'HTTPS' | 'PING' | 'TCP' | 'UDP' | 'DNS',
         url: endpoint.target,
         reachable: false,
         metrics: { total_ms: 0 },
@@ -1152,7 +1167,6 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
                 result.score = calculateDEMScore(result.endpointType, result.reachable, undefined, result.metrics);
             } catch (e) { }
         } else if (endpoint.type.toLowerCase() === 'dns') {
-            // DNS resolution check using dig
             const dnsCommand = `dig +short +time=${Math.floor(endpoint.timeout / 1000)} google.com @${endpoint.target}`;
             const dStart = Date.now();
             try {
@@ -1160,6 +1174,26 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
                 if (stdout.trim().length > 0) {
                     result.reachable = true;
                     result.metrics.total_ms = Date.now() - dStart;
+                    result.score = calculateDEMScore(result.endpointType, result.reachable, undefined, result.metrics);
+                }
+            } catch (e) { }
+        } else if (endpoint.type.toLowerCase() === 'udp') {
+            const parts = endpoint.target.split(':');
+            const host = parts[0];
+            const port = parts[1] || '5201';
+            const iperfCmd = `iperf3 -u -c ${host} -p ${port} -b 50k -t 1 -J`;
+            try {
+                const { stdout } = await execPromise(iperfCmd);
+                const data = JSON.parse(stdout);
+                if (data.end && data.end.sum) {
+                    result.reachable = true;
+                    const sum = data.end.sum;
+                    result.metrics = {
+                        total_ms: sum.delay_ms || (sum.mean_latency ? sum.mean_latency * 1000 : 0),
+                        jitter_ms: sum.jitter_ms || 0,
+                        loss_pct: sum.lost_percent || 0,
+                        size_bytes: sum.bytes || 0
+                    };
                     result.score = calculateDEMScore(result.endpointType, result.reachable, undefined, result.metrics);
                 }
             } catch (e) { }
@@ -1192,6 +1226,9 @@ const getEnvConnectivityEndpoints = () => {
         } else if (key.startsWith('CONNECTIVITY_TCP_')) {
             const parts = value.split(':');
             if (parts.length === 3) endpoints.push({ name: parts[0], type: 'TCP', target: `${parts[1]}:${parts[2]}`, timeout: 3000 });
+        } else if (key.startsWith('CONNECTIVITY_UDP_')) {
+            const parts = value.split(':');
+            if (parts.length === 3) endpoints.push({ name: parts[0], type: 'UDP', target: `${parts[1]}:${parts[2]}`, timeout: 3000 });
         }
     });
 
@@ -1309,7 +1346,8 @@ app.get('/api/connectivity/results', authenticateToken, async (req, res) => {
 });
 
 app.get('/api/connectivity/stats', authenticateToken, async (req, res) => {
-    const stats = await connectivityLogger.getStats();
+    const { range } = req.query;
+    const stats = await connectivityLogger.getStats({ timeRange: range as string });
     res.json(stats || { globalHealth: 0 });
 });
 
@@ -1357,6 +1395,19 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
         const execPromise = promisify(exec);
         const results: any[] = [];
         const clockNow = Date.now();
+
+        // Host Disk Stats
+        let hostDisk = { total: 0, free: 0, used: 0, percent: 0 };
+        try {
+            const { stdout: dfOut } = await execPromise("df -B1 / --output=size,avail,used,pcent | tail -1");
+            const [size, avail, used, pcent] = dfOut.trim().split(/\s+/);
+            hostDisk = {
+                total: parseInt(size),
+                free: parseInt(avail),
+                used: parseInt(used),
+                percent: parseInt(pcent.replace('%', ''))
+            };
+        } catch (e) { }
 
         for (const cName of monitoredContainers) {
             try {
@@ -1478,6 +1529,9 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
         res.json({
             success: true,
             containers: results,
+            host: {
+                disk: hostDisk
+            },
             // For backward compatibility
             stats: results.find(r => r.name === 'sdwan-web-ui') || results[0],
             timestamp: clockNow

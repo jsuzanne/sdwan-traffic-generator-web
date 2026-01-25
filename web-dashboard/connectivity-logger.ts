@@ -130,17 +130,36 @@ export class ConnectivityLogger {
         }
     }
 
-    async getStats(): Promise<any> {
+    async getStats(options: { timeRange?: string } = {}): Promise<any> {
         try {
             const allResults = await this.readAllResults();
             if (allResults.length === 0) return null;
 
-            const httpResults = allResults.filter(r => r.endpointType === 'HTTP' || r.endpointType === 'HTTPS');
+            let filtered = allResults;
+            if (options.timeRange) {
+                const now = Date.now();
+                let cutoff = 0;
+                if (options.timeRange === '15m') cutoff = now - 15 * 60 * 1000;
+                else if (options.timeRange === '1h') cutoff = now - 3600000;
+                else if (options.timeRange === '6h') cutoff = now - 6 * 3600000;
+                else if (options.timeRange === '24h') cutoff = now - 24 * 3600000;
+                else if (options.timeRange === '7d') cutoff = now - 7 * 24 * 3600000;
+                if (cutoff > 0) filtered = filtered.filter(r => r.timestamp >= cutoff);
+            }
+
+            if (filtered.length === 0) return {
+                globalHealth: 0,
+                httpEndpoints: { total: 0, avgScore: 0, minScore: 0, maxScore: 0 },
+                flakyEndpoints: [],
+                lastCheckTime: allResults.length > 0 ? allResults[0].timestamp : null
+            };
+
+            const httpResults = filtered.filter(r => r.endpointType === 'HTTP' || r.endpointType === 'HTTPS');
             const reachableHttp = httpResults.filter(r => r.reachable && r.score > 0);
 
             // Group by endpoint to find flaky ones
             const endpointStats = new Map<string, { name: string, count: number, success: number, totalScore: number }>();
-            allResults.forEach(r => {
+            filtered.forEach(r => {
                 const stats = endpointStats.get(r.endpointId) || { name: r.endpointName, count: 0, success: 0, totalScore: 0 };
                 stats.count++;
                 if (r.reachable) stats.success++;

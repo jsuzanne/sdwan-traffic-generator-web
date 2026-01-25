@@ -26,7 +26,7 @@ interface InterfaceInfo {
 
 interface CustomProbe {
     name: string;
-    type: 'HTTP' | 'HTTPS' | 'TCP' | 'PING' | 'DNS';
+    type: 'HTTP' | 'HTTPS' | 'TCP' | 'PING' | 'DNS' | 'UDP';
     target: string;
     timeout: number;
 }
@@ -45,6 +45,7 @@ export default function Config({ token }: ConfigProps) {
     // Custom Probes State
     const [customProbes, setCustomProbes] = useState<CustomProbe[]>([]);
     const [newProbe, setNewProbe] = useState<CustomProbe>({ name: '', type: 'HTTP', target: '', timeout: 5000 });
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
     // Helper to show temporary success message
     const showSuccess = (msg: string) => {
@@ -205,10 +206,33 @@ export default function Config({ token }: ConfigProps) {
     const addProbe = async () => {
         if (!newProbe.name || !newProbe.target) return;
 
-        const updatedProbes = [...customProbes, newProbe];
+        let formattedTarget = newProbe.target.trim();
+        if ((newProbe.type === 'HTTP' || newProbe.type === 'HTTPS') && !formattedTarget.startsWith('http://') && !formattedTarget.startsWith('https://')) {
+            formattedTarget = `${newProbe.type.toLowerCase()}://${formattedTarget}`;
+        }
+
+        const probeToSave = { ...newProbe, target: formattedTarget };
+        let updatedProbes: CustomProbe[];
+
+        if (editingIndex !== null) {
+            updatedProbes = [...customProbes];
+            updatedProbes[editingIndex] = probeToSave;
+            setEditingIndex(null);
+        } else {
+            updatedProbes = [...customProbes, probeToSave];
+        }
+
         await saveProbes(updatedProbes);
         setCustomProbes(updatedProbes);
         setNewProbe({ name: '', type: 'HTTP', target: '', timeout: 5000 });
+    };
+
+    const editProbe = (index: number) => {
+        const probe = customProbes[index];
+        setNewProbe(probe);
+        setEditingIndex(index);
+        // Scroll to add form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const deleteProbe = async (index: number) => {
@@ -370,21 +394,22 @@ export default function Config({ token }: ConfigProps) {
                                 <option value="PING">ICMP Ping</option>
                                 <option value="TCP">TCP Port</option>
                                 <option value="DNS">DNS Resolution</option>
+                                <option value="UDP">UDP Quality (iperf3)</option>
                             </select>
                         </div>
                         <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Target</label>
                             <input
                                 type="text"
-                                placeholder={newProbe.type === 'TCP' ? '8.8.8.8:53' : (newProbe.type === 'PING' ? '8.8.8.8' : (newProbe.type === 'DNS' ? '8.8.8.8' : 'https://google.com'))}
+                                placeholder={newProbe.type === 'TCP' || newProbe.type === 'UDP' ? '12.34.56.78:5201' : (newProbe.type === 'PING' ? '8.8.8.8' : (newProbe.type === 'DNS' ? '8.8.8.8' : 'google.com'))}
                                 className="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
                                 value={newProbe.target}
                                 onChange={e => setNewProbe({ ...newProbe, target: e.target.value })}
                             />
                             <p className="text-[9px] text-slate-500 ml-1 italic">
                                 {newProbe.type === 'HTTP' || newProbe.type === 'HTTPS' ?
-                                    "Must start with http:// or https://" :
-                                    "IP or Domain only (No http://)"}
+                                    "Domain or IP (http:// added if missing)" :
+                                    (newProbe.type === 'UDP' ? "IP:Port (Server must run iperf3 -s -u)" : "IP or Domain only")}
                             </p>
                         </div>
                         <div className="flex items-end">
@@ -394,7 +419,7 @@ export default function Config({ token }: ConfigProps) {
                                 className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm"
                             >
                                 <Plus size={18} />
-                                Add Probe
+                                {editingIndex !== null ? 'Update Probe' : 'Add Probe'}
                             </button>
                         </div>
                     </div>
@@ -408,7 +433,9 @@ export default function Config({ token }: ConfigProps) {
                                     <div className="flex items-center gap-3">
                                         <div className={cn(
                                             "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold",
-                                            probe.type === 'PING' ? "bg-orange-500/10 text-orange-400" : "bg-blue-500/10 text-blue-400"
+                                            probe.type === 'PING' ? "bg-orange-500/10 text-orange-400" :
+                                                probe.type === 'UDP' ? "bg-purple-500/10 text-purple-400" :
+                                                    "bg-blue-500/10 text-blue-400"
                                         )}>
                                             {probe.type.substring(0, 1)}
                                         </div>
@@ -417,12 +444,22 @@ export default function Config({ token }: ConfigProps) {
                                             <div className="text-[10px] text-slate-500 font-mono truncate max-w-[150px]">{probe.target}</div>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => deleteProbe(idx)}
-                                        className="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={() => editProbe(idx)}
+                                            className="p-2 text-slate-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Edit probe"
+                                        >
+                                            <Save size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => deleteProbe(idx)}
+                                            className="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Delete probe"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                             {customProbes.length === 0 && (

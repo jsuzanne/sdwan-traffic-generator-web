@@ -882,6 +882,21 @@ export default function App() {
                       </div>
                       <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.memory.percent}%</span>
                     </div>
+
+                    {/* DISK (Host) */}
+                    {dockerStats.host?.disk && (
+                      <div className="flex items-center gap-2 min-w-[100px]">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold w-8">DISK</span>
+                        <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className={cn("h-full transition-all duration-500",
+                              dockerStats.host.disk.percent > 85 ? "bg-red-500" : "bg-orange-500")}
+                            style={{ width: `${dockerStats.host.disk.percent}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.host.disk.percent}%</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
