@@ -11,14 +11,17 @@ class ConvergenceOrchestrator:
     def __init__(self, target_ip, target_port, rate=50, test_id="TEST-000"):
         self.target_ip = target_ip
         self.target_port = target_port
+        self.rate = rate
         self.interval = 1.0 / rate
         self.test_id = test_id
+        self.start_time = time.time()
+        self.warmup_duration = 5.0
         
         self.stop_event = threading.Event()
         self.metrics = {
             "test_id": self.test_id,
             "status": "starting",
-            "start_time": time.time(),
+            "start_time": self.start_time,
             "sent": 0,
             "received": 0,
             "loss_pct": 0,
@@ -26,7 +29,8 @@ class ConvergenceOrchestrator:
             "max_blackout_ms": 0,
             "last_seq": 0,
             "source_port": 0,
-            "history": [] # Moving window of last 100 packets for the UI
+            "history": [],
+            "rate_pps": rate
         }
         
         self.received_seqs = set()
