@@ -161,8 +161,8 @@ export default function Failover({ token }: FailoverProps) {
             <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${running ? 'bg-blue-500 animate-pulse' : 'bg-slate-800'}`}>
-                            <Zap size={24} className={running ? 'text-white' : 'text-slate-400'} />
+                        <div className={`p-3 rounded-xl ${activeTests.length > 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-800'}`}>
+                            <Zap size={24} className={activeTests.length > 0 ? 'text-white' : 'text-slate-400'} />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">Convergence Lab</h2>

@@ -241,7 +241,7 @@ export default function Voice({ token }: VoiceProps) {
     }, [calls]);
 
     // Newest history first with Filters
-    const filteredHistory = React.useMemo(() => {
+    const sortedHistory = React.useMemo(() => {
         return [...calls]
             .filter(c => c.event === 'start' || c.event === 'end' || c.event === 'skipped')
             .filter(c => {
@@ -262,12 +262,12 @@ export default function Voice({ token }: VoiceProps) {
 
                 return true;
             })
-            .sort((a, b) => {
+            .sort((a: any, b: any) => {
                 if (!sortConfig) {
                     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
                 }
-                const aVal = a[sortConfig.key as keyof typeof a];
-                const bVal = b[sortConfig.key as keyof typeof b];
+                const aVal = a[sortConfig.key] ?? 0;
+                const bVal = b[sortConfig.key] ?? 0;
                 if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
@@ -456,7 +456,7 @@ export default function Voice({ token }: VoiceProps) {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-400">
-                                    {sortedHistory.map((call, idx) => (
+                                    {sortedHistory.map((call: VoiceCall, idx: number) => (
                                         <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/10">
                                             <td className="py-3 px-2 text-xs font-mono">{new Date(call.timestamp).toLocaleTimeString()}</td>
                                             <td className="py-3 px-2">

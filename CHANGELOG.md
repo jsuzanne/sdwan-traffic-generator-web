@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.94] - 2026-01-25
+
+### Added
+- **Directional Loss (TX/RX)**: Added support for calculating separate Transmit and Receive loss in Convergence probes.
+- **Multi-Test Support**: Convergence Lab now supports starting multiple simultaneous tests with independent live cards.
+- **Low-Precision PPS**: Added 1 PPS and 5 PPS options for long-term telemetry monitoring.
+- **Interactive Sorting**: Added interactive column sorting (Date, Loss, Verdict, etc.) to both Convergence and Voice history tables.
+- **UI Harmonization**: Harmonized labeling format to `[CONV-XXX]` and `[CALL-XXX]` across the entire platform.
+
+### Fixed
+- **Build Stability**: Fixed TypeScript build errors related to missing variable references and type mismatches.
+- **Connectivity Monitor**: Fixed an issue where the background monitor would skip default/custom endpoints.
+
 ## [1.1.0-patch.87] - 2026-01-25
 
 ### Fixed
