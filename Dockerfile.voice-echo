@@ -2,13 +2,22 @@ FROM public.ecr.aws/docker/library/python:3.9-slim
 
 WORKDIR /app
 
-# Copy the server script and version
+# Install iperf3
+RUN apt-get update && apt-get install -y \
+    iperf3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the server script, version and start script
 COPY voip/echo_server.py /app/echo_server.py
+COPY voip/start_echo.sh /app/start_echo.sh
 COPY VERSION /app/VERSION
 
-# Expose the default UDP port
-EXPOSE 6100/udp
+RUN chmod +x /app/start_echo.sh
 
-# Run the server
-ENTRYPOINT ["python3", "-u", "echo_server.py"]
-CMD ["--port", "6100"]
+# Expose ports
+EXPOSE 6100/udp
+EXPOSE 5201/tcp
+EXPOSE 5201/udp
+
+# Run the unified start script
+ENTRYPOINT ["/app/start_echo.sh"]

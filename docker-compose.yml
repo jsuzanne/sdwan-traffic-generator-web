@@ -69,7 +69,7 @@ services:
   voice-echo:
     build:
       context: .
-      dockerfile: voip/Dockerfile.echo
+      dockerfile: Dockerfile.voice-echo
     container_name: sdwan-voice-echo
     restart: unless-stopped
     ports:
