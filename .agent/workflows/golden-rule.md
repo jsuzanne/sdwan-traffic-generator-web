@@ -1,24 +1,21 @@
----
-description: Golden Rule - Dockerfile Synchronization
----
+# Golden Rule: Dockerfile & Versioning Synchronization
 
-# Golden Rule: Dockerfile Synchronization
+To prevent deployment failures like `ERR_MODULE_NOT_FOUND` or missing production tags, follow these steps every time changes affect the build or release.
 
-To prevent deployment failures like `ERR_MODULE_NOT_FOUND`, follow these steps every time a new source file is added to the backend or dashboard.
+## 1. Dockerfile Synchronization
+- **Standard Root Location**: All Dockerfiles used by GitHub Actions (e.g., `Dockerfile.voice-echo`, `Dockerfile.traffic-gen`) **MUST** stay at the root of the repository.
+- **Identify New Files**: List all newly created `.ts`, `.js`, or config files.
+- **Verify COPY Instructions**: Ensure each new file/directory is correctly `COPY`ed in its respective root Dockerfile.
+- **Local Build Test**: If possible, verify the context: `docker build -f Dockerfile.voice-echo .`
 
-## Verification Steps
-
-1. **Identify New Files**: List all newly created `.ts`, `.js`, or config files in the `web-dashboard/` directory.
-2. **Check Dockerfile**: Open `web-dashboard/Dockerfile`.
-3. **Verify COPY Instructions**: Ensure each new file (e.g., `new-feature.ts`) has a corresponding `COPY` instruction in the "Runtime Stage":
-   ```dockerfile
-   COPY web-dashboard/new-feature.ts ./
-   ```
-4. **Local Build Test**: If possible, try a local docker build to verify the context:
-   ```bash
-   docker build -f web-dashboard/Dockerfile .
-   ```
+## 2. Versioning & Tagging
+- **Update VERSION**: Always update the `VERSION` file in the root directory before a release (e.g., `1.1.0-patch.82`).
+- **Git Tagging**: Create a version tag matching the pattern `v*.*.*` to trigger the production Docker build:
+  ```bash
+  git tag v1.1.0-patch.82
+  git push origin main --tags
+  ```
 
 // turbo-all
 ## Automation
-3. Verify that all backend dependencies are staged for commit and included in the Docker build context.
+3. Verify that all backend dependencies are staged, root Dockerfiles are updated, and the version tag is pushed for every minor/patch release.
