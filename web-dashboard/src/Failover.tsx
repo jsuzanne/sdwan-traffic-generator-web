@@ -8,7 +8,7 @@ interface FailoverProps {
 export default function Failover({ token }: FailoverProps) {
     const [endpoints, setEndpoints] = useState<any[]>([]);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newTarget, setNewTarget] = useState({ label: '', target: '', port: 6100 });
+    const [newTarget, setNewTarget] = useState({ label: '', target: '', port: 6101 });
 
     const [rate, setRate] = useState(50);
     const [selectedEndpoints, setSelectedEndpoints] = useState<string[]>([]);

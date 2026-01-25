@@ -11,6 +11,7 @@ The Traffic Generator is a **separate component** from Security Tests. It genera
 | Feature | Traffic Generator | Security Tests | Voice Simulation |
 |---------|------------------|----------------|------------------|
 | **Purpose** | Simulate user traffic | Test security policies | Test QoS / Voice QoS |
+| **Port** | 80/443 (HTTP/S) | 80/443 (HTTP/S) | 6100 (Voice) / 6101 (CONV) |
 | **Source** | `config/applications.txt` | Hardcoded test URLs | `config/voice-servers.txt` |
 | **Execution** | Continuous background | On-demand or scheduled | Continuous background |
 | **Logs** | `traffic.log` | `test-results.jsonl` | `voice-stats.jsonl` |

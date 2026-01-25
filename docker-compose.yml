@@ -73,7 +73,7 @@ services:
     container_name: sdwan-voice-echo
     restart: unless-stopped
     ports:
-      - "6100:6100/udp"
+      - "6100-6101:6100-6101/udp"
       - "5201:5201/tcp"
       - "5201:5201/udp"
     volumes:

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.97] - 2026-01-25
+
+### Changed
+- **Port Separation**: Convergence Lab now defaults to **UDP 6101**. Voice Simulation remains on **UDP 6100**. This allows for granular SD-WAN steering policies based on port.
+- **Echo Server**: Refactored `echo_server.py` to listen on multiple UDP ports simultaneously using threading. Default ports: 6100, 6101.
+- **Infrastructure**: Updated `docker-compose.yml` to expose UDP port range `6100-6101` for the `voice-echo` service.
+
 ## [1.1.0-patch.96] - 2026-01-25
 
 ### Added
