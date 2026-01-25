@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     dnsutils \
     netcat-openbsd \
     iperf3 \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY web-dashboard/package*.json ./
@@ -35,6 +36,8 @@ COPY web-dashboard/shared ./shared
 COPY web-dashboard/tsconfig.json ./
 # Copy VERSION file from root of build context
 COPY VERSION ./VERSION
+# Copy voip orchestration script
+COPY voip ./voip
 
 # Labels for Docker Hub
 LABEL org.opencontainers.image.title="SD-WAN Traffic Generator - Web UI"

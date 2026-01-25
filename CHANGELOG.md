@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.87] - 2026-01-25
+
+### Fixed
+- **Backend Stability (Phase 7 Hotfix)**:
+  - Fixed `ENOENT` crash when starting convergence tests by installing `python3` in the web-ui container.
+  - Fixed missing orchestration script in container by updating the Docker building process.
+  - Implemented dynamic path resolution for scripts and robust spawn error handling.
+  - Resolved TypeScript lint errors for connectivity probes (UDP/DNS metadata support).
+
 ## [1.1.0-patch.86] - 2026-01-25
 
 ### Added

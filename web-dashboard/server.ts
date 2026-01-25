@@ -1474,8 +1474,14 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
 
     const testId = getNextFailoverTestId();
     const displayId = label ? `${label} (${testId})` : testId;
+
+    // Dynamic path resolution (dev vs container)
+    const orchestratorPath = fs.existsSync(path.join(__dirname, '../voip/convergence_orchestrator.py'))
+        ? path.join(__dirname, '../voip/convergence_orchestrator.py')
+        : path.join(__dirname, 'voip/convergence_orchestrator.py');
+
     const args = [
-        path.join(__dirname, '../voip/convergence_orchestrator.py'),
+        orchestratorPath,
         '--target', target,
         '--port', (port || 6100).toString(),
         '--rate', (rate || 50).toString(),
@@ -1484,35 +1490,46 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
 
     console.log(`[CONVERGENCE] Starting test ${displayId} against ${target}`);
 
-    convergenceProcess = spawn('python3', args);
+    try {
+        convergenceProcess = spawn('python3', args);
 
-    convergenceProcess.stdout.on('data', (data: any) => {
-        console.log(`[CONVERGENCE-STDOUT] ${data}`);
-    });
+        convergenceProcess.on('error', (err: any) => {
+            console.error(`[CONVERGENCE-ERROR] Failed to start: ${err.message}`);
+            convergenceProcess = null;
+        });
 
-    convergenceProcess.stderr.on('data', (data: any) => {
-        console.error(`[CONVERGENCE-STDERR] ${data}`);
-    });
+        convergenceProcess.stdout.on('data', (data: any) => {
+            console.log(`[CONVERGENCE-STDOUT] ${data}`);
+        });
 
-    convergenceProcess.on('close', (code: any) => {
-        console.log(`[CONVERGENCE] Process finished with code ${code}`);
-        convergenceProcess = null;
+        convergenceProcess.stderr.on('data', (data: any) => {
+            console.error(`[CONVERGENCE-STDERR] ${data}`);
+        });
 
-        // Finalize history entry
-        if (fs.existsSync(CONVERGENCE_STATS_FILE)) {
-            try {
-                const finalStats = JSON.parse(fs.readFileSync(CONVERGENCE_STATS_FILE, 'utf8'));
-                fs.appendFileSync(CONVERGENCE_HISTORY_FILE, JSON.stringify({
-                    ...finalStats,
-                    timestamp: Date.now()
-                }) + '\n');
-            } catch (e) {
-                console.error('Failed to save convergence history:', e);
+        convergenceProcess.on('close', (code: any) => {
+            console.log(`[CONVERGENCE] Process finished with code ${code}`);
+            convergenceProcess = null;
+
+            // Finalize history entry
+            if (fs.existsSync(CONVERGENCE_STATS_FILE)) {
+                try {
+                    const finalStats = JSON.parse(fs.readFileSync(CONVERGENCE_STATS_FILE, 'utf8'));
+                    fs.appendFileSync(CONVERGENCE_HISTORY_FILE, JSON.stringify({
+                        ...finalStats,
+                        timestamp: Date.now()
+                    }) + '\n');
+                } catch (e) {
+                    console.error('Failed to save convergence history:', e);
+                }
             }
-        }
-    });
+        });
 
-    res.json({ success: true, testId });
+        res.json({ success: true, testId: testId });
+    } catch (e: any) {
+        console.error(`[CONVERGENCE-CRASH] ${e.message}`);
+        convergenceProcess = null;
+        return res.status(500).json({ error: 'Failed to launch convergence orchestrator' });
+    }
 });
 
 app.post('/api/convergence/stop', authenticateToken, (req, res) => {

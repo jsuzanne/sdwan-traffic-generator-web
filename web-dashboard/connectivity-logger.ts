@@ -12,7 +12,7 @@ export interface ConnectivityResult {
     timestamp: number;
     endpointId: string;
     endpointName: string;
-    endpointType: 'HTTP' | 'HTTPS' | 'PING' | 'TCP';
+    endpointType: 'HTTP' | 'HTTPS' | 'PING' | 'TCP' | 'UDP' | 'DNS';
     url: string;
     reachable: boolean;
     httpCode?: number;
@@ -24,6 +24,8 @@ export interface ConnectivityResult {
         tls_ms?: number;
         ttfb_ms?: number;
         total_ms: number;
+        jitter_ms?: number;
+        loss_pct?: number;
         size_bytes?: number;
         speed_bps?: number;
         ssl_verify?: number;
