@@ -43,6 +43,8 @@ const TEST_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'test-counter.json');
 const VOICE_CONTROL_FILE = path.join(APP_CONFIG.configDir, 'voice-control.json');
 const VOICE_SERVERS_FILE = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
 const VOICE_STATS_FILE = path.join(APP_CONFIG.logDir, 'voice-stats.jsonl');
+const CONVERGENCE_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'convergence-history.jsonl');
+const CONVERGENCE_STATS_FILE = '/tmp/convergence_stats.json';
 
 // Batch Counter - Persistent rotating ID for batch tests
 const BATCH_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'batch-counter.json');
@@ -75,6 +77,13 @@ const getNextTestId = (): number => {
         console.error('Error managing test counter:', e);
         return Date.now(); // Fallback to timestamp
     }
+};
+
+let convergenceProcess: any = null;
+
+const getNextFailoverTestId = (): string => {
+    const id = getNextTestId();
+    return `TEST-${id.toString().padStart(3, '0')}`;
 };
 
 // Resource Monitoring State
@@ -1392,6 +1401,93 @@ const startConnectivityMonitor = (intervalMinutes: number = 5) => {
 
 // Start monitor
 startConnectivityMonitor(5);
+
+// --- Phase 7: Convergence & Failover Testing ---
+
+app.post('/api/convergence/start', authenticateToken, (req, res) => {
+    const { target, port, rate } = req.body;
+    if (!target) return res.status(400).json({ error: 'Target IP required' });
+
+    if (convergenceProcess) {
+        return res.status(409).json({ error: 'A convergence test is already running' });
+    }
+
+    const testId = getNextFailoverTestId();
+    const args = [
+        path.join(__dirname, '../voip/convergence_orchestrator.py'),
+        '--target', target,
+        '--port', (port || 6100).toString(),
+        '--rate', (rate || 50).toString(),
+        '--id', testId
+    ];
+
+    console.log(`[CONVERGENCE] Starting test ${testId} against ${target}`);
+
+    convergenceProcess = spawn('python3', args);
+
+    convergenceProcess.stdout.on('data', (data: any) => {
+        console.log(`[CONVERGENCE-STDOUT] ${data}`);
+    });
+
+    convergenceProcess.stderr.on('data', (data: any) => {
+        console.error(`[CONVERGENCE-STDERR] ${data}`);
+    });
+
+    convergenceProcess.on('close', (code: any) => {
+        console.log(`[CONVERGENCE] Process finished with code ${code}`);
+        convergenceProcess = null;
+
+        // Finalize history entry
+        if (fs.existsSync(CONVERGENCE_STATS_FILE)) {
+            try {
+                const finalStats = JSON.parse(fs.readFileSync(CONVERGENCE_STATS_FILE, 'utf8'));
+                fs.appendFileSync(CONVERGENCE_HISTORY_FILE, JSON.stringify({
+                    ...finalStats,
+                    timestamp: Date.now()
+                }) + '\n');
+            } catch (e) {
+                console.error('Failed to save convergence history:', e);
+            }
+        }
+    });
+
+    res.json({ success: true, testId });
+});
+
+app.post('/api/convergence/stop', authenticateToken, (req, res) => {
+    if (!convergenceProcess) {
+        return res.status(404).json({ error: 'No convergence test running' });
+    }
+
+    convergenceProcess.kill('SIGINT');
+    res.json({ success: true });
+});
+
+app.get('/api/convergence/status', authenticateToken, (req, res) => {
+    if (fs.existsSync(CONVERGENCE_STATS_FILE)) {
+        try {
+            const stats = JSON.parse(fs.readFileSync(CONVERGENCE_STATS_FILE, 'utf8'));
+            return res.json({
+                ...stats,
+                running: convergenceProcess !== null
+            });
+        } catch (e) {
+            return res.status(500).json({ error: 'Failed to read status' });
+        }
+    }
+    res.json({ running: convergenceProcess !== null });
+});
+
+app.get('/api/convergence/history', authenticateToken, (req, res) => {
+    try {
+        if (!fs.existsSync(CONVERGENCE_HISTORY_FILE)) return res.json([]);
+        const lines = fs.readFileSync(CONVERGENCE_HISTORY_FILE, 'utf8').split('\n').filter(l => l.trim());
+        const history = lines.map(l => JSON.parse(l)).reverse().slice(0, 100);
+        res.json(history);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to read history' });
+    }
+});
 
 // API: Docker Statistics (Network, CPU, RAM) for all project containers
 app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) => {

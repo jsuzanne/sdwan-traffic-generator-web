@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.85] - 2026-01-25
+
+### Added
+- **Phase 7: Convergence & Failover Testing**: 
+  - New high-frequency UDP probe suite for precision failover measurement (up to 100pps).
+  - **Real-time Timeline**: Visual packet streaming with ms-precision blackout detection.
+  - **Historical Reports**: Persistent storage of failover tests for comparison over time.
+  - **Verdict Logic**: Automated GOOD/DEGRADED/CRITICAL status based on configurable thresholds.
+  - **SD-WAN Correlation**: Integrated `TEST ID` and source port logging for easy cross-referencing with network orchestrators.
+
 ## [1.1.0-patch.84] - 2026-01-25
 
 ### Added

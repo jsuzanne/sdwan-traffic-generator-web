@@ -41,24 +41,26 @@ def run_server(ip, port):
                 if len(data) >= 4:
                     seq = (data[2] << 8) + data[3]
                 
-                # Extract embedded Call ID if present
-                detected_call_id = "Unknown"
+                # Extract embedded IDs (Voice CID or Convergence TEST-ID)
+                detected_id = "Unknown"
+                session_type = "Voice"
                 try:
-                    payload_str = data[12:40].decode('utf-8', errors='ignore')
+                    payload_str = data.decode('utf-8', errors='ignore')
                     if "CID:" in payload_str:
-                        detected_call_id = payload_str.split("CID:")[1].split(":")[0]
+                        detected_id = payload_str.split("CID:")[1].split(":")[0]
+                    elif payload_str.startswith("TEST-"):
+                        detected_id = payload_str.split(":")[0]
+                        session_type = "Convergence"
                 except: pass
 
                 if addr not in active_sessions:
-                    print(f"📞 [{time.strftime('%H:%M:%S')}] Incoming call: {detected_call_id} from {addr[0]}:{addr[1]}")
-                
-                # Periodic log with sequence if it's the first packet or every 200 packets
-                # (since we don't have a per-session counter easily, we just log the first packet 
-                # or when addr is new)
+                    icon = "📉" if session_type == "Convergence" else "📞"
+                    print(f"{icon} [{time.strftime('%H:%M:%S')}] Incoming {session_type}: {detected_id} from {addr[0]}:{addr[1]}")
                 
                 active_sessions[addr] = {
                     "last_seen": now,
-                    "call_id": detected_call_id
+                    "id": detected_id,
+                    "type": session_type
                 }
                 
             except timeout:
@@ -69,7 +71,8 @@ def run_server(ip, port):
             to_remove = []
             for addr, session in active_sessions.items():
                 if now - session['last_seen'] > 5.0:
-                    print(f"✅ [{time.strftime('%H:%M:%S')}] Call {session['call_id']} finished (last from {addr[0]}:{addr[1]})")
+                    icon = "✅" if session['type'] == "Voice" else "🏁"
+                    print(f"{icon} [{time.strftime('%H:%M:%S')}] {session['type']} {session['id']} finished (last from {addr[0]}:{addr[1]})")
                     to_remove.append(addr)
             
             for addr in to_remove:

@@ -6,7 +6,8 @@ import Voice from './Voice';
 import Config from './Config';
 import Login from './Login';
 import ConnectivityPerformance from './ConnectivityPerformance';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus } from 'lucide-react';
+import Failover from './Failover';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -36,7 +37,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance'>('performance');
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover'>('performance');
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
@@ -665,6 +666,15 @@ export default function App() {
         >
           <Phone size={18} /> Voice
         </button>
+        <button
+          onClick={() => setView('failover')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
+            view === 'failover' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Zap size={18} /> Failover
+        </button>
       </div>
 
       {view === 'dashboard' ? (
@@ -1039,6 +1049,8 @@ export default function App() {
         <Security token={token!} />
       ) : view === 'voice' ? (
         <Voice token={token!} />
+      ) : view === 'failover' ? (
+        <Failover token={token!} />
       ) : (
         <Config token={token!} />
       )
