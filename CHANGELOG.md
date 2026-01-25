@@ -16,7 +16,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Build Stability**: Fixed TypeScript build errors related to missing variable references and type mismatches.
+
+## [1.1.0-patch.93] - 2026-01-25
+
+### Fixed
 - **Connectivity Monitor**: Fixed an issue where the background monitor would skip default/custom endpoints.
+
+## [1.1.0-patch.92] - 2026-01-25
+
+### Fixed
+- **Orchestration**: Fixed `AttributeError` related to `rate` in the Convergence Orchestrator.
+
+## [1.1.0-patch.91] - 2026-01-25
+
+### Changed
+- **Convergence Refinements**: Added 5s warmup period, redirected iperf3 logs, and refined loss calculation logic.
+- **UI Enhancements**: Added PPS display to history table and improved active interface highlighting.
+
+## [1.1.0-patch.90] - 2026-01-25
+
+### Added
+- **Stop Control**: Added "Stop Test" button to Convergence Lab dashboard.
+- **Improved Monitoring**: Added active interface visibility indicator and improved echo server debug logging.
+
+### Changed
+- **Thresholds**: Adjusted convergence thresholds to 1s (Good) and 5s (Critical).
+
+## [1.1.0-patch.89] - 2026-01-25
+
+### Changed
+- **Phase 7 Stability**: Minor lint fixes and internal version alignment.
+
+## [1.1.0-patch.88] - 2026-01-25
+
+### Changed
+- **Backend Robustness**: Enhanced path resolution logging and error handling for orchestrator scripts.
 
 ## [1.1.0-patch.87] - 2026-01-25
 
