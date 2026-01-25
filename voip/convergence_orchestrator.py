@@ -15,7 +15,7 @@ class ConvergenceOrchestrator:
         self.interval = 1.0 / rate
         self.test_id = test_id
         self.start_time = time.time()
-        self.warmup_duration = 5.0
+        self.warmup_duration = 0.0 # Standardized to 0 by default for faster startup
         
         self.stop_event = threading.Event()
         self.metrics = {
@@ -101,8 +101,8 @@ class ConvergenceOrchestrator:
         elif "(" in log_id:
              log_id = log_id.split("(")[-1].replace(")", "")
         
-        print(f"[{log_id}] 📡 CONVERGENCE STARTED: {self.target_ip}:{self.target_port} | Rate: {self.rate}pps | Label: {label}", flush=True)
-        print(f"[{log_id}] ⚙️  Source Port: {source_port} | Warmup: {self.warmup_duration}s", flush=True)
+        print(f"[{log_id}] [{time.strftime('%H:%M:%S')}] 📡 CONVERGENCE STARTED: {self.target_ip}:{self.target_port} | Rate: {self.rate}pps | Label: {label}", flush=True)
+        print(f"[{log_id}] [{time.strftime('%H:%M:%S')}] ⚙️  Source Port: {source_port} | Warmup: {self.warmup_duration}s", flush=True)
         
         t = threading.Thread(target=self.receiver, args=(sock,))
         t.daemon = True
@@ -175,7 +175,7 @@ class ConvergenceOrchestrator:
             self.metrics["end_time"] = time.time()
             self.update_stats_file()
             sock.close()
-            print(f"[{log_id}] ⏹️  CONVERGENCE STOPPED: Max Blackout: {self.metrics['max_blackout_ms']}ms", flush=True)
+            print(f"[{log_id}] [{time.strftime('%H:%M:%S')}] ⏹️  CONVERGENCE STOPPED: Max Blackout: {self.metrics['max_blackout_ms']}ms", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

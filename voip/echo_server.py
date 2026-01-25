@@ -32,7 +32,6 @@ def run_server(ip, port):
         while True:
             try:
                 data, addr = s.recvfrom(BUFSIZE)
-                s.sendto(data, addr)
                 
                 now = time.time()
                 
@@ -60,7 +59,12 @@ def run_server(ip, port):
                     label = detected_id
                     # Clean label for log prefix
                     log_id = detected_id
-                    if log_id.startswith("CONV-"): log_id = log_id
+                    if " (CONV-" in log_id:
+                        # Extract CONV-XXX for prefix and text for label
+                        parts = log_id.split(" (")
+                        label = parts[0]
+                        log_id = parts[1].replace(")", "")
+                    elif log_id.startswith("CONV-"): log_id = log_id
                     elif log_id.startswith("CALL-"): log_id = log_id
                     else:
                         prefix = "CONV" if session_type == "Convergence" else "CALL"

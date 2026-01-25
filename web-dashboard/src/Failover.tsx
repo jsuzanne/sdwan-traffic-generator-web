@@ -409,7 +409,7 @@ export default function Failover({ token }: FailoverProps) {
                                                     <span className="bg-blue-500/10 text-blue-400 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">{test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || 'CONV-??'}</span>
                                                     <span>{test.label || test.test_id?.split(' (')[0]}</span>
                                                 </div>
-                                                <div className="text-xs text-slate-500">{new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                                                <div className="text-xs text-slate-500">{new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] border ${verdict.bg.replace('/10', '/30')} ${verdict.color}`}>

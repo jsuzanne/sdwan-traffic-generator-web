@@ -1482,8 +1482,9 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         '--stats-file', statsFile
     ];
 
+    const timestamp = new Date().toLocaleTimeString('en-GB', { hour12: false });
     const cmdStr = `python3 convergence_orchestrator.py -D ${target} -dport ${port || 6100} --rate ${rate || 50}pps --label "${label || ''}"`;
-    console.log(`[${testId}] 🚀 Executing: ${cmdStr}`);
+    console.log(`[${testId}] [${timestamp}] 🚀 Executing: ${cmdStr}`);
 
     try {
         const proc = spawn('python3', args);

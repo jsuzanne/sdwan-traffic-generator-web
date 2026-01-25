@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.96] - 2026-01-25
+
+### Added
+- **Log Timestamps**: Added `[HH:MM:SS]` timestamps to all server-side logs (Orchestrator, RTP Client, Echo Server, and Node.js spawn logs).
+- **History Precision**: Added seconds to the History table date display (e.g., `25 janv., 20:29:45`).
+
+### Fixed
+- **Voice Metrics**: Fixed negative packet loss issue by removing duplicate echo in `echo_server.py` and implementing unique sequence tracking in `rtp.py`.
+- **Startup Responsiveness**: Removed the 5s warmup burst in the convergence orchestrator (default=0) to improve UI responsiveness when starting multiple probes.
+- **Echo Log Aesthetics**: Further refined `echo_server.py` log format for cleaner labeling of convergence tests (`[CONV-XXX]`).
+
 ## [1.1.0-patch.95] - 2026-01-25
 
 ### Added

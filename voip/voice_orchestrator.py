@@ -281,7 +281,7 @@ def main():
                 finished.append(call)
         
         for call in finished:
-            print(f"[{call['info']['call_id']}] ✅ CALL ENDED: {call['info']['target']}")
+            print(f"[{call['info']['call_id']}] [{time.strftime('%H:%M:%S')}] ✅ CALL ENDED: {call['info']['target']}")
             sys.stdout.flush()
             active_calls.remove(call)
             

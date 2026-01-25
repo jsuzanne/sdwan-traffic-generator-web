@@ -22,7 +22,7 @@ class VoiceMetrics:
     def __init__(self):
         self.sent_times = {} # seq -> sent_time
         self.rtts = []
-        self.received_count = 0
+        self.received_seqs = set()
         self.last_arrival_time = None
         self.last_transit_time = None
         self.jitter = 0
@@ -34,14 +34,16 @@ class VoiceMetrics:
 
     def record_receive(self, seq, receive_time):
         with self.lock:
+            if seq in self.received_seqs:
+                return # Already counted
+            
             if seq in self.sent_times:
+                self.received_seqs.add(seq)
                 sent_time = self.sent_times[seq]
                 rtt = (receive_time - sent_time) * 1000 # ms
                 self.rtts.append(rtt)
-                self.received_count += 1
                 
                 # Jitter calculation (RFC 3550)
-                # D(i,j) = (Rj - Ri) - (Sj - Si) = (Rj - Sj) - (Ri - Si)
                 transit_time = receive_time - sent_time
                 if self.last_transit_time is not None:
                     d = abs(transit_time - self.last_transit_time)
@@ -133,8 +135,8 @@ if __name__ == "__main__":
     call_id_tag = f"CID:{args.get('call_id', 'NONE')}:".encode()
     final_payload = (call_id_tag + payload_padding)[:200]
     
-    print(f"Setting up RTP Packets for {args['call_id']}")
-    print(f"Sending {count} packets to {args['destination_ip']}:{args['destination_port']} from port {source_port}")
+    print(f"[{args['call_id']}] [{time.strftime('%H:%M:%S')}] 🚀 Executing: python3 rtp.py -D {args['destination_ip']} -dport {args['destination_port']} --min-count {args['min_count']} --max-count {args['max_count']} --source-interface {args['source_interface']} --call-id {args['call_id']}")
+    print(f"[{args['call_id']}] [{time.strftime('%H:%M:%S')}] 📞 CALL STARTED: {args['destination_ip']}:{args['destination_port']} | G.711-ulaw | {int(args['min_count'] * 0.03)}s")
 
     # Pre-build packet template for performance
     if args['source_ip'] is None:
@@ -167,7 +169,9 @@ if __name__ == "__main__":
     recv_sock.close()
 
     # Final metrics
-    loss = ((count - metrics.received_count) / count) * 100 if count > 0 else 0
+    received_count = len(metrics.received_seqs)
+    loss = ((count - received_count) / count) * 100 if count > 0 else 0
+    loss = max(0, min(100, loss)) # Clamp 0-100
     avg_rtt = sum(metrics.rtts) / len(metrics.rtts) if metrics.rtts else 0
     max_rtt = max(metrics.rtts) if metrics.rtts else 0
     jitter = metrics.jitter * 1000 # ms
@@ -176,7 +180,7 @@ if __name__ == "__main__":
     summary = {
         "call_id": args['call_id'],
         "sent": count,
-        "received": metrics.received_count,
+        "received": received_count,
         "loss_pct": round(loss, 2),
         "avg_rtt_ms": round(avg_rtt, 2),
         "max_rtt_ms": round(max_rtt, 2),
