@@ -1476,9 +1476,15 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     const displayId = label ? `${label} (${testId})` : testId;
 
     // Dynamic path resolution (dev vs container)
-    const orchestratorPath = fs.existsSync(path.join(__dirname, '../voip/convergence_orchestrator.py'))
-        ? path.join(__dirname, '../voip/convergence_orchestrator.py')
-        : path.join(__dirname, 'voip/convergence_orchestrator.py');
+    let orchestratorPath = path.join(__dirname, '../voip/convergence_orchestrator.py');
+    if (!fs.existsSync(orchestratorPath)) {
+        orchestratorPath = path.join(__dirname, 'voip/convergence_orchestrator.py');
+    }
+
+    if (!fs.existsSync(orchestratorPath)) {
+        console.error(`[CONVERGENCE] Orchestrator script NOT FOUND at ${orchestratorPath}`);
+        return res.status(500).json({ error: 'Convergence orchestrator script missing' });
+    }
 
     const args = [
         orchestratorPath,
@@ -1488,7 +1494,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         '--id', displayId
     ];
 
-    console.log(`[CONVERGENCE] Starting test ${displayId} against ${target}`);
+    console.log(`[CONVERGENCE] Starting test ${displayId} against ${target} using ${orchestratorPath}`);
 
     try {
         convergenceProcess = spawn('python3', args);
