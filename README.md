@@ -21,6 +21,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **Protocol & IP Flexibility** - Support for explicit `http://` or `https://` and full IP address identification
 - **Multi-interface Support** - Bind to specific network interfaces
 - **Voice Simulation (RTP)** - Simulate real-time voice calls (G.711, G.729) with Scapy-based packet forging, weighted target distribution, and standalone echo server targets. [Read more](docs/VOICE_SIMULATION.md)
+- **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times and directional RX/TX loss. [Read more](docs/CONVERGENCE_LAB.md)
 
 ### 🛡️ Security Testing (v1.1.0)
 - **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)
@@ -599,6 +600,7 @@ Comprehensive guides for all features:
 
 ### Traffic Generation
 - **[Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md)** - Configure applications.txt and weights
+- **[Convergence Lab Guide](docs/CONVERGENCE_LAB.md)** - High-precision failover & RX/TX loss theory
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
 
 ### Security Testing

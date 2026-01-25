@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Low-Precision PPS**: Added 1 PPS and 5 PPS options for long-term telemetry monitoring.
 - **Interactive Sorting**: Added interactive column sorting (Date, Loss, Verdict, etc.) to both Convergence and Voice history tables.
 - **UI Harmonization**: Harmonized labeling format to `[CONV-XXX]` and `[CALL-XXX]` across the entire platform.
+- **Documentation**: Created dedicated **[Convergence Lab Guide](docs/CONVERGENCE_LAB.md)** explaining UDP probing theory, blackout analysis, and scoring.
 
 ### Fixed
 - **Build Stability**: Fixed TypeScript build errors related to missing variable references and type mismatches.
