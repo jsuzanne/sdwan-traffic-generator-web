@@ -5,15 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0-patch.85] - 2026-01-25
+## [1.1.0-patch.86] - 2026-01-25
 
 ### Added
-- **Phase 7: Convergence & Failover Testing**: 
-  - New high-frequency UDP probe suite for precision failover measurement (up to 100pps).
-  - **Real-time Timeline**: Visual packet streaming with ms-precision blackout detection.
-  - **Historical Reports**: Persistent storage of failover tests for comparison over time.
-  - **Verdict Logic**: Automated GOOD/DEGRADED/CRITICAL status based on configurable thresholds.
-  - **SD-WAN Correlation**: Integrated `TEST ID` and source port logging for easy cross-referencing with network orchestrators.
+- **Convergence Lab (Phase 7 Revision)**:
+  - **Multi-Target Management**: Users can now save and name multiple failover targets (e.g., "DC1", "Branch Office").
+  - **Decoupled IDs**: Convergence tests now use a dedicated `CONV-XXX` counter to avoid confusion with Security scans.
+  - **Named Test Sessions**: Test IDs now include custom labels (e.g., "DC1 (CONV-001)") for perfect correlation with test plans.
+  - **Improved Logging**: The echo server now provides clearer correlation between labels, source IPs, and ports.
+
+## [1.1.0-patch.85] - 2026-01-25
 
 ## [1.1.0-patch.84] - 2026-01-25
 

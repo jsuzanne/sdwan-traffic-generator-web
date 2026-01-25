@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Clock, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, Play, Pause, Trash2, Zap, Server, Globe, Hash } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { Activity, Clock, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, Play, Pause, Trash2, Zap, Server, Globe, Hash, Plus, Target, X } from 'lucide-react';
 
 interface FailoverProps {
     token: string;
 }
 
 export default function Failover({ token }: FailoverProps) {
-    const [target, setTarget] = useState('192.168.203.100');
+    const [endpoints, setEndpoints] = useState<any[]>([]);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newTarget, setNewTarget] = useState({ label: '', target: '', port: 6100 });
+
     const [rate, setRate] = useState(50);
     const [running, setRunning] = useState(false);
     const [currentTest, setCurrentTest] = useState<any>(null);
@@ -15,6 +17,14 @@ export default function Failover({ token }: FailoverProps) {
     const [loadingHistory, setLoadingHistory] = useState(true);
 
     const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
+
+    const fetchEndpoints = async () => {
+        try {
+            const res = await fetch('/api/convergence/endpoints', { headers: authHeaders() });
+            const data = await res.json();
+            setEndpoints(data);
+        } catch (e) { }
+    };
 
     const fetchStatus = async () => {
         try {
@@ -38,6 +48,7 @@ export default function Failover({ token }: FailoverProps) {
     };
 
     useEffect(() => {
+        fetchEndpoints();
         fetchStatus();
         fetchHistory();
         const interval = setInterval(() => {
@@ -54,12 +65,41 @@ export default function Failover({ token }: FailoverProps) {
         return () => clearInterval(interval);
     }, [running]);
 
-    const startTest = async () => {
+    const addEndpoint = async () => {
+        if (!newTarget.label || !newTarget.target) return;
+        try {
+            const res = await fetch('/api/convergence/endpoints', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify(newTarget)
+            });
+            if (res.ok) {
+                fetchEndpoints();
+                setShowAddModal(false);
+                setNewTarget({ label: '', target: '', port: 6100 });
+            }
+        } catch (e) { }
+    };
+
+    const deleteEndpoint = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this target?')) return;
+        try {
+            await fetch(`/api/convergence/endpoints/${id}`, { method: 'DELETE', headers: authHeaders() });
+            fetchEndpoints();
+        } catch (e) { }
+    };
+
+    const startTest = async (endpoint: any) => {
         try {
             const res = await fetch('/api/convergence/start', {
                 method: 'POST',
                 headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target, rate })
+                body: JSON.stringify({
+                    target: endpoint.target,
+                    port: endpoint.port,
+                    rate,
+                    label: endpoint.label
+                })
             });
             const data = await res.json();
             if (data.success) {
@@ -101,48 +141,69 @@ export default function Failover({ token }: FailoverProps) {
                             <Zap size={24} className={running ? 'text-white' : 'text-slate-400'} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Convergence Analysis</h2>
-                            <p className="text-sm text-slate-400">High-frequency UDP probing for SD-WAN failover measurement</p>
+                            <h2 className="text-xl font-bold text-white">Convergence Lab</h2>
+                            <p className="text-sm text-slate-400">Manage multiple failover targets for specialized test plans</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                         <div className="flex flex-col gap-1">
-                            <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">Target Echo Server</label>
-                            <input
-                                type="text"
-                                value={target}
-                                onChange={(e) => setTarget(e.target.value)}
-                                disabled={running}
-                                className="bg-slate-950 border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-                            />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">Rate (pps)</label>
+                            <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">Global Precision (Rate)</label>
                             <select
                                 value={rate}
                                 onChange={(e) => setRate(parseInt(e.target.value))}
                                 disabled={running}
                                 className="bg-slate-950 border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
                             >
-                                <option value="10">10 pps</option>
-                                <option value="20">20 pps</option>
-                                <option value="50">50 pps</option>
-                                <option value="100">100 pps</option>
+                                <option value="10">10 pps (100ms)</option>
+                                <option value="20">20 pps (50ms)</option>
+                                <option value="50">50 pps (20ms)</option>
+                                <option value="100">100 pps (10ms)</option>
                             </select>
                         </div>
                         <button
-                            onClick={running ? stopTest : startTest}
-                            className={`mt-5 flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all shadow-lg ${running
-                                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
-                                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
-                                }`}
+                            onClick={() => setShowAddModal(true)}
+                            disabled={running}
+                            className="mt-5 flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-bold transition-all border border-slate-700 disabled:opacity-50"
                         >
-                            {running ? <><Pause size={18} /> STOP TEST</> : <><Play size={18} /> START TEST</>}
+                            <Plus size={18} /> ADD TARGET
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* Target Grid / Play buttons */}
+            {!running && (
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in slide-in-from-bottom-4">
+                    {endpoints.map((e) => (
+                        <div key={e.id} className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl group hover:border-blue-500/30 transition-all flex flex-col justify-between">
+                            <div className="flex items-start justify-between mb-4">
+                                <div>
+                                    <h4 className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{e.label}</h4>
+                                    <p className="text-[10px] text-slate-500 font-mono mt-1">{e.target}:{e.port}</p>
+                                </div>
+                                <button
+                                    onClick={() => deleteEndpoint(e.id)}
+                                    className="text-slate-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => startTest(e)}
+                                className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/20 rounded-lg font-bold text-xs transition-all"
+                            >
+                                <Play size={14} fill="currentColor" /> RUN TEST
+                            </button>
+                        </div>
+                    ))}
+                    {endpoints.length === 0 && (
+                        <div className="col-span-full py-8 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl text-slate-500 text-sm">
+                            No targets defined. Click "Add Target" to set up your test plan.
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Real-time Dashboard */}
             {running && currentTest && (
@@ -298,6 +359,69 @@ export default function Failover({ token }: FailoverProps) {
                     </p>
                 </div>
             </div>
+
+            {/* Add Target Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <Target size={20} className="text-blue-400" /> Add Failover Target
+                            </h3>
+                            <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-white">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Target Label</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. DC1 - Primary"
+                                    value={newTarget.label}
+                                    onChange={(e) => setNewTarget({ ...newTarget, label: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">IP / Hostname</label>
+                                    <input
+                                        type="text"
+                                        placeholder="192.168.1.10"
+                                        value={newTarget.target}
+                                        onChange={(e) => setNewTarget({ ...newTarget, target: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Port</label>
+                                    <input
+                                        type="number"
+                                        value={newTarget.port}
+                                        onChange={(e) => setNewTarget({ ...newTarget, port: parseInt(e.target.value) })}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-slate-800 bg-slate-900/50 rounded-b-2xl flex gap-3">
+                            <button
+                                onClick={() => setShowAddModal(false)}
+                                className="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all text-sm"
+                            >
+                                CANCEL
+                            </button>
+                            <button
+                                onClick={addEndpoint}
+                                className="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-900/20 text-sm"
+                            >
+                                SAVE TARGET
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

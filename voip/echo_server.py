@@ -48,6 +48,9 @@ def run_server(ip, port):
                     payload_str = data.decode('utf-8', errors='ignore')
                     if "CID:" in payload_str:
                         detected_id = payload_str.split("CID:")[1].split(":")[0]
+                    elif "CONV-" in payload_str:
+                        detected_id = payload_str.split(":")[0]
+                        session_type = "Convergence"
                     elif payload_str.startswith("TEST-"):
                         detected_id = payload_str.split(":")[0]
                         session_type = "Convergence"

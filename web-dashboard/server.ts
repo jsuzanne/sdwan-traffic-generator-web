@@ -45,6 +45,8 @@ const VOICE_SERVERS_FILE = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
 const VOICE_STATS_FILE = path.join(APP_CONFIG.logDir, 'voice-stats.jsonl');
 const CONVERGENCE_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'convergence-history.jsonl');
 const CONVERGENCE_STATS_FILE = '/tmp/convergence_stats.json';
+const CONVERGENCE_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'convergence-counter.json');
+const CONVERGENCE_ENDPOINTS_FILE = path.join(APP_CONFIG.configDir, 'convergence-endpoints.json');
 
 // Batch Counter - Persistent rotating ID for batch tests
 const BATCH_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'batch-counter.json');
@@ -82,8 +84,17 @@ const getNextTestId = (): number => {
 let convergenceProcess: any = null;
 
 const getNextFailoverTestId = (): string => {
-    const id = getNextTestId();
-    return `TEST-${id.toString().padStart(3, '0')}`;
+    try {
+        if (!fs.existsSync(CONVERGENCE_COUNTER_FILE)) {
+            fs.writeFileSync(CONVERGENCE_COUNTER_FILE, JSON.stringify({ counter: 0 }));
+        }
+        const data = JSON.parse(fs.readFileSync(CONVERGENCE_COUNTER_FILE, 'utf8'));
+        const nextId = (data.counter || 0) + 1;
+        fs.writeFileSync(CONVERGENCE_COUNTER_FILE, JSON.stringify({ counter: nextId }));
+        return `CONV-${nextId.toString().padStart(3, '0')}`;
+    } catch (e) {
+        return `CONV-${Date.now()}`;
+    }
 };
 
 // Resource Monitoring State
@@ -1404,8 +1415,57 @@ startConnectivityMonitor(5);
 
 // --- Phase 7: Convergence & Failover Testing ---
 
+app.get('/api/convergence/endpoints', authenticateToken, (req, res) => {
+    try {
+        if (!fs.existsSync(CONVERGENCE_ENDPOINTS_FILE)) return res.json([]);
+        const endpoints = JSON.parse(fs.readFileSync(CONVERGENCE_ENDPOINTS_FILE, 'utf8'));
+        res.json(endpoints);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to read endpoints' });
+    }
+});
+
+app.post('/api/convergence/endpoints', authenticateToken, (req, res) => {
+    try {
+        const { label, target, port } = req.body;
+        if (!label || !target) return res.status(400).json({ error: 'Label and Target required' });
+
+        let endpoints = [];
+        if (fs.existsSync(CONVERGENCE_ENDPOINTS_FILE)) {
+            endpoints = JSON.parse(fs.readFileSync(CONVERGENCE_ENDPOINTS_FILE, 'utf8'));
+        }
+
+        const newEndpoint = {
+            id: Date.now().toString(),
+            label,
+            target,
+            port: port || 6100
+        };
+
+        endpoints.push(newEndpoint);
+        fs.writeFileSync(CONVERGENCE_ENDPOINTS_FILE, JSON.stringify(endpoints, null, 2));
+        res.json(newEndpoint);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to save endpoint' });
+    }
+});
+
+app.delete('/api/convergence/endpoints/:id', authenticateToken, (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!fs.existsSync(CONVERGENCE_ENDPOINTS_FILE)) return res.status(404).json({ error: 'Not found' });
+
+        let endpoints = JSON.parse(fs.readFileSync(CONVERGENCE_ENDPOINTS_FILE, 'utf8'));
+        endpoints = endpoints.filter((e: any) => e.id !== id);
+        fs.writeFileSync(CONVERGENCE_ENDPOINTS_FILE, JSON.stringify(endpoints, null, 2));
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to delete endpoint' });
+    }
+});
+
 app.post('/api/convergence/start', authenticateToken, (req, res) => {
-    const { target, port, rate } = req.body;
+    const { target, port, rate, label } = req.body;
     if (!target) return res.status(400).json({ error: 'Target IP required' });
 
     if (convergenceProcess) {
@@ -1413,15 +1473,16 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     }
 
     const testId = getNextFailoverTestId();
+    const displayId = label ? `${label} (${testId})` : testId;
     const args = [
         path.join(__dirname, '../voip/convergence_orchestrator.py'),
         '--target', target,
         '--port', (port || 6100).toString(),
         '--rate', (rate || 50).toString(),
-        '--id', testId
+        '--id', displayId
     ];
 
-    console.log(`[CONVERGENCE] Starting test ${testId} against ${target}`);
+    console.log(`[CONVERGENCE] Starting test ${displayId} against ${target}`);
 
     convergenceProcess = spawn('python3', args);
 
