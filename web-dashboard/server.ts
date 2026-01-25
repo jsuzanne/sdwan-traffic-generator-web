@@ -1380,21 +1380,10 @@ const startConnectivityMonitor = (intervalMinutes: number = 5) => {
     console.log(`[DEM] Starting background connectivity monitoring (every ${intervalMinutes}m)`);
 
     const runMonitor = async () => {
-        const testEndpoints: any[] = [];
-        Object.keys(process.env).forEach(key => {
-            const value = process.env[key];
-            if (!value) return;
-            if (key.startsWith('CONNECTIVITY_HTTP_')) {
-                const idx = value.indexOf(':');
-                if (idx > 0) testEndpoints.push({ name: value.substring(0, idx), type: 'http', target: value.substring(idx + 1), timeout: 10000 });
-            } else if (key.startsWith('CONNECTIVITY_PING_')) {
-                const [name, ip] = value.split(':');
-                if (name && ip) testEndpoints.push({ name, type: 'ping', target: ip, timeout: 5000 });
-            } else if (key.startsWith('CONNECTIVITY_TCP_')) {
-                const parts = value.split(':');
-                if (parts.length === 3) testEndpoints.push({ name: parts[0], type: 'tcp', target: `${parts[1]}:${parts[2]}`, timeout: 5000 });
-            }
-        });
+        const testEndpoints: any[] = [
+            ...getEnvConnectivityEndpoints(),
+            ...getCustomConnectivityEndpoints()
+        ];
 
         if (testEndpoints.length === 0) return;
 
