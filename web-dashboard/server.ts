@@ -1182,14 +1182,16 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
             const host = parts[0];
             const port = parts[1] || '5201';
             const iperfCmd = `iperf3 -u -c ${host} -p ${port} -b 50k -t 1 -J`;
+            const uStart = Date.now();
             try {
                 const { stdout } = await execPromise(iperfCmd);
+                const uDuration = Date.now() - uStart;
                 const data = JSON.parse(stdout);
-                if (data.end && data.end.sum) {
+                if (data.end && (data.end.sum || data.end.sum_received)) {
                     result.reachable = true;
-                    const sum = data.end.sum;
+                    const sum = data.end.sum_received || data.end.sum;
                     result.metrics = {
-                        total_ms: sum.delay_ms || (sum.mean_latency ? sum.mean_latency * 1000 : 0),
+                        total_ms: sum.delay_ms || (sum.mean_latency ? sum.mean_latency * 1000 : uDuration),
                         jitter_ms: sum.jitter_ms || 0,
                         loss_pct: sum.lost_percent || 0,
                         size_bytes: sum.bytes || 0
@@ -1295,7 +1297,9 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
             status: checkResult.reachable ? 'connected' : 'failed',
             latency: Math.round(checkResult.metrics.total_ms),
             score: checkResult.score,
-            details: checkResult.httpCode ? `HTTP ${checkResult.httpCode}` : (checkResult.endpointType === 'PING' ? 'ICMP' : 'TCP'),
+            details: checkResult.httpCode ? `HTTP ${checkResult.httpCode}` :
+                (checkResult.endpointType === 'PING' ? 'ICMP' :
+                    (checkResult.endpointType === 'UDP' ? `Jitter: ${checkResult.metrics.jitter_ms?.toFixed(1)}ms` : 'TCP')),
             metrics: checkResult.metrics
         };
         results.push(legacyFormat);

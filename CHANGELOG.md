@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.84] - 2026-01-25
+
+### Added
+- **Phase 6: VOIP MOS Score & Unified Server**: 
+  - Integrated `iperf3` server into high-performance Voice Echo container.
+  - Real-time **MOS Score** (Mean Opinion Score) calculation for voice calls based on ITU-T G.107 (E-Model).
+  - Voice Echo server now supports both RTP Echo and UDP Quality (iperf3) tests.
+- **Phase 5: UDP Quality Probes & UX Enhancements**:
+  - New **UDP Quality Probe** type using `iperf3` for precision jitter/loss metrics.
+  - **Probe Editing**: Full CRUD support for existing synthetic endpoints.
+  - **Smart Bitrate Formatting**: Optimized bitrate display across all dashboard components.
+  - **Unified Versioning**: Single Git Tag release strategy (`v*.*.*`) triggers synchronized multi-platform Docker builds for all components.
+
+### Fixed
+- **UDP Metrics Parsing**: Corrected latency and jitter extraction from iperf3 JSON output.
+- **Dockerfile Standards**: Standardized all Dockerfiles at the root for GitHub Actions compatibility.
+- **Voice Echo Paths**: Fixed server startup crashes by aligning container directory structures.
+
 ## [1.1.0-patch.34] - 2026-01-23
 
 ### Added
