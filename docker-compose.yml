@@ -9,6 +9,8 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     restart: unless-stopped
+    cap_add:
+      - NET_RAW
     ports:
       - "${WEB_UI_PORT:-8080}:8080"
     volumes:
@@ -58,6 +60,9 @@ services:
     container_name: sdwan-voice-gen
     restart: unless-stopped
     network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     volumes:
       - ./config:/app/config
       - traffic_logs:/var/log/sdwan-traffic-gen
