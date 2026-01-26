@@ -52,7 +52,8 @@ def handle_port(ip, port, active_sessions, lock):
                         if not (log_id.startswith("CONV-") or log_id.startswith("CALL-")):
                             log_id = f"{prefix}-{log_id}"
                         
-                        print(f"[{log_id}] 📥 [{time.strftime('%H:%M:%S')}] RECEIVED ON PORT {port}: {addr[0]}:{addr[1]}", flush=True)
+                        timestamp = time.strftime('%H:%M:%S')
+                        print(f"[{log_id}] [{timestamp}] {detected_id} - 📥 RECEIVED ON PORT {port}: {addr[0]}:{addr[1]}", flush=True)
                     
                     session = active_sessions.get(addr, {"packet_count": 0, "start_time": now, "port": port})
                     session["last_seen"] = now
@@ -88,12 +89,15 @@ def maintenance(active_sessions, lock):
             for addr, session in active_sessions.items():
                 if now - session['last_seen'] > 5.0:
                     id_val = session['id']
+                    label = id_val # Use the simplified ID/Label
                     prefix = "CONV" if session["type"] == "Convergence" else "CALL"
+                    
                     if not (id_val.startswith("CONV-") or id_val.startswith("CALL-")):
                         id_val = f"{prefix}-{id_val}"
                     
+                    timestamp = time.strftime('%H:%M:%S')
                     duration = int(now - session['start_time'] - 5.0)
-                    print(f"[{id_val}] ✅ [{time.strftime('%H:%M:%S')}] COMPLETED ON PORT {session['port']}: {addr[0]}:{addr[1]} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
+                    print(f"[{id_val}] [{timestamp}] {label} - ⏹️  COMPLETED ON PORT {session['port']}: {addr[0]}:{addr[1]} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
                     to_remove.append(addr)
             
             for addr in to_remove:

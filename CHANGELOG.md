@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.103] - 2026-01-26
+
+### Added
+- **Visual Failover History**: Test history rows are now clickable to reveal an interactive **Failover Timeline** (Blue/Red sequence chart).
+- **Test Chrono**: Added a live duration timer to the active convergence test window.
+- **Absolute Counters**: Replaced percentages with raw **Sent** and **Received** packet counts in real-time UI and history.
+- **Standardized Logging**: Unified log formats with `[CONV-XXX] [HH:MM:SS] Label` prefix across Generator, Orchestrator, and Echo Server.
+
+### Changed
+- **UI Refinement**: Removed redundant percentage circles from the active test view to improve clarity.
+- **Layout**: Prioritized **Test History** by moving it to the prominent left position and improved table scanning.
+
 ## [1.1.0-patch.102] - 2026-01-26
 
 ### Added

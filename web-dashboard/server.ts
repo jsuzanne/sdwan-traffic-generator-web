@@ -1455,7 +1455,8 @@ app.delete('/api/convergence/endpoints/:id', authenticateToken, (req, res) => {
 
 app.post('/api/convergence/start', authenticateToken, (req, res) => {
     const { target, port, rate, label } = req.body;
-    console.log(`[CONVERGENCE] Incoming Start Request: Target=${target}:${port}, Rate=${rate}pps, Label=${label || 'None'}`);
+    const timestamp = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    console.log(`[CONV-${(req as any).testId || '???'}] [${timestamp}] ${label || 'None'} - 🚀 Incoming Start Request: Target=${target}:${port}, Rate=${rate}pps`);
 
     if (!target) return res.status(400).json({ error: 'Target IP required' });
 

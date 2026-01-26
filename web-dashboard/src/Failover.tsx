@@ -17,6 +17,7 @@ export default function Failover({ token }: FailoverProps) {
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'timestamp', direction: 'desc' });
+    const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
 
     const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
 
@@ -157,8 +158,17 @@ export default function Failover({ token }: FailoverProps) {
     };
 
     const formatMs = (ms: number) => {
+        if (ms === 0) return '0ms';
         if (ms < 1000) return `${ms}ms`;
         return `${(ms / 1000).toFixed(2)}s`;
+    };
+
+    const formatChrono = (startTime: number) => {
+        if (!startTime) return '00:00';
+        const seconds = Math.floor(Date.now() / 1000 - startTime);
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
     const selectedCount = endpoints.filter(e => selectedEndpoints.includes(e.id)).length;
@@ -276,78 +286,84 @@ export default function Failover({ token }: FailoverProps) {
                 )}
             </div>
 
-            {/* Active Tests Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-top-4">
+            {/* Active Tests Section */}
+            <div className="space-y-4">
                 {activeTests.map((test) => (
-                    <div key={test.testId} className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden flex flex-col md:flex-row">
-                        {/* Live Outage Metric */}
-                        <div className="md:w-1/3 p-6 flex flex-col items-center justify-center text-center relative border-b md:border-b-0 md:border-r border-slate-800">
-                            {test.current_blackout_ms > 0 && (
-                                <div className="absolute inset-0 bg-red-500/10 animate-pulse" />
-                            )}
-                            <div className="text-slate-400 text-[10px] font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
-                                <Activity size={12} className="text-blue-400" /> Current Outage
+                    <div key={test.testId} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-800">
+                        {/* Outage Stats */}
+                        <div className="bg-slate-950/50 p-6 md:w-1/3 flex flex-col justify-center items-center text-center space-y-4">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2 justify-center mb-1">
+                                    <Activity size={14} className="text-blue-500" />
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Current Outage</span>
+                                </div>
+                                <div className="text-4xl font-black text-slate-200 font-mono tracking-tighter">
+                                    {formatMs(test.current_blackout_ms || 0)}
+                                </div>
                             </div>
-                            <div className={`text-4xl font-mono font-bold ${test.current_blackout_ms > 0 ? 'text-red-400' : 'text-slate-600'}`}>
-                                {test.current_blackout_ms}ms
-                            </div>
-                            <div className="mt-4 flex flex-col items-center">
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">Max Blackout</span>
-                                <span className="text-lg font-bold text-orange-400">{test.max_blackout_ms}ms</span>
+                            <div className="space-y-1">
+                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Max Blackout</div>
+                                <div className="text-xl font-bold text-orange-500 font-mono">
+                                    {formatMs(test.max_blackout_ms || 0)}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Timeline Chart */}
-                        <div className="flex-1 p-6 relative">
+                        {/* Timeline & Details */}
+                        <div className="flex-1 p-6 relative flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex flex-col">
-                                    <div className="flex items-center gap-2">
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500 text-white uppercase tracking-tighter">
-                                            {test.testId}
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500 text-white uppercase tracking-tighter shadow-lg shadow-blue-500/20">
+                                            {test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || test.testId}
                                         </span>
                                         <span className="text-sm font-bold text-slate-200 uppercase tracking-tight">
                                             {test.test_id?.split(' (')[0] || 'Loading...'}
                                         </span>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
+                                            <Clock size={10} className="text-blue-400" />
+                                            <span className="text-[10px] font-mono text-blue-400 font-bold">
+                                                {formatChrono(test.start_time)}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <span className="text-[10px] text-slate-500 font-mono mt-0.5 flex items-center gap-1">
-                                        <Server size={10} /> Source Port: {test.source_port}
+                                    <span className="text-[10px] text-slate-500 font-mono mt-1.5 flex items-center gap-1">
+                                        <Server size={10} /> Source Port: {test.source_port} | {test.rate_pps} pps
                                     </span>
                                 </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    <div className="flex gap-1.5">
-                                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase">SENT: {test.sent}</span>
-                                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">RECV: {test.received}</span>
-                                    </div>
-                                    <div className="flex gap-1.5">
-                                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-900 border border-slate-800 text-slate-300">
-                                            TOTAL: {test.loss_pct}%
-                                        </span>
-                                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
-                                            ↑ TX {test.tx_loss_pct}%
-                                        </span>
-                                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                            ↓ RX {test.rx_loss_pct}%
-                                        </span>
+                                <div className="flex flex-col items-end gap-1.5">
+                                    <div className="flex gap-2">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Packets Sent</span>
+                                            <span className="text-sm font-bold text-green-400 font-mono">{test.sent}</span>
+                                        </div>
+                                        <div className="w-[1px] h-6 bg-slate-800 self-center mx-1" />
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Received</span>
+                                            <span className="text-sm font-bold text-blue-400 font-mono">{test.received}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="h-[60px] w-full flex items-end gap-0.5 mb-4">
-                                {test.history?.map((val: number, i: number) => (
+                            <div className="h-[40px] w-full flex items-end gap-0.5 mb-6">
+                                {(test.history || Array(100).fill(1)).map((val: number, i: number) => (
                                     <div
                                         key={i}
-                                        className={`flex-1 min-w-[1px] transition-all duration-300 ${val === 1 ? 'bg-blue-500 h-full' : 'bg-red-500 h-1/4 animate-pulse'}`}
+                                        className={`flex-1 min-w-[1px] rounded-t-sm transition-all duration-300 ${val === 1 ? 'bg-blue-500/80 h-full' : 'bg-red-500 h-[30%] animate-pulse'}`}
                                     />
                                 ))}
                             </div>
 
                             <div className="flex justify-between items-center">
-                                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Live Sequence Monitoring</span>
+                                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <Activity size={10} /> Live Sequence Monitoring
+                                </span>
                                 <button
                                     onClick={() => stopTest(test.testId)}
-                                    className="px-3 py-1 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded border border-red-500/30 text-[9px] font-bold transition-all flex items-center gap-2"
+                                    className="px-4 py-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded border border-red-500/20 text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg shadow-red-900/10"
                                 >
-                                    <Pause size={10} fill="currentColor" /> STOP PROBE
+                                    <Square size={10} fill="currentColor" /> STOP PROBE
                                 </button>
                             </div>
                         </div>
@@ -356,100 +372,161 @@ export default function Failover({ token }: FailoverProps) {
             </div>
 
             {/* Verdict Legend & Historical View */}
-            <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${activeTests.length > 0 ? 'opacity-50 grayscale transition-all text-xs' : ''}`}>
-                <div className="md:col-span-1 space-y-4">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        Failover Thresholds
-                    </h3>
-                    <div className="space-y-3">
-                        {[
-                            { color: 'text-green-400', label: 'GOOD', range: '< 1s', desc: 'Typical SD-WAN sub-second or near-second convergence.' },
-                            { color: 'text-orange-400', label: 'DEGRADED', range: '1s - 5s', desc: 'Noticeable outage. Video freeze and voice drops expected.' },
-                            { color: 'text-red-400', label: 'CRITICAL', range: '> 5s', desc: 'Major network blackout. Application session risk.' }
-                        ].map(v => (
-                            <div key={v.label} className="bg-slate-900/30 border border-slate-800 p-3 rounded-xl flex gap-3">
-                                <div className={`font-bold text-xs min-w-[70px] ${v.color}`}>{v.label}</div>
-                                <div>
-                                    <div className="text-[10px] font-bold text-slate-200">{v.range}</div>
-                                    <div className="text-[10px] text-slate-500 leading-tight">{v.desc}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="md:col-span-2 bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 ${activeTests.length > 0 ? 'opacity-50 grayscale transition-all' : ''}`}>
+                <div className="md:col-span-3 bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-xl order-2 md:order-1">
                     <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex items-center justify-between">
                         <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
                             <Clock size={16} /> Test History
                         </h3>
                         {history.length > 0 && (
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">{history.length} TESTS RECORDED</span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{history.length} TESTS RECORDED</span>
                         )}
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
                             <thead className="bg-slate-900/70 border-b border-slate-800">
                                 <tr>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight">Date / ID</th>
+                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight">Date / ID / Label</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Verdict</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Max Blackout</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Loss (↑TX / ↓RX)</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">PPS</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">SOURCE PORT</th>
+                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Outcome</th>
+                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Packet Details</th>
+                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">Config</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800">
-                                {history.map((test, idx) => {
+                                {sortedHistory.map((test, idx) => {
                                     const verdict = getVerdict(test.max_blackout_ms);
+                                    const isExpanded = expandedHistory === (test.test_id + test.timestamp);
                                     return (
-                                        <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="font-medium text-slate-200 flex items-center gap-2">
-                                                    <span className="bg-blue-500/10 text-blue-400 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">{test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || 'CONV-??'}</span>
-                                                    <span>{test.label || test.test_id?.split(' (')[0]}</span>
-                                                </div>
-                                                <div className="text-xs text-slate-500">{new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] border ${verdict.bg.replace('/10', '/30')} ${verdict.color}`}>
-                                                    {verdict.label}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`font-mono text-sm font-bold ${test.max_blackout_ms > 0 ? 'text-orange-400' : 'text-slate-400'}`}>
-                                                    {formatMs(test.max_blackout_ms)}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="flex flex-col items-center">
-                                                    <span className={`font-mono text-sm font-bold ${test.loss_pct > 2 ? 'text-red-400' : 'text-slate-400'}`}>
-                                                        {test.loss_pct}%
-                                                    </span>
-                                                    <div className="flex gap-2 text-[9px] mt-1 font-mono">
-                                                        <span className="text-red-400/70" title="Uplink Loss">↑ {test.tx_loss_pct || 0}% ({test.tx_loss_ms || 0}ms)</span>
-                                                        <span className="text-blue-400/70" title="Downlink Loss">↓ {test.rx_loss_pct || 0}% ({test.rx_loss_ms || 0}ms)</span>
+                                        <React.Fragment key={idx}>
+                                            <tr
+                                                className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-500/5' : ''}`}
+                                                onClick={() => setExpandedHistory(isExpanded ? null : (test.test_id + test.timestamp))}
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <div className="font-medium text-slate-200 flex items-center gap-2">
+                                                        <span className="bg-blue-500/10 text-blue-400 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">
+                                                            {test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || 'CONV-??'}
+                                                        </span>
+                                                        <span>{test.label || test.test_id?.split(' (')[0]}</span>
+                                                        <ChevronRight size={14} className={`text-slate-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <span className="text-blue-400 font-mono text-xs">{test.rate_pps || test.rate || '--'} pps</span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <span className="text-slate-500 font-mono text-xs">{test.source_port}</span>
-                                            </td>
-                                        </tr>
+                                                    <div className="text-[10px] text-slate-500 mt-1">{new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded font-bold text-[9px] border ${verdict.bg.replace('/10', '/30')} ${verdict.color} tracking-widest`}>
+                                                        {verdict.label}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex flex-col">
+                                                        <span className={`font-mono text-sm font-bold ${test.max_blackout_ms > 0 ? 'text-orange-400' : 'text-slate-400'}`}>
+                                                            {formatMs(test.max_blackout_ms || 0)}
+                                                        </span>
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Max Blackout</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="flex gap-2 text-[10px] font-mono font-bold">
+                                                            <span className="text-green-500">S: {test.sent}</span>
+                                                            <span className="text-blue-500 text-opacity-80">R: {test.received}</span>
+                                                        </div>
+                                                        <div className="flex gap-2 text-[9px] mt-1 font-mono uppercase font-bold">
+                                                            <span className={test.loss_pct > 0 ? 'text-red-400' : 'text-slate-600'}>Loss: {test.loss_pct}%</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="text-[10px] font-mono text-slate-400">{test.rate_pps || test.rate || '--'} pps</div>
+                                                    <div className="text-[9px] font-mono text-slate-600 uppercase">Port: {test.source_port}</div>
+                                                </td>
+                                            </tr>
+                                            {isExpanded && (
+                                                <tr className="bg-slate-950/80">
+                                                    <td colSpan={5} className="px-6 py-4 border-l-2 border-blue-500">
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                                    <BarChart3 size={12} /> Historical Failover Timeline
+                                                                </h4>
+                                                                <div className="flex gap-3 text-[9px] font-bold">
+                                                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-blue-500" /> <span className="text-slate-400 uppercase">Success</span></div>
+                                                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-red-500" /> <span className="text-slate-400 uppercase">Drop / Outage</span></div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="h-4 w-full flex gap-0.5 rounded overflow-hidden">
+                                                                {(test.history || Array(100).fill(1)).map((val: number, i: number) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        className={`flex-1 min-w-[1px] ${val === 1 ? 'bg-blue-500/40' : 'bg-red-500 shadow-lg shadow-red-500/50'}`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <div className="grid grid-cols-4 gap-4 pt-2">
+                                                                <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
+                                                                    <div className="text-[8px] text-slate-500 font-bold uppercase">Uplink Loss</div>
+                                                                    <div className="text-xs font-mono font-bold text-red-400">↑ {test.tx_loss_pct || 0}%</div>
+                                                                </div>
+                                                                <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
+                                                                    <div className="text-[8px] text-slate-500 font-bold uppercase">Downlink Loss</div>
+                                                                    <div className="text-xs font-mono font-bold text-blue-400">↓ {test.rx_loss_pct || 0}%</div>
+                                                                </div>
+                                                                <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
+                                                                    <div className="text-[8px] text-slate-500 font-bold uppercase">Avg Latency</div>
+                                                                    <div className="text-xs font-mono font-bold text-slate-300">{test.avg_rtt_ms || 0}ms</div>
+                                                                </div>
+                                                                <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
+                                                                    <div className="text-[8px] text-slate-500 font-bold uppercase">Jitter (ms)</div>
+                                                                    <div className="text-xs font-mono font-bold text-slate-300">{test.jitter_ms || 0}ms</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
                                     );
                                 })}
                                 {history.length === 0 && !loadingHistory && (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-slate-500 italic">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">
                                             No failover tests recorded yet.
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <div className="md:col-span-1 space-y-4 order-1 md:order-2">
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        Failover Thresholds
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3">
+                        {[
+                            { color: 'text-green-400', label: 'GOOD', range: '< 1s', desc: 'Typical SD-WAN sub-second or near-second convergence.' },
+                            { color: 'text-orange-400', label: 'DEGRADED', range: '1s - 5s', desc: 'Noticeable outage. Video freeze and voice drops expected.' },
+                            { color: 'text-red-400', label: 'CRITICAL', range: '> 5s', desc: 'Major network blackout. Application session risk.' }
+                        ].map(v => (
+                            <div key={v.label} className="bg-slate-900/30 border border-slate-800 p-3 rounded-xl flex gap-3 shadow-sm">
+                                <div className={`font-bold text-[10px] min-w-[60px] ${v.color}`}>{v.label}</div>
+                                <div>
+                                    <div className="text-[10px] font-bold text-slate-200">{v.range}</div>
+                                    <div className="text-[9px] text-slate-500 leading-tight mt-1">{v.desc}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl space-y-2">
+                        <div className="flex items-center gap-2 text-blue-400">
+                            <Info size={14} />
+                            <span className="text-[10px] font-bold uppercase tracking-tight">Pro Tip</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-relaxed">
+                            Click on any historical test row to view the detailed **Failover Timeline** chart and directional loss metrics.
+                        </p>
                     </div>
                 </div>
             </div>
