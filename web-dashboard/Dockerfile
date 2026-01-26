@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     iperf3 \
     python3 \
+    python3-scapy \
     && rm -rf /var/lib/apt/lists/*
 
 COPY web-dashboard/package*.json ./
