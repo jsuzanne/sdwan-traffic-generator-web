@@ -1,13 +1,11 @@
 services:
-  # Voice Echo Server - Standalone Target
-  # Deploy this on your remote sites (DMZ, Cloud, Branch)
+  # Voice Echo Server - Standalone Target (Unified with iperf3)
   voice-echo:
     image: jsuzanne/sdwan-voice-echo:latest
     container_name: sdwan-voice-echo
-    hostname: sdwan-voice-echo
     restart: unless-stopped
     ports:
       - "6100-6101:6100-6101/udp"
-      - "5201:5201/tcp"
-      - "5201:5201/udp"
+      - "5201:5201/tcp" # Pour iperf3 (UDP Quality Probes)
+      - "5201:5201/udp" # Pour iperf3 (UDP Quality Probes)
     # No configuration needed, it just bounces back UDP packets
