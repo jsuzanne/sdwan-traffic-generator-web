@@ -76,6 +76,27 @@ If you want to switch a site from "Dashboard" to "Target Site" mode:
 
 ---
 
+## 💾 Configuration Backup & Recovery
+
+You can backup your entire system configuration (apps, security tests, and users) into a single portable JSON file.
+
+### Exporting (Backup)
+1. Go to the **System** tab.
+2. Click **"Download Backup Bundle"**.
+3. Save the resulting `.json` file. This includes all your custom tuning, users, and probes.
+
+### Importing (Restore / Clone)
+To restore a backup or clone it to another site (e.g., from DC1 to Branch A):
+1. Install a fresh instance of SD-WAN Traffic Generator on the new site.
+2. Go to the **System** tab.
+3. Click **"Upload & Restore Bundle"** and select your saved JSON file.
+4. The system will apply the settings and restart automatically.
+
+> [!WARNING]
+> Restoring a bundle will overwrite all current settings in the `config/` directory.
+
+---
+
 ## ❓ Troubleshooting Updates
 
 **Issue: "Update failed" in UI**

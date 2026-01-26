@@ -136,6 +136,96 @@ export default function System({ token }: { token: string }) {
                     </div>
                 </div>
 
+                {/* Configuration Backup & Restore */}
+                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
+                            <Download size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-100">Configuration Backup</h3>
+                            <p className="text-slate-400 text-xs">Export or Restore your entire system settings.</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg">
+                            <h4 className="text-sm font-bold text-slate-300 mb-2">Export Configuration</h4>
+                            <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+                                Download a JSON bundle containing your applications, security tests, connectivity probes, and user accounts.
+                            </p>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const res = await fetch('/api/admin/config/export', {
+                                            headers: { 'Authorization': `Bearer ${token}` }
+                                        });
+                                        const data = await res.json();
+                                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                                        const url = window.URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `sdwan-config-${new Date().toISOString().split('T')[0]}.json`;
+                                        a.click();
+                                    } catch (e) { alert('Export failed'); }
+                                }}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-all border border-slate-700"
+                            >
+                                <Download size={14} /> Download Backup Bundle
+                            </button>
+                        </div>
+
+                        <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg">
+                            <h4 className="text-sm font-bold text-slate-300 mb-2">Restore Configuration</h4>
+                            <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+                                Upload a backup bundle to restore settings. <strong>This will overwrite current settings and restart the system.</strong>
+                            </p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="file"
+                                    id="config-upload"
+                                    className="hidden"
+                                    accept=".json"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        if (!confirm('Are you sure you want to RESTORE this configuration? Current settings will be lost.')) return;
+
+                                        const reader = new FileReader();
+                                        reader.onload = async (event) => {
+                                            try {
+                                                const bundle = JSON.parse(event.target?.result as string);
+                                                const res = await fetch('/api/admin/config/import', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Authorization': `Bearer ${token}`,
+                                                        'Content-Type': 'application/json'
+                                                    },
+                                                    body: JSON.stringify({ bundle })
+                                                });
+                                                if (res.ok) {
+                                                    alert('Configuration restored! System is restarting...');
+                                                    window.location.reload();
+                                                } else {
+                                                    const err = await res.json();
+                                                    alert('Restore failed: ' + err.message);
+                                                }
+                                            } catch (err) { alert('Invalid backup file'); }
+                                        };
+                                        reader.readAsText(file);
+                                    }}
+                                />
+                                <button
+                                    onClick={() => document.getElementById('config-upload')?.click()}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-xs font-bold transition-all border border-blue-500/30"
+                                >
+                                    <RefreshCw size={14} /> Upload & Restore Bundle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Remote Access Guidelines */}
                 <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-6">

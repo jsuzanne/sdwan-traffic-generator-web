@@ -3376,6 +3376,80 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
     }
 });
 
+// --- Phase 18: Backup & Restore ---
+
+app.get('/api/admin/config/export', authenticateToken, (req, res) => {
+    try {
+        const configDir = APP_CONFIG.configDir;
+        const files = fs.readdirSync(configDir);
+        const bundle: Record<string, string> = {};
+
+        files.forEach(file => {
+            // Include only relevant config files, exclude backups and temporary files
+            if ((file.endsWith('.txt') || file.endsWith('.json')) &&
+                !file.includes('.backup') &&
+                !file.includes('.fixed') &&
+                file !== 'test-counter.json') { // We might want to keep counters local
+
+                const content = fs.readFileSync(path.join(configDir, file), 'utf8');
+                bundle[file] = content;
+            }
+        });
+
+        const version = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim();
+
+        res.json({
+            version,
+            timestamp: new Date().toISOString(),
+            files: bundle
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Export failed', message: e.message });
+    }
+});
+
+app.post('/api/admin/config/import', authenticateToken, async (req, res) => {
+    const { bundle } = req.body;
+    if (!bundle || !bundle.files) {
+        return res.status(400).json({ error: 'Invalid configuration bundle' });
+    }
+
+    try {
+        const configDir = APP_CONFIG.configDir;
+        const backupDir = path.join(configDir, '.pre-import-backup-' + Date.now());
+
+        // 1. Snapshot current config
+        fs.mkdirSync(backupDir, { recursive: true });
+        const currentFiles = fs.readdirSync(configDir);
+        currentFiles.forEach(file => {
+            const fullPath = path.join(configDir, file);
+            if (fs.lstatSync(fullPath).isFile()) {
+                fs.copyFileSync(fullPath, path.join(backupDir, file));
+            }
+        });
+
+        // 2. Apply new config
+        console.log(`[CONFIG] Importing ${Object.keys(bundle.files).length} files...`);
+        for (const [filename, content] of Object.entries(bundle.files)) {
+            // Security check: only allow specific file types and prevent path traversal
+            if ((filename.endsWith('.txt') || filename.endsWith('.json')) && !filename.includes('/') && !filename.includes('\\')) {
+                fs.writeFileSync(path.join(configDir, filename), content as string, 'utf8');
+            }
+        }
+
+        res.json({ success: true, message: 'Configuration restored. Restarting system...' });
+
+        // 3. Restart to apply
+        setTimeout(() => {
+            console.log('[CONFIG] 🔄 Restarting for configuration shift...');
+            process.exit(0);
+        }, 2000);
+
+    } catch (e: any) {
+        res.status(500).json({ error: 'Import failed', message: e.message });
+    }
+});
+
 app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) => {
     console.log('[MAINTENANCE] Upgrade requested...');
     const execPromise = promisify(exec);
