@@ -9,10 +9,10 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     restart: unless-stopped
-    network_mode: host
     cap_add:
-      - NET_ADMIN
       - NET_RAW
+    ports:
+      - "${WEB_UI_PORT:-8444}:8080"
     volumes:
       - ./config:/app/config
       - traffic_logs:/var/log/sdwan-traffic-gen
@@ -20,7 +20,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NODE_ENV=production
-      - PORT=8444
+      - PORT=8080
       - CONFIG_DIR=/app/config
       - LOG_DIR=/var/log/sdwan-traffic-gen
       - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7}
@@ -62,6 +62,7 @@ services:
       dockerfile: Dockerfile.voice
     container_name: sdwan-voice-gen
     restart: unless-stopped
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -80,9 +81,7 @@ services:
     container_name: sdwan-voice-echo
     restart: unless-stopped
     ports:
-      - "6100-6101:6100-6101/udp"
-      - "5201:5201/tcp"
-      - "5201:5201/udp"
+      - "6100:6100/udp"
     volumes:
       - ./voip:/app/voip
       - ./VERSION:/app/VERSION:ro

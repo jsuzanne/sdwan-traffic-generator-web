@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.99] - 2026-01-26
+
+### Fixed
+- **Rollback**: Reverted all networking and port changes introduced in v97 and v98.
+- **Port Stability**: Restored **UDP 6100** as the single port for both Voice and Convergence traffic.
+- **Infrastructure**: Restored Dashboard to bridge mode (preserving port 8444 mapping) and reverted host networking changes.
+- **Code**: Removed packet padding and argument aliases from the convergence orchestrator.
+
 ## [1.1.0-patch.98] - 2026-01-26
 
 ### Fixed
