@@ -1,191 +1,182 @@
 #!/usr/bin/env python3
 import time
-import socket
-import json
 import argparse
-import threading
-import os
 import random
+import logging
+import warnings
+import threading
+import json
+import os
+import socket
 
-class ConvergenceOrchestrator:
-    def __init__(self, target_ip, target_port, rate=50, test_id="TEST-000"):
-        self.target_ip = target_ip
-        self.target_port = target_port
-        self.rate = rate
-        self.interval = 1.0 / rate
-        self.test_id = test_id
-        self.start_time = time.time()
-        self.warmup_duration = 0.0 # Standardized to 0 by default for faster startup
-        
-        self.stop_event = threading.Event()
-        self.metrics = {
-            "test_id": self.test_id,
-            "status": "starting",
-            "start_time": self.start_time,
-            "sent": 0,
-            "received": 0,
-            "server_received": 0,
-            "loss_pct": 0,
-            "tx_loss_pct": 0,
-            "rx_loss_pct": 0,
-            "tx_loss_ms": 0,
-            "rx_loss_ms": 0,
-            "current_blackout_ms": 0,
-            "max_blackout_ms": 0,
-            "last_seq": 0,
-            "source_port": 0,
-            "history": [],
-            "rate_pps": rate
-        }
-        
+# Disable warnings for clean logs
+warnings.filterwarnings("ignore")
+logging.getLogger("scapy").setLevel(logging.ERROR)
+
+from scapy.layers.inet import IP, UDP
+from scapy.packet import Raw
+from scapy.sendrecv import send
+
+class ConvergenceMetrics:
+    def __init__(self, rate):
+        self.sent_times = {} # seq -> sent_time
+        self.rtts = []
         self.received_seqs = set()
-        self.last_received_time = time.time()
+        self.last_transit_time = None
+        self.jitter = 0
+        self.last_rcvd_time = time.time()
+        self.max_blackout = 0
+        self.server_received = 0
         self.lock = threading.Lock()
+        self.interval = 1.0 / rate
 
-    def update_stats_file(self):
-        try:
-            with open(self.stats_file, "w") as f:
-                json.dump(self.metrics, f)
-        except: pass
+    def record_send(self, seq, timestamp):
+        with self.lock:
+            self.sent_times[seq] = timestamp
 
-    def receiver(self, sock):
-        sock.settimeout(0.5)
-        while not self.stop_event.is_set():
+    def record_receive(self, seq, server_count, receive_time):
+        with self.lock:
+            if seq in self.received_seqs:
+                return
+            
+            self.received_seqs.add(seq)
+            self.last_rcvd_time = receive_time
+            
+            if server_count > self.server_received:
+                self.server_received = server_count
+
+            if seq in self.sent_times:
+                sent_time = self.sent_times[seq]
+                rtt = (receive_time - sent_time) * 1000 # ms
+                self.rtts.append(rtt)
+                
+                # Jitter calculation (RFC 3550)
+                transit_time = receive_time - sent_time
+                if self.last_transit_time is not None:
+                    d = abs(transit_time - self.last_transit_time)
+                    self.jitter = self.jitter + (d - self.jitter) / 16
+                self.last_transit_time = transit_time
+
+def receiver_thread(port, metrics, stop_event):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(0.5)
+    try:
+        sock.bind(('0.0.0.0', port))
+        while not stop_event.is_set():
             try:
-                data, addr = sock.recvfrom(1024)
+                data, addr = sock.recvfrom(2048)
                 now = time.time()
                 
-                # Payload format: TEST_ID:SEQ:TIMESTAMP[:S<server_count>]
+                # Payload: CONV:ID:LABEL:SEQ:TS[:S<count>]
                 try:
                     payload = data.decode('utf-8', errors='ignore')
                     parts = payload.split(':')
-                    if len(parts) >= 2:
-                        seq = int(parts[1])
+                    if len(parts) >= 4:
+                        seq = int(parts[3])
                         server_count = 0
-                        
-                        # Look for :S<count> suffix
                         for part in parts:
                             if part.startswith('S') and part[1:].isdigit():
                                 server_count = int(part[1:])
                                 break
-
-                        with self.lock:
-                            self.received_seqs.add(seq)
-                            self.metrics["received"] += 1
-                            if server_count > self.metrics["server_received"]:
-                                self.metrics["server_received"] = server_count
-                            
-                            self.last_received_time = now
-                            
-                            self.metrics["history"].append(1)
-                            if len(self.metrics["history"]) > 100:
-                                self.metrics["history"].pop(0)
-
+                        metrics.record_receive(seq, server_count, now)
                 except: pass
             except socket.timeout:
                 continue
-            except: break
-
-    def run(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        source_port = random.randrange(30000, 60000)
-        sock.bind(('0.0.0.0', source_port))
-        self.metrics["source_port"] = source_port
-        
-        # Consistent label format: [CONV-XXX] Label
-        log_id = self.test_id
-        label = "Unknown"
-        if " (" in log_id:
-            label = log_id.split(" (")[0]
-            log_id = log_id.split(" (")[-1].replace(")", "")
-        elif "(" in log_id:
-             log_id = log_id.split("(")[-1].replace(")", "")
-        
-        print(f"[{log_id}] [{time.strftime('%H:%M:%S')}] 📡 CONVERGENCE STARTED: {self.target_ip}:{self.target_port} | Rate: {self.rate}pps | Label: {label}", flush=True)
-        print(f"[{log_id}] [{time.strftime('%H:%M:%S')}] ⚙️  Source Port: {source_port} | Warmup: {self.warmup_duration}s", flush=True)
-        
-        t = threading.Thread(target=self.receiver, args=(sock,))
-        t.daemon = True
-        t.start()
-        
-        seq = 0
-        self.metrics["status"] = "running"
-        
-        try:
-            while not self.stop_event.is_set():
-                seq += 1
-                ts = time.time()
-                is_warmup = (ts - self.start_time) < self.warmup_duration
-                
-                payload = f"{self.test_id}:{seq}:{ts}".encode()
-                sock.sendto(payload, (self.target_ip, self.target_port))
-                
-                with self.lock:
-                    self.metrics["sent"] = seq
-                    
-                    outage_duration = (ts - self.last_received_time) * 1000
-                    if outage_duration > (self.interval * 2000):
-                        cur_blackout = round(outage_duration)
-                        self.metrics["current_blackout_ms"] = cur_blackout
-                        
-                        if not is_warmup:
-                            if cur_blackout > self.metrics["max_blackout_ms"]:
-                                self.metrics["max_blackout_ms"] = cur_blackout
-                    else:
-                        self.metrics["current_blackout_ms"] = 0
-                    
-                    if seq > 1:
-                        denominator = seq - 1
-                        total_rcvd = self.metrics["received"]
-                        srv_rcvd = self.metrics["server_received"]
-                        
-                        # Overall Loss
-                        loss_val = round((1 - (total_rcvd / denominator)) * 100, 1)
-                        
-                        # TX Loss (Client -> Server)
-                        # Only calculate if we have server feedback
-                        if srv_rcvd > 0:
-                            tx_loss = round((1 - (srv_rcvd / denominator)) * 100, 1)
-                            rx_loss = round((1 - (total_rcvd / srv_rcvd)) * 100, 1)
-                            tx_lost_pkts = max(0, denominator - srv_rcvd)
-                            rx_lost_pkts = max(0, srv_rcvd - total_rcvd)
-                        else:
-                            # If no server feedback yet, we can't separate but it's likely TX if total loss > 0
-                            tx_loss = loss_val
-                            rx_loss = 0
-                            tx_lost_pkts = max(0, denominator - total_rcvd)
-                            rx_lost_pkts = 0
-
-                        if not is_warmup:
-                            self.metrics["loss_pct"] = max(0, loss_val)
-                            self.metrics["tx_loss_pct"] = max(0, tx_loss)
-                            self.metrics["rx_loss_pct"] = max(0, rx_loss)
-                            self.metrics["tx_loss_ms"] = round(tx_lost_pkts * self.interval * 1000)
-                            self.metrics["rx_loss_ms"] = round(rx_lost_pkts * self.interval * 1000)
-
-                if seq % 10 == 0:
-                    self.update_stats_file()
-                
-                time.sleep(self.interval)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            self.stop_event.set()
-            self.metrics["status"] = "finished"
-            self.metrics["end_time"] = time.time()
-            self.update_stats_file()
-            sock.close()
-            print(f"[{log_id}] [{time.strftime('%H:%M:%S')}] ⏹️  CONVERGENCE STOPPED: Max Blackout: {self.metrics['max_blackout_ms']}ms", flush=True)
+    except Exception as e:
+        if not stop_event.is_set():
+            print(f"Receiver error: {e}")
+    finally:
+        sock.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--target", required=True)
-    parser.add_argument("--port", type=int, default=6100)
-    parser.add_argument("--rate", type=int, default=50)
-    parser.add_argument("--id", default="TEST-000")
+    parser.add_argument("--target", "-D", required=True)
+    parser.add_argument("--port", "-dport", type=int, default=6200)
+    parser.add_argument("--rate", "-C", type=int, default=50)
+    parser.add_argument("--id", default="CONV-000")
+    parser.add_argument("--interface", "-i", default=None)
     parser.add_argument("--stats-file", default="/tmp/convergence_stats.json")
     args = parser.parse_args()
 
-    orchestrator = ConvergenceOrchestrator(args.target, args.port, args.rate, args.id)
-    orchestrator.stats_file = args.stats_file # Override default
-    orchestrator.run()
+    metrics = ConvergenceMetrics(args.rate)
+    stop_event = threading.Event()
+    source_port = random.randrange(30000, 60000)
+
+    # Start receiver
+    t = threading.Thread(target=receiver_thread, args=(source_port, metrics, stop_event))
+    t.daemon = True
+    t.start()
+
+    print(f"[{args.id}] [{time.strftime('%H:%M:%S')}] 📡 CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps | Interface: {args.interface or 'Auto'}", flush=True)
+    print(f"[{args.id}] [{time.strftime('%H:%M:%S')}] ⚙️  Source Port: {source_port} (Scapy L3)", flush=True)
+
+    seq = 0
+    start_time = time.time()
+    
+    try:
+        while not stop_event.is_set():
+            seq += 1
+            now = time.time()
+            ts = time.time()
+            
+            # Payload: CONV:ID:LABEL:SEQ:TIMESTAMP
+            payload_str = f"CONV:{args.id}:None:{seq}:{ts}"
+            packet = IP(dst=args.target)/UDP(sport=source_port, dport=args.port)/Raw(load=payload_str)
+            
+            metrics.record_send(seq, ts)
+            
+            # Send (L3)
+            if args.interface:
+                send(packet, iface=args.interface, verbose=False)
+            else:
+                send(packet, verbose=False)
+
+            # Update Max Blackout
+            with metrics.lock:
+                outage = (now - metrics.last_rcvd_time) * 1000
+                if outage > (metrics.interval * 2000):
+                    metrics.max_blackout = max(metrics.max_blackout, round(outage))
+                
+                # Prepare stats export
+                rcvd = len(metrics.received_seqs)
+                total_loss = round((1 - (rcvd/seq)) * 100, 1) if seq > 0 else 0
+                
+                # Directional Loss (only if we have server feedback)
+                tx_loss = 0
+                rx_loss = 0
+                if metrics.server_received > 0:
+                    tx_loss = round((1 - (metrics.server_received / seq)) * 100, 1)
+                    rx_loss = round((1 - (rcvd / metrics.server_received)) * 100, 1)
+                else:
+                    tx_loss = total_loss
+
+                stats = {
+                    "test_id": args.id,
+                    "status": "running",
+                    "sent": seq,
+                    "received": rcvd,
+                    "loss_pct": max(0, total_loss),
+                    "tx_loss_pct": max(0, tx_loss),
+                    "rx_loss_pct": max(0, rx_loss),
+                    "max_blackout_ms": metrics.max_blackout,
+                    "current_blackout_ms": round(outage) if outage > (metrics.interval * 2000) else 0,
+                    "avg_rtt_ms": round(sum(metrics.rtts)/len(metrics.rtts), 2) if metrics.rtts else 0,
+                    "jitter_ms": round(metrics.jitter * 1000, 2),
+                    "source_port": source_port,
+                    "rate_pps": args.rate
+                }
+                
+                if seq % 5 == 0:
+                    try:
+                        with open(args.stats_file, 'w') as f:
+                            json.dump(stats, f)
+                    except: pass
+
+            time.sleep(metrics.interval)
+            
+    except KeyboardInterrupt:
+        pass
+    finally:
+        stop_event.set()
+        print(f"[{args.id}] [{time.strftime('%H:%M:%S')}] ⏹️  CONVERGENCE STOPPED: Max Blackout: {metrics.max_blackout}ms", flush=True)
+        t.join(1.0)

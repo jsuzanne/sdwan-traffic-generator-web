@@ -10,9 +10,11 @@ services:
       - 8.8.4.4
     restart: unless-stopped
     cap_add:
+      - NET_ADMIN
       - NET_RAW
     ports:
       - "${WEB_UI_PORT:-8444}:8080"
+      - "6200:6200/udp"
     volumes:
       - ./config:/app/config
       - traffic_logs:/var/log/sdwan-traffic-gen
@@ -82,6 +84,7 @@ services:
     restart: unless-stopped
     ports:
       - "6100:6100/udp"
+      - "6200:6200/udp"
     volumes:
       - ./voip:/app/voip
       - ./VERSION:/app/VERSION:ro

@@ -16,6 +16,7 @@ RUN chmod +x /app/voip/start_echo.sh
 
 # Expose ports
 EXPOSE 6100/udp
+EXPOSE 6200/udp
 EXPOSE 5201/tcp
 EXPOSE 5201/udp
 

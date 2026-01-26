@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.100] - 2026-01-26
+
+### Added
+- **Scapy Convergence Engine**: New professional-grade convergence probe using Scapy L3 for better SD-WAN visibility.
+- **Advanced Metrics**: Real-time **Jitter** (RFC 3550) and **Latency** (RTT) reporting in Convergence Lab.
+- **Port 6200**: Standardized as the default port for performance/convergence testing.
+- **Multi-Port Echo Server**: Updated `echo_server.py` to listen on multiple ports (6100 and 6200) simultaneously using threading.
+
+### Changed
+- **Default Convergence Port**: Changed from 6100 to 6200.
+- **Dashboard Infrastructure**: Retained Bridge Mode but added required UDP 6200 mapping and Scapy capabilities (`NET_RAW`, `NET_ADMIN`).
+
 ## [1.1.0-patch.99] - 2026-01-26
 
 ### Fixed
