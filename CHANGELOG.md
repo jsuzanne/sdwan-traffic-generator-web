@@ -5,17 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0-patch.103] - 2026-01-26
-
+## [1.1.2-patch.1] - 2026-01-26
 ### Added
 - **Visual Failover History**: Test history rows are now clickable to reveal an interactive **Failover Timeline** (Blue/Red sequence chart).
-- **Test Chrono**: Added a live duration timer to the active convergence test window.
-- **Absolute Counters**: Replaced percentages with raw **Sent** and **Received** packet counts in real-time UI and history.
-- **Standardized Logging**: Unified log formats with `[CONV-XXX] [HH:MM:SS] Label` prefix across Generator, Orchestrator, and Echo Server.
+- **Test Chrono**: Added a live duration timer and absolute **Sent / Received** packet counts to the active convergence test window.
+- **Log Refinement**: Standardized log format to `[ID] ICON [HH:MM:SS] Label - Message` across all components (Orchestrator, Echo Server, Backend).
+- **Professional Scapy Engine**: Accurate UDP probing for high-precision failover testing.
 
-### Changed
-- **UI Refinement**: Removed redundant percentage circles from the active test view to improve clarity.
-- **Layout**: Prioritized **Test History** by moving it to the prominent left position and improved table scanning.
+### Fixed
+- **Critical Stability**: Fixed a fatal `TransformError` (duplicate variable declaration) that caused the dashboard to crash on startup.
+- **Echo Server**: Improved ID and Label parsing for clearer session tracking.
+- **Port Standardization**: Standardized port `6200` for all convergence testing.
+
+## [1.1.0-patch.103] - 2026-01-26
 
 ## [1.1.0-patch.102] - 2026-01-26
 

@@ -29,19 +29,23 @@ def handle_port(ip, port, active_sessions, lock):
                 
                 # Extract IDs
                 detected_id = "Unknown"
+                detected_label = "Unknown"
                 session_type = "Voice"
                 try:
                     payload_str = data.decode('utf-8', errors='ignore')
                     if "CID:" in payload_str:
                         detected_id = payload_str.split("CID:")[1].split(":")[0]
+                        detected_label = "" # Voice calls don't have separate labels yet
                     elif "CONV:" in payload_str:
                         # Format: CONV:TEST-ID:LABEL:SEQ:TS
                         parts = payload_str.split(':')
-                        if len(parts) >= 2:
+                        if len(parts) >= 3:
                             detected_id = parts[1]
+                            detected_label = parts[2]
                             session_type = "Convergence"
                     elif "TEST-" in payload_str:
                         detected_id = payload_str.split(":")[0]
+                        detected_label = ""
                         session_type = "Convergence"
                 except: pass
 
@@ -53,11 +57,13 @@ def handle_port(ip, port, active_sessions, lock):
                             log_id = f"{prefix}-{log_id}"
                         
                         timestamp = time.strftime('%H:%M:%S')
-                        print(f"[{log_id}] [{timestamp}] {detected_id} - 📥 RECEIVED ON PORT {port}: {addr[0]}:{addr[1]}", flush=True)
+                        label_str = f" {detected_label} -" if detected_label else ""
+                        print(f"[{log_id}] 📥 [{timestamp}]{label_str} RECEIVED ON PORT {port}: {addr[0]}:{addr[1]}", flush=True)
                     
                     session = active_sessions.get(addr, {"packet_count": 0, "start_time": now, "port": port})
                     session["last_seen"] = now
                     session["id"] = detected_id
+                    session["label"] = detected_label
                     session["type"] = session_type
                     session["packet_count"] += 1
                     active_sessions[addr] = session
@@ -88,16 +94,10 @@ def maintenance(active_sessions, lock):
         with lock:
             for addr, session in active_sessions.items():
                 if now - session['last_seen'] > 5.0:
-                    id_val = session['id']
-                    label = id_val # Use the simplified ID/Label
-                    prefix = "CONV" if session["type"] == "Convergence" else "CALL"
-                    
-                    if not (id_val.startswith("CONV-") or id_val.startswith("CALL-")):
-                        id_val = f"{prefix}-{id_val}"
-                    
                     timestamp = time.strftime('%H:%M:%S')
                     duration = int(now - session['start_time'] - 5.0)
-                    print(f"[{id_val}] [{timestamp}] {label} - ⏹️  COMPLETED ON PORT {session['port']}: {addr[0]}:{addr[1]} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
+                    label_str = f" {session.get('label', '')} -" if session.get('label') else ""
+                    print(f"[{id_val}] ✅ [{timestamp}]{label_str} COMPLETED ON PORT {session['port']}: {addr[0]}:{addr[1]} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
                     to_remove.append(addr)
             
             for addr in to_remove:

@@ -118,8 +118,8 @@ if __name__ == "__main__":
          log_id = log_id.split("(")[-1].replace(")", "")
     
     timestamp = time.strftime('%H:%M:%S')
-    print(f"[{log_id}] [{timestamp}] {label} - 📡 CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps | Interface: {args.interface or 'Auto'}", flush=True)
-    print(f"[{log_id}] [{timestamp}] {label} - ⚙️  Source Port: {source_port} (Scapy L3)", flush=True)
+    print(f"[{log_id}] 🚀 [{timestamp}] {label} - CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps | Interface: {args.interface or 'Auto'}", flush=True)
+    print(f"[{log_id}] ⚙️  [{timestamp}] {label} - Source Port: {source_port} (Scapy L3)", flush=True)
 
     seq = 0
     start_time = time.time()
@@ -131,7 +131,7 @@ if __name__ == "__main__":
             ts = time.time()
             
             # Payload: CONV:ID:LABEL:SEQ:TIMESTAMP
-            payload_str = f"CONV:{args.id}:None:{seq}:{ts}"
+            payload_str = f"CONV:{log_id}:{label}:{seq}:{ts}"
             packet = IP(dst=args.target)/UDP(sport=source_port, dport=args.port)/Raw(load=payload_str)
             
             metrics.record_send(seq, ts)
@@ -211,5 +211,5 @@ if __name__ == "__main__":
         rx_lost = max(0, metrics.server_received - rcvd) if metrics.server_received > 0 else 0
         
         timestamp = time.strftime('%H:%M:%S')
-        print(f"[{log_id}] [{timestamp}] {label} - ⏹️  CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} (Lost: {rx_lost}) | Max Blackout: {metrics.max_blackout}ms", flush=True)
+        print(f"[{log_id}] ⏹️  [{timestamp}] {label} - CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} (Lost: {rx_lost}) | Max Blackout: {metrics.max_blackout}ms", flush=True)
         t.join(1.0)
