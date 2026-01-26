@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     iperf3 \
     python3 \
     python3-scapy \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 COPY web-dashboard/package*.json ./

@@ -5,7 +5,7 @@
 services:
   # Web Dashboard - User Interface and API
   sdwan-web-ui:
-    image: jsuzanne/sdwan-web-ui:1.1.0-patch.97
+    image: jsuzanne/sdwan-web-ui:stable
     container_name: sdwan-web-ui
     dns:
       - 8.8.8.8

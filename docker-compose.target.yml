@@ -1,0 +1,18 @@
+# SD-WAN Traffic Generator - Target Site Configuration (Echo Server)
+# This is a slimmed-down configuration for site-to-site convergence testing.
+
+services:
+  # Voice/Convergence Echo Server
+  sdwan-voice-echo:
+    image: jsuzanne/sdwan-voice-echo:stable
+    container_name: sdwan-voice-echo
+    hostname: sdwan-voice-target
+    ports:
+      - "6100:6100/udp"
+      - "6200:6200/udp"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

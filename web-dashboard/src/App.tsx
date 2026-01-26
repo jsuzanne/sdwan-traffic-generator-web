@@ -7,7 +7,8 @@ import Config from './Config';
 import Login from './Login';
 import ConnectivityPerformance from './ConnectivityPerformance';
 import Failover from './Failover';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap } from 'lucide-react';
+import System from './System';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap, Monitor } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -37,7 +38,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover'>('performance');
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system'>('performance');
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
@@ -72,6 +73,9 @@ export default function App() {
   const [showIperfModal, setShowIperfModal] = useState(false);
   const [iperfTarget, setIperfTarget] = useState('192.168.203.100');
   const [iperfServerInfo, setIperfServerInfo] = useState<any>(null);
+
+  // Maintenance State
+  const [maintenance, setMaintenance] = useState<{ updateAvailable: boolean } | null>(null);
 
   // Rate Calculation State - Use Refs to avoid stale closures in setInterval
   const prevTotalRequestsRef = useRef<number | null>(null);
@@ -416,6 +420,15 @@ export default function App() {
     } catch (e) { }
   };
 
+  const fetchMaintenance = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/admin/maintenance/version', { headers: authHeaders() });
+      const data = await res.json();
+      setMaintenance(data);
+    } catch (e) { }
+  };
+
 
   useEffect(() => {
     if (!token) return;
@@ -430,6 +443,7 @@ export default function App() {
     fetchConfigUi();
     fetchAppConfig();
     fetchIperfStatus();
+    fetchMaintenance();
 
     // Poll every refreshInterval (default 1s)
     const interval = setInterval(() => {
@@ -445,9 +459,14 @@ export default function App() {
       fetchIperfStatus();
     }, 30000);
 
+    const maintenanceInterval = setInterval(() => {
+      fetchMaintenance();
+    }, 3600000); // Check once per hour
+
     return () => {
       clearInterval(interval);
       clearInterval(connectivityInterval);
+      clearInterval(maintenanceInterval);
     };
   }, [token]);
 
@@ -674,6 +693,18 @@ export default function App() {
           )}
         >
           <Zap size={18} /> Failover
+        </button>
+        <button
+          onClick={() => setView('system')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors relative",
+            view === 'system' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Monitor size={18} /> System
+          {maintenance?.updateAvailable && (
+            <span className="absolute top-2 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-slate-950" />
+          )}
         </button>
       </div>
 
@@ -1051,10 +1082,9 @@ export default function App() {
         <Voice token={token!} />
       ) : view === 'failover' ? (
         <Failover token={token!} />
-      ) : (
-        <Config token={token!} />
-      )
-      }
+      ) : view === 'system' ? (
+        <System token={token!} />
+      ) : null}
     </div >
   );
 }

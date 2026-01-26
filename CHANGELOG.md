@@ -5,17 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.2-patch.1] - 2026-01-26
+## [1.1.2-patch.2] - 2026-01-26
 ### Added
-- **Visual Failover History**: Test history rows are now clickable to reveal an interactive **Failover Timeline** (Blue/Red sequence chart).
-- **Test Chrono**: Added a live duration timer and absolute **Sent / Received** packet counts to the active convergence test window.
-- **Log Refinement**: Standardized log format to `[ID] ICON [HH:MM:SS] Label - Message` across all components (Orchestrator, Echo Server, Backend).
-- **Professional Scapy Engine**: Accurate UDP probing for high-precision failover testing.
+- **UI-Driven Maintenance**: New "System" section in the dashboard to check version status and trigger one-click upgrades.
+- **One-Click Upgrade**: Automated `docker pull` and service restart via the dashboard (requires Docker socket mount).
+- **Target Mode Installation**: `install.sh` now supports a slimmed-down "Target Only" mode for convergence lab echo servers.
+- **Remote Access Guide**: Detailed documentation for Tailscale, Cloudflare Tunnels, and Reverse Proxies.
+- **Docker Verification**: Installation script now validates Docker installation and status before starting.
 
 ### Fixed
-- **Critical Stability**: Fixed a fatal `TransformError` (duplicate variable declaration) that caused the dashboard to crash on startup.
-- **Echo Server**: Improved ID and Label parsing for clearer session tracking.
-- **Port Standardization**: Standardized port `6200` for all convergence testing.
+- **Echo Server Bug**: Fixed a `NameError` crash in the maintenance loop due to an undefined variable.
+- **Standardized Tags**: Switched example configuration to use `stable` image tags for consistent updates.
+- **Backend Stability**: Cleaned up server-side route definitions and listener logic.
+
+## [1.1.2-patch.1] - 2026-01-26
 
 ## [1.1.0-patch.103] - 2026-01-26
 

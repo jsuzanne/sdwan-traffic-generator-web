@@ -41,8 +41,9 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 ### 🔧 Zero-Config Deployment
 - **Auto-detection** - Automatically detects network interfaces on first start
 - **Auto-generated Config** - Creates applications.txt with 67 apps automatically
-- **One-liner Install** - Ready in 30 seconds with single command (Linux/macOS)
-- **Docker-based** - Pre-built multi-platform images (AMD64 + ARM64)
+- **One-liner Install** - Ready in 30 seconds with single command (Linux/macOS). Supports **Dashboard** or **Target Site** modes.
+- **Docker-based** - Pre-built multi-platform images (AMD64 + ARM64).
+- **One-Click Upgrade** - Built-in maintenance UI to pull latest images and restart services with a single click.
 
 ### 🔒 Production Ready
 - **JWT Authentication** - Secure login with token-based auth
@@ -170,11 +171,12 @@ curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web
 ```
 
 This will:
-- ✅ Download docker-compose.yml
+- ✅ Check if Docker is installed and running
+- ✅ Let you choose between **Full Dashboard** or **Target Site**
+- ✅ Download the correct docker-compose.yml
 - ✅ Pull pre-built images from Docker Hub
 - ✅ Start services automatically
-- ✅ Auto-generate configuration (67 apps + interface detection)
-- ✅ Ready in 30 seconds
+- ✅ Auto-generate configuration
 
 **Access:** http://localhost:8080  
 **Credentials:** `admin` / `admin` (change after first login)
@@ -611,6 +613,7 @@ Comprehensive guides for all features:
 ### Logging & Monitoring
 - **[Persistent Logging](docs/PERSISTENT_LOGGING.md)** - Test results storage, search, and export
 - **[Connectivity Endpoints](docs/CONNECTIVITY_ENDPOINTS.md)** - System health monitoring
+- **[Remote Access Guide](docs/REMOTE_ACCESS.md)** - Guidelines for Tailscale, Cloudflare Tunnels, and Reverse Proxies
 
 ### Troubleshooting
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions

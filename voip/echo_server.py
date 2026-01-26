@@ -94,6 +94,11 @@ def maintenance(active_sessions, lock):
         with lock:
             for addr, session in active_sessions.items():
                 if now - session['last_seen'] > 5.0:
+                    id_val = session.get('id', 'Unknown')
+                    prefix = "CONV" if session.get("type") == "Convergence" else "CALL"
+                    if not (id_val.startswith("CONV-") or id_val.startswith("CALL-")):
+                        id_val = f"{prefix}-{id_val}"
+                    
                     timestamp = time.strftime('%H:%M:%S')
                     duration = int(now - session['start_time'] - 5.0)
                     label_str = f" {session.get('label', '')} -" if session.get('label') else ""

@@ -3324,7 +3324,92 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-app.listen(port, async () => {
+// Schedule daily log cleanup (runs at 2 AM)
+const scheduleLogCleanup = () => {
+    const now = new Date();
+    const tomorrow2AM = new Date(now);
+    tomorrow2AM.setDate(tomorrow2AM.getDate() + 1);
+    tomorrow2AM.setHours(2, 0, 0, 0);
+
+    const msUntil2AM = tomorrow2AM.getTime() - now.getTime();
+
+    setTimeout(async () => {
+        console.log('[LOG_CLEANUP] Running daily log cleanup...');
+        const deletedCount = await testLogger.cleanup();
+        console.log(`[LOG_CLEANUP] Deleted ${deletedCount} old log files`);
+
+        // Schedule next cleanup
+        scheduleLogCleanup();
+    }, msUntil2AM);
+
+    console.log(`[LOG_CLEANUP] Next cleanup scheduled for ${tomorrow2AM.toISOString()}`);
+};
+
+// --- Phase 17: Maintenance & System Upgrades ---
+
+app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) => {
+    try {
+        const currentVersion = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim();
+
+        const execPromise = promisify(exec);
+        let latestVersion = currentVersion;
+        let updateAvailable = false;
+
+        try {
+            const { stdout } = await execPromise('curl -s --connect-timeout 5 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/releases/latest');
+            const release = JSON.parse(stdout);
+            if (release && release.tag_name) {
+                latestVersion = release.tag_name.replace('v', '');
+                updateAvailable = (latestVersion !== currentVersion);
+            }
+        } catch (e) {
+            console.warn('[MAINTENANCE] Failed to fetch latest version from GitHub');
+        }
+
+        res.json({
+            current: currentVersion,
+            latest: latestVersion,
+            updateAvailable
+        });
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to check version' });
+    }
+});
+
+app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) => {
+    console.log('[MAINTENANCE] Upgrade requested...');
+    const execPromise = promisify(exec);
+
+    try {
+        console.log('[MAINTENANCE] 📦 Pulling latest stable images...');
+        try {
+            const rootDir = path.join(__dirname, '..');
+            if (fs.existsSync(path.join(rootDir, 'docker-compose.yml'))) {
+                await execPromise('docker compose pull', { cwd: rootDir });
+            } else {
+                await execPromise('docker pull jsuzanne/sdwan-web-ui:stable');
+                await execPromise('docker pull jsuzanne/sdwan-traffic-gen:stable');
+                await execPromise('docker pull jsuzanne/sdwan-voice-gen:stable');
+                await execPromise('docker pull jsuzanne/sdwan-voice-echo:stable');
+            }
+        } catch (pullError: any) {
+            console.error('[MAINTENANCE] ❌ Pull failed:', pullError.message);
+            return res.status(500).json({ error: 'Failed to pull images', details: pullError.message });
+        }
+
+        res.json({ success: true, message: 'Pull complete. Refreshing services...' });
+
+        setTimeout(() => {
+            console.log('[MAINTENANCE] 🔄 Restarting dashboard container...');
+            process.exit(0);
+        }, 2000);
+
+    } catch (e: any) {
+        res.status(500).json({ error: 'Upgrade failed', message: e.message });
+    }
+});
+
+app.listen(PORT, async () => {
     // Initialize platform-specific commands
     await initializeCommands();
 
@@ -3335,32 +3420,10 @@ app.listen(port, async () => {
             const version = fs.readFileSync(versionFile, 'utf8').trim();
             console.log(`🚀 SD-WAN Traffic Generator v${version}`);
         }
-    } catch (e) {
-        // Ignore version read errors
-    }
+    } catch (e) { }
 
-    // Schedule daily log cleanup (runs at 2 AM)
-    const scheduleLogCleanup = () => {
-        const now = new Date();
-        const tomorrow2AM = new Date(now);
-        tomorrow2AM.setDate(tomorrow2AM.getDate() + 1);
-        tomorrow2AM.setHours(2, 0, 0, 0);
-
-        const msUntil2AM = tomorrow2AM.getTime() - now.getTime();
-
-        setTimeout(async () => {
-            console.log('[LOG_CLEANUP] Running daily log cleanup...');
-            const deletedCount = await testLogger.cleanup();
-            console.log(`[LOG_CLEANUP] Deleted ${deletedCount} old log files`);
-
-            // Schedule next cleanup
-            scheduleLogCleanup();
-        }, msUntil2AM);
-
-        console.log(`[LOG_CLEANUP] Next cleanup scheduled for ${tomorrow2AM.toISOString()}`);
-    };
-
+    // Start cleanup scheduler
     scheduleLogCleanup();
 
-    console.log(`Backend running at http://localhost:${port}`);
+    console.log(`Backend running at http://localhost:${PORT}`);
 });
