@@ -275,7 +275,7 @@ const parseDnsOutput = (output: string, type: string): string | null => {
 
 
 const app = express();
-const port = parseInt(process.env.PORT || '3001');
+const PORT = parseInt(process.env.PORT || '8080'); // Unified to 8080
 
 const SECRET_KEY = process.env.JWT_SECRET || 'super-secret-key-change-this';
 const USERS_FILE = path.join(APP_CONFIG.configDir, 'users.json');
