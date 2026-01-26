@@ -107,8 +107,18 @@ if __name__ == "__main__":
     t.daemon = True
     t.start()
 
-    print(f"[{args.id}] [{time.strftime('%H:%M:%S')}] 📡 CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps | Interface: {args.interface or 'Auto'}", flush=True)
-    print(f"[{args.id}] [{time.strftime('%H:%M:%S')}] ⚙️  Source Port: {source_port} (Scapy L3)", flush=True)
+    # Consistent label format: [CONV-XXX] [HH:MM:SS] Label
+    log_id = args.id
+    label = "Unknown"
+    if " (" in log_id:
+        label = log_id.split(" (")[0]
+        log_id = log_id.split(" (")[-1].replace(")", "")
+    elif "(" in log_id:
+         log_id = log_id.split("(")[-1].replace(")", "")
+    
+    timestamp = time.strftime('%H:%M:%S')
+    print(f"[{log_id}] [{timestamp}] {label} - 📡 CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps | Interface: {args.interface or 'Auto'}", flush=True)
+    print(f"[{log_id}] [{timestamp}] {label} - ⚙️  Source Port: {source_port} (Scapy L3)", flush=True)
 
     seq = 0
     start_time = time.time()
@@ -142,13 +152,19 @@ if __name__ == "__main__":
                 total_loss = round((1 - (rcvd/seq)) * 100, 1) if seq > 0 else 0
                 
                 # Directional Loss (only if we have server feedback)
-                tx_loss = 0
-                rx_loss = 0
+                tx_loss_pct = 0
+                rx_loss_pct = 0
+                tx_lost_pkts = 0
+                rx_lost_pkts = 0
+                
                 if metrics.server_received > 0:
-                    tx_loss = round((1 - (metrics.server_received / seq)) * 100, 1)
-                    rx_loss = round((1 - (rcvd / metrics.server_received)) * 100, 1)
+                    tx_loss_pct = round((1 - (metrics.server_received / seq)) * 100, 1)
+                    rx_loss_pct = round((1 - (rcvd / metrics.server_received)) * 100, 1)
+                    tx_lost_pkts = max(0, seq - metrics.server_received)
+                    rx_lost_pkts = max(0, metrics.server_received - rcvd)
                 else:
-                    tx_loss = total_loss
+                    tx_loss_pct = total_loss
+                    tx_lost_pkts = max(0, seq - rcvd)
 
                 stats = {
                     "test_id": args.id,
@@ -156,8 +172,8 @@ if __name__ == "__main__":
                     "sent": seq,
                     "received": rcvd,
                     "loss_pct": max(0, total_loss),
-                    "tx_loss_pct": max(0, tx_loss),
-                    "rx_loss_pct": max(0, rx_loss),
+                    "tx_loss_pct": max(0, tx_loss_pct),
+                    "rx_loss_pct": max(0, rx_loss_pct),
                     "max_blackout_ms": metrics.max_blackout,
                     "current_blackout_ms": round(outage) if outage > (metrics.interval * 2000) else 0,
                     "avg_rtt_ms": round(sum(metrics.rtts)/len(metrics.rtts), 2) if metrics.rtts else 0,
@@ -178,5 +194,12 @@ if __name__ == "__main__":
         pass
     finally:
         stop_event.set()
-        print(f"[{args.id}] [{time.strftime('%H:%M:%S')}] ⏹️  CONVERGENCE STOPPED: Max Blackout: {metrics.max_blackout}ms", flush=True)
+        
+        # Final calculations for log summary
+        rcvd = len(metrics.received_seqs)
+        tx_lost = max(0, seq - metrics.server_received) if metrics.server_received > 0 else (seq - rcvd)
+        rx_lost = max(0, metrics.server_received - rcvd) if metrics.server_received > 0 else 0
+        
+        timestamp = time.strftime('%H:%M:%S')
+        print(f"[{log_id}] [{timestamp}] {label} - ⏹️  CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} (Lost: {rx_lost}) | Max Blackout: {metrics.max_blackout}ms", flush=True)
         t.join(1.0)

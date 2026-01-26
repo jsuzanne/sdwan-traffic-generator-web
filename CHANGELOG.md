@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.102] - 2026-01-26
+
+### Added
+- **Detailed Convergence Summary**: Logs now show total TX/RX packets and packet losses when a test stops.
+- **Log Formatting**: Standardized convergence log prefix to `[CONV-XXX] [HH:MM:SS] Label - ...` for better readability.
+
 ## [1.1.0-patch.101] - 2026-01-26
 
 ### Fixed
