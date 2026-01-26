@@ -614,6 +614,7 @@ Comprehensive guides for all features:
 - **[Persistent Logging](docs/PERSISTENT_LOGGING.md)** - Test results storage, search, and export
 - **[Connectivity Endpoints](docs/CONNECTIVITY_ENDPOINTS.md)** - System health monitoring
 - **[Remote Access Guide](docs/REMOTE_ACCESS.md)** - Guidelines for Tailscale, Cloudflare Tunnels, and Reverse Proxies
+- **[Maintenance & Update Guide](docs/MAINTENANCE.md)** - How to update via UI, script, or manually
 
 ### Troubleshooting
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions

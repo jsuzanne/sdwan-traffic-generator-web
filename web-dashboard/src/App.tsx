@@ -630,7 +630,7 @@ export default function App() {
 
 
       {/* Navigation Tabs */}
-      <div className="flex gap-2 mb-8 border-b border-slate-800">
+      <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-800">
         <button
           onClick={() => setView('dashboard')}
           className={cn(
@@ -694,18 +694,20 @@ export default function App() {
         >
           <Zap size={18} /> Failover
         </button>
-        <button
-          onClick={() => setView('system')}
-          className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors relative",
-            view === 'system' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
-          )}
-        >
-          <Monitor size={18} /> System
-          {maintenance?.updateAvailable && (
-            <span className="absolute top-2 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-slate-950" />
-          )}
-        </button>
+        {username === 'admin' && (
+          <button
+            onClick={() => setView('system')}
+            className={cn(
+              "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors relative",
+              view === 'system' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            )}
+          >
+            <Monitor size={18} /> System
+            {maintenance?.updateAvailable && (
+              <span className="absolute top-2 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-slate-950" />
+            )}
+          </button>
+        )}
       </div>
 
       {view === 'dashboard' ? (
@@ -1084,7 +1086,9 @@ export default function App() {
         <Failover token={token!} />
       ) : view === 'system' ? (
         <System token={token!} />
-      ) : null}
+      ) : (
+        <Config token={token!} />
+      )}
     </div >
   );
 }
