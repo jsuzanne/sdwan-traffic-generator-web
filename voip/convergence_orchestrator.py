@@ -117,7 +117,13 @@ class ConvergenceOrchestrator:
                 ts = time.time()
                 is_warmup = (ts - self.start_time) < self.warmup_duration
                 
-                payload = f"{self.test_id}:{seq}:{ts}".encode()
+                # Create padded payload to simulate realistic VoIP/RTP packet size (~200 bytes)
+                # This helps SD-WAN engines identify and steer the flow correctly.
+                base_payload = f"{self.test_id}:{seq}:{ts}"
+                padding_needed = max(0, 170 - len(base_payload))
+                padding = "X" * padding_needed
+                payload = f"{base_payload}:{padding}".encode()
+                
                 sock.sendto(payload, (self.target_ip, self.target_port))
                 
                 with self.lock:
@@ -179,9 +185,9 @@ class ConvergenceOrchestrator:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--target", required=True)
-    parser.add_argument("--port", type=int, default=6100)
-    parser.add_argument("--rate", type=int, default=50)
+    parser.add_argument("--target", "-D", "-dip", required=True)
+    parser.add_argument("--port", "-dport", type=int, default=6100)
+    parser.add_argument("--rate", "-C", type=int, default=50)
     parser.add_argument("--id", default="TEST-000")
     parser.add_argument("--stats-file", default="/tmp/convergence_stats.json")
     args = parser.parse_args()

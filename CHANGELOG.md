@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-patch.98] - 2026-01-26
+
+### Fixed
+- **Traffic Visibility**: Fixed issue where convergence probes were not visible in SD-WAN flow browsers.
+- **Packet Padding**: Added 170-byte padding to convergence probes to match realistic RTP packet sizes (helps SD-WAN DPI identification).
+- **Host Networking**: Moved `web-ui` to `network_mode: host` to bypass Docker bridge NAT and ensure probes originate from the physical host IP.
+- **Port Consistency**: Aligned internal dashboard port to `8444` for host mode compatibility.
+
 ## [1.1.0-patch.97] - 2026-01-25
 
 ### Changed

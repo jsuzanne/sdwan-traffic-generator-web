@@ -9,10 +9,10 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     restart: unless-stopped
+    network_mode: host
     cap_add:
+      - NET_ADMIN
       - NET_RAW
-    ports:
-      - "${WEB_UI_PORT:-8444}:8080"
     volumes:
       - ./config:/app/config
       - traffic_logs:/var/log/sdwan-traffic-gen
@@ -20,7 +20,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NODE_ENV=production
-      - PORT=8080
+      - PORT=8444
       - CONFIG_DIR=/app/config
       - LOG_DIR=/var/log/sdwan-traffic-gen
       - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7}
