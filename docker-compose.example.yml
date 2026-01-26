@@ -1,11 +1,11 @@
 # SD-WAN Traffic Generator - Production Configuration
-# Version: 1.1.0-patch.83
-# Last Updated: 2026-01-25
+# Version: 1.1.0-patch.97
+# Last Updated: 2026-01-26
 
 services:
   # Web Dashboard - User Interface and API
   sdwan-web-ui:
-    image: jsuzanne/sdwan-web-ui:1.1.0-patch.83
+    image: jsuzanne/sdwan-web-ui:1.1.0-patch.97
     container_name: sdwan-web-ui
     dns:
       - 8.8.8.8
@@ -85,7 +85,7 @@ services:
 
   # Traffic Generator - Background Traffic Simulation
   sdwan-traffic-gen:
-    image: jsuzanne/sdwan-traffic-gen:1.1.0-patch.83
+    image: jsuzanne/sdwan-traffic-gen:1.1.0-patch.97
     container_name: sdwan-traffic-gen
     hostname: sdwan-traffic-gen
 
@@ -141,7 +141,7 @@ services:
 
   # Voice Traffic Generator - RTP/Voice Simulation
   sdwan-voice-gen:
-    image: jsuzanne/sdwan-voice-gen:1.1.0-patch.83
+    image: jsuzanne/sdwan-voice-gen:1.1.0-patch.97
     container_name: sdwan-voice-gen
     hostname: sdwan-voice-gen
     cap_add:
@@ -165,11 +165,11 @@ services:
   # Voice Echo Server - Target for Voice Tests
   # (Deploy this on your target machine/site)
   sdwan-voice-echo:
-    image: jsuzanne/sdwan-voice-echo:1.1.0-patch.83
+    image: jsuzanne/sdwan-voice-echo:1.1.0-patch.97
     container_name: sdwan-voice-echo
     hostname: sdwan-voice-echo
     ports:
-      - "6100:6100/udp"
+      - "6100-6101:6100-6101/udp"
       - "5201:5201/tcp"
       - "5201:5201/udp"
     restart: unless-stopped
