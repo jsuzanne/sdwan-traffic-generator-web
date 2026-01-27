@@ -14,7 +14,6 @@ services:
       - NET_RAW
     ports:
       - "${WEB_UI_PORT:-8444}:8080"
-      - "6200:6200/udp"
     volumes:
       - ./config:/app/config
       - traffic_logs:/var/log/sdwan-traffic-gen
@@ -83,8 +82,10 @@ services:
     container_name: sdwan-voice-echo
     restart: unless-stopped
     ports:
-      - "6100:6100/udp"
-      - "6200:6200/udp"
+      - "6100:6100/udp" # Voice Calls
+      - "6200:6200/udp" # Convergence tests
+      - "5201:5201/tcp" # iperf3 (Bandwidth)
+      - "5201:5201/udp" # iperf3 (Quality)
     volumes:
       - ./voip:/app/voip
       - ./VERSION:/app/VERSION:ro

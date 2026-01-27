@@ -17,8 +17,7 @@ services:
     # Port Mapping
     # Change 8080:8080 to 8081:8080 if port 8080 is already in use
     ports:
-      - "8080:8080"
-      - "5201:5201"
+      - "${WEB_UI_PORT:-8080}:8080"
 
     # Environment Variables
     environment:
@@ -169,9 +168,10 @@ services:
     container_name: sdwan-voice-echo
     hostname: sdwan-voice-echo
     ports:
-      - "6100-6101:6100-6101/udp"
-      - "5201:5201/tcp"
-      - "5201:5201/udp"
+      - "6100:6100/udp" # For Voice Calls
+      - "6200:6200/udp" # For Convergence tests
+      - "5201:5201/tcp" # For iperf3 (Bandwidth)
+      - "5201:5201/udp" # For iperf3 (Quality)
     restart: unless-stopped
     networks:
       - sdwan-network
