@@ -85,7 +85,7 @@ services:
 
   # Traffic Generator - Background Traffic Simulation
   sdwan-traffic-gen:
-    image: jsuzanne/sdwan-traffic-gen:1.1.0-patch.97
+    image: jsuzanne/sdwan-traffic-gen:stable
     container_name: sdwan-traffic-gen
     hostname: sdwan-traffic-gen
 
@@ -141,7 +141,7 @@ services:
 
   # Voice Traffic Generator - RTP/Voice Simulation
   sdwan-voice-gen:
-    image: jsuzanne/sdwan-voice-gen:1.1.0-patch.97
+    image: jsuzanne/sdwan-voice-gen:stable
     container_name: sdwan-voice-gen
     hostname: sdwan-voice-gen
     cap_add:
@@ -165,7 +165,7 @@ services:
   # Voice Echo Server - Target for Voice Tests
   # (Deploy this on your target machine/site)
   sdwan-voice-echo:
-    image: jsuzanne/sdwan-voice-echo:1.1.0-patch.97
+    image: jsuzanne/sdwan-voice-echo:stable
     container_name: sdwan-voice-echo
     hostname: sdwan-voice-echo
     ports:

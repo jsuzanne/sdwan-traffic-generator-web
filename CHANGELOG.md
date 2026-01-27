@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.6] - 2026-01-27
+### Added
+- **Native M1/M2 Support**: Official multi-platform Docker images (`linux/amd64` and `linux/arm64`) for all services.
+- **Fixed Stable Tags**: Preserved multi-platform manifests when promoting versions to the `stable` tag.
+- **Compose Cleanup**: Standardized `docker-compose.example.yml` to use `stable` tags consistently.
+
 ## [1.1.2-patch.5] - 2026-01-27
 ### Fixed
 - **Log Formatting**: Standardized log format to `[HH:MM:SS] [ID] 🚀 Message` across all components (UI, Voice, Echo).

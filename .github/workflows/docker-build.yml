@@ -34,27 +34,19 @@ jobs:
       
       - name: Tag and Push Stable - Web UI
         run: |
-          docker pull ${{ env.WEB_UI_IMAGE }}:${{ github.event.inputs.version_to_stable }}
-          docker tag ${{ env.WEB_UI_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.WEB_UI_IMAGE }}:stable
-          docker push ${{ env.WEB_UI_IMAGE }}:stable
+          docker buildx imagetools create --tag ${{ env.WEB_UI_IMAGE }}:stable ${{ env.WEB_UI_IMAGE }}:${{ github.event.inputs.version_to_stable }}
           
       - name: Tag and Push Stable - Traffic Generator
         run: |
-          docker pull ${{ env.TRAFFIC_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }}
-          docker tag ${{ env.TRAFFIC_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.TRAFFIC_GEN_IMAGE }}:stable
-          docker push ${{ env.TRAFFIC_GEN_IMAGE }}:stable
+          docker buildx imagetools create --tag ${{ env.TRAFFIC_GEN_IMAGE }}:stable ${{ env.TRAFFIC_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }}
 
       - name: Tag and Push Stable - Voice Generator
         run: |
-          docker pull ${{ env.VOICE_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }}
-          docker tag ${{ env.VOICE_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.VOICE_GEN_IMAGE }}:stable
-          docker push ${{ env.VOICE_GEN_IMAGE }}:stable
+          docker buildx imagetools create --tag ${{ env.VOICE_GEN_IMAGE }}:stable ${{ env.VOICE_GEN_IMAGE }}:${{ github.event.inputs.version_to_stable }}
 
       - name: Tag and Push Stable - Voice Echo
         run: |
-          docker pull ${{ env.VOICE_ECHO_IMAGE }}:${{ github.event.inputs.version_to_stable }}
-          docker tag ${{ env.VOICE_ECHO_IMAGE }}:${{ github.event.inputs.version_to_stable }} ${{ env.VOICE_ECHO_IMAGE }}:stable
-          docker push ${{ env.VOICE_ECHO_IMAGE }}:stable
+          docker buildx imagetools create --tag ${{ env.VOICE_ECHO_IMAGE }}:stable ${{ env.VOICE_ECHO_IMAGE }}:${{ github.event.inputs.version_to_stable }}
 
   build:
     name: Build and Push
