@@ -459,7 +459,7 @@ export default function App() {
     }, 1000);
 
     // RESTORE FAST POLLING (500ms) for Failover specifically when on that tab
-    let fastInterval: NodeJS.Timeout | null = null;
+    let fastInterval: any = null;
     if (view === 'failover') {
       fastInterval = setInterval(() => {
         fetchDashboardData();
