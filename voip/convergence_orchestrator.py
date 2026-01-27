@@ -205,11 +205,43 @@ if __name__ == "__main__":
     finally:
         stop_event.set()
         
-        # Final calculations for log summary
-        rcvd = len(metrics.received_seqs)
-        tx_lost = max(0, seq - metrics.server_received) if metrics.server_received > 0 else (seq - rcvd)
-        rx_lost = max(0, metrics.server_received - rcvd) if metrics.server_received > 0 else 0
+        # Grace period for last pongs to return (200ms)
+        time.sleep(0.2)
         
+        # Final calculations for log summary and stats export
+        with metrics.lock:
+            rcvd = len(metrics.received_seqs)
+            tx_lost = max(0, seq - metrics.server_received) if metrics.server_received > 0 else (seq - rcvd)
+            rx_lost = max(0, metrics.server_received - rcvd) if metrics.server_received > 0 else 0
+            
+            # Recalculate final JSON stats for the UI
+            total_loss = round((1 - (rcvd/seq)) * 100, 1) if seq > 0 else 0
+            tx_loss_pct = round((1 - (metrics.server_received / seq)) * 100, 1) if metrics.server_received > 0 else total_loss
+            rx_loss_pct = round((1 - (rcvd / metrics.server_received)) * 100, 1) if metrics.server_received > 0 else 0
+            
+            final_stats = {
+                "test_id": args.id,
+                "status": "stopped",
+                "sent": seq,
+                "received": rcvd,
+                "loss_pct": max(0, total_loss),
+                "tx_loss_pct": max(0, tx_loss_pct),
+                "rx_loss_pct": max(0, rx_loss_pct),
+                "max_blackout_ms": metrics.max_blackout,
+                "current_blackout_ms": 0,
+                "avg_rtt_ms": round(sum(metrics.rtts)/len(metrics.rtts), 2) if metrics.rtts else 0,
+                "jitter_ms": round(metrics.jitter * 1000, 2),
+                "source_port": source_port,
+                "rate_pps": args.rate,
+                "history": metrics.history,
+                "start_time": start_time
+            }
+            
+            try:
+                with open(args.stats_file, 'w') as f:
+                    json.dump(final_stats, f)
+            except: pass
+
         timestamp = time.strftime('%H:%M:%S')
         print(f"[{log_id}] ⏹️  [{timestamp}] {label} - CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} (Lost: {rx_lost}) | Max Blackout: {metrics.max_blackout}ms", flush=True)
         t.join(1.0)
