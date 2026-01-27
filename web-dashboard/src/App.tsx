@@ -452,12 +452,19 @@ export default function App() {
     fetchAppConfig();
     fetchMaintenance();
 
-    // The "Single Clock" - Everything high-freq happens here
-    // Poll every refreshInterval (default 1s)
+    // The "Single Clock" - Everything high-freq (1s baseline)
     const interval = setInterval(() => {
       fetchDashboardData();
       fetchTrafficStatus();
-    }, refreshInterval);
+    }, 1000);
+
+    // RESTORE FAST POLLING (500ms) for Failover specifically when on that tab
+    let fastInterval: NodeJS.Timeout | null = null;
+    if (view === 'failover') {
+      fastInterval = setInterval(() => {
+        fetchDashboardData();
+      }, 500);
+    }
 
     // Poll slow connectivity every 30s
     const connectivityInterval = setInterval(() => {
@@ -471,10 +478,11 @@ export default function App() {
 
     return () => {
       clearInterval(interval);
+      if (fastInterval) clearInterval(fastInterval);
       clearInterval(connectivityInterval);
       clearInterval(maintenanceInterval);
     };
-  }, [token]);
+  }, [token, view]); // Re-run when view changes to start/stop fast polling
 
 
   const totalErrors = stats ? Object.values(stats.errors_by_app).reduce((a, b) => a + b, 0) : 0;

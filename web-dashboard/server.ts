@@ -3367,14 +3367,12 @@ const scheduleLogCleanup = () => {
 app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) => {
     try {
         const statsFile = path.join(APP_CONFIG.logDir, 'stats.json');
-        const trafficLogFile = path.join(APP_CONFIG.logDir, 'traffic.log');
 
-        // 1. Stats
+        // 1. Stats (Non-blocking)
         let stats = { total_requests: 0, requests_by_app: {}, errors_by_app: {}, timestamp: Math.floor(Date.now() / 1000) };
         try {
-            if (fs.existsSync(statsFile)) {
-                stats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
-            }
+            const statsData = await fs.promises.readFile(statsFile, 'utf8');
+            stats = JSON.parse(statsData);
         } catch (e) { }
 
         // 2. Traffic Status (Heartbeat)
@@ -3384,11 +3382,18 @@ app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) 
             if (now - stats.timestamp < 10) status = 'running';
         }
 
-        // 3. Logs (last 50)
+        // 3. Logs (last 50) - Non-blocking with fallback
         let logs: string[] = [];
         try {
-            if (fs.existsSync(trafficLogFile)) {
-                logs = execSync(`tail -n 50 "${trafficLogFile}"`).toString().split('\n').filter(l => l);
+            const logCandidates = [
+                path.join(APP_CONFIG.logDir, 'traffic.log'),
+                path.join(APP_CONFIG.logDir, 'test-execution.log')
+            ];
+            let activeLogFile = logCandidates.find(f => fs.existsSync(f));
+
+            if (activeLogFile) {
+                const { stdout } = await promisify(exec)(`tail -n 50 "${activeLogFile}"`);
+                logs = stdout.toString().split('\n').filter(l => l);
             }
         } catch (e) { }
 
@@ -3398,13 +3403,16 @@ app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) 
             dockerResults.push({ container: key, ...val });
         });
 
-        // 5. Convergence Status
+        // 5. Convergence Status (Non-blocking)
         const convergenceResults: any[] = [];
         try {
-            const files = fs.readdirSync('/tmp').filter(f => f.startsWith('convergence_stats_') && f.endsWith('.json'));
-            for (const file of files) {
+            const tmpFiles = await fs.promises.readdir('/tmp');
+            const targetFiles = tmpFiles.filter(f => f.startsWith('convergence_stats_') && f.endsWith('.json'));
+
+            await Promise.all(targetFiles.map(async (file) => {
                 try {
-                    const cStats = JSON.parse(fs.readFileSync(path.join('/tmp', file), 'utf8'));
+                    const content = await fs.promises.readFile(path.join('/tmp', file), 'utf8');
+                    const cStats = JSON.parse(content);
                     const testId = file.replace('convergence_stats_', '').replace('.json', '');
                     convergenceResults.push({
                         ...cStats,
@@ -3412,19 +3420,20 @@ app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) 
                         running: convergenceProcesses.has(testId)
                     });
                 } catch (e) { }
-            }
+            }));
         } catch (e) { }
 
-        // 6. Voice Status & Stats
+        // 6. Voice Status & Stats (Non-blocking)
         let voiceStats: any[] = [];
         let voiceControl = { enabled: false };
         try {
             if (fs.existsSync(VOICE_CONTROL_FILE)) {
-                voiceControl = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+                const vcData = await fs.promises.readFile(VOICE_CONTROL_FILE, 'utf8');
+                voiceControl = JSON.parse(vcData);
             }
             if (fs.existsSync(VOICE_STATS_FILE)) {
-                const voiceContent = execSync(`tail -n 200 "${VOICE_STATS_FILE}"`).toString();
-                voiceStats = voiceContent.trim().split('\n')
+                const { stdout: vsOut } = await promisify(exec)(`tail -n 200 "${VOICE_STATS_FILE}"`);
+                voiceStats = vsOut.toString().trim().split('\n')
                     .filter(l => l.trim())
                     .map(l => {
                         try { return JSON.parse(l); } catch (err) { return null; }
