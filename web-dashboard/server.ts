@@ -264,10 +264,25 @@ const parseDnsOutput = (output: string, type: string): string | null => {
     }
 
     if (type === 'nslookup') {
-        // Format: "Address: 198.135.184.22" or "Addresses:  198.135.184.22"
-        // Also captures Windows format (multiline Address field)
-        const match = output.match(/Address(?:es)?:\s+((?:\d{1,3}\.){3}\d{1,3})/);
-        return match ? match[1] : null;
+        // Ignore the "Server" and first "Address" (the resolver)
+        // We look for the block AFTER "Non-authoritative answer" or simply the LAST Address entry
+        const lines = output.split('\n');
+        let answerFound = false;
+        for (const line of lines) {
+            if (line.includes('Non-authoritative') || line.includes('Name:')) {
+                answerFound = true;
+            }
+            if (answerFound) {
+                const match = line.match(/Address(?:es)?:\s+((?:\d{1,3}\.){3}\d{1,3})/);
+                if (match) return match[1];
+            }
+        }
+        // Fallback to the very last address found in the whole output
+        const allMatches = Array.from(output.matchAll(/Address(?:es)?:\s+((?:\d{1,3}\.){3}\d{1,3})/g));
+        if (allMatches.length > 0) {
+            return allMatches[allMatches.length - 1][1];
+        }
+        return null;
     }
 
     return null;
