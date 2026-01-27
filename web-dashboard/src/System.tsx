@@ -26,9 +26,13 @@ export default function System({ token }: { token: string }) {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
-            setStatus(data);
+            if (res.ok) {
+                setStatus(data);
+            } else {
+                setError(data.error || 'Failed to fetch version');
+            }
         } catch (e) {
-            setError('Failed to fetch system status');
+            setError('Connection lost during version check');
         } finally {
             setLoading(false);
         }
@@ -160,14 +164,19 @@ export default function System({ token }: { token: string }) {
                                         const res = await fetch('/api/admin/config/export', {
                                             headers: { 'Authorization': `Bearer ${token}` }
                                         });
-                                        const data = await res.json();
-                                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                                        const url = window.URL.createObjectURL(blob);
-                                        const a = document.createElement('a');
-                                        a.href = url;
-                                        a.download = `sdwan-config-${new Date().toISOString().split('T')[0]}.json`;
-                                        a.click();
-                                    } catch (e) { alert('Export failed'); }
+                                        if (res.ok) {
+                                            const data = await res.json();
+                                            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                                            const url = window.URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = `sdwan-config-${new Date().toISOString().split('T')[0]}.json`;
+                                            a.click();
+                                        } else {
+                                            const err = await res.json();
+                                            alert(`Export failed: ${err.error || 'Unknown error'}\n\nPath checked: ${err.path || 'N/A'}`);
+                                        }
+                                    } catch (e) { alert('Export request failed. Check network connection.'); }
                                 }}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-all border border-slate-700"
                             >

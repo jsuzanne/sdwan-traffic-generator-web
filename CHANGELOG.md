@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.8] - 2026-01-27
+### Fixed
+- **System Robustness**: Improved Version Detection and Configuration Export with absolute path resolution and deep server-side logging.
+- **Error Transparency**: Updated the UI to display descriptive error messages (instead of generic "Failed") for maintenance tasks.
+
 ## [1.1.2-patch.7] - 2026-01-27
 ### Fixed
 - **DNS Parser**: Improved robustness of `nslookup` parsing to ignore Docker internal resolver addresses (`127.0.0.11`).

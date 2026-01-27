@@ -20,12 +20,13 @@ const __dirname = path.dirname(__filename);
 // Configuration Paths - Environment aware
 const APP_CONFIG = {
     // In development, assume config is in ../config relative to web-dashboard
-    configDir: process.env.CONFIG_DIR || path.join(__dirname, '../config'),
+    configDir: path.resolve(process.env.CONFIG_DIR || path.join(__dirname, '../config')),
     // Fallback to local logs if /var/log is not accessible (dev mode)
-    logDir: process.env.LOG_DIR || (fs.existsSync('/var/log/sdwan-traffic-gen') ? '/var/log/sdwan-traffic-gen' : path.join(__dirname, '../logs'))
+    logDir: path.resolve(process.env.LOG_DIR || (fs.existsSync('/var/log/sdwan-traffic-gen') ? '/var/log/sdwan-traffic-gen' : path.join(__dirname, '../logs')))
 };
 
-console.log('Using config:', APP_CONFIG);
+console.log('[SYSTEM] 📂 Configuration Directory:', APP_CONFIG.configDir);
+console.log('[SYSTEM] 📝 Log Directory:', APP_CONFIG.logDir);
 
 // Initialize Test Logger with configurable retention
 const LOG_RETENTION_DAYS = parseInt(process.env.LOG_RETENTION_DAYS || '7');
@@ -3368,16 +3369,22 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
         const versionPaths = [
             path.join(__dirname, 'VERSION'),
             path.join(__dirname, '..', 'VERSION'),
-            path.join(process.cwd(), 'VERSION'),
+            path.resolve(process.cwd(), 'VERSION'),
             '/app/VERSION'
         ];
-        let currentVersion = '1.1.2-patch.5';
+
+        let currentVersion = '1.1.2-patch.8';
+        let foundPath = 'none (fallback)';
+
         for (const vPath of versionPaths) {
             if (fs.existsSync(vPath)) {
                 currentVersion = fs.readFileSync(vPath, 'utf8').trim();
+                foundPath = vPath;
                 break;
             }
         }
+
+        console.log(`[MAINTENANCE] Detected Version: ${currentVersion} (from ${foundPath})`);
 
         const execPromise = promisify(exec);
         let latestVersion = currentVersion;
@@ -3391,7 +3398,7 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
                 updateAvailable = (latestVersion !== currentVersion);
             }
         } catch (e) {
-            console.warn('[MAINTENANCE] Failed to fetch latest version from GitHub');
+            console.warn('[MAINTENANCE] ⚠️ Failed to fetch latest version from GitHub');
         }
 
         res.json({
@@ -3399,8 +3406,9 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
             latest: latestVersion,
             updateAvailable
         });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to check version' });
+    } catch (e: any) {
+        console.error('[MAINTENANCE] ❌ Version check error:', e);
+        res.status(500).json({ error: 'Failed to check version', details: e.message });
     }
 });
 
@@ -3409,34 +3417,49 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
 app.get('/api/admin/config/export', authenticateToken, (req, res) => {
     try {
         const configDir = APP_CONFIG.configDir;
+        console.log(`[CONFIG] 📦 Starting export from: ${configDir}`);
+
+        if (!fs.existsSync(configDir)) {
+            console.error(`[CONFIG] ❌ Export failed: Directory not found at ${configDir}`);
+            return res.status(404).json({ error: 'Config directory not found', path: configDir });
+        }
+
         const files = fs.readdirSync(configDir);
         const bundle: Record<string, string> = {};
 
+        console.log(`[CONFIG] Scanning ${files.length} files...`);
+
         files.forEach(file => {
-            // Include only relevant config files, exclude backups and temporary files
+            // Include only relevant config files
             if ((file.endsWith('.txt') || file.endsWith('.json')) &&
                 !file.includes('.backup') &&
                 !file.includes('.fixed') &&
-                file !== 'test-counter.json') { // We might want to keep counters local
+                file !== 'test-counter.json') {
 
-                const content = fs.readFileSync(path.join(configDir, file), 'utf8');
-                bundle[file] = content;
+                try {
+                    const content = fs.readFileSync(path.join(configDir, file), 'utf8');
+                    bundle[file] = content;
+                } catch (readErr: any) {
+                    console.warn(`[CONFIG] ⚠️ Skipping file ${file}: ${readErr.message}`);
+                }
             }
         });
 
         const versionPaths = [
             path.join(__dirname, 'VERSION'),
             path.join(__dirname, '..', 'VERSION'),
-            path.join(process.cwd(), 'VERSION'),
+            path.resolve(process.cwd(), 'VERSION'),
             '/app/VERSION'
         ];
-        let version = '1.1.2-patch.5';
+        let version = '1.1.2-patch.8';
         for (const vPath of versionPaths) {
             if (fs.existsSync(vPath)) {
                 version = fs.readFileSync(vPath, 'utf8').trim();
                 break;
             }
         }
+
+        console.log(`[CONFIG] ✅ Export complete: ${Object.keys(bundle).length} files bundled.`);
 
         res.json({
             version,
@@ -3445,7 +3468,7 @@ app.get('/api/admin/config/export', authenticateToken, (req, res) => {
         });
     } catch (e: any) {
         console.error('[CONFIG] ❌ Export failed:', e);
-        res.status(500).json({ error: 'Export failed', message: e.message, stack: e.stack });
+        res.status(500).json({ error: 'Export failed: ' + e.message, details: e.stack });
     }
 });
 
