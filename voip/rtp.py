@@ -135,8 +135,9 @@ if __name__ == "__main__":
     call_id_tag = f"CID:{args.get('call_id', 'NONE')}:".encode()
     final_payload = (call_id_tag + payload_padding)[:200]
     
-    print(f"[{args['call_id']}] [{time.strftime('%H:%M:%S')}] 🚀 Executing: python3 rtp.py -D {args['destination_ip']} -dport {args['destination_port']} --min-count {args['min_count']} --max-count {args['max_count']} --source-interface {args['source_interface']} --call-id {args['call_id']}")
-    print(f"[{args['call_id']}] [{time.strftime('%H:%M:%S')}] 📞 CALL STARTED: {args['destination_ip']}:{args['destination_port']} | G.711-ulaw | {int(args['min_count'] * 0.03)}s")
+    timestamp = time.strftime('%H:%M:%S')
+    print(f"[{timestamp}] [{args['call_id']}] 🚀 Executing: python3 rtp.py -D {args['destination_ip']} -dport {args['destination_port']} --min-count {args['min_count']} --max-count {args['max_count']} --source-interface {args['source_interface']} --call-id {args['call_id']}")
+    print(f"[{timestamp}] [{args['call_id']}] 📞 CALL STARTED: {args['destination_ip']}:{args['destination_port']} | G.711-ulaw | {int(args['min_count'] * 0.03)}s")
 
     # Pre-build packet template for performance
     if args['source_ip'] is None:

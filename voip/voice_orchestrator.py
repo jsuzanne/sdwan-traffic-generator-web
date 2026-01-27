@@ -169,7 +169,8 @@ def start_call(server, interface):
     
     # Pre-flight check: is the target reachable?
     if not check_reachability(host):
-        print(f"[{call_id}] ⚠️  Target {host} is unreachable. Skipping call.")
+        timestamp = time.strftime('%H:%M:%S')
+        print(f"[{timestamp}] [{call_id}] ⚠️  Target {host} is unreachable. Skipping call.")
         sys.stdout.flush()
         log_call("skipped", {
             "call_id": call_id,
@@ -193,7 +194,8 @@ def start_call(server, interface):
         "--call-id", call_id
     ]
     
-    print(f"[{call_id}] 🚀 Executing: {' '.join(cmd)}")
+    timestamp = time.strftime('%H:%M:%S')
+    print(f"[{timestamp}] [{call_id}] 🚀 Executing: {' '.join(cmd)}")
     sys.stdout.flush()
     
     try:
@@ -208,8 +210,9 @@ def start_call(server, interface):
             "codec": server['codec'],
             "duration": server['duration']
         }
+        timestamp = time.strftime('%H:%M:%S')
         log_call("start", call_info)
-        print(f"[{call_id}] 📞 CALL STARTED: {server['target']} | {server['codec']} | {server['duration']}s")
+        print(f"[{timestamp}] [{call_id}] 📞 CALL STARTED: {server['target']} | {server['codec']} | {server['duration']}s")
         sys.stdout.flush()
         return {"proc": proc, "info": call_info}
     except Exception as e:
@@ -281,7 +284,8 @@ def main():
                 finished.append(call)
         
         for call in finished:
-            print(f"[{call['info']['call_id']}] [{time.strftime('%H:%M:%S')}] ✅ CALL ENDED: {call['info']['target']}")
+            timestamp = time.strftime('%H:%M:%S')
+            print(f"[{timestamp}] [{call['info']['call_id']}] ✅ CALL ENDED: {call['info']['target']}")
             sys.stdout.flush()
             active_calls.remove(call)
             

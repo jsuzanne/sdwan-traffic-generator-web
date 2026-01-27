@@ -226,66 +226,6 @@ export default function System({ token }: { token: string }) {
                     </div>
                 </div>
 
-                {/* Remote Access Guidelines */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-purple-500/20 rounded-lg text-purple-400">
-                            <Globe size={24} />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-slate-100">Remote Access</h3>
-                            <p className="text-slate-400 text-xs">Access this dashboard securely from anywhere.</p>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <a
-                            href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-local-tunnel/"
-                            target="_blank"
-                            className="group block p-4 bg-slate-950 border border-slate-800 rounded-xl hover:border-orange-500/50 transition-all"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-orange-500/10 rounded-lg text-orange-400 group-hover:scale-110 transition-transform">
-                                        <Lock size={18} />
-                                    </div>
-                                    <div>
-                                        <span className="text-sm font-bold text-slate-200">Cloudflare Tunnel</span>
-                                        <p className="text-[10px] text-slate-500 mt-0.5">Secure reverse proxy without port forwarding.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a
-                            href="https://tailscale.com/kb/1017/install/"
-                            target="_blank"
-                            className="group block p-4 bg-slate-950 border border-slate-800 rounded-xl hover:border-cyan-500/50 transition-all"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400 group-hover:scale-110 transition-transform">
-                                        <Shield size={18} />
-                                    </div>
-                                    <div>
-                                        <span className="text-sm font-bold text-slate-200">Tailscale (Recommended)</span>
-                                        <p className="text-[10px] text-slate-500 mt-0.5">Zero-config Mesh VPN for private access.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-
-                        <div className="p-4 bg-slate-800/30 rounded-xl border border-dashed border-slate-700">
-                            <div className="flex items-center gap-2 text-slate-400 mb-2">
-                                <Terminal size={14} />
-                                <span className="text-[10px] font-bold uppercase tracking-wider">Quick Note</span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 italic leading-relaxed">
-                                Deploying behind a corporate SD-WAN? Ensure port 8080 (or your configured port) is permitted in your security policies or use a management VLAN.
-                            </p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     );

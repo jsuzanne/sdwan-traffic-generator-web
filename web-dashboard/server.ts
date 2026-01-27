@@ -1456,11 +1456,12 @@ app.delete('/api/convergence/endpoints/:id', authenticateToken, (req, res) => {
 app.post('/api/convergence/start', authenticateToken, (req, res) => {
     const { target, port, rate, label } = req.body;
     const timestamp = new Date().toLocaleTimeString('en-GB', { hour12: false });
-    console.log(`[CONV-${(req as any).testId || '???'}] [${timestamp}] ${label || 'None'} - 🚀 Incoming Start Request: Target=${target}:${port}, Rate=${rate}pps`);
+    const testId = (req as any).testId || getNextFailoverTestId();
+    (req as any).testId = testId; // Ensure it's available for subsequent logs
+    console.log(`[${timestamp}] [${testId}] 🚀 ${label || 'None'} - Incoming Start Request: Target=${target}:${port}, Rate=${rate}pps`);
 
     if (!target) return res.status(400).json({ error: 'Target IP required' });
 
-    const testId = getNextFailoverTestId();
     const displayId = label ? `${label} (${testId})` : testId;
     const statsFile = `/tmp/convergence_stats_${testId}.json`;
 
@@ -3349,7 +3350,19 @@ const scheduleLogCleanup = () => {
 
 app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) => {
     try {
-        const currentVersion = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim();
+        const versionPaths = [
+            path.join(__dirname, 'VERSION'),
+            path.join(__dirname, '..', 'VERSION'),
+            path.join(process.cwd(), 'VERSION'),
+            '/app/VERSION'
+        ];
+        let currentVersion = '1.1.2-patch.5';
+        for (const vPath of versionPaths) {
+            if (fs.existsSync(vPath)) {
+                currentVersion = fs.readFileSync(vPath, 'utf8').trim();
+                break;
+            }
+        }
 
         const execPromise = promisify(exec);
         let latestVersion = currentVersion;
@@ -3396,7 +3409,19 @@ app.get('/api/admin/config/export', authenticateToken, (req, res) => {
             }
         });
 
-        const version = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim();
+        const versionPaths = [
+            path.join(__dirname, 'VERSION'),
+            path.join(__dirname, '..', 'VERSION'),
+            path.join(process.cwd(), 'VERSION'),
+            '/app/VERSION'
+        ];
+        let version = '1.1.2-patch.5';
+        for (const vPath of versionPaths) {
+            if (fs.existsSync(vPath)) {
+                version = fs.readFileSync(vPath, 'utf8').trim();
+                break;
+            }
+        }
 
         res.json({
             version,
@@ -3404,7 +3429,8 @@ app.get('/api/admin/config/export', authenticateToken, (req, res) => {
             files: bundle
         });
     } catch (e: any) {
-        res.status(500).json({ error: 'Export failed', message: e.message });
+        console.error('[CONFIG] ❌ Export failed:', e);
+        res.status(500).json({ error: 'Export failed', message: e.message, stack: e.stack });
     }
 });
 

@@ -21,7 +21,8 @@ def handle_port(ip, port, active_sessions, lock):
     s.settimeout(1.0)
     try:
         s.bind((ip, port))
-        print(f"📡 [PORT {port}] Listening...")
+        timestamp = time.strftime('%H:%M:%S')
+        print(f"[{timestamp}] [SYSTEM] 📡 Listening on PORT {port}...")
         while True:
             try:
                 data, addr = s.recvfrom(BUFSIZE)
@@ -58,7 +59,7 @@ def handle_port(ip, port, active_sessions, lock):
                         
                         timestamp = time.strftime('%H:%M:%S')
                         label_str = f" {detected_label} -" if detected_label else ""
-                        print(f"[{log_id}] 📥 [{timestamp}]{label_str} RECEIVED ON PORT {port}: {addr[0]}:{addr[1]}", flush=True)
+                        print(f"[{timestamp}] [{log_id}] 📥{label_str} RECEIVED ON PORT {port}: {addr[0]}:{addr[1]}", flush=True)
                     
                     session = active_sessions.get(addr, {"packet_count": 0, "start_time": now, "port": port})
                     session["last_seen"] = now
@@ -102,7 +103,7 @@ def maintenance(active_sessions, lock):
                     timestamp = time.strftime('%H:%M:%S')
                     duration = int(now - session['start_time'] - 5.0)
                     label_str = f" {session.get('label', '')} -" if session.get('label') else ""
-                    print(f"[{id_val}] ✅ [{timestamp}]{label_str} COMPLETED ON PORT {session['port']}: {addr[0]}:{addr[1]} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
+                    print(f"[{timestamp}] [{id_val}] ✅{label_str} COMPLETED ON PORT {session['port']}: {addr[0]}:{addr[1]} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
                     to_remove.append(addr)
             
             for addr in to_remove:

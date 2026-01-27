@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.5] - 2026-01-27
+### Fixed
+- **Log Formatting**: Standardized log format to `[HH:MM:SS] [ID] 🚀 Message` across all components (UI, Voice, Echo).
+- **Log IDs**: Resolved `[CONV-???]` placeholder issue in server logs.
+- **System Tab**: Fixed "Export failed" error and improved version detection robustness.
+- **Install Script**: Added retry logic for Docker Hub timeouts and improved existing installation handling.
+### Removed
+- **UI Cleanup**: Removed "Remote Access" widget from the System tab (moved to documentation).
+
 ## [1.1.2-patch.4] - 2026-01-26
 ### Fixed
 - **Critical Hotfix**: Resolved `ReferenceError: PORT is not defined` crash.

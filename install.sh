@@ -78,7 +78,11 @@ curl -sSL -o docker-compose.yml "$REPO_URL/$COMPOSE_FILE"
 
 # 5. Start Services
 echo "🔧 Pulling images and starting services..."
-docker compose pull
+if ! docker compose pull; then
+    echo "⚠️  Docker Hub timeout or network error. Retrying in 5s..."
+    sleep 5
+    docker compose pull || echo "❌ Pull failed again. Trying to start with existing images if any..."
+fi
 docker compose up -d
 
 echo ""
