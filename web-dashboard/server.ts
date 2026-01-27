@@ -3364,6 +3364,94 @@ const scheduleLogCleanup = () => {
 
 // --- Phase 17: Maintenance & System Upgrades ---
 
+app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) => {
+    try {
+        const statsFile = path.join(APP_CONFIG.logDir, 'stats.json');
+        const trafficLogFile = path.join(APP_CONFIG.logDir, 'traffic.log');
+
+        // 1. Stats
+        let stats = { total_requests: 0, requests_by_app: {}, errors_by_app: {}, timestamp: Math.floor(Date.now() / 1000) };
+        try {
+            if (fs.existsSync(statsFile)) {
+                stats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
+            }
+        } catch (e) { }
+
+        // 2. Traffic Status (Heartbeat)
+        let status = 'stopped';
+        if (stats.timestamp) {
+            const now = Math.floor(Date.now() / 1000);
+            if (now - stats.timestamp < 10) status = 'running';
+        }
+
+        // 3. Logs (last 50)
+        let logs: string[] = [];
+        try {
+            if (fs.existsSync(trafficLogFile)) {
+                logs = execSync(`tail -n 50 "${trafficLogFile}"`).toString().split('\n').filter(l => l);
+            }
+        } catch (e) { }
+
+        // 4. Docker Stats
+        const dockerResults: any[] = [];
+        containerStatsMap.forEach((val, key) => {
+            dockerResults.push({ container: key, ...val });
+        });
+
+        // 5. Convergence Status
+        const convergenceResults: any[] = [];
+        try {
+            const files = fs.readdirSync('/tmp').filter(f => f.startsWith('convergence_stats_') && f.endsWith('.json'));
+            for (const file of files) {
+                try {
+                    const cStats = JSON.parse(fs.readFileSync(path.join('/tmp', file), 'utf8'));
+                    const testId = file.replace('convergence_stats_', '').replace('.json', '');
+                    convergenceResults.push({
+                        ...cStats,
+                        testId,
+                        running: convergenceProcesses.has(testId)
+                    });
+                } catch (e) { }
+            }
+        } catch (e) { }
+
+        // 6. Voice Status & Stats
+        let voiceStats: any[] = [];
+        let voiceControl = { enabled: false };
+        try {
+            if (fs.existsSync(VOICE_CONTROL_FILE)) {
+                voiceControl = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+            }
+            if (fs.existsSync(VOICE_STATS_FILE)) {
+                const voiceContent = execSync(`tail -n 200 "${VOICE_STATS_FILE}"`).toString();
+                voiceStats = voiceContent.trim().split('\n')
+                    .filter(l => l.trim())
+                    .map(l => {
+                        try { return JSON.parse(l); } catch (err) { return null; }
+                    })
+                    .filter(l => l)
+                    .reverse();
+            }
+        } catch (e) { }
+
+        res.json({
+            stats,
+            status,
+            logs,
+            dockerStats: dockerResults,
+            convergenceTests: convergenceResults,
+            voice: {
+                control: voiceControl,
+                stats: voiceStats
+            },
+            timestamp: Date.now()
+        });
+    } catch (e: any) {
+        console.error('[SYSTEM] ❌ Dashboard data aggregation failed:', e);
+        res.status(500).json({ error: 'Failed to aggregate dashboard data', details: e.message });
+    }
+});
+
 app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) => {
     try {
         const versionPaths = [

@@ -9,6 +9,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 interface VoiceProps {
     token: string;
+    externalStatus?: any;
 }
 
 interface VoiceCall {
@@ -33,7 +34,8 @@ interface VoiceControl {
     interface: string;
 }
 
-export default function Voice({ token }: VoiceProps) {
+export default function Voice(props: VoiceProps) {
+    const { token, externalStatus } = props;
     const [enabled, setEnabled] = useState(false);
     const [config, setConfig] = useState<VoiceControl | null>(null);
     const [rawServers, setRawServers] = useState("");
@@ -44,6 +46,8 @@ export default function Voice({ token }: VoiceProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [qualityFilter, setQualityFilter] = useState<'all' | 'excellent' | 'fair' | 'poor'>('all');
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'timestamp', direction: 'desc' });
+    const [isStartingV, setIsStartingV] = useState(false);
+    const [isStoppingV, setIsStoppingV] = useState(false);
 
     // New Guided Editor State
     const [newProbe, setNewProbe] = useState({
@@ -56,10 +60,21 @@ export default function Voice({ token }: VoiceProps) {
     const [showGuided, setShowGuided] = useState(true);
 
     useEffect(() => {
-        fetchStatus();
+        if (externalStatus) {
+            if (externalStatus.control) {
+                setEnabled(externalStatus.control.enabled);
+                setConfig(prev => ({ ...prev, ...externalStatus.control }));
+            }
+            if (externalStatus.stats) {
+                setCalls(externalStatus.stats);
+            }
+        }
+    }, [externalStatus]);
+
+    useEffect(() => {
         fetchConfig();
-        const interval = setInterval(fetchStats, 5000);
-        fetchStats();
+        // Config doesn't change much, poll every 30s
+        const interval = setInterval(fetchConfig, 30000);
         return () => clearInterval(interval);
     }, [token]);
 
@@ -104,6 +119,10 @@ export default function Voice({ token }: VoiceProps) {
     };
 
     const handleToggle = async () => {
+        const targetState = !enabled;
+        if (targetState) setIsStartingV(true);
+        else setIsStoppingV(true);
+
         try {
             const r = await fetch('/api/voice/control', {
                 method: 'POST',
@@ -111,13 +130,16 @@ export default function Voice({ token }: VoiceProps) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ enabled: !enabled })
+                body: JSON.stringify({ enabled: targetState })
             });
             const data = await r.json();
             if (data.success) {
                 setEnabled(data.enabled);
             }
-        } catch (e) { }
+        } catch (e) { } finally {
+            setIsStartingV(false);
+            setIsStoppingV(false);
+        }
     };
 
     const resetLogs = async () => {
@@ -299,14 +321,17 @@ export default function Voice({ token }: VoiceProps) {
 
                     <button
                         onClick={handleToggle}
+                        disabled={isStartingV || isStoppingV}
                         className={cn(
-                            "px-8 py-3 rounded-lg font-bold transition-all shadow-lg flex items-center gap-2",
+                            "px-8 py-3 rounded-lg font-bold transition-all shadow-lg flex items-center gap-2 min-w-[180px] justify-center",
                             enabled
                                 ? "bg-red-600 hover:bg-red-500 text-white shadow-red-500/20"
-                                : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20"
+                                : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20",
+                            (isStartingV || isStoppingV) && "opacity-50"
                         )}
                     >
-                        {enabled ? <><Pause size={20} fill="currentColor" /> Stop Voice</> : <><Play size={20} fill="currentColor" /> Start Voice</>}
+                        {(isStartingV || isStoppingV) ? <Activity size={20} className="animate-spin" /> : (enabled ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />)}
+                        {isStartingV ? 'STARTING...' : isStoppingV ? 'STOPPING...' : (enabled ? 'Stop Voice' : 'Start Voice')}
                     </button>
                 </div>
 

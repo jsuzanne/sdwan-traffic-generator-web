@@ -38,11 +38,15 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system'>('performance');
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system'>(
+    (localStorage.getItem('activeView') as any) || 'performance'
+  );
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
   const [logs, setLogs] = useState<string[]>([]);
+  const [globalConvStatus, setGlobalConvStatus] = useState<any[]>([]);
+  const [globalVoiceStatus, setGlobalVoiceStatus] = useState<any>(null);
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
 
@@ -151,6 +155,10 @@ export default function App() {
     } catch (e) { alert('Error changing password'); }
   };
 
+  useEffect(() => {
+    localStorage.setItem('activeView', view);
+  }, [view]);
+
   const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
 
   const resetTrafficStats = async () => {
@@ -171,68 +179,72 @@ export default function App() {
     }
   };
 
+  const processStats = (data: Stats) => {
+    if (data.timestamp) {
+      setStats(data);
+      // Calculate RPM
+      let calculatedRpm = currentRpm;
+      if (prevTotalRequestsRef.current !== null && prevTimestampRef.current !== null) {
+        const deltaReq = data.total_requests - prevTotalRequestsRef.current;
+        const deltaTime = data.timestamp - prevTimestampRef.current;
+        if (deltaTime > 0) {
+          const rpm = (deltaReq / deltaTime) * 60;
+          if (deltaReq > 0) {
+            calculatedRpm = rpm;
+            setCurrentRpm(rpm);
+          } else if (deltaTime > 15) {
+            calculatedRpm = 0;
+            setCurrentRpm(0);
+          }
+        }
+      }
+
+      if (data.total_requests !== prevTotalRequestsRef.current) {
+        prevTotalRequestsRef.current = data.total_requests;
+        prevTimestampRef.current = data.timestamp;
+        setHistory(prev => {
+          if (prev.length > 0 && prev[prev.length - 1].rawTimestamp === data.timestamp) return prev;
+          const newEntry = {
+            time: new Date(data.timestamp * 1000).toLocaleTimeString(),
+            rawTimestamp: data.timestamp,
+            requests: Math.round(calculatedRpm),
+            total: data.total_requests,
+            ...data.requests_by_app
+          };
+          const newHistory = [...prev, newEntry];
+          if (newHistory.length > 30) newHistory.shift();
+          return newHistory;
+        });
+      }
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/admin/system/dashboard-data', { headers: authHeaders() });
+      if (res.status === 403 || res.status === 401) logout();
+      const data = await res.json();
+
+      if (data.stats) processStats(data.stats);
+      if (data.status) setStatus(data.status);
+      if (data.logs) setLogs(data.logs);
+      if (data.dockerStats) setDockerStats(data.dockerStats);
+      if (data.convergenceTests) setGlobalConvStatus(data.convergenceTests);
+      if (data.voice) setGlobalVoiceStatus(data.voice);
+    } catch (e) {
+      console.error('Consolidated fetch failed');
+    }
+  };
+
   const fetchStats = async () => {
     if (!token) return;
     try {
       const res = await fetch('/api/stats', { headers: authHeaders() });
       if (res.status === 403 || res.status === 401) logout();
       const data = await res.json();
-      if (data.timestamp) {
-        setStats(data);
-
-        // Calculate RPM
-        let calculatedRpm = currentRpm; // Start with last known RPM
-
-        if (prevTotalRequestsRef.current !== null && prevTimestampRef.current !== null) {
-          const deltaReq = data.total_requests - prevTotalRequestsRef.current;
-          const deltaTime = data.timestamp - prevTimestampRef.current;
-
-          if (deltaTime > 0) {
-            // RPM = (Delta Requests / Delta Seconds) * 60
-            const rpm = (deltaReq / deltaTime) * 60;
-
-            // If deltaReq is 0, it might be because the stats file hasn't updated yet.
-            // We only update RPM if we have new data, or after some timeout.
-            if (deltaReq > 0) {
-              calculatedRpm = rpm;
-              setCurrentRpm(rpm);
-            } else if (deltaTime > 15) {
-              // If more than 15s without new requests, it's probably really stopped
-              calculatedRpm = 0;
-              setCurrentRpm(0);
-            }
-          }
-        }
-
-        // Update previous state ONLY if data actually changed
-        if (data.total_requests !== prevTotalRequestsRef.current) {
-          prevTotalRequestsRef.current = data.total_requests;
-          prevTimestampRef.current = data.timestamp;
-
-          // Only add to history if the timestamp has progressed
-          setHistory(prev => {
-            // Check if this timestamp is already the last one to avoid "dancing" graph
-            if (prev.length > 0 && prev[prev.length - 1].rawTimestamp === data.timestamp) {
-              return prev;
-            }
-
-            const newEntry = {
-              time: new Date(data.timestamp * 1000).toLocaleTimeString(),
-              rawTimestamp: data.timestamp,
-              requests: Math.round(calculatedRpm),
-              total: data.total_requests,
-              ...data.requests_by_app
-            };
-
-            const newHistory = [...prev, newEntry];
-            if (newHistory.length > 30) newHistory.shift();
-            return newHistory;
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Failed to fetch stats');
-    }
+      processStats(data);
+    } catch (e) { }
   };
 
   const fetchStatus = async () => {
@@ -432,28 +444,22 @@ export default function App() {
 
   useEffect(() => {
     if (!token) return;
-    // Initial fetch
-    fetchStats();
-    fetchLogs();
-    fetchTrafficStatus();
+    // Initial fetch for everything
+    fetchDashboardData();
     checkConfigValid();
     fetchVersion();
-    fetchConnectivity();
-    fetchDockerStats();
     fetchConfigUi();
     fetchAppConfig();
-    fetchIperfStatus();
     fetchMaintenance();
 
+    // The "Single Clock" - Everything high-freq happens here
     // Poll every refreshInterval (default 1s)
     const interval = setInterval(() => {
-      fetchStats();
-      fetchLogs();
+      fetchDashboardData();
       fetchTrafficStatus();
-      fetchDockerStats(); // Poll Docker stats for real-time bandwidth
     }, refreshInterval);
 
-    // Poll connectivity every 30s (less frequent)
+    // Poll slow connectivity every 30s
     const connectivityInterval = setInterval(() => {
       fetchConnectivity();
       fetchIperfStatus();
@@ -461,7 +467,7 @@ export default function App() {
 
     const maintenanceInterval = setInterval(() => {
       fetchMaintenance();
-    }, 3600000); // Check once per hour
+    }, 3600000);
 
     return () => {
       clearInterval(interval);
@@ -1081,9 +1087,9 @@ export default function App() {
       ) : view === 'security' ? (
         <Security token={token!} />
       ) : view === 'voice' ? (
-        <Voice token={token!} />
+        <Voice token={token!} externalStatus={globalVoiceStatus} />
       ) : view === 'failover' ? (
-        <Failover token={token!} />
+        <Failover token={token!} externalStatus={globalConvStatus} />
       ) : view === 'system' ? (
         <System token={token!} />
       ) : (

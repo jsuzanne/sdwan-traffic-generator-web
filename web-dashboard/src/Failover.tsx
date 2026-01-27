@@ -3,21 +3,25 @@ import { Activity, Clock, Shield, Search, ChevronRight, BarChart3, AlertCircle, 
 
 interface FailoverProps {
     token: string;
+    externalStatus?: any[];
 }
 
-export default function Failover({ token }: FailoverProps) {
+export default function Failover(props: FailoverProps) {
+    const { token, externalStatus } = props;
     const [endpoints, setEndpoints] = useState<any[]>([]);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newTarget, setNewTarget] = useState({ label: '', target: '', port: 6200 });
 
     const [rate, setRate] = useState(50);
     const [selectedEndpoints, setSelectedEndpoints] = useState<string[]>([]);
-    const [activeTests, setActiveTests] = useState<any[]>([]);
+    const [activeTests, setActiveTests] = useState<any[]>(props.externalStatus || []);
     const [activeInterfaces, setActiveInterfaces] = useState<string[]>([]);
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'timestamp', direction: 'desc' });
     const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
+    const [isStarting, setIsStarting] = useState(false);
+    const [isStopping, setIsStopping] = useState(false);
 
     const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
 
@@ -52,22 +56,21 @@ export default function Failover({ token }: FailoverProps) {
     };
 
     useEffect(() => {
+        if (externalStatus) {
+            setActiveTests(externalStatus);
+        }
+    }, [externalStatus]);
+
+    useEffect(() => {
         fetchEndpoints();
-        fetchStatus();
         fetchHistory();
+        // We only poll endpoints and history occasionally now
         const interval = setInterval(() => {
-            fetchStatus();
+            fetchEndpoints();
             if (activeTests.length === 0) fetchHistory();
-        }, 2000);
+        }, 5000);
         return () => clearInterval(interval);
     }, [activeTests.length === 0]);
-
-    // Fast polling when tests are active
-    useEffect(() => {
-        if (activeTests.length === 0) return;
-        const interval = setInterval(fetchStatus, 500);
-        return () => clearInterval(interval);
-    }, [activeTests.length]);
 
     const addEndpoint = async () => {
         if (!newTarget.label || !newTarget.target) return;
@@ -97,9 +100,7 @@ export default function Failover({ token }: FailoverProps) {
 
     const startTest = async (endpointIds: string[]) => {
         const targets = endpoints.filter(e => endpointIds.includes(e.id));
-
-        // Immediate UI feedback: Clear selection and show loading if needed
-        // Running tests in parallel for speed
+        setIsStarting(true);
         try {
             await Promise.all(targets.map(endpoint =>
                 fetch('/api/convergence/start', {
@@ -113,13 +114,15 @@ export default function Failover({ token }: FailoverProps) {
                     })
                 })
             ));
-        } catch (e) { }
-
-        fetchStatus();
-        setSelectedEndpoints([]);
+            fetchStatus();
+            setSelectedEndpoints([]);
+        } catch (e) { } finally {
+            setIsStarting(false);
+        }
     };
 
     const stopTest = async (testId?: string) => {
+        setIsStopping(true);
         try {
             await fetch('/api/convergence/stop', {
                 method: 'POST',
@@ -128,7 +131,9 @@ export default function Failover({ token }: FailoverProps) {
             });
             fetchStatus();
             fetchHistory();
-        } catch (e) { }
+        } catch (e) { } finally {
+            setIsStopping(false);
+        }
     };
 
     const handleSort = (key: string) => {
@@ -219,17 +224,21 @@ export default function Failover({ token }: FailoverProps) {
                             {activeTests.length > 0 && (
                                 <button
                                     onClick={() => stopTest()}
-                                    className="mt-5 flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg text-sm font-bold transition-all border border-red-500/30 shadow-lg shadow-red-900/20 group"
+                                    disabled={isStopping}
+                                    className="mt-5 flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg text-sm font-bold transition-all border border-red-500/30 shadow-lg shadow-red-900/20 group disabled:opacity-50"
                                 >
-                                    <Square size={16} fill="currentColor" className="group-hover:animate-pulse" /> STOP ALL PROBES
+                                    {isStopping ? <Activity size={16} className="animate-spin" /> : <Square size={16} fill="currentColor" className="group-hover:animate-pulse" />}
+                                    {isStopping ? 'STOPPING...' : 'STOP ALL PROBES'}
                                 </button>
                             )}
                             {selectedCount > 0 && (
                                 <button
                                     onClick={() => startTest(selectedEndpoints)}
-                                    className="mt-5 flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/40 border border-blue-400/30"
+                                    disabled={isStarting}
+                                    className="mt-5 flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/40 border border-blue-400/30 disabled:opacity-50"
                                 >
-                                    <Play size={18} fill="currentColor" /> START {selectedCount} {selectedCount === 1 ? 'TEST' : 'TESTS'}
+                                    {isStarting ? <Activity size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
+                                    {isStarting ? 'STARTING...' : `START ${selectedCount} ${selectedCount === 1 ? 'TEST' : 'TESTS'}`}
                                 </button>
                             )}
                             <button
@@ -361,9 +370,11 @@ export default function Failover({ token }: FailoverProps) {
                                 </span>
                                 <button
                                     onClick={() => stopTest(test.testId)}
-                                    className="px-4 py-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded border border-red-500/20 text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg shadow-red-900/10"
+                                    disabled={isStopping}
+                                    className="px-4 py-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded border border-red-500/20 text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg shadow-red-900/10 disabled:opacity-50"
                                 >
-                                    <Square size={10} fill="currentColor" /> STOP PROBE
+                                    {isStopping ? <Activity size={10} className="animate-spin" /> : <Square size={10} fill="currentColor" />}
+                                    {isStopping ? 'STOPPING...' : 'STOP PROBE'}
                                 </button>
                             </div>
                         </div>
