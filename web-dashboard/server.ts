@@ -3331,37 +3331,6 @@ app.post('/api/security/threat-test', authenticateToken, async (req, res) => {
 });
 
 // Serve frontend in production
-if (process.env.NODE_ENV === 'production') {
-    // Static files
-    app.use(express.static(path.join(__dirname, 'dist')));
-
-    // SPA Fallback - Use middleware as last resort
-    app.use((req, res) => {
-        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    });
-}
-
-// Schedule daily log cleanup (runs at 2 AM)
-const scheduleLogCleanup = () => {
-    const now = new Date();
-    const tomorrow2AM = new Date(now);
-    tomorrow2AM.setDate(tomorrow2AM.getDate() + 1);
-    tomorrow2AM.setHours(2, 0, 0, 0);
-
-    const msUntil2AM = tomorrow2AM.getTime() - now.getTime();
-
-    setTimeout(async () => {
-        console.log('[LOG_CLEANUP] Running daily log cleanup...');
-        const deletedCount = await testLogger.cleanup();
-        console.log(`[LOG_CLEANUP] Deleted ${deletedCount} old log files`);
-
-        // Schedule next cleanup
-        scheduleLogCleanup();
-    }, msUntil2AM);
-
-    console.log(`[LOG_CLEANUP] Next cleanup scheduled for ${tomorrow2AM.toISOString()}`);
-};
-
 // --- Phase 17: Maintenance & System Upgrades ---
 
 app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) => {
@@ -3643,6 +3612,37 @@ app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) =
         res.status(500).json({ error: 'Upgrade failed', message: e.message });
     }
 });
+if (process.env.NODE_ENV === 'production') {
+    // Static files
+    app.use(express.static(path.join(__dirname, 'dist')));
+
+    // SPA Fallback - Use middleware as last resort
+    app.use((req, res) => {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
+}
+
+// Schedule daily log cleanup (runs at 2 AM)
+const scheduleLogCleanup = () => {
+    const now = new Date();
+    const tomorrow2AM = new Date(now);
+    tomorrow2AM.setDate(tomorrow2AM.getDate() + 1);
+    tomorrow2AM.setHours(2, 0, 0, 0);
+
+    const msUntil2AM = tomorrow2AM.getTime() - now.getTime();
+
+    setTimeout(async () => {
+        console.log('[LOG_CLEANUP] Running daily log cleanup...');
+        const deletedCount = await testLogger.cleanup();
+        console.log(`[LOG_CLEANUP] Deleted ${deletedCount} old log files`);
+
+        // Schedule next cleanup
+        scheduleLogCleanup();
+    }, msUntil2AM);
+
+    console.log(`[LOG_CLEANUP] Next cleanup scheduled for ${tomorrow2AM.toISOString()}`);
+};
+
 
 app.listen(PORT, async () => {
     // Initialize platform-specific commands
