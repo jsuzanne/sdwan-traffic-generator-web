@@ -149,12 +149,13 @@ if __name__ == "__main__":
                 outage = now_ms - last_rcvd_ms
                 
                 # Jitter Tolerance Logic:
-                # 1. We only care about outages > 100ms (industry standard for quality drop)
-                # 2. We only mark as 'lost' if there is an actual gap in sequence numbers
+                # 1. Threshold is dynamic: 1.5x the packet interval (e.g., 1.5s for 1pps, 15ms for 100pps)
+                # 2. We only mark as 'blackout' if there is an actual gap in sequence numbers
                 rcvd_count = len(metrics.received_seqs)
                 has_seq_gap = (seq > rcvd_count)
                 
-                is_blackout = (outage > 100) and has_seq_gap
+                threshold_ms = metrics.interval * 1500 # 1.5x interval
+                is_blackout = (outage > threshold_ms) and has_seq_gap
                 
                 # Update history (Success = 1, Fail = 0)
                 metrics.history.append(0 if is_blackout else 1)
