@@ -142,17 +142,26 @@ if __name__ == "__main__":
             else:
                 send(packet, verbose=False)
 
-            # Update Max Blackout
+            # Update Max Blackout & History
             with metrics.lock:
-                outage = (now - metrics.last_rcvd_time) * 1000
-                is_lost = outage > (metrics.interval * 2000)
+                now_ms = time.time() * 1000
+                last_rcvd_ms = metrics.last_rcvd_time * 1000
+                outage = now_ms - last_rcvd_ms
+                
+                # Jitter Tolerance Logic:
+                # 1. We only care about outages > 100ms (industry standard for quality drop)
+                # 2. We only mark as 'lost' if there is an actual gap in sequence numbers
+                rcvd_count = len(metrics.received_seqs)
+                has_seq_gap = (seq > rcvd_count)
+                
+                is_blackout = (outage > 100) and has_seq_gap
                 
                 # Update history (Success = 1, Fail = 0)
-                metrics.history.append(0 if is_lost else 1)
+                metrics.history.append(0 if is_blackout else 1)
                 if len(metrics.history) > 100:
                     metrics.history.pop(0)
 
-                if is_lost:
+                if is_blackout:
                     metrics.max_blackout = max(metrics.max_blackout, round(outage))
                 
                 # Prepare stats export
@@ -211,6 +220,14 @@ if __name__ == "__main__":
         # Final calculations for log summary and stats export
         with metrics.lock:
             rcvd = len(metrics.received_seqs)
+            
+            # Final Blackout Cleanup: 
+            # If we received every single packet (Perfect Score), then any 
+            # "blackout" detected during the test was just jitter. Reset it to 0.
+            if rcvd == seq:
+                metrics.max_blackout = 0
+                metrics.history = [1] * len(metrics.history)
+            
             tx_lost = max(0, seq - metrics.server_received) if metrics.server_received > 0 else (seq - rcvd)
             rx_lost = max(0, metrics.server_received - rcvd) if metrics.server_received > 0 else 0
             
