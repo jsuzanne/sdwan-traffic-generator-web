@@ -3714,8 +3714,12 @@ app.get('/api/slow-app/delay/:ms', (req, res) => {
     const boundedDelay = Math.min(Math.max(0, delay), 10000); // Max 10s
 
     setTimeout(() => {
-    });
-}, boundedDelay);
+        res.json({
+            message: "Hello World!",
+            delayed_ms: boundedDelay,
+            timestamp: new Date().toISOString()
+        });
+    }, boundedDelay);
 });
 
 const SRT_STATS_FILE = '/tmp/srt_stats.json';
