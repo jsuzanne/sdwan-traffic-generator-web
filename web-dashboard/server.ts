@@ -2471,8 +2471,8 @@ const runScheduledUrlTests = async () => {
         if (!category) continue;
 
         try {
-            // Capture HTTP code and content for keyword detection
-            const { stdout, stderr } = await execPromise(`curl -fsSL --max-time 10 -w '%{http_code}' '${category.url}'`);
+            // Capture HTTP code and content for keyword detection (Removed -f to allow 404 handling)
+            const { stdout, stderr } = await execPromise(`curl -sSL --max-time 10 -w '%{http_code}' '${category.url}'`);
 
             const httpCode = parseInt(stdout.slice(-3));
             const content = stdout.slice(0, -3).toLowerCase();
@@ -3709,18 +3709,7 @@ const scheduleLogCleanup = () => {
 
 
 // --- Slow App / SRT Simulation ---
-app.get('/api/slow-app/delay/:ms', (req, res) => {
-    const delay = parseInt(req.params.ms) || 0;
-    const boundedDelay = Math.min(Math.max(0, delay), 10000); // Max 10s
-
-    setTimeout(() => {
-        res.json({
-            message: "Hello World!",
-            delayed_ms: boundedDelay,
-            timestamp: new Date().toISOString()
-        });
-    }, boundedDelay);
-});
+// Responder moved to engines/srt_responder.py (runs in voice-echo container)
 
 const SRT_STATS_FILE = '/tmp/srt_stats.json';
 
@@ -3742,6 +3731,14 @@ app.post('/api/srt/start', authenticateToken, (req, res) => {
         srtProcess.on('close', (code: any) => {
             console.log(`⏹️ [SRT] Probe stopped (Code: ${code})`);
             srtProcess = null;
+        });
+
+        // Pipe SRT orchestrator logs for transparency
+        srtProcess.stdout.on('data', (data: any) => {
+            const lines = data.toString().split('\n');
+            lines.forEach((line: string) => {
+                if (line.trim()) console.log(line);
+            });
         });
 
         res.json({ success: true, running: true });

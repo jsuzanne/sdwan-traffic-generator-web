@@ -21,7 +21,9 @@ class SRTMetrics:
         # srt = time_starttransfer - time_connect
         curl_format = '{"rtt": %{time_connect}, "ttfb": %{time_starttransfer}, "total": %{time_total}, "code": %{http_code}}'
         
-        url = f"http://{self.target}/api/slow-app/delay/500" # Sample test with 500ms delay
+        # Use port 8080 for the light responder by default
+        target_with_port = self.target if ":" in self.target else f"{self.target}:8080"
+        url = f"http://{target_with_port}/api/slow-app/delay/500"
         cmd = ["curl", "-s", "-o", "/dev/null", "-w", curl_format, url]
         
         try:
@@ -41,6 +43,9 @@ class SRTMetrics:
                 "http_code": data['code']
             }
             
+            # Print for transparency in dashboard logs
+            print(f"🐌 [SRT] Probe Result: Target={self.target} | RTT={rtt_ms}ms | SRT={srt_ms}ms | Total={total_ms}ms | Code={data['code']}", flush=True)
+
             with self.lock:
                 self.results.append(result)
                 if len(self.results) > 100:

@@ -3,11 +3,12 @@ import time
 import argparse
 import random
 import logging
-import warnings
+import signal
+import sys
 import threading
 import json
-import os
 import socket
+import warnings
 
 # Disable warnings for clean logs
 warnings.filterwarnings("ignore")
@@ -267,6 +268,7 @@ if __name__ == "__main__":
         print(f"[{log_id}]     - RX Rcvd: {rcvd} | RX Lost: 0", flush=True)
         print(f"[{log_id}]     - Max Blackout: {final_stats['max_blackout_ms']}ms", flush=True)
         print(f"[{log_id}]     - Missed Seqs: {missed_str}", flush=True)
+        sys.stdout.flush() # Force flush for container logs
         
         sock.close()
         t_recv.join(0.5)
