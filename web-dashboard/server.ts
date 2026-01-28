@@ -84,6 +84,7 @@ const getNextTestId = (): number => {
 
 let convergenceProcesses: Map<string, any> = new Map();
 let convergencePPS: Map<string, number> = new Map();
+let srtProcess: any = null;
 
 const getNextFailoverTestId = (): string => {
     try {
@@ -1495,9 +1496,9 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     const statsFile = `/tmp/convergence_stats_${testId}.json`;
 
     // Dynamic path resolution
-    let orchestratorPath = path.join(__dirname, '../voip/convergence_orchestrator.py');
+    let orchestratorPath = path.join(__dirname, '../engines/convergence_orchestrator.py');
     if (!fs.existsSync(orchestratorPath)) {
-        orchestratorPath = path.join(__dirname, 'voip/convergence_orchestrator.py');
+        orchestratorPath = path.join(__dirname, 'engines/convergence_orchestrator.py');
     }
 
     if (!fs.existsSync(orchestratorPath)) {
@@ -2484,9 +2485,11 @@ const runScheduledUrlTests = async () => {
                 content.includes('access denied') ||
                 content.includes('web-block-page'));
 
-            const status = (httpCode >= 200 && httpCode < 400 && !isBlockPage) ? 'allowed' : 'blocked';
+            // Treat 404 as 'allowed' if no block page is detected (Service might be down, but network allows it)
+            const status = ((httpCode >= 200 && httpCode < 400) || (httpCode === 404 && !isBlockPage)) ? 'allowed' : 'blocked';
 
             updateStatistics('url_filtering', status);
+            const testId = getNextTestId();
             addTestResult('url_filtering', category.name, {
                 success: status === 'allowed',
                 httpCode,
@@ -2495,7 +2498,9 @@ const runScheduledUrlTests = async () => {
                 category: category.name,
                 blockPageDetected: isBlockPage,
                 testPageDetected: isTestPage
-            }, getNextTestId());
+            }, testId);
+
+            console.log(`[SECURITY-URL] [${testId}] ${status.toUpperCase()} - Category: ${category.name} | Code: ${httpCode}${isBlockPage ? ' (Block Page Detected)' : ''}`);
         } catch (e) {
             updateStatistics('url_filtering', 'blocked');
             addTestResult('url_filtering', category.name, { success: false, status: 'blocked', url: category.url, category: category.name }, getNextTestId());
@@ -3702,6 +3707,66 @@ const scheduleLogCleanup = () => {
     console.log(`[LOG_CLEANUP] Next cleanup scheduled for ${tomorrow2AM.toISOString()}`);
 };
 
+
+// --- Slow App / SRT Simulation ---
+app.get('/api/slow-app/delay/:ms', (req, res) => {
+    const delay = parseInt(req.params.ms) || 0;
+    const boundedDelay = Math.min(Math.max(0, delay), 10000); // Max 10s
+
+    setTimeout(() => {
+    });
+}, boundedDelay);
+});
+
+const SRT_STATS_FILE = '/tmp/srt_stats.json';
+
+app.post('/api/srt/start', authenticateToken, (req, res) => {
+    const { target } = req.body;
+    if (!target) return res.status(400).json({ error: 'Target IP/Host required' });
+
+    if (srtProcess) {
+        try { srtProcess.kill(); } catch (e) { }
+    }
+
+    const orchestratorPath = path.join(__dirname, '../engines/srt_orchestrator.py');
+    const args = ['--target', target, '--stats-file', SRT_STATS_FILE];
+
+    try {
+        srtProcess = spawn('python3', [orchestratorPath, ...args]);
+        console.log(`🚀 [SRT] Probe started for target: ${target}`);
+
+        srtProcess.on('close', (code: any) => {
+            console.log(`⏹️ [SRT] Probe stopped (Code: ${code})`);
+            srtProcess = null;
+        });
+
+        res.json({ success: true, running: true });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to start SRT orchestrator', details: e.message });
+    }
+});
+
+app.post('/api/srt/stop', authenticateToken, (req, res) => {
+    if (srtProcess) {
+        srtProcess.kill();
+        res.json({ success: true, running: false });
+    } else {
+        res.json({ success: true, running: false, message: 'Not running' });
+    }
+});
+
+app.get('/api/srt/stats', authenticateToken, (req, res) => {
+    try {
+        if (fs.existsSync(SRT_STATS_FILE)) {
+            const stats = JSON.parse(fs.readFileSync(SRT_STATS_FILE, 'utf8'));
+            res.json({ ...stats, running: !!srtProcess });
+        } else {
+            res.json({ running: !!srtProcess, history: [] });
+        }
+    } catch (e) {
+        res.json({ running: !!srtProcess, history: [] });
+    }
+});
 
 app.listen(PORT, async () => {
     // Initialize platform-specific commands

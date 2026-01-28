@@ -8,11 +8,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the server scripts and version
-COPY voip/echo_server.py /app/voip/echo_server.py
-COPY voip/start_echo.sh /app/voip/start_echo.sh
+COPY engines/echo_server.py /app/engines/echo_server.py
+COPY engines/start_echo.sh /app/engines/start_echo.sh
 COPY VERSION /app/VERSION
 
-RUN chmod +x /app/voip/start_echo.sh
+RUN chmod +x /app/engines/start_echo.sh
 
 # Expose ports
 EXPOSE 6100/udp
@@ -21,4 +21,4 @@ EXPOSE 5201/tcp
 EXPOSE 5201/udp
 
 # Run the unified start script
-ENTRYPOINT ["/app/voip/start_echo.sh"]
+ENTRYPOINT ["/app/engines/start_echo.sh"]

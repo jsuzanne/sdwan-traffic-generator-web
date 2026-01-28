@@ -16,8 +16,8 @@ RUN pip install --no-cache-dir scapy
 WORKDIR /app
 
 # Copy scripts and version
-COPY voip/rtp.py /app/rtp.py
-COPY voip/voice_orchestrator.py /app/voice_orchestrator.py
+COPY engines/rtp.py /app/rtp.py
+COPY engines/voice_orchestrator.py /app/voice_orchestrator.py
 COPY VERSION /app/VERSION
 
 # Ensure scripts are executable

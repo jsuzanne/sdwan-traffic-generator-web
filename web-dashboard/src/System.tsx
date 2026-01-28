@@ -14,6 +14,15 @@ interface MaintenanceStatus {
     dockerReady?: boolean;
 }
 
+const BetaBadge = ({ className }: { className?: string }) => (
+    <span className={cn(
+        "px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30",
+        className
+    )}>
+        Beta
+    </span>
+);
+
 export default function System({ token }: { token: string }) {
     const [status, setStatus] = useState<MaintenanceStatus | null>(null);
     const [loading, setLoading] = useState(true);
@@ -85,8 +94,11 @@ export default function System({ token }: { token: string }) {
                             <RefreshCw size={24} className={upgrading ? "animate-spin" : ""} />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-100">System Maintenance</h3>
-                            <p className="text-slate-400 text-xs text-balance">Update system logic and engine to the latest stable release.</p>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-xl font-bold text-slate-100">System Maintenance</h3>
+                                <BetaBadge />
+                            </div>
+                            <p className="text-slate-400 text-xs text-balance">Update system logic and engine to the latest stable release (Validation in Progress).</p>
                         </div>
                     </div>
 

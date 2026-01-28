@@ -17,6 +17,7 @@ class ConvergenceMetrics:
         self.test_id = test_id
         self.sent_count = 0
         self.sent_times = {} # seq -> sent_time
+        self.sent_seqs = set() # Track all sent seqs
         self.rtts = []
         self.received_seqs = set()
         self.last_transit_time = None
@@ -32,6 +33,7 @@ class ConvergenceMetrics:
     def record_send(self, seq, timestamp):
         with self.lock:
             self.sent_count = seq
+            self.sent_seqs.add(seq)
             self.sent_times[seq] = timestamp
 
     def record_receive(self, seq, server_count, receive_time):
@@ -240,11 +242,31 @@ if __name__ == "__main__":
         except: pass
 
         rcvd = final_stats['received']
-        tx_lost = final_stats['sent'] - final_stats['received'] # simplified for log
+        tx_sent = seq
+        tx_lost = final_stats['sent'] - final_stats['received']
+        rx_lost = final_stats.get('rx_lost_count', 0) # future proof
         duration = final_stats['duration_s']
         
+        # Calculate missed sequences
+        with metrics.lock:
+            missed = sorted(list(metrics.sent_seqs - metrics.received_seqs))
+        
+        missed_str = "None"
+        if missed:
+            if len(missed) > 50:
+                first_part = missed[:25]
+                last_part = missed[-25:]
+                missed_str = f"[{', '.join(map(str, first_part))} ... {', '.join(map(str, last_part))}] (Total: {len(missed)})"
+            else:
+                missed_str = f"[{', '.join(map(str, missed))}]"
+
         timestamp = time.strftime('%H:%M:%S')
-        print(f"[{log_id}] \u23f9\ufe0f  [{timestamp}] {label} - CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} | Duration: {duration}s | Max Blackout: {final_stats['max_blackout_ms']}ms", flush=True)
+        print(f"[{log_id}] \u23f9\ufe0f  [{timestamp}] {label} - CONVERGENCE STOPPED:", flush=True)
+        print(f"[{log_id}]     - Duration: {duration}s | PPS: {args.rate}", flush=True)
+        print(f"[{log_id}]     - TX Sent: {tx_sent} | TX Lost: {tx_lost}", flush=True)
+        print(f"[{log_id}]     - RX Rcvd: {rcvd} | RX Lost: 0", flush=True)
+        print(f"[{log_id}]     - Max Blackout: {final_stats['max_blackout_ms']}ms", flush=True)
+        print(f"[{log_id}]     - Missed Seqs: {missed_str}", flush=True)
         
         sock.close()
         t_recv.join(0.5)
