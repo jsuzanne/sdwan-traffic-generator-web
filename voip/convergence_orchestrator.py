@@ -68,8 +68,9 @@ class ConvergenceMetrics:
             outage_base = now if is_running else self.last_rcvd_time
             outage = (outage_base - self.last_rcvd_time) * 1000
             
-            # Dynamic threshold (1.5x interval)
-            threshold_ms = self.interval * 1500
+            # Dynamic threshold (100ms floor vs 1.5x interval)
+            # This prevents "ghost" red bars from normal 10-50ms jitter at high PPS
+            threshold_ms = max(100, self.interval * 1500)
             has_seq_gap = (seq > rcvd)
             is_blackout = (outage > threshold_ms) and has_seq_gap
             
@@ -81,12 +82,13 @@ class ConvergenceMetrics:
             if is_blackout:
                 self.max_blackout = max(self.max_blackout, round(outage))
             
-            # Final cleanup if stopped and 100% success
+            # Final cleanup if stopped and 100% success (Perfect Run)
             if not is_running and rcvd >= seq:
                 self.max_blackout = 0
                 self.history = [1] * len(self.history)
 
             total_loss = round((1 - (rcvd/seq)) * 100, 1) if seq > 0 else 0
+            duration = round(now - self.start_time, 1)
             
             if self.server_received > 0:
                 tx_loss_pct = round((1 - (self.server_received / seq)) * 100, 1)
@@ -108,6 +110,7 @@ class ConvergenceMetrics:
                 "avg_rtt_ms": round(sum(self.rtts)/len(self.rtts), 2) if self.rtts else 0,
                 "jitter_ms": round(self.jitter * 1000, 2),
                 "rate_pps": self.rate,
+                "duration_s": duration,
                 "history": list(self.history),
                 "start_time": self.start_time
             }
@@ -223,9 +226,10 @@ if __name__ == "__main__":
 
         rcvd = final_stats['received']
         tx_lost = final_stats['sent'] - final_stats['received'] # simplified for log
+        duration = final_stats['duration_s']
         
         timestamp = time.strftime('%H:%M:%S')
-        print(f"[{log_id}] \u23f9\ufe0f  [{timestamp}] {label} - CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} (Lost: 0) | Max Blackout: {final_stats['max_blackout_ms']}ms", flush=True)
+        print(f"[{log_id}] \u23f9\ufe0f  [{timestamp}] {label} - CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} (Lost: 0) | Duration: {duration}s | Max Blackout: {final_stats['max_blackout_ms']}ms", flush=True)
         
         sock.close()
         t_recv.join(0.5)

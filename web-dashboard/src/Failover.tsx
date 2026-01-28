@@ -399,7 +399,7 @@ export default function Failover(props: FailoverProps) {
                                 <tr>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight">Date / ID / Label</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Verdict</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Outcome</th>
+                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Outcome / Duration</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Packet Details</th>
                                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">Config</th>
                                 </tr>
@@ -434,7 +434,9 @@ export default function Failover(props: FailoverProps) {
                                                         <span className={`font-mono text-sm font-bold ${test.max_blackout_ms > 0 ? 'text-orange-400' : 'text-slate-400'}`}>
                                                             {formatMs(test.max_blackout_ms || 0)}
                                                         </span>
-                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Max Blackout</span>
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">
+                                                            Max Blackout {test.duration_s ? `(${test.duration_s}s)` : ''}
+                                                        </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
