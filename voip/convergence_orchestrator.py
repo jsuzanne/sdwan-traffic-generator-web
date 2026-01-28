@@ -192,7 +192,7 @@ if __name__ == "__main__":
                     "tx_loss_pct": max(0, tx_loss_pct),
                     "rx_loss_pct": max(0, rx_loss_pct),
                     "max_blackout_ms": metrics.max_blackout,
-                    "current_blackout_ms": round(outage) if is_lost else 0,
+                    "current_blackout_ms": round(outage) if is_blackout else 0,
                     "avg_rtt_ms": round(sum(metrics.rtts)/len(metrics.rtts), 2) if metrics.rtts else 0,
                     "jitter_ms": round(metrics.jitter * 1000, 2),
                     "source_port": source_port,

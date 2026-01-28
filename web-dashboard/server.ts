@@ -3601,9 +3601,20 @@ app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) =
             return res.status(500).json({ error: 'Failed to pull images', details: pullError.message });
         }
 
-        res.json({ success: true, message: 'Pull complete. Refreshing services...' });
+        res.json({ success: true, message: 'Pull complete. Refreshing all services...' });
+        console.log('[MAINTENANCE] 🔄 Refreshing system services (docker compose up -d)...');
 
-        setTimeout(() => {
+        setTimeout(async () => {
+            try {
+                const rootDir = path.join(__dirname, '..');
+                if (fs.existsSync(path.join(rootDir, 'docker-compose.yml'))) {
+                    await execPromise('docker compose up -d', { cwd: rootDir });
+                    console.log('[MAINTENANCE] ✅ System services refreshed.');
+                }
+            } catch (upError: any) {
+                console.error('[MAINTENANCE] ⚠️ docker compose up failed:', upError.message);
+            }
+
             console.log('[MAINTENANCE] 🔄 Restarting dashboard container...');
             process.exit(0);
         }, 2000);
