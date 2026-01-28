@@ -3457,14 +3457,14 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
         let updateAvailable = false;
 
         try {
-            const { stdout } = await execPromise('curl -s --connect-timeout 5 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/releases/latest');
-            const release = JSON.parse(stdout);
-            if (release && release.tag_name) {
-                latestVersion = release.tag_name.replace('v', '');
+            const { stdout } = await execPromise('curl -s --connect-timeout 5 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/tags');
+            const tags = JSON.parse(stdout);
+            if (Array.isArray(tags) && tags.length > 0) {
+                latestVersion = tags[0].name.replace('v', '');
                 updateAvailable = (latestVersion !== currentVersion);
             }
         } catch (e) {
-            console.warn('[MAINTENANCE] ⚠️ Failed to fetch latest version from GitHub');
+            console.warn('[MAINTENANCE] ⚠️ Failed to fetch latest version from GitHub tags');
         }
 
         res.json({
