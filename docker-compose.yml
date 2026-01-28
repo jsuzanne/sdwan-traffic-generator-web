@@ -87,7 +87,7 @@ services:
       - "5201:5201/tcp" # iperf3 (Bandwidth)
       - "5201:5201/udp" # iperf3 (Quality)
     volumes:
-      - ./voip:/app/voip
+      - ./engines:/app/engines
       - ./VERSION:/app/VERSION:ro
 
 volumes:

@@ -38,8 +38,8 @@ COPY web-dashboard/shared ./shared
 COPY web-dashboard/tsconfig.json ./
 # Copy VERSION file from root of build context
 COPY VERSION ./VERSION
-# Copy voip orchestration script
-COPY voip ./voip
+# Copy engines orchestration script
+COPY engines ./engines
 
 # Labels for Docker Hub
 LABEL org.opencontainers.image.title="SD-WAN Traffic Generator - Web UI"
