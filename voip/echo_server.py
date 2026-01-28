@@ -36,7 +36,7 @@ def handle_port(ip, port, active_sessions, lock):
                     payload_str = data.decode('utf-8', errors='ignore')
                     if "CID:" in payload_str:
                         detected_id = payload_str.split("CID:")[1].split(":")[0]
-                        detected_label = "" # Voice calls don't have separate labels yet
+                        detected_label = ""
                     elif "CONV:" in payload_str:
                         # Format: CONV:TEST-ID:LABEL:SEQ:TS
                         parts = payload_str.split(':')
