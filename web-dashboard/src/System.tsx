@@ -11,6 +11,7 @@ interface MaintenanceStatus {
     current: string;
     latest: string;
     updateAvailable: boolean;
+    dockerReady?: boolean;
 }
 
 export default function System({ token }: { token: string }) {
@@ -43,19 +44,24 @@ export default function System({ token }: { token: string }) {
     }, [token]);
 
     const handleUpgrade = async () => {
-        if (!confirm('This will pull the latest stable images and restart the dashboard. Proceed?')) return;
+        if (!status?.latest) return;
+        if (!confirm(`This will pull v${status.latest} images and restart the dashboard. Proceed?`)) return;
 
         setUpgrading(true);
         setError(null);
         try {
             const res = await fetch('/api/admin/maintenance/upgrade', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ version: status.latest })
             });
             const data = await res.json();
 
             if (res.ok) {
-                setSuccess('Upgrade started! The system will restart in a few seconds. Refresh the page shortly.');
+                setSuccess(`Upgrade to v${status.latest} started! The system will restart in a few seconds. Refresh the page shortly.`);
             } else {
                 setError(data.details || data.error || 'Upgrade failed');
                 setUpgrading(false);
@@ -96,24 +102,36 @@ export default function System({ token }: { token: string }) {
                         </div>
 
                         {status?.updateAvailable && !success && (
-                            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg flex gap-3">
-                                <AlertCircle className="text-amber-500 shrink-0" size={20} />
+                            <div className={cn(
+                                "p-4 rounded-lg flex gap-3 border transition-colors",
+                                status.dockerReady ? "bg-amber-500/10 border-amber-500/30" : "bg-blue-500/10 border-blue-500/30"
+                            )}>
+                                {status.dockerReady
+                                    ? <AlertCircle className="text-amber-500 shrink-0" size={20} />
+                                    : <RefreshCw className="text-blue-400 animate-spin shrink-0" size={20} />
+                                }
                                 <div className="space-y-2">
-                                    <p className="text-xs text-amber-200 leading-relaxed font-medium">
-                                        A newer version (v{status.latest}) is available on GitHub. This update includes new features and stability fixes.
+                                    <p className={cn(
+                                        "text-xs leading-relaxed font-medium",
+                                        status.dockerReady ? "text-amber-200" : "text-blue-200"
+                                    )}>
+                                        {status.dockerReady
+                                            ? `A newer version (v${status.latest}) is available on GitHub and ready to pull from Docker Hub.`
+                                            : `Version v${status.latest} is live on GitHub. Waiting for Docker Hub sync...`
+                                        }
                                     </p>
                                     <button
                                         onClick={handleUpgrade}
-                                        disabled={upgrading}
+                                        disabled={upgrading || !status.dockerReady}
                                         className={cn(
                                             "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg",
-                                            upgrading
+                                            (upgrading || !status.dockerReady)
                                                 ? "bg-slate-800 text-slate-500 cursor-not-allowed"
                                                 : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20"
                                         )}
                                     >
                                         {upgrading ? <RefreshCw className="animate-spin" size={14} /> : <Download size={14} />}
-                                        {upgrading ? 'Upgrading...' : 'Update to Latest Stable'}
+                                        {upgrading ? 'Upgrading...' : status.dockerReady ? 'Update to Latest Stable' : 'Waiting for Docker...'}
                                     </button>
                                 </div>
                             </div>

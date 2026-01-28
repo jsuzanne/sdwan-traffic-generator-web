@@ -83,6 +83,7 @@ const getNextTestId = (): number => {
 };
 
 let convergenceProcesses: Map<string, any> = new Map();
+let convergencePPS: Map<string, number> = new Map();
 
 const getNextFailoverTestId = (): string => {
     try {
@@ -3494,10 +3495,22 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
             console.warn('[MAINTENANCE] ⚠️ Failed to fetch latest version from GitHub tags');
         }
 
+        let dockerReady = true;
+        if (updateAvailable) {
+            try {
+                // Check if the specific tag is already available on Docker Hub
+                const { stdout: dockerStatus } = await execPromise(`curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/jsuzanne/sdwan-traffic-gen/tags/${latestVersion}/`);
+                dockerReady = (dockerStatus.trim() === '200');
+            } catch (e) {
+                console.warn('[MAINTENANCE] ⚠️ Docker Hub verification failed, assuming ready.');
+            }
+        }
+
         res.json({
             current: currentVersion,
             latest: latestVersion,
-            updateAvailable
+            updateAvailable,
+            dockerReady
         });
     } catch (e: any) {
         console.error('[MAINTENANCE] ❌ Version check error:', e);
@@ -3608,20 +3621,28 @@ app.post('/api/admin/config/import', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) => {
-    console.log('[MAINTENANCE] Upgrade requested...');
+    const { version } = req.body;
+    console.log(`[MAINTENANCE] Upgrade requested${version ? ' to v' + version : ''}...`);
     const execPromise = promisify(exec);
 
     try {
-        console.log('[MAINTENANCE] 📦 Pulling latest stable images...');
+        const pullTarget = version || 'stable';
+        console.log(`[MAINTENANCE] 📦 Pulling images with tag: ${pullTarget}...`);
+
         try {
             const rootDir = path.join(__dirname, '..');
             if (fs.existsSync(path.join(rootDir, 'docker-compose.yml'))) {
-                await execPromise('docker compose pull', { cwd: rootDir });
+                // If we have a specific version, we set an ENV var for docker compose or pull explicitly
+                if (version) {
+                    await execPromise(`TAG=${version} docker compose pull`, { cwd: rootDir });
+                } else {
+                    await execPromise('docker compose pull', { cwd: rootDir });
+                }
             } else {
-                await execPromise('docker pull jsuzanne/sdwan-web-ui:stable');
-                await execPromise('docker pull jsuzanne/sdwan-traffic-gen:stable');
-                await execPromise('docker pull jsuzanne/sdwan-voice-gen:stable');
-                await execPromise('docker pull jsuzanne/sdwan-voice-echo:stable');
+                await execPromise(`docker pull jsuzanne/sdwan-web-ui:${pullTarget}`);
+                await execPromise(`docker pull jsuzanne/sdwan-traffic-gen:${pullTarget}`);
+                await execPromise(`docker pull jsuzanne/sdwan-voice-gen:${pullTarget}`);
+                await execPromise(`docker pull jsuzanne/sdwan-voice-echo:${pullTarget}`);
             }
         } catch (pullError: any) {
             console.error('[MAINTENANCE] ❌ Pull failed:', pullError.message);
