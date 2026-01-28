@@ -24,7 +24,6 @@ class ConvergenceMetrics:
         self.last_rcvd_time = time.time()
         self.max_blackout = 0
         self.server_received = 0
-        self.history = [] # Success/Fail timeline (1 = success, 0 = fail)
         self.lock = threading.Lock()
         self.interval = 1.0 / rate
         self.start_time = start_time
@@ -68,24 +67,40 @@ class ConvergenceMetrics:
             outage_base = now if is_running else self.last_rcvd_time
             outage = (outage_base - self.last_rcvd_time) * 1000
             
-            # Dynamic threshold (100ms floor vs 1.5x interval)
-            # This prevents "ghost" red bars from normal 10-50ms jitter at high PPS
+            # --- Sequence Fidelity Logic ---
+            # Instead of a rolling history of 1/0, we generate history based on the LAST 100 packets sent.
+            # This allows "Blue" bars to flip to "Red" (and back to "Blue" if jittered packets arrive late).
+            history = []
+            history_start = max(1, seq - 99)
+            for s in range(history_start, seq + 1):
+                if s in self.received_seqs:
+                    history.append(1) # Received
+                else:
+                    # Is it missing long enough to be red? 
+                    # Use a 100ms floor or 1.5x interval (same as blackout detection)
+                    threshold = max(0.1, self.interval * 1.5)
+                    sent_at = self.sent_times.get(s, now)
+                    if now - sent_at > threshold:
+                        history.append(0) # Confirmed Missing/Pending
+                    else:
+                        history.append(1) # Still in flight (keep blue to reduce noise)
+
+            # Padding if test just started
+            if len(history) < 100:
+                history = [1] * (100 - len(history)) + history
+
+            # Blackout Detection (Same logic as before)
             threshold_ms = max(100, self.interval * 1500)
             has_seq_gap = (seq > rcvd)
             is_blackout = (outage > threshold_ms) and has_seq_gap
             
-            # Update history (Success = 1, Fail = 0)
-            self.history.append(0 if is_blackout else 1)
-            if len(self.history) > 100:
-                self.history.pop(0)
-
             if is_blackout:
                 self.max_blackout = max(self.max_blackout, round(outage))
             
             # Final cleanup if stopped and 100% success (Perfect Run)
             if not is_running and rcvd >= seq:
                 self.max_blackout = 0
-                self.history = [1] * len(self.history)
+                history = [1] * 100
 
             total_loss = round((1 - (rcvd/seq)) * 100, 1) if seq > 0 else 0
             duration = round(now - self.start_time, 1)
@@ -111,7 +126,7 @@ class ConvergenceMetrics:
                 "jitter_ms": round(self.jitter * 1000, 2),
                 "rate_pps": self.rate,
                 "duration_s": duration,
-                "history": list(self.history),
+                "history": history,
                 "start_time": self.start_time
             }
 
@@ -144,7 +159,7 @@ def stats_writer_thread(metrics, stats_file, stop_event):
             with open(stats_file, 'w') as f:
                 json.dump(stats, f)
         except: pass
-        time.sleep(0.25) # 4 times per second
+        time.sleep(0.2) # Faster update for flipping effect
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -181,7 +196,7 @@ if __name__ == "__main__":
     
     timestamp = time.strftime('%H:%M:%S')
     print(f"[{log_id}] \U0001f680 [{timestamp}] {label} - CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps", flush=True)
-    print(f"[{log_id}] \u2699\ufe0f  [{timestamp}] {label} - Source Port: {source_port} (High Precision Mode)", flush=True)
+    print(f"[{log_id}] \u2699\ufe0f  [{timestamp}] {label} - Source Port: {source_port} (Sequence Fidelity Active)", flush=True)
 
     seq = 0
     interval = 1.0 / args.rate
@@ -229,7 +244,7 @@ if __name__ == "__main__":
         duration = final_stats['duration_s']
         
         timestamp = time.strftime('%H:%M:%S')
-        print(f"[{log_id}] \u23f9\ufe0f  [{timestamp}] {label} - CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} (Lost: 0) | Duration: {duration}s | Max Blackout: {final_stats['max_blackout_ms']}ms", flush=True)
+        print(f"[{log_id}] \u23f9\ufe0f  [{timestamp}] {label} - CONVERGENCE STOPPED: TX: {seq} (Lost: {tx_lost}) | RX: {rcvd} | Duration: {duration}s | Max Blackout: {final_stats['max_blackout_ms']}ms", flush=True)
         
         sock.close()
         t_recv.join(0.5)

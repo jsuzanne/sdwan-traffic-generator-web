@@ -1478,6 +1478,18 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
 
     if (!target) return res.status(400).json({ error: 'Target IP required' });
 
+    // Safety Scaling: Enforce a Global PPS limit of 500
+    const currentTotalPPS = Array.from(convergencePPS.values()).reduce((a, b) => a + b, 0);
+    const requestedPPS = parseInt(rate) || 50;
+    const GLOBAL_PPS_LIMIT = 500;
+
+    if (currentTotalPPS + requestedPPS > GLOBAL_PPS_LIMIT) {
+        return res.status(422).json({
+            error: 'Global PPS Limit Exceeded',
+            details: `Total system capacity is ${GLOBAL_PPS_LIMIT} PPS. Currently running ${currentTotalPPS} PPS. Please reduce rate or stop other probes.`
+        });
+    }
+
     const displayId = label ? `${label} (${testId})` : testId;
     const statsFile = `/tmp/convergence_stats_${testId}.json`;
 
@@ -1506,10 +1518,18 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     try {
         const proc = spawn('python3', args);
         convergenceProcesses.set(testId, proc);
+        convergencePPS.set(testId, requestedPPS);
 
         proc.on('error', (err: any) => {
             console.error(`[CONVERGENCE-ERROR] Failed to start ${testId}: ${err.message}`);
             convergenceProcesses.delete(testId);
+            convergencePPS.delete(testId);
+        });
+
+        proc.on('close', (code) => {
+            console.log(`[CONVERGENCE] Process ${testId} exited with code ${code}`);
+            convergenceProcesses.delete(testId);
+            convergencePPS.delete(testId);
         });
 
         proc.stdout.on('data', (data: any) => {
@@ -1522,6 +1542,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         proc.on('close', (code: any) => {
             console.log(`[${testId}] ✅ Process finished with code ${code}`);
             convergenceProcesses.delete(testId);
+            convergencePPS.delete(testId); // Ensure PPS is cleared on close
 
             // Finalize history entry
             if (fs.existsSync(statsFile)) {
@@ -1548,15 +1569,21 @@ app.post('/api/convergence/stop', authenticateToken, (req, res) => {
     if (testId) {
         const proc = convergenceProcesses.get(testId);
         if (proc) {
-            proc.kill('SIGINT');
+            proc.kill(); // Default is SIGTERM, which is usually fine. SIGINT is also an option.
+            convergenceProcesses.delete(testId);
+            convergencePPS.delete(testId);
+            console.log(`[CONVERGENCE] Stopped specific test: ${testId}`);
             return res.json({ success: true });
         }
         return res.status(404).json({ error: 'Test not found' });
     } else {
         // Stop all
-        convergenceProcesses.forEach((proc, id) => {
-            proc.kill('SIGINT');
-        });
+        for (const [id, proc] of convergenceProcesses.entries()) {
+            proc.kill();
+            convergencePPS.delete(id);
+        }
+        convergenceProcesses.clear();
+        console.log('[CONVERGENCE] Stopped all tests');
         res.json({ success: true, count: convergenceProcesses.size });
     }
 });
