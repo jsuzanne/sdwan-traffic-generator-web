@@ -166,8 +166,14 @@ docker ps
 
 **Requirements:** Docker must be running (see [Prerequisites](#-prerequisites) above)
 
+**Full Dashboard (Interactive):**
 ```bash
 curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/install.sh | bash
+```
+
+**Target Site Only (Non-Interactive):**
+```bash
+curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/install.sh | bash -s -- --target
 ```
 
 This will:

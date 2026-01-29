@@ -198,8 +198,8 @@ if __name__ == "__main__":
         log_id = log_id.split(" (")[-1].replace(")", "")
     
     timestamp = time.strftime('%H:%M:%S')
-    print(f"[{log_id}] \U0001f680 [{timestamp}] {label} - CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps", flush=True)
-    print(f"[{log_id}] \u2699\ufe0f  [{timestamp}] {label} - Source Port: {source_port} (Sequence Fidelity Active)", flush=True)
+    print(f"[{log_id}] [{timestamp}] 🚀 {label} - CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps", flush=True)
+    print(f"[{log_id}] [{timestamp}] ⚙️  {label} - Source Port: {source_port} (Sequence Fidelity Active)", flush=True)
 
     seq = 0
     interval = 1.0 / args.rate

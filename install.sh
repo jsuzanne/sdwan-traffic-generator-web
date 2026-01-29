@@ -53,11 +53,21 @@ if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
     esac
 fi
 
-echo ""
-echo "What would you like to install?"
-echo "1) Full Dashboard (UI + Generator + Echo Server)"
-echo "2) Target Site Only (Echo Server for Convergence Lab)"
-read -p "Select an option [1-2]: " INSTALL_MODE
+# Handle command line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --target) INSTALL_MODE="2"; shift ;;
+        --dashboard) INSTALL_MODE="1"; shift ;;
+        *) shift ;;
+    esac
+done
+
+if [ -z "$INSTALL_MODE" ]; then
+    echo "What would you like to install?"
+    echo "1) Full Dashboard (UI + Generator + Echo Server)"
+    echo "2) Target Site Only (Echo Server for Convergence Lab)"
+    read -p "Select an option [1-2]: " INSTALL_MODE
+fi
 
 if [ "$INSTALL_MODE" == "2" ]; then
     echo "🎯 Mode: Target Site (Echo Server)"

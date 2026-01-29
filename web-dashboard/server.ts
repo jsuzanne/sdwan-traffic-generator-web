@@ -156,6 +156,38 @@ const logTest = (...args: any[]) => {
     }
 };
 
+/**
+ * Log Healing: Cleanup test-results.jsonl from non-JSON lines on startup
+ */
+const healLogFiles = () => {
+    const resultsFile = path.join(APP_CONFIG.logDir, 'test-results.jsonl');
+    if (!fs.existsSync(resultsFile)) return;
+
+    try {
+        console.log('[SYSTEM] 🧹 Healing log files...');
+        const content = fs.readFileSync(resultsFile, 'utf8');
+        const lines = content.split('\n');
+        const validLines = lines.filter(line => {
+            if (!line.trim()) return false;
+            try {
+                JSON.parse(line);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        });
+
+        if (validLines.length !== lines.filter(l => l.trim()).length) {
+            console.log(`[SYSTEM] ✨ Removed ${lines.filter(l => l.trim()).length - validLines.length} invalid lines from test-results.jsonl`);
+            fs.writeFileSync(resultsFile, validLines.join('\n') + '\n', 'utf8');
+        } else {
+            console.log('[SYSTEM] ✅ Log files are healthy.');
+        }
+    } catch (e: any) {
+        console.error('[SYSTEM] Failed to heal log files:', e.message);
+    }
+};
+
 
 // Platform Detection & DNS Command Availability
 const PLATFORM = os.platform(); // 'linux', 'darwin', 'win32'
@@ -1476,7 +1508,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     const timestamp = new Date().toLocaleTimeString('en-GB', { hour12: false });
     const testId = (req as any).testId || getNextFailoverTestId();
     (req as any).testId = testId; // Ensure it's available for subsequent logs
-    console.log(`[${timestamp}] [${testId}] 🚀 ${label || 'None'} - Incoming Start Request: Target=${target}:${port}, Rate=${rate}pps`);
+    console.log(`[${testId}] [${timestamp}] 🚀 ${label || 'None'} - Incoming Start Request: Target=${target}:${port}, Rate=${rate}pps`);
 
     if (!target) return res.status(400).json({ error: 'Target IP required' });
 
@@ -1529,7 +1561,8 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         });
 
         proc.on('close', (code) => {
-            console.log(`[CONVERGENCE] Process ${testId} exited with code ${code}`);
+            const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            console.log(`[${testId}] [${now}] ℹ️ Process exited with code ${code}`);
             convergenceProcesses.delete(testId);
             convergencePPS.delete(testId);
         });
@@ -1542,7 +1575,8 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         });
 
         proc.on('close', (code: any) => {
-            console.log(`[${testId}] ✅ Process finished with code ${code}`);
+            const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            console.log(`[${testId}] [${now}] ✅ Process finished with code ${code}`);
             convergenceProcesses.delete(testId);
             convergencePPS.delete(testId); // Ensure PPS is cleared on close
 
@@ -1574,7 +1608,8 @@ app.post('/api/convergence/stop', authenticateToken, (req, res) => {
             proc.kill(); // Default is SIGTERM, which is usually fine. SIGINT is also an option.
             convergenceProcesses.delete(testId);
             convergencePPS.delete(testId);
-            console.log(`[CONVERGENCE] Stopped specific test: ${testId}`);
+            const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            console.log(`[${testId}] [${now}] 🛑 Stopped specific test`);
             return res.json({ success: true });
         }
         return res.status(404).json({ error: 'Test not found' });
@@ -2863,7 +2898,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 testPageDetected: isTestPage,
                 reason: isTestPage ? 'Legitimate Palo Alto Test Page detected' :
                     isBlockPage ? 'Security Block Page detected in response content' :
-                        (httpCode >= 200 && httpCode < 400) ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`
+                        (status === 'allowed') ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`
             };
 
             logTest(`[URL-TEST-${testId}] Final status: ${result.status} (HTTP ${httpCode})`);
@@ -2953,7 +2988,7 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                     rate_pps: 0, // Not applicable for URL tests
                     reason: isTestPage ? 'Legitimate Palo Alto Test Page detected' :
                         isBlockPage ? 'Security Block Page detected in response content' :
-                            (httpCode >= 200 && httpCode < 400 || httpCode === 404) ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`
+                            (status === 'allowed') ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`
                 };
 
                 logTest(`[URL-TEST-${testId}] Final status: ${status} (HTTP ${httpCode})`);
@@ -3724,6 +3759,8 @@ app.post('/api/srt/start', authenticateToken, (req, res) => {
     const orchestratorPath = path.join(__dirname, 'engines/srt_orchestrator.py');
     const args = ['--target', target, '--stats-file', SRT_STATS_FILE];
 
+    console.log(`🚀 [SRT] Spawning orchestrator: python3 ${orchestratorPath} ${args.join(' ')}`);
+
     try {
         srtProcess = spawn('python3', [orchestratorPath, ...args], { env: { ...process.env, PYTHONUNBUFFERED: '1' } });
         console.log(`🚀 [SRT] Probe started for target: ${target}`);
@@ -3779,6 +3816,9 @@ app.get('/api/srt/stats', authenticateToken, (req, res) => {
 app.listen(PORT, async () => {
     // Initialize platform-specific commands
     await initializeCommands();
+
+    // Performance log healing
+    healLogFiles();
 
     // Log version on startup
     try {

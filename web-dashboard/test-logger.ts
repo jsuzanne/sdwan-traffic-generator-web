@@ -284,14 +284,17 @@ export class TestLogger {
                 const content = await readFile(filePath, 'utf8');
                 const lines = content.trim().split('\n').filter(l => l.length > 0);
 
+                let corruptionFound = false;
                 for (const line of lines) {
                     try {
                         const result = JSON.parse(line);
                         allResults.push(result);
                     } catch (e) {
-                        // Skip invalid JSON lines
-                        console.warn(`[TEST_LOGGER] Skipping invalid JSON line in ${file}`);
+                        corruptionFound = true;
                     }
+                }
+                if (corruptionFound) {
+                    console.warn(`[TEST_LOGGER] Found and skipped corrupted JSON lines in ${file}`);
                 }
             }
 
