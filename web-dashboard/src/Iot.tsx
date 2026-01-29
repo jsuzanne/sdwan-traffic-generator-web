@@ -143,16 +143,23 @@ export default function Iot({ token }: IotProps) {
         if (!editingDevice || !editingDevice.id) return;
 
         try {
-            await fetch('/api/iot/devices', {
+            const res = await fetch('/api/iot/devices', {
                 method: 'POST',
                 headers: authHeaders(),
                 body: JSON.stringify(editingDevice)
             });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || `Server responded with ${res.status}`);
+            }
+
             setShowAddModal(false);
             setEditingDevice(null);
             fetchDevices();
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to save device", e);
+            alert("Failed to save device: " + e.message);
         }
     };
 
