@@ -1496,7 +1496,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     const statsFile = `/tmp/convergence_stats_${testId}.json`;
 
     // Dynamic path resolution
-    let orchestratorPath = path.join(__dirname, '../engines/convergence_orchestrator.py');
+    let orchestratorPath = path.join(__dirname, 'engines/convergence_orchestrator.py');
     if (!fs.existsSync(orchestratorPath)) {
         orchestratorPath = path.join(__dirname, 'engines/convergence_orchestrator.py');
     }
@@ -2851,7 +2851,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
                 logTest(`[URL-TEST-${testId}] Block page detected in response content`);
             }
 
-            const status = (httpCode >= 200 && httpCode < 400 && !isBlockPage) ? 'allowed' : 'blocked';
+            const status = (httpCode >= 200 && httpCode < 400 && !isBlockPage) || (httpCode === 404 && !isBlockPage) ? 'allowed' : 'blocked';
 
             const result = {
                 success: status === 'allowed',
@@ -2931,7 +2931,7 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                     content.includes('access denied') ||
                     content.includes('web-block-page'));
 
-                const status = (httpCode >= 200 && httpCode < 400 && !isBlockPage) ? 'allowed' : 'blocked';
+                const status = (httpCode >= 200 && httpCode < 400 && !isBlockPage) || (httpCode === 404 && !isBlockPage) ? 'allowed' : 'blocked';
 
                 const result = {
                     success: status === 'allowed',
@@ -2953,7 +2953,7 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
                     rate_pps: 0, // Not applicable for URL tests
                     reason: isTestPage ? 'Legitimate Palo Alto Test Page detected' :
                         isBlockPage ? 'Security Block Page detected in response content' :
-                            (httpCode >= 200 && httpCode < 400) ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`
+                            (httpCode >= 200 && httpCode < 400 || httpCode === 404) ? `Allowed (HTTP ${httpCode})` : `Blocked (HTTP ${httpCode})`
                 };
 
                 logTest(`[URL-TEST-${testId}] Final status: ${status} (HTTP ${httpCode})`);
@@ -3721,7 +3721,7 @@ app.post('/api/srt/start', authenticateToken, (req, res) => {
         try { srtProcess.kill(); } catch (e) { }
     }
 
-    const orchestratorPath = path.join(__dirname, '../engines/srt_orchestrator.py');
+    const orchestratorPath = path.join(__dirname, 'engines/srt_orchestrator.py');
     const args = ['--target', target, '--stats-file', SRT_STATS_FILE];
 
     try {
@@ -3738,6 +3738,13 @@ app.post('/api/srt/start', authenticateToken, (req, res) => {
             const lines = data.toString().split('\n');
             lines.forEach((line: string) => {
                 if (line.trim()) console.log(line);
+            });
+        });
+
+        srtProcess.stderr.on('data', (data: any) => {
+            const lines = data.toString().split('\n');
+            lines.forEach((line: string) => {
+                if (line.trim()) console.error(`[SRT-ERROR] ${line}`);
             });
         });
 
