@@ -39,7 +39,8 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  (localStorage.getItem('activeView') as any) || 'performance'
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt'>(
+    (localStorage.getItem('activeView') as any) || 'performance'
   );
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
