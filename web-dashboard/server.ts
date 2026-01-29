@@ -3825,15 +3825,6 @@ app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) =
         res.status(500).json({ error: 'Upgrade failed', message: e.message });
     }
 });
-if (process.env.NODE_ENV === 'production') {
-    // Static files
-    app.use(express.static(path.join(__dirname, 'dist')));
-
-    // SPA Fallback - Use middleware as last resort
-    app.use((req, res) => {
-        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    });
-}
 
 // Schedule daily log cleanup (runs at 2 AM)
 const scheduleLogCleanup = () => {
@@ -4077,6 +4068,17 @@ app.post('/api/iot/config/import', authenticateToken, (req, res) => {
         res.status(500).json({ error: 'Import failed', details: err?.message });
     }
 });
+
+
+if (process.env.NODE_ENV === 'production') {
+    // Static files
+    app.use(express.static(path.join(__dirname, 'dist')));
+
+    // SPA Fallback - Use middleware as last resort
+    app.use((req, res) => {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
+}
 
 httpServer.listen(PORT, async () => {
     // Initialize platform-specific commands
