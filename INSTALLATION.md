@@ -10,7 +10,8 @@ The project uses three types of Docker tags to ensure stability:
 | Tag | Usage | Frequency |
 |-----|-------|-----------|
 | **`stable`** (Recommended) | **Production/Demos** | Updated manually after validation. |
-| **`latest`** | development / Testing | Updated every time code is pushed to `main`. |
+| **`stable`** | Production / Lab | Default tag for deployment. Long-term support. |
+| **`latest`** | Development / Testing | Updated every time code is pushed to `main`. |
 | **`v1.1.0-patch.X`** | Fixed Version | Created when a new release is tagged. |
 
 ## 🚀 Installation Methods

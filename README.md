@@ -482,8 +482,8 @@ Shared Volumes:
 docker compose pull
 
 # Or manually pull images
-docker pull jsuzanne/sdwan-web-ui:latest
-docker pull jsuzanne/sdwan-traffic-gen:latest
+docker pull jsuzanne/sdwan-web-ui:stable
+docker pull jsuzanne/sdwan-traffic-gen:stable
 ```
 
 ### Port 8080 already in use

@@ -33,7 +33,7 @@ version: '3.8'
 
 services:
   sdwan-web-ui:
-    image: jsuzanne/sdwan-web-ui:latest
+    image: jsuzanne/sdwan-web-ui:stable
     container_name: sdwan-web-ui
     ports:
       - "8080:8080"
@@ -49,7 +49,7 @@ services:
       - sdwan-network
 
   sdwan-traffic-gen:
-    image: jsuzanne/sdwan-traffic-gen:latest
+    image: jsuzanne/sdwan-traffic-gen:stable
     container_name: sdwan-traffic-gen
     environment:
       - SLEEP_BETWEEN_REQUESTS=1

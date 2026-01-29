@@ -41,7 +41,7 @@ Deploy the **Voice Echo Server** on your target sites. It tracks incoming calls 
 docker run -d --name sdwan-voice-echo \
   -p 6100-6101:6100-6101/udp \
   --restart unless-stopped \
-  jsuzanne/sdwan-voice-echo:latest
+  jsuzanne/sdwan-voice-echo:stable
 ```
 
 ---

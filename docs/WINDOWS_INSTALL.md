@@ -485,8 +485,8 @@ cd C:\sdwan-traffic-gen
 docker compose down
 
 # Remove images (optional)
-docker rmi jsuzanne/sdwan-web-ui:latest
-docker rmi jsuzanne/sdwan-traffic-gen:latest
+docker rmi jsuzanne/sdwan-web-ui:stable
+docker rmi jsuzanne/sdwan-traffic-gen:stable
 
 # Remove directory
 cd ..
