@@ -205,7 +205,8 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 ### 📦 Bundle Fixes (Selective Commit)
 - **Don't commit every single fix immediately** if multiple related improvements are planned.
 - **Group related fixes** into a single cohesive commit to keep history clean and avoid triggering unnecessary CI/CD builds for minor intermediate steps.
-- **Wait for user confirmation** or until the "bundle" is complete before pushing to GitHub.
+- **Exception for Critical Fixes**: If a bug is **critical** (e.g., the app fails to start, container crash, security vulnerability), you MUST commit and push the fix **immediately** without waiting to bundle it with other changes.
+- **Wait for user confirmation** or until the "bundle" is complete before pushing to GitHub for non-critical changes.
 
 ### 📝 Changelog Enforcement
 - **ALL commits** that modify behavior, fix bugs, or add features MUST be documented in `CHANGELOG.md`.
