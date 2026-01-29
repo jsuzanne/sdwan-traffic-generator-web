@@ -4039,20 +4039,26 @@ app.get('/api/iot/config/export', authenticateToken, (req, res) => {
 });
 
 app.post('/api/iot/config/import', authenticateToken, (req, res) => {
+    console.log('[IOT-REQ] POST /api/iot/config/import started');
     try {
         const { content } = req.body;
-        if (!content) return res.status(400).json({ error: 'No content provided' });
+        if (!content) {
+            console.warn('[IOT-REQ] Import aborted: Empty content');
+            return res.status(400).json({ error: 'No content provided' });
+        }
 
         const config = typeof content === 'string' ? JSON.parse(content) : content;
+        console.log(`[IOT-REQ] Parsing content (Type: ${typeof config}, Keys: ${Object.keys(config).join(',')})`);
 
         // Basic validation
         if (!config.devices || !Array.isArray(config.devices)) {
             // Fallback: if it's just an array, wrap it in a default config
             if (Array.isArray(config)) {
-                console.log('[IOT-DEBUG] Importing legacy flat array, converting to structured config');
+                console.log(`[IOT-REQ] LEGACY DETECTED: Importing flat array of ${config.length} devices`);
                 saveIoTConfig({ network: { interface: 'eth0' }, devices: config });
                 return res.json({ success: true, message: 'Legacy IoT devices imported successfully' });
             }
+            console.error('[IOT-REQ] Import failed: Invalid structure');
             return res.status(400).json({ error: 'Invalid config: missing devices array' });
         }
 
@@ -4060,12 +4066,14 @@ app.post('/api/iot/config/import', authenticateToken, (req, res) => {
         if (fs.existsSync(IOT_DEVICES_FILE)) {
             const backupFile = IOT_DEVICES_FILE + '.backup';
             fs.copyFileSync(IOT_DEVICES_FILE, backupFile);
-            console.log(`[IOT-DEBUG] Backed up current IoT config to ${backupFile}`);
+            console.log(`[IOT-REQ] Config backup created: ${backupFile}`);
         }
 
+        console.log(`[IOT-REQ] Success: Importing structured config with ${config.devices.length} devices`);
         saveIoTConfig(config);
         res.json({ success: true, message: 'IoT configuration imported successfully' });
     } catch (err: any) {
+        console.error('[IOT-REQ] FATAL Import error:', err.message);
         res.status(500).json({ error: 'Import failed', details: err?.message });
     }
 });
