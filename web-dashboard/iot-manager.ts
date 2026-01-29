@@ -61,6 +61,8 @@ export class IoTManager extends EventEmitter {
             '--json-output'
         ];
 
+        console.log(`[IOT-DEBUG] Spawning process: python3 ${this.pythonScriptPath} ${args.join(' ')}`);
+
         if (deviceConfig.ip_start) {
             args.push('--ip-static', deviceConfig.ip_start);
         }
@@ -205,5 +207,12 @@ export class IoTManager extends EventEmitter {
 
     getRunningDevices(): string[] {
         return Array.from(this.devices.keys());
+    }
+
+    setInterface(newInterface: string): void {
+        if (this.interface !== newInterface) {
+            console.log(`[IOT] Updating interface from ${this.interface} to ${newInterface}`);
+            this.interface = newInterface;
+        }
     }
 }

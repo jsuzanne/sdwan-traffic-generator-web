@@ -652,16 +652,16 @@ docusign.com|50|/`;
 
         if (fs.existsSync(defaultIoTFile)) {
             try {
-                const defaultDevices = JSON.parse(fs.readFileSync(defaultIoTFile, 'utf8'));
-                // Rename 'ip_start' from template to 'ip_start' (already matches)
-                fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify(defaultDevices.devices || [], null, 2), 'utf8');
+                const defaultData = JSON.parse(fs.readFileSync(defaultIoTFile, 'utf8'));
+                // Save the full object (network + devices)
+                fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify(defaultData, null, 2), 'utf8');
                 console.log('✅ Initialized IoT devices from template');
             } catch (e) {
                 console.error('Error initializing IoT devices template:', e);
-                fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify([], null, 2), 'utf8');
+                fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify({ network: { interface: 'eth0' }, devices: [] }, null, 2), 'utf8');
             }
         } else {
-            fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify([], null, 2), 'utf8');
+            fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify({ network: { interface: 'eth0' }, devices: [] }, null, 2), 'utf8');
         }
     }
 };
@@ -678,15 +678,35 @@ if (getUsers().length === 0) {
 initializeDefaultConfigs();
 
 // --- IoT Helpers ---
-const getIoTDevices = (): IoTDeviceConfig[] => {
-    if (!fs.existsSync(IOT_DEVICES_FILE)) return [];
+const getIoTConfig = (): { network: any, devices: IoTDeviceConfig[] } => {
+    if (!fs.existsSync(IOT_DEVICES_FILE)) return { network: { interface: 'eth0' }, devices: [] };
     try {
-        return JSON.parse(fs.readFileSync(IOT_DEVICES_FILE, 'utf8'));
-    } catch { return []; }
+        const data = JSON.parse(fs.readFileSync(IOT_DEVICES_FILE, 'utf8'));
+        // Fallback for legacy flat array
+        if (Array.isArray(data)) {
+            return { network: { interface: 'eth0' }, devices: data };
+        }
+        return data;
+    } catch { return { network: { interface: 'eth0' }, devices: [] }; }
+};
+
+const getIoTDevices = (): IoTDeviceConfig[] => {
+    return getIoTConfig().devices;
+};
+
+const saveIoTConfig = (config: any) => {
+    fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify(config, null, 2));
+
+    // Update IoT manager interface if changed
+    if (config.network?.interface) {
+        iotManager.setInterface(config.network.interface);
+    }
 };
 
 const saveIoTDevices = (devices: IoTDeviceConfig[]) => {
-    fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify(devices, null, 2));
+    const config = getIoTConfig();
+    config.devices = devices;
+    saveIoTConfig(config);
 };
 
 // --- Auth Endpoints ---
@@ -3944,11 +3964,15 @@ app.post('/api/iot/start-batch', authenticateToken, async (req, res) => {
     const { ids } = req.body;
     if (!Array.isArray(ids)) return res.status(400).json({ error: 'IDs array required' });
 
-    const devices = getIoTDevices();
+    const config = getIoTConfig();
+    const devices = config.devices;
+    const gateway = config.network?.gateway;
     const toStart = devices.filter(d => ids.includes(d.id));
 
     for (const device of toStart) {
-        iotManager.startDevice(device).catch(err => console.error(`Failed to start ${device.id}:`, err));
+        // Inject gateway from network config
+        const deviceWithGateway = { ...device, gateway };
+        iotManager.startDevice(deviceWithGateway).catch(err => console.error(`Failed to start ${device.id}:`, err));
     }
 
     res.json({ success: true, started: toStart.length });
@@ -3966,13 +3990,16 @@ app.post('/api/iot/stop-batch', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/iot/start/:id', authenticateToken, async (req, res) => {
-    const devices = getIoTDevices();
-    const device = devices.find(d => d.id === req.params.id);
+    const config = getIoTConfig();
+    const device = config.devices.find(d => d.id === req.params.id);
+    const gateway = config.network?.gateway;
 
     if (!device) return res.status(404).json({ error: 'Device not found' });
 
     try {
-        await iotManager.startDevice(device);
+        // Inject gateway from network config
+        const deviceWithGateway = { ...device, gateway };
+        await iotManager.startDevice(deviceWithGateway);
         res.json({ success: true });
     } catch (err: any) {
         res.status(500).json({ error: err.message });
@@ -3986,6 +4013,49 @@ app.post('/api/iot/stop/:id', authenticateToken, async (req, res) => {
 
 app.get('/api/iot/stats', authenticateToken, (req, res) => {
     res.json(iotManager.getAllStats());
+});
+
+app.get('/api/iot/config/export', authenticateToken, (req, res) => {
+    try {
+        const config = getIoTConfig();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename="iot-devices.json"');
+        res.send(JSON.stringify(config, null, 2));
+    } catch (err: any) {
+        res.status(500).json({ error: 'Export failed', details: err?.message });
+    }
+});
+
+app.post('/api/iot/config/import', authenticateToken, (req, res) => {
+    try {
+        const { content } = req.body;
+        if (!content) return res.status(400).json({ error: 'No content provided' });
+
+        const config = typeof content === 'string' ? JSON.parse(content) : content;
+
+        // Basic validation
+        if (!config.devices || !Array.isArray(config.devices)) {
+            // Fallback: if it's just an array, wrap it in a default config
+            if (Array.isArray(config)) {
+                console.log('[IOT-DEBUG] Importing legacy flat array, converting to structured config');
+                saveIoTConfig({ network: { interface: 'eth0' }, devices: config });
+                return res.json({ success: true, message: 'Legacy IoT devices imported successfully' });
+            }
+            return res.status(400).json({ error: 'Invalid config: missing devices array' });
+        }
+
+        // Backup current file
+        if (fs.existsSync(IOT_DEVICES_FILE)) {
+            const backupFile = IOT_DEVICES_FILE + '.backup';
+            fs.copyFileSync(IOT_DEVICES_FILE, backupFile);
+            console.log(`[IOT-DEBUG] Backed up current IoT config to ${backupFile}`);
+        }
+
+        saveIoTConfig(config);
+        res.json({ success: true, message: 'IoT configuration imported successfully' });
+    } catch (err: any) {
+        res.status(500).json({ error: 'Import failed', details: err?.message });
+    }
 });
 
 httpServer.listen(PORT, async () => {

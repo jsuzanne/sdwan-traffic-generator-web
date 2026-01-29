@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.2-patch.31] - 2026-01-29
+## [1.1.2-patch.32] - 2026-01-29
+### Added
+- **IoT Import/Export**: Added full JSON configuration export and import for IoT devices, including network settings and legacy flat-array support.
+- **IoT Sample Config**: Added a "Download Sample JSON" link in the IoT dashboard for easier onboarding.
+- **IoT Debugging**: Added enhanced `[IOT-DEBUG]` logging for better visibility into device spawning and configuration changes.
+
+### Fixed
+- **IoT Manual Addition**: Fixed a critical bug where manually adding a device would strip the network configuration and break the IoT device list.
+- **IoT Dynamic Interface**: Enabled real-time network interface updates (e.g., switching to `eth0`) without requiring an app restart.
+- **IoT Gateway Injection**: Fixed connectivity issues by ensuring the network gateway is correctly injected into individual device simulations.
+- **IoT DHCP Fallback**: Standardized IoT simulation to attempt DHCP first and fallback to static IP if no response is received.
+
 ### Added
 - **IoT Dependency Injection**: Included missing `iot/` directory and Python dependencies (Scapy, PySNMP, PySMI) in the Web UI Docker image.
 - **macOS Local Fix**: Added an explicit permission hint in `iot_emulator.log` for macOS users facing `/dev/bpf` access issues.
