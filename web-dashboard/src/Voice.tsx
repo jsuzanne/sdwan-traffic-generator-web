@@ -48,6 +48,7 @@ export default function Voice(props: VoiceProps) {
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'timestamp', direction: 'desc' });
     const [isStartingV, setIsStartingV] = useState(false);
     const [isStoppingV, setIsStoppingV] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
 
     // New Guided Editor State
     const [newProbe, setNewProbe] = useState({
@@ -61,15 +62,18 @@ export default function Voice(props: VoiceProps) {
 
     useEffect(() => {
         if (externalStatus) {
-            if (externalStatus.control) {
-                setEnabled(externalStatus.control.enabled);
-                setConfig(prev => ({ ...prev, ...externalStatus.control }));
-            }
+            // Stats always update
             if (externalStatus.stats) {
                 setCalls(externalStatus.stats);
             }
+
+            // Configuration only updates if the user hasn't touched the UI (isDirty is false)
+            if (externalStatus.control && !isDirty) {
+                setEnabled(externalStatus.control.enabled);
+                setConfig(prev => ({ ...prev, ...externalStatus.control }));
+            }
         }
-    }, [externalStatus]);
+    }, [externalStatus, isDirty]);
 
     useEffect(() => {
         fetchConfig();
@@ -167,10 +171,15 @@ export default function Voice(props: VoiceProps) {
                 body: JSON.stringify({ servers: rawServers, control: config })
             });
             if (r.ok) {
-                // Success
+                setIsDirty(false); // Reset dirty flag on successful save
             }
         } catch (e) { }
         setSaving(false);
+    };
+
+    const handleResetToCurrent = () => {
+        setIsDirty(false);
+        // Next poll will restore current state
     };
 
     const handleSort = (key: string) => {
@@ -564,13 +573,26 @@ export default function Voice(props: VoiceProps) {
                                 </h3>
                                 <p className="text-slate-500 text-xs mt-1">Define voice endpoints and traffic distribution weights</p>
                             </div>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50"
-                            >
-                                <Save size={16} /> {saving ? 'Saving...' : 'Save Configuration'}
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {isDirty && (
+                                    <button
+                                        onClick={handleResetToCurrent}
+                                        className="text-slate-500 hover:text-slate-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        Cancel Edits
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className={cn(
+                                        "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50",
+                                        isDirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                    )}
+                                >
+                                    <Save size={16} /> {saving ? 'Saving...' : 'Save Configuration'}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -583,7 +605,10 @@ export default function Voice(props: VoiceProps) {
                                         <input
                                             type="number"
                                             value={config?.max_simultaneous_calls}
-                                            onChange={(e) => setConfig(prev => prev ? { ...prev, max_simultaneous_calls: parseInt(e.target.value) } : null)}
+                                            onChange={(e) => {
+                                                setIsDirty(true);
+                                                setConfig(prev => prev ? { ...prev, max_simultaneous_calls: parseInt(e.target.value) } : null);
+                                            }}
                                             className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-sm"
                                         />
                                     </div>
@@ -593,7 +618,10 @@ export default function Voice(props: VoiceProps) {
                                         <input
                                             type="number"
                                             value={config?.sleep_between_calls}
-                                            onChange={(e) => setConfig(prev => prev ? { ...prev, sleep_between_calls: parseInt(e.target.value) } : null)}
+                                            onChange={(e) => {
+                                                setIsDirty(true);
+                                                setConfig(prev => prev ? { ...prev, sleep_between_calls: parseInt(e.target.value) } : null);
+                                            }}
                                             className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-sm"
                                         />
                                     </div>
@@ -603,7 +631,10 @@ export default function Voice(props: VoiceProps) {
                                         <input
                                             type="text"
                                             value={config?.interface}
-                                            onChange={(e) => setConfig(prev => prev ? { ...prev, interface: e.target.value } : null)}
+                                            onChange={(e) => {
+                                                setIsDirty(true);
+                                                setConfig(prev => prev ? { ...prev, interface: e.target.value } : null);
+                                            }}
                                             className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-sm"
                                         />
                                     </div>

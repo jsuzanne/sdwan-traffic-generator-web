@@ -200,5 +200,18 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 ---
 
-**Last Updated:** 2026-01-23  
+## 📋 Commit & Release Policy
+
+### 📦 Bundle Fixes (Selective Commit)
+- **Don't commit every single fix immediately** if multiple related improvements are planned.
+- **Group related fixes** into a single cohesive commit to keep history clean and avoid triggering unnecessary CI/CD builds for minor intermediate steps.
+- **Wait for user confirmation** or until the "bundle" is complete before pushing to GitHub.
+
+### 📝 Changelog Enforcement
+- **ALL commits** that modify behavior, fix bugs, or add features MUST be documented in `CHANGELOG.md`.
+- Ensure the version number is bumped accordingly in the `VERSION` file if the bundle represents a new release.
+
+---
+
+**Last Updated:** 2026-01-29  
 **Workspace:** sdwan-traffic-generator
