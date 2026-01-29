@@ -3930,7 +3930,9 @@ app.get('/api/srt/stats', authenticateToken, (req, res) => {
 // --- IoT Devices API ---
 
 app.get('/api/iot/devices', authenticateToken, (req, res) => {
+    console.log('[IOT-REQ] GET /api/iot/devices');
     const devices = getIoTDevices();
+    console.log(`[IOT-REQ] Found ${devices.length} devices in config`);
     const running = iotManager.getRunningDevices();
     const result = devices.map(d => ({
         ...d,
