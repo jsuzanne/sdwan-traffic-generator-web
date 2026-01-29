@@ -65,6 +65,39 @@ This ensures the Web UI and Console are always perfectly synchronized.
 
 ---
 
+## 📊 Measurement Methodology & Reliability
+
+To ensure lab-grade diagnostic results, the Voice Simulation module uses high-precision timing and industry-standard mathematical models.
+
+### ⏱️ Latency & Round-Trip Time (RTT)
+Unlike standard application-level pings, the RTP engine measures the **literal flight time** of every packet.
+*   **Precision**: Uses high-resolution hardware monotonic counters (`time.perf_counter()`).
+*   **Robustness**: Measurements are unaffected by system clock adjustments or "time jumps" during testing.
+*   **Total Path**: Values reflect the round-trip performance of the primary link and the return path from the echo server.
+
+### 📡 Jitter (Inter-arrival Variance)
+Jitter is calculated strictly according to **RFC 3550 (Standard RTP)**:
+$$J = J + (|D(i-1,i)| - J)/16$$
+*   **Why it matters**: Jitter is the leading indicator of "robotic" sounding voice. Tracking the inter-arrival variance helps network engineers tune Jitter Buffers on SD-WAN edges or identify congestion on service provider links.
+*   **Reliability**: Since this follows the exact RFC used by professional analyzers like Wireshark, you can cross-reference our results with packet captures for perfect correlation.
+
+### 🧠 MOS Score (Mean Opinion Score)
+The system calculates a predictive MOS score using the **Simplified ITU-T G.107 E-model**.
+
+| MOS Score | Quality | User Experience |
+| :--- | :--- | :--- |
+| **4.0 - 4.4** | **Excellent** | Toll-quality audio. No perceptible delay or loss. |
+| **3.6 - 4.0** | **Good** | Business-quality. Very slight delay, perfectly usable. |
+| **2.5 - 3.6** | **Fair** | Noticeable distortion. Occasional robotic sound or clipping. |
+| **< 2.5** | **Poor** | Severe clipping. Call dropouts likely. Unusable for business. |
+
+**The math behind the score**:
+1.  **Effective Latency**: We combine RTT and Jitter into an "effective" burden: `Effective Latency = RTT + (Jitter * 2) + 10ms`.
+2.  **Delay Impairment**: Latency over 160ms begins to sharply penalize the score.
+3.  **Codec Modeling**: We apply specific equipment impairment factors for the **G.711 codec**, ensuring the score reflects the codec being simulated in the lab.
+
+---
+
 ## 🖥️ Running on Windows (Docker Desktop)
 
 If you are testing the generator or the echo server on Windows, keep these three points in mind:
