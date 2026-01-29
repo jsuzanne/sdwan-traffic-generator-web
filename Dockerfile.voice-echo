@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy the server scripts and version
 COPY engines/echo_server.py /app/engines/echo_server.py
+COPY engines/srt_responder.py /app/engines/srt_responder.py
 COPY engines/start_echo.sh /app/engines/start_echo.sh
 COPY VERSION /app/VERSION
 

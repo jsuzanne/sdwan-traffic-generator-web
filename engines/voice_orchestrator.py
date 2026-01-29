@@ -212,8 +212,7 @@ def start_call(server, interface):
         }
         timestamp = time.strftime('%H:%M:%S')
         log_call("start", call_info)
-        print(f"[{timestamp}] [{call_id}] 📞 CALL STARTED: {server['target']} | {server['codec']} | {server['duration']}s")
-        sys.stdout.flush()
+        print(f"[{timestamp}] [{call_id}] 📞 CALL STARTED: {server['target']} | {server['codec']} | {server['duration']}s", flush=True)
         return {"proc": proc, "info": call_info}
     except Exception as e:
         print(f"Failed to start rtp.py: {e}")

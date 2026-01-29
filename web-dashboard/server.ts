@@ -1518,7 +1518,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     console.log(`[${testId}] [${timestamp}] 🚀 Executing: ${cmdStr}`);
 
     try {
-        const proc = spawn('python3', args);
+        const proc = spawn('python3', args, { env: { ...process.env, PYTHONUNBUFFERED: '1' } });
         convergenceProcesses.set(testId, proc);
         convergencePPS.set(testId, requestedPPS);
 
@@ -2823,7 +2823,7 @@ app.post('/api/security/url-test', authenticateToken, async (req, res) => {
         // util.promisify already imported as promisify
         const execPromise = promisify(exec);
 
-        const curlCommand = `curl -fsSL --max-time 10 -w '%{http_code}' '${url}'`;
+        const curlCommand = `curl -sSL --max-time 10 -w '%{http_code}' '${url}'`;
         logTest(`[URL-TEST-${testId}] Executing URL test for ${url} (${category || 'Uncategorized'}): ${curlCommand}`);
 
         try {
@@ -2910,7 +2910,7 @@ app.post('/api/security/url-test-batch', authenticateToken, async (req, res) => 
             logTest(`[URL-BATCH-${batchId}][URL-TEST-${testId}] [${i + 1}/${tests.length}] Testing: ${test.url} (${test.category})`);
 
             const execPromise = promisify(exec);
-            const curlCommand = `curl -fsSL --max-time 10 -w '%{http_code}' '${test.url}'`;
+            const curlCommand = `curl -sSL --max-time 10 -w '%{http_code}' '${test.url}'`;
 
             logTest(`[URL-TEST-${testId}] Executing URL test for ${test.url} (${test.category}): ${curlCommand}`);
 
@@ -3725,7 +3725,7 @@ app.post('/api/srt/start', authenticateToken, (req, res) => {
     const args = ['--target', target, '--stats-file', SRT_STATS_FILE];
 
     try {
-        srtProcess = spawn('python3', [orchestratorPath, ...args]);
+        srtProcess = spawn('python3', [orchestratorPath, ...args], { env: { ...process.env, PYTHONUNBUFFERED: '1' } });
         console.log(`🚀 [SRT] Probe started for target: ${target}`);
 
         srtProcess.on('close', (code: any) => {
