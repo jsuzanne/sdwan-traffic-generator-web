@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.30] - 2026-01-29
+### Added
+- **IoT Dependency Injection**: Included missing `iot/` directory and Python dependencies (Scapy, PySNMP, PySMI) in the Web UI Docker image.
+- **macOS Local Fix**: Added an explicit permission hint in `iot_emulator.log` for macOS users facing `/dev/bpf` access issues.
+### Fixed
+- **CI/CD Tags**: Fixed GitHub Actions logic to prevent `:latest` tag collisions between different branches during multi-platform builds.
+- **CI/CD Modernization**: Switched to `softprops/action-gh-release` for more reliable GitHub releases.
+
+## [1.1.2-patch.29] - 2026-01-29
+### Added
+- **Convergence Lab Enhancements**: Standardized failover history and visual diagnostic tools.
+- **IoT Log Centralization**: Unified all IoT emulation output into `iot_emulator.log`.
+
 ## [1.1.2-patch.8] - 2026-01-27
 ### Fixed
 - **System Robustness**: Improved Version Detection and Configuration Export with absolute path resolution and deep server-side logging.

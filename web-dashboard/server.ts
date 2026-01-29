@@ -12,6 +12,9 @@ import bcrypt from 'bcryptjs';
 import { TestLogger, TestResult } from './test-logger.js';
 import { ConnectivityLogger, ConnectivityResult } from './connectivity-logger.js';
 import { URL_CATEGORIES, DNS_TEST_DOMAINS } from './shared/security-categories.js';
+import { IoTManager, IoTDeviceConfig } from './iot-manager.js';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 // Fix for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -51,6 +54,24 @@ const CONVERGENCE_ENDPOINTS_FILE = path.join(APP_CONFIG.configDir, 'convergence-
 
 // Batch Counter - Persistent rotating ID for batch tests
 const BATCH_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'batch-counter.json');
+
+// IoT Devices
+const IOT_DEVICES_FILE = path.join(APP_CONFIG.configDir, 'iot-devices.json');
+
+const getInterface = (): string => {
+    const interfacesFile = path.join(APP_CONFIG.configDir, 'interfaces.txt');
+    if (!fs.existsSync(interfacesFile)) return 'eth0';
+    try {
+        const content = fs.readFileSync(interfacesFile, 'utf8');
+        const firstIface = content.split('\n')
+            .find(line => line.trim() && !line.trim().startsWith('#'));
+        return firstIface ? firstIface.trim() : 'eth0';
+    } catch {
+        return 'eth0';
+    }
+};
+
+const iotManager = new IoTManager(getInterface());
 
 const getNextBatchId = (): string => {
     try {
@@ -325,6 +346,34 @@ const parseDnsOutput = (output: string, type: string): string | null => {
 
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+    }
+});
+
+// Setup IoT real-time logs via Socket.io
+io.on('connection', (socket) => {
+    socket.on('join-device-logs', (deviceId) => {
+        socket.join(`logs:${deviceId}`);
+        // Send initial cache
+        const status = iotManager.getDeviceStatus(deviceId);
+        if (status && status.logs) {
+            socket.emit('initial-logs', { device_id: deviceId, logs: status.logs });
+        }
+    });
+
+    socket.on('leave-device-logs', (deviceId) => {
+        socket.leave(`logs:${deviceId}`);
+    });
+});
+
+iotManager.on('device:log', (log) => {
+    io.to(`logs:${log.device_id}`).emit('device:log', log);
+});
+
 const PORT = parseInt(process.env.PORT || '8080'); // Unified to 8080
 
 const SECRET_KEY = process.env.JWT_SECRET || 'super-secret-key-change-this';
@@ -592,6 +641,29 @@ docusign.com|50|/`;
         fs.writeFileSync(controlFile, JSON.stringify({ enabled: false }, null, 2), 'utf8');
         console.log('Created traffic-control.json (default: stopped)');
     }
+
+    // Initialize IoT devices from default template if it exists
+    if (!fs.existsSync(IOT_DEVICES_FILE)) {
+        // Try both ../iot (dev) and ./iot (docker)
+        let defaultIoTFile = path.resolve(path.join(__dirname, '../iot/iot_devices.json'));
+        if (!fs.existsSync(defaultIoTFile)) {
+            defaultIoTFile = path.resolve(path.join(__dirname, './iot/iot_devices.json'));
+        }
+
+        if (fs.existsSync(defaultIoTFile)) {
+            try {
+                const defaultDevices = JSON.parse(fs.readFileSync(defaultIoTFile, 'utf8'));
+                // Rename 'ip_start' from template to 'ip_start' (already matches)
+                fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify(defaultDevices.devices || [], null, 2), 'utf8');
+                console.log('✅ Initialized IoT devices from template');
+            } catch (e) {
+                console.error('Error initializing IoT devices template:', e);
+                fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify([], null, 2), 'utf8');
+            }
+        } else {
+            fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify([], null, 2), 'utf8');
+        }
+    }
 };
 
 // Initialize Admin if no users
@@ -604,6 +676,18 @@ if (getUsers().length === 0) {
 
 // Initialize default config files
 initializeDefaultConfigs();
+
+// --- IoT Helpers ---
+const getIoTDevices = (): IoTDeviceConfig[] => {
+    if (!fs.existsSync(IOT_DEVICES_FILE)) return [];
+    try {
+        return JSON.parse(fs.readFileSync(IOT_DEVICES_FILE, 'utf8'));
+    } catch { return []; }
+};
+
+const saveIoTDevices = (devices: IoTDeviceConfig[]) => {
+    fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify(devices, null, 2));
+};
 
 // --- Auth Endpoints ---
 
@@ -3813,7 +3897,98 @@ app.get('/api/srt/stats', authenticateToken, (req, res) => {
     }
 });
 
-app.listen(PORT, async () => {
+// --- IoT Devices API ---
+
+app.get('/api/iot/devices', authenticateToken, (req, res) => {
+    const devices = getIoTDevices();
+    const running = iotManager.getRunningDevices();
+    const result = devices.map(d => ({
+        ...d,
+        running: running.includes(d.id),
+        status: iotManager.getDeviceStatus(d.id)
+    }));
+    res.json(result);
+});
+
+app.post('/api/iot/devices', authenticateToken, (req, res) => {
+    const devices = getIoTDevices();
+    const newDevice = req.body;
+
+    if (!newDevice.id) return res.status(400).json({ error: 'Device ID is required' });
+
+    const index = devices.findIndex(d => d.id === newDevice.id);
+    if (index !== -1) {
+        devices[index] = { ...devices[index], ...newDevice };
+    } else {
+        devices.push(newDevice);
+    }
+
+    saveIoTDevices(devices);
+    res.json({ success: true, device: newDevice });
+});
+
+app.delete('/api/iot/devices/:id', authenticateToken, (req, res) => {
+    let devices = getIoTDevices();
+    const id = req.params.id;
+
+    if (iotManager.getRunningDevices().includes(id)) {
+        return res.status(400).json({ error: 'Cannot delete a running device' });
+    }
+
+    devices = devices.filter(d => d.id !== id);
+    saveIoTDevices(devices);
+    res.json({ success: true });
+});
+
+app.post('/api/iot/start-batch', authenticateToken, async (req, res) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'IDs array required' });
+
+    const devices = getIoTDevices();
+    const toStart = devices.filter(d => ids.includes(d.id));
+
+    for (const device of toStart) {
+        iotManager.startDevice(device).catch(err => console.error(`Failed to start ${device.id}:`, err));
+    }
+
+    res.json({ success: true, started: toStart.length });
+});
+
+app.post('/api/iot/stop-batch', authenticateToken, async (req, res) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'IDs array required' });
+
+    for (const id of ids) {
+        iotManager.stopDevice(id);
+    }
+
+    res.json({ success: true, stopped: ids.length });
+});
+
+app.post('/api/iot/start/:id', authenticateToken, async (req, res) => {
+    const devices = getIoTDevices();
+    const device = devices.find(d => d.id === req.params.id);
+
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    try {
+        await iotManager.startDevice(device);
+        res.json({ success: true });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/iot/stop/:id', authenticateToken, async (req, res) => {
+    await iotManager.stopDevice(req.params.id);
+    res.json({ success: true });
+});
+
+app.get('/api/iot/stats', authenticateToken, (req, res) => {
+    res.json(iotManager.getAllStats());
+});
+
+httpServer.listen(PORT, async () => {
     // Initialize platform-specific commands
     await initializeCommands();
 

@@ -8,8 +8,8 @@ import Login from './Login';
 import ConnectivityPerformance from './ConnectivityPerformance';
 import Failover from './Failover';
 import System from './System';
-// import SRTAnalytics from './SRTAnalytics';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap, Monitor } from 'lucide-react';
+import Iot from './Iot';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap, Monitor, Cpu } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -39,7 +39,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt'>(
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt' | 'iot'>(
     (localStorage.getItem('activeView') as any) || 'performance'
   );
   const [stats, setStats] = useState<Stats | null>(null);
@@ -692,6 +692,15 @@ export default function App() {
           <Gauge size={18} /> Performance
         </button>
         <button
+          onClick={() => setView('iot')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
+            view === 'iot' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Cpu size={18} /> IoT <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-500/20 text-blue-400 border border-blue-500/30">Beta</span>
+        </button>
+        <button
           onClick={() => setView('voice')}
           className={cn(
             "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
@@ -1102,6 +1111,8 @@ export default function App() {
         <Failover token={token!} externalStatus={globalConvStatus} />
       ) : view === 'system' ? (
         <System token={token!} />
+      ) : view === 'iot' ? (
+        <Iot token={token!} />
       ) : (
         <Config token={token!} />
       )}

@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     iperf3 \
     python3 \
+    python3-pip \
     python3-scapy \
     docker.io \
     && rm -rf /var/lib/apt/lists/*
@@ -40,6 +41,11 @@ COPY web-dashboard/tsconfig.json ./
 COPY VERSION ./VERSION
 # Copy engines orchestration script
 COPY engines ./engines
+# Copy IoT emulation script and devices template
+COPY iot ./iot
+
+# Install Python dependencies for IoT emulator
+RUN pip3 install --no-cache-dir -r iot/requirements.txt --break-system-packages || true
 
 # Labels for Docker Hub
 LABEL org.opencontainers.image.title="SD-WAN Traffic Generator - Web UI"

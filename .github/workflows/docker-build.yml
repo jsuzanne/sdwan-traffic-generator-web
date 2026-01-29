@@ -73,17 +73,27 @@ jobs:
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
+            # Tags get both :latest and :version
             echo "tags=${{ env.WEB_UI_IMAGE }}:latest,${{ env.WEB_UI_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest,${{ env.TRAFFIC_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:latest,${{ env.VOICE_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:latest,${{ env.VOICE_ECHO_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "version=$VERSION" >> $GITHUB_OUTPUT
-          else
+          elif [[ $GITHUB_REF == refs/heads/main ]]; then
+            # Main branch gets :latest
             echo "tags=${{ env.WEB_UI_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "version=latest" >> $GITHUB_OUTPUT
+          else
+            # Other branches get their branch name as tag (avoids latest collision)
+            BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | tr '/' '-')
+            echo "tags=${{ env.WEB_UI_IMAGE }}:$BRANCH_NAME" >> $GITHUB_OUTPUT
+            echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:$BRANCH_NAME" >> $GITHUB_OUTPUT
+            echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:$BRANCH_NAME" >> $GITHUB_OUTPUT
+            echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:$BRANCH_NAME" >> $GITHUB_OUTPUT
+            echo "version=$BRANCH_NAME" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push Web UI
@@ -148,12 +158,9 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
       - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
           body: |
             ## SD-WAN Traffic Generator ${{ steps.version.outputs.version }}
             
@@ -167,5 +174,6 @@ jobs:
             
             ### What's Changed
             See [CHANGELOG.md](https://github.com/jsuzanne/sdwan-traffic-generator/blob/main/CHANGELOG.md) for details.
+          generate_release_notes: true
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'alpha') }}
