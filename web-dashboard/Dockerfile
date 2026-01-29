@@ -5,6 +5,7 @@ WORKDIR /app
 COPY web-dashboard/package*.json ./
 RUN npm ci
 COPY web-dashboard/ ./
+COPY VERSION ./VERSION
 RUN npm run build
 
 # Runtime Stage
