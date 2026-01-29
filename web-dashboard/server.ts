@@ -679,15 +679,25 @@ initializeDefaultConfigs();
 
 // --- IoT Helpers ---
 const getIoTConfig = (): { network: any, devices: IoTDeviceConfig[] } => {
-    if (!fs.existsSync(IOT_DEVICES_FILE)) return { network: { interface: 'eth0' }, devices: [] };
+    if (!fs.existsSync(IOT_DEVICES_FILE)) {
+        console.warn(`[IOT-DEBUG] Config file NOT found: ${IOT_DEVICES_FILE}`);
+        return { network: { interface: 'eth0' }, devices: [] };
+    }
     try {
-        const data = JSON.parse(fs.readFileSync(IOT_DEVICES_FILE, 'utf8'));
+        const content = fs.readFileSync(IOT_DEVICES_FILE, 'utf8');
+        console.log(`[IOT-DEBUG] Read ${content.length} bytes from ${IOT_DEVICES_FILE}`);
+        const data = JSON.parse(content);
         // Fallback for legacy flat array
         if (Array.isArray(data)) {
+            console.log(`[IOT-DEBUG] Loaded ${data.length} devices (legacy array format)`);
             return { network: { interface: 'eth0' }, devices: data };
         }
+        console.log(`[IOT-DEBUG] Loaded ${data.devices?.length || 0} devices (structured format)`);
         return data;
-    } catch { return { network: { interface: 'eth0' }, devices: [] }; }
+    } catch (e: any) {
+        console.error(`[IOT-DEBUG] Failed to parse ${IOT_DEVICES_FILE}:`, e.message);
+        return { network: { interface: 'eth0' }, devices: [] };
+    }
 };
 
 const getIoTDevices = (): IoTDeviceConfig[] => {
