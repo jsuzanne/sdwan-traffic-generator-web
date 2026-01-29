@@ -20,10 +20,10 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 **Why:** Ubuntu LAB servers are AMD64, Mac development is ARM64. Single-platform builds cause "exec format error".
 
 ### Docker Image Tags & Usage
-- **`latest`** (Development): Always point to the last build from the `main` branch. Use this for testing new features in the LAB.
-- **`stable`** (Production/Demo): Manually promoted version. **Default for deployments.**
-- **`vX.Y.Z-patch.N`** (Versioned): Fixed releases triggered by Git tags.
-- **NEVER** use `latest` for critical demos or production sites.
+- **`latest`** (Personal Testing): Pointing to the last build from `main`. Primarily for user development and internal LAB testing.
+- **`stable`** (Public Deployment): Manually promoted version. Recommended for all general users and production sites.
+- **`vX.Y.Z-patch.N`** (Fixed Releases): Immutable versions triggered by Git tags. Used for rollback and specific environment anchoring.
+- **NEVER** use `latest` for public demos or critical production sites.
 
 ### Required Images
 1. `jsuzanne/sdwan-web-ui` - Web dashboard + backend API
