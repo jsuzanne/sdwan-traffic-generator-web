@@ -156,6 +156,51 @@ export default function Iot({ token }: IotProps) {
         }
     };
 
+    const handleExportJson = async () => {
+        try {
+            const res = await fetch('/api/iot/config/export', { headers: authHeaders() });
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'iot-devices.json';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (e) {
+            console.error("Failed to export JSON", e);
+        }
+    };
+
+    const handleImportJson = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const content = event.target?.result as string;
+                const res = await fetch('/api/iot/config/import', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ content })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert("IoT configuration imported successfully!");
+                    fetchDevices();
+                } else {
+                    alert("Import failed: " + data.error);
+                }
+            } catch (err) {
+                console.error("Failed to import JSON", err);
+                alert("Import failed. Check file format.");
+            }
+        };
+        reader.readAsText(file);
+    };
+
     const filteredDevices = Array.isArray(devices) ? devices.filter(d => {
         const query = (searchQuery || '').toLowerCase();
         const name = (d.name || '').toLowerCase();
@@ -186,7 +231,40 @@ export default function Iot({ token }: IotProps) {
                             IoT Device Simulation
                             <span className="bg-blue-600 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest align-middle">Beta</span>
                         </h2>
-                        <p className="text-slate-400 text-sm">Scale your branch with realistic IoT traffic patterns per vendor.</p>
+                        <div className="flex items-center gap-3">
+                            <p className="text-slate-400 text-sm">Scale your branch with realistic IoT traffic patterns per vendor.</p>
+                            <span className="text-slate-600">|</span>
+                            <button
+                                onClick={() => {
+                                    const sample = {
+                                        "network": { "interface": "eth0", "gateway": "192.168.207.1" },
+                                        "devices": [
+                                            {
+                                                "id": "camera_01",
+                                                "name": "Sample Hikvision Camera",
+                                                "vendor": "Hikvision",
+                                                "type": "IP Camera",
+                                                "mac": "00:12:34:56:78:01",
+                                                "ip_start": "192.168.207.100",
+                                                "protocols": ["dhcp", "arp", "http", "rtsp", "cloud"],
+                                                "enabled": true,
+                                                "traffic_interval": 60
+                                            }
+                                        ]
+                                    };
+                                    const blob = new Blob([JSON.stringify(sample, null, 2)], { type: 'application/json' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'iot-sample.json';
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                }}
+                                className="text-blue-400 hover:text-blue-300 text-xs font-bold transition-colors flex items-center gap-1"
+                            >
+                                <ExternalLink size={12} /> DOWNLOAD SAMPLE JSON
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -209,6 +287,20 @@ export default function Iot({ token }: IotProps) {
                             </button>
                         </div>
                     )}
+
+                    <button
+                        onClick={handleExportJson}
+                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-slate-700"
+                        title="Export JSON Configuration"
+                    >
+                        <ArrowUpRight size={18} /> EXPORT JSON
+                    </button>
+
+                    <label className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-slate-700 cursor-pointer" title="Import JSON Configuration">
+                        <Plus size={18} /> IMPORT JSON
+                        <input type="file" accept=".json" className="hidden" onChange={handleImportJson} />
+                    </label>
+
                     <button
                         onClick={() => { setEditingDevice({ enabled: true, protocols: ['dhcp', 'arp', 'http'], traffic_interval: 60 }); setShowAddModal(true); }}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-900/20"
