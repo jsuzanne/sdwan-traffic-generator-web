@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.1.0--patch.94-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.1.2--patch.28-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -193,7 +193,7 @@ This will:
 
 ### Option 2: Manual Install (All Platforms)
 
-**Linux/macOS:**
+**Full Dashboard (Interactive):**
 ```bash
 # Download docker-compose.yml
 curl -sSL -o docker-compose.yml https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/docker-compose.example.yml
@@ -203,6 +203,21 @@ docker compose up -d
 
 # Access dashboard
 open http://localhost:8080
+```
+
+**Target Site Only (Non-Interactive):**
+```bash
+# Create directory
+mkdir -p sdwan-target && cd sdwan-target
+
+# Download target docker-compose.yml
+curl -sSL -o docker-compose.yml https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/docker-compose.target.yml
+
+# Start services
+docker compose up -d
+
+# Verify (Echo responder on port 6200/UDP)
+docker compose ps
 ```
 
 **Windows (PowerShell):**

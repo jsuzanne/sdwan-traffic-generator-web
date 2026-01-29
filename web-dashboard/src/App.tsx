@@ -8,7 +8,7 @@ import Login from './Login';
 import ConnectivityPerformance from './ConnectivityPerformance';
 import Failover from './Failover';
 import System from './System';
-import SRTAnalytics from './SRTAnalytics';
+// import SRTAnalytics from './SRTAnalytics';
 import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap, Monitor } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -39,8 +39,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt'>(
-    (localStorage.getItem('activeView') as any) || 'performance'
+  (localStorage.getItem('activeView') as any) || 'performance'
   );
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -709,17 +708,7 @@ export default function App() {
         >
           <Zap size={18} /> Failover
         </button>
-        {username === 'admin' && (
-          <button
-            onClick={() => setView('srt')}
-            className={cn(
-              "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors relative",
-              view === 'srt' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
-            )}
-          >
-            <Gauge size={18} /> SRT <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-amber-500/20 text-amber-400 border border-amber-500/30">Beta</span>
-          </button>
-        )}
+        {/* SRT Tab hidden in v1.1.2-patch.28 */}
         {username === 'admin' && (
           <button
             onClick={() => setView('system')}
@@ -1112,8 +1101,6 @@ export default function App() {
         <Failover token={token!} externalStatus={globalConvStatus} />
       ) : view === 'system' ? (
         <System token={token!} />
-      ) : view === 'srt' ? (
-        <SRTAnalytics token={token!} />
       ) : (
         <Config token={token!} />
       )}
