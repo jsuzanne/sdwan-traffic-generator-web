@@ -76,7 +76,7 @@ function getRandomInterface() {
     # First, try to read from config file
     if [[ -f "${CONFIG_DIR}/interfaces.txt" ]]; then
         local iface
-        iface=$(sort -R "${CONFIG_DIR}/interfaces.txt" 2>/dev/null | head -n 1)
+        iface=$(grep -v '^#' "${CONFIG_DIR}/interfaces.txt" | grep -v '^$' | sort -R 2>/dev/null | head -n 1)
         if [[ -n "$iface" ]]; then
             echo "$iface"
             return

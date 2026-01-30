@@ -2250,7 +2250,12 @@ app.post('/api/config/interfaces', (req, res) => {
     if (!Array.isArray(interfaces)) return res.status(400).json({ error: 'Invalid format' });
 
     try {
-        fs.writeFileSync(INTERFACES_FILE, interfaces.join('\n'));
+        // Filter out any potential empty lines or comments before saving
+        const cleanInterfaces = interfaces
+            .map(i => i.trim())
+            .filter(i => i && !i.startsWith('#'));
+
+        fs.writeFileSync(INTERFACES_FILE, cleanInterfaces.join('\n'));
 
         // Sync IoT Manager with the new primary interface
         if (interfaces[0]) {
