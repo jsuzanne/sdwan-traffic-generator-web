@@ -411,7 +411,7 @@ function main() {
         # Handle result
         if [[ "$code" == "000"* ]]; then
             setBackoff "$backoff_key"
-            log_error "$CLIENTID FAILED $url - code: $code"
+            log_error "$CLIENTID FAILED $url via $interface - code: $code"
         else
             resetBackoff "$backoff_key"
             log_info "$CLIENTID SUCCESS $url - code: $code"
