@@ -73,6 +73,7 @@ const getInterface = (): string => {
 
 const iotManager = new IoTManager(getInterface());
 
+
 const getNextBatchId = (): string => {
     try {
         if (!fs.existsSync(BATCH_COUNTER_FILE)) {
@@ -718,6 +719,17 @@ const saveIoTDevices = (devices: IoTDeviceConfig[]) => {
     config.devices = devices;
     saveIoTConfig(config);
 };
+
+// Sync IoT manager interface with config on startup
+try {
+    const iotConfig = getIoTConfig();
+    if (iotConfig.network?.interface) {
+        console.log(`[IOT-INIT] Syncing interface from config: ${iotConfig.network.interface}`);
+        iotManager.setInterface(iotConfig.network.interface);
+    }
+} catch (e) {
+    console.warn('[IOT-INIT] Failed to sync interface on startup', e);
+}
 
 // --- Auth Endpoints ---
 

@@ -194,7 +194,7 @@ class IoTDevice:
         
         self.running = True
         self.start_time = time.time()
-        self.log("info", f"🚀 Starting device simulation [DHCP mode: {self.dhcp_mode}]")
+        self.log("info", f"🚀 Starting device simulation on interface {self.interface} [DHCP mode: {self.dhcp_mode}]")
         
         if JSON_OUTPUT:
             emit_json("started", device_id=self.id)
@@ -515,10 +515,10 @@ class IoTDevice:
             snmpEngine.transportDispatcher.closeDispatcher()
             logger.info(f"⏹️  SNMP agent stopped for {self.id}")
             
-        except ImportError:
-            self.log("error", "❌ PySNMP not installed! Install with: pip install pysnmp")
+        except ImportError as ie:
+            self.log("error", f"❌ PySNMP Import Error: {ie}. Ensure pysnmp, pyasn1, and pysmi are installed.")
         except Exception as e:
-            self.log("error", f"❌ SNMP agent error: {e}")
+            self.log("error", f"❌ SNMP agent error: {type(e).__name__}: {e}")
     
     def send_arp(self):
         """Send ARP requests (device discovery)"""
