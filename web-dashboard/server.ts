@@ -731,6 +731,26 @@ try {
     console.warn('[IOT-INIT] Failed to sync interface on startup', e);
 }
 
+// Global interface for other services
+const GLOBAL_INTERFACE = getInterface();
+
+// Sync Voice interface with interfaces.txt if it doesn't exist
+try {
+    let voiceControl = { enabled: false, max_simultaneous_calls: 3, interface: GLOBAL_INTERFACE };
+    if (fs.existsSync(VOICE_CONTROL_FILE)) {
+        voiceControl = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+        if (!voiceControl.interface || voiceControl.interface === 'eth0') {
+            voiceControl.interface = GLOBAL_INTERFACE;
+            fs.writeFileSync(VOICE_CONTROL_FILE, JSON.stringify(voiceControl, null, 2));
+            console.log(`[VOICE-INIT] Synced interface to: ${GLOBAL_INTERFACE}`);
+        }
+    } else {
+        fs.writeFileSync(VOICE_CONTROL_FILE, JSON.stringify(voiceControl, null, 2));
+    }
+} catch (e) {
+    console.warn('[VOICE-INIT] Failed to sync voice interface', e);
+}
+
 // --- Auth Endpoints ---
 
 app.post('/api/auth/login', (req, res) => {
@@ -1311,7 +1331,9 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
     try {
         const execPromise = promisify(exec);
         if (endpoint.type.toLowerCase() === 'http' || endpoint.type.toLowerCase() === 'https') {
-            const curlCmd = `curl -o /dev/null -s -L -w "time_namelookup=%{time_namelookup}\\ntime_connect=%{time_connect}\\ntime_appconnect=%{time_appconnect}\\ntime_starttransfer=%{time_starttransfer}\\ntime_total=%{time_total}\\nhttp_code=%{http_code}\\nremote_ip=%{remote_ip}\\nremote_port=%{remote_port}\\nsize_download=%{size_download}\\nspeed_download=%{speed_download}\\nssl_verify_result=%{ssl_verify_result}\\n" -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' --max-time ${Math.floor(endpoint.timeout / 1000)} "${endpoint.target}"`;
+            const iface = getInterface();
+            const ifaceFlag = (iface && iface !== 'eth0') ? `--interface ${iface}` : '';
+            const curlCmd = `curl -o /dev/null -s -L -w "time_namelookup=%{time_namelookup}\\ntime_connect=%{time_connect}\\ntime_appconnect=%{time_appconnect}\\ntime_starttransfer=%{time_starttransfer}\\ntime_total=%{time_total}\\nhttp_code=%{http_code}\\nremote_ip=%{remote_ip}\\nremote_port=%{remote_port}\\nsize_download=%{size_download}\\nspeed_download=%{speed_download}\\nssl_verify_result=%{ssl_verify_result}\\n" -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' --max-time ${Math.floor(endpoint.timeout / 1000)} ${ifaceFlag} "${endpoint.target}"`;
 
             try {
                 const { stdout } = await execPromise(curlCmd);
@@ -1341,7 +1363,9 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
                 }
             } catch (e) { }
         } else if (endpoint.type.toLowerCase() === 'ping') {
-            const pingCommand = `ping -c 1 -W ${Math.floor(endpoint.timeout / 1000)} ${endpoint.target}`;
+            const iface = getInterface();
+            const ifaceFlag = (iface && iface !== 'eth0') ? `-I ${iface}` : '';
+            const pingCommand = `ping -c 1 -W ${Math.floor(endpoint.timeout / 1000)} ${ifaceFlag} ${endpoint.target}`;
             const pStart = Date.now();
             try {
                 const { stdout } = await execPromise(pingCommand);

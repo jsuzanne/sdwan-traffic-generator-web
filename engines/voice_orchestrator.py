@@ -55,13 +55,28 @@ def print_banner():
     sys.stdout.flush()
 
 def load_control():
+    # Primary interface discovery
+    default_iface = 'eth0'
+    try:
+        iface_file = os.path.join(CONFIG_DIR, 'interfaces.txt')
+        if os.path.exists(iface_file):
+            with open(iface_file, 'r') as f:
+                content = f.read().strip()
+                if content and not content.startswith('#'):
+                    default_iface = content.split('\n')[0].strip()
+    except: pass
+
     try:
         if os.path.exists(CONTROL_FILE):
             with open(CONTROL_FILE, 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                # If explicitly set to eth0 but we found something else in interfaces.txt, prioritize interfaces.txt
+                if data.get('interface') == 'eth0' and default_iface != 'eth0':
+                    data['interface'] = default_iface
+                return data
     except Exception as e:
         print(f"Error loading control file: {e}")
-    return {"enabled": False, "max_simultaneous_calls": 3, "sleep_between_calls": 5, "interface": "eth0"}
+    return {"enabled": False, "max_simultaneous_calls": 3, "sleep_between_calls": 5, "interface": default_iface}
 
 def load_servers():
     servers = []
