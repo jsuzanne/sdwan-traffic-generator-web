@@ -593,88 +593,16 @@ docusign.com|50|/`;
         console.log(`Created default applications.txt with ${defaultApps.split('\n').filter(l => !l.startsWith('#') && l.trim()).length} applications`);
     }
 
-    // ✅ IMPROVED: Auto-detect network interface if not configured
+    // ✅ Unified Initialization: Use the same logic as the runtime
     if (!fs.existsSync(interfacesFile)) {
-        console.log('🔍 No interfaces.txt found, attempting auto-detection...');
-
-        try {
-            // const { execSync } = require('child_process');
-            let defaultIface = '';
-            let detectionMethod = '';
-
-            // Check if running in Docker container
-            const isDocker = fs.existsSync('/.dockerenv') ||
-                (fs.existsSync('/proc/1/cgroup') &&
-                    fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
-
-            if (isDocker) {
-                defaultIface = 'eth0';
-                detectionMethod = 'Docker container detected';
-                console.log('🐳 Docker environment detected, using eth0');
-            } else if (PLATFORM === 'linux') {
-                try {
-                    const route = execSync("ip route | grep default | awk '{print $5}' | head -n 1", {
-                        encoding: 'utf8',
-                        timeout: 2000
-                    });
-                    defaultIface = route.trim();
-                    detectionMethod = 'Linux ip route';
-                } catch (e) {
-                    defaultIface = 'eth0';
-                    detectionMethod = 'Fallback';
-                }
-            } else if (PLATFORM === 'darwin') {
-                defaultIface = 'en0';
-                detectionMethod = 'macOS default';
-            } else {
-                defaultIface = 'eth0';
-                detectionMethod = 'Generic fallback';
-            }
-
-            if (defaultIface) {
-                const interfaceContent = `# Auto-detected interface (${detectionMethod})\n` +
-                    `# You can manually edit this file if needed\n` +
-                    `${defaultIface}\n`;
-                fs.writeFileSync(interfacesFile, interfaceContent, 'utf8');
-                console.log(`✅ Auto-configured interface: ${defaultIface} (${detectionMethod})`);
-            } else {
-                throw new Error('No interface detected');
-            }
-        } catch (error) {
-            console.log('⚠️  Auto-detection failed, creating empty config file');
-            fs.writeFileSync(interfacesFile,
-                '# Add network interfaces here, one per line\n' +
-                '# Example: eth0, en0, wlan0\n' +
-                '# Run "ip link show" (Linux) or "ifconfig" (Mac) to list interfaces\n',
-                'utf8'
-            );
-            console.log('📝 Please configure network interface manually in config/interfaces.txt');
-        }
+        console.log('🔍 No interfaces.txt found, creating from auto-detection...');
+        const defaultIface = getInterface();
+        fs.writeFileSync(interfacesFile, defaultIface, 'utf8');
+        console.log(`✅ [INIT] Auto-configured interface: ${defaultIface}`);
     } else {
-        // File exists, check if it's empty (only comments)
-        const content = fs.readFileSync(interfacesFile, 'utf8');
-        const hasInterface = content.split('\n')
-            .some(line => line.trim() && !line.trim().startsWith('#'));
-
-        if (!hasInterface) {
-            console.log('⚠️  interfaces.txt exists but is empty, attempting auto-detection...');
-            try {
-                const { execSync } = require('child_process');
-                let defaultIface = 'eth0';
-
-                const isDocker = fs.existsSync('/.dockerenv');
-                if (isDocker || PLATFORM === 'linux') {
-                    defaultIface = 'eth0';
-                } else if (PLATFORM === 'darwin') {
-                    defaultIface = 'en0';
-                }
-
-                fs.appendFileSync(interfacesFile, `\n# Auto-detected\n${defaultIface}\n`, 'utf8');
-                console.log(`✅ Auto-added interface: ${defaultIface}`);
-            } catch (e) {
-                console.log('⚠️  Could not auto-detect interface, manual configuration required');
-            }
-        }
+        const content = fs.readFileSync(interfacesFile, 'utf8').trim();
+        const firstLine = content.split('\n').find(l => l.trim() && !l.startsWith('#')) || 'none';
+        console.log(`📡 [INIT] Found existing interfaces.txt: ${firstLine}`);
     }
 
     // Initialize traffic control file (default: stopped)
