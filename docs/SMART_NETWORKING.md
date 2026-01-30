@@ -47,17 +47,22 @@ enp2s0
 ```
 *This pins Background Traffic, Voice, and Connectivity Probes to this interface.*
 
-### 2. IoT-Specific Override
-Each IoT device can be pinned to a specific interface in the **IoT Dashboard** or `config/iot-devices.json`:
-```json
-"network": {
-  "interface": "enp2s0"
-}
+### 1. Simple Override (Global)
+Create `config/interfaces.txt` and put your interface name there (one per line):
+```text
+enp2s0
 ```
+*This pins Background Traffic, Voice, and Connectivity Probes to this interface.*
+
+### 2. Hot-Reload Support
+The application now supports **Hot-Reload**. If you manually edit `interfaces.txt` while the container is running, the **Web UI** will detect the change and instantly notify the IoT and Voice modules. **No restart required.**
 
 ---
 
 ## ⚠️ Important Safety Notes
+
+### "One Truth" Policy
+As of version **v1.1.2-patch.33.11**, the legacy `network` block in `iot-devices.json` has been **removed**. All networking is now centralized in `interfaces.txt`. This prevents "ghost logic" bugs where different modules might try to use different interfaces.
 
 ### Port Conflicts
 In Host Mode, the container shares the host's IP address. 
@@ -72,4 +77,4 @@ In Host Mode, the container shares the host's IP address.
 ---
 
 **Last Updated:** 2026-01-30  
-**Version:** 1.1.2-patch.33.6
+**Version:** 1.1.2-patch.33.16

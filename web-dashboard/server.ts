@@ -145,6 +145,20 @@ const getInterface = (): string => {
     return 'eth0';
 };
 
+// --- Hot-Reload: Watch for interfaces.txt changes ---
+const INTERFACES_FILE = path.join(APP_CONFIG.configDir, 'interfaces.txt');
+if (fs.existsSync(INTERFACES_FILE)) {
+    console.log(`📡 [WATCH] Monitoring ${INTERFACES_FILE} for changes...`);
+    fs.watch(INTERFACES_FILE, (eventType) => {
+        if (eventType === 'change') {
+            console.log('📡 [WATCH] interfaces.txt changed, reloading...');
+            const newIface = getInterface();
+            iotManager.setInterface(newIface);
+            // Also notify Voice if needed (though it reads on-demand usually)
+        }
+    });
+}
+
 const iotManager = new IoTManager(getInterface());
 
 
@@ -681,25 +695,25 @@ if (getUsers().length === 0) {
 initializeDefaultConfigs();
 
 // --- IoT Helpers ---
-const getIoTConfig = (): { network: any, devices: IoTDeviceConfig[] } => {
+const getIoTConfig = (): { devices: IoTDeviceConfig[] } => {
     if (!fs.existsSync(IOT_DEVICES_FILE)) {
         console.warn(`[IOT-DEBUG] Config file NOT found: ${IOT_DEVICES_FILE}`);
-        return { network: { interface: 'eth0' }, devices: [] };
+        return { devices: [] };
     }
     try {
         const content = fs.readFileSync(IOT_DEVICES_FILE, 'utf8');
         console.log(`[IOT-DEBUG] Read ${content.length} bytes from ${IOT_DEVICES_FILE}`);
         const data = JSON.parse(content);
-        // Fallback for legacy flat array
+
+        // Handle legacy format (either flat array or object with network block)
         if (Array.isArray(data)) {
-            console.log(`[IOT-DEBUG] Loaded ${data.length} devices (legacy array format)`);
-            return { network: { interface: 'eth0' }, devices: data };
+            return { devices: data };
         }
-        console.log(`[IOT-DEBUG] Loaded ${data.devices?.length || 0} devices (structured format)`);
-        return data;
+
+        return { devices: data.devices || [] };
     } catch (e: any) {
         console.error(`[IOT-DEBUG] Failed to parse ${IOT_DEVICES_FILE}:`, e.message);
-        return { network: { interface: 'eth0' }, devices: [] };
+        return { devices: [] };
     }
 };
 
@@ -707,13 +721,12 @@ const getIoTDevices = (): IoTDeviceConfig[] => {
     return getIoTConfig().devices;
 };
 
-const saveIoTConfig = (config: any) => {
-    fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify(config, null, 2));
+const saveIoTConfig = (config: { devices: IoTDeviceConfig[] }) => {
+    // We strictly ONLY save devices. No more network block.
+    fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify({ devices: config.devices }, null, 2));
 
-    // Update IoT manager interface if changed
-    if (config.network?.interface) {
-        iotManager.setInterface(config.network.interface);
-    }
+    // Auto-sync manager with current "One Truth" interface
+    iotManager.setInterface(getInterface());
 };
 
 const saveIoTDevices = (devices: IoTDeviceConfig[]) => {
