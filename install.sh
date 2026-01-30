@@ -22,6 +22,16 @@ fi
 
 echo "✅ Docker is running."
 
+# OS Detection
+OS_TYPE=$(uname)
+if [[ "$OS_TYPE" == "Darwin" ]]; then
+    echo "🍎 Platform: macOS detected. (Host Mode has limitations on macOS)"
+elif [[ "$OS_TYPE" == "Linux" ]]; then
+    echo "🐧 Platform: Linux detected."
+else
+    echo "💻 Platform: $OS_TYPE detected."
+fi
+
 # 2. Select Installation Mode
 INSTALL_DIR="sdwan-traffic-gen"
 REPO_URL="https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main"
@@ -88,11 +98,27 @@ curl -sSL -o docker-compose.yml "$REPO_URL/$COMPOSE_FILE"
 
 # 5. Start Services
 echo "🔧 Pulling images and starting services..."
-if ! docker compose pull; then
-    echo "⚠️  Docker Hub timeout or network error. Retrying in 5s..."
-    sleep 5
-    docker compose pull || echo "❌ Pull failed again. Trying to start with existing images if any..."
+MAX_RETRIES=3
+RETRY_COUNT=0
+PULL_SUCCESS=false
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if docker compose pull; then
+        PULL_SUCCESS=true
+        break
+    else
+        RETRY_COUNT=$((RETRY_COUNT+1))
+        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo "⚠️  Docker Hub timeout or network error (Attempt $RETRY_COUNT/$MAX_RETRIES). Retrying in 10s..."
+            sleep 10
+        fi
+    fi
+done
+
+if [ "$PULL_SUCCESS" = false ]; then
+    echo "❌ Pull failed after $MAX_RETRIES attempts. Trying to start with existing images if any..."
 fi
+
 docker compose up -d
 
 echo ""
