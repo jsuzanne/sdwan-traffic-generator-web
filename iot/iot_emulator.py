@@ -195,12 +195,12 @@ class IoTDevice:
         self.running = True
         self.start_time = time.time()
         
-        # Enhanced Start-up Logging for Troubleshooting
-        self.log("info", "============================================================")
-        self.log("info", f"🚀 Starting device simulation: {self.name} ({self.id})")
-        self.log("info", f"📡 interface: {self.interface}")
+        # Standard Interface Diagnostic
+        if self.device_id != "orchestrator":
+            self.log("info", f"📡 [IOT] System Interface: {self.interface} (Source: CLI/Auto)")
+            self.log("info", f"🚀 Starting device simulation: {self.name} ({self.id}) [DHCP: {self.dhcp_mode}]")
+        
         self.log("info", f"🆔 MAC addr: {self.mac}")
-        self.log("info", f"🌐 DHCP mode: {self.dhcp_mode}")
         if self.ip_static:
             self.log("info", f"📌 Fallback/Static IP: {self.ip_static}")
         self.log("info", "============================================================")
