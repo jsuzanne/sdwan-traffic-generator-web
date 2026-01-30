@@ -23,8 +23,18 @@ const BetaBadge = ({ className }: { className?: string }) => (
     </span>
 );
 
+interface UpgradeStatus {
+    inProgress: boolean;
+    version: string | null;
+    stage: 'idle' | 'pulling' | 'restarting' | 'failed' | 'complete';
+    logs: string[];
+    error: string | null;
+    startTime: number | null;
+}
+
 export default function System({ token }: { token: string }) {
     const [status, setStatus] = useState<MaintenanceStatus | null>(null);
+    const [upgradeStatus, setUpgradeStatus] = useState<UpgradeStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [upgrading, setUpgrading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -48,8 +58,38 @@ export default function System({ token }: { token: string }) {
         }
     };
 
+    const fetchUpgradeStatus = async () => {
+        try {
+            const res = await fetch('/api/admin/maintenance/status', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setUpgradeStatus(data);
+                if (data.inProgress) {
+                    setUpgrading(true);
+                } else if (data.stage === 'complete') {
+                    setSuccess("Upgrade complete! System is restarting...");
+                    setUpgrading(false);
+                } else if (data.stage === 'failed') {
+                    setError(data.error || 'Upgrade failed');
+                    setUpgrading(false);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch upgrade status');
+        }
+    };
+
     useEffect(() => {
         fetchStatus();
+        fetchUpgradeStatus();
+
+        const interval = setInterval(() => {
+            fetchUpgradeStatus();
+        }, 2000);
+
+        return () => clearInterval(interval);
     }, [token]);
 
     const handleUpgrade = async () => {
@@ -58,6 +98,7 @@ export default function System({ token }: { token: string }) {
 
         setUpgrading(true);
         setError(null);
+        setSuccess(null);
         try {
             const res = await fetch('/api/admin/maintenance/upgrade', {
                 method: 'POST',
@@ -67,16 +108,16 @@ export default function System({ token }: { token: string }) {
                 },
                 body: JSON.stringify({ version: status.latest })
             });
-            const data = await res.json();
 
             if (res.ok) {
-                setSuccess(`Upgrade to v${status.latest} started! The system will restart in a few seconds. Refresh the page shortly.`);
+                setSuccess(`Upgrade to v${status.latest} started in background. Monitor progress below.`);
             } else {
+                const data = await res.json();
                 setError(data.details || data.error || 'Upgrade failed');
                 setUpgrading(false);
             }
         } catch (e) {
-            setError('Connection lost during upgrade');
+            setError('Connection lost during upgrade initiation');
             setUpgrading(false);
         }
     };
@@ -162,9 +203,49 @@ export default function System({ token }: { token: string }) {
                             </div>
                         )}
 
-                        {success && (
+                        {success && !upgrading && (
                             <div className="p-4 bg-green-600/20 border border-green-500/30 rounded-lg text-green-200 text-xs font-medium leading-relaxed">
                                 🚀 {success}
+                            </div>
+                        )}
+
+                        {upgrading && upgradeStatus && (
+                            <div className="mt-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
+                                        <RefreshCw size={14} className="animate-spin" />
+                                        <span className="uppercase tracking-widest">
+                                            {upgradeStatus.stage === 'pulling' ? 'Pulling Images...' : 'Restarting Services...'}
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] font-mono text-slate-500">
+                                        {Math.floor((Date.now() - (upgradeStatus.startTime || Date.now())) / 1000)}s elapsed
+                                    </span>
+                                </div>
+
+                                <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-2xl">
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 border-b border-slate-800">
+                                        <Terminal size={12} className="text-slate-400" />
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Upgrade Monitor</span>
+                                    </div>
+                                    <div className="p-3 h-48 overflow-y-auto font-mono text-[10px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                                        {upgradeStatus.logs.map((log, i) => (
+                                            <div key={i} className={cn(
+                                                "border-l-2 pl-2 mb-1",
+                                                log.startsWith('[WARN]') ? "border-amber-500/50 text-amber-300/80" :
+                                                    log.startsWith('[ERROR]') ? "border-red-500/50 text-red-300" :
+                                                        log.includes('✅') ? "border-green-500/50 text-green-300" :
+                                                            "border-slate-800 text-slate-400"
+                                            )}>
+                                                {log}
+                                            </div>
+                                        ))}
+                                        <div className="animate-pulse inline-block w-1.5 h-3 bg-blue-500 ml-1 translate-y-0.5" />
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-slate-500 italic text-center">
+                                    Do not close this tab. The dashboard will automatically reconnect once the restart is complete.
+                                </p>
                             </div>
                         )}
                     </div>

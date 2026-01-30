@@ -58,6 +58,25 @@ const BATCH_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'batch-counter.json')
 // IoT Devices
 const IOT_DEVICES_FILE = path.join(APP_CONFIG.configDir, 'iot-devices.json');
 
+// Upgrade Status tracking
+interface UpgradeStatus {
+    inProgress: boolean;
+    version: string | null;
+    stage: 'idle' | 'pulling' | 'restarting' | 'failed' | 'complete';
+    logs: string[];
+    error: string | null;
+    startTime: number | null;
+}
+
+let G_UPGRADE_STATUS: UpgradeStatus = {
+    inProgress: false,
+    version: null,
+    stage: 'idle',
+    logs: [],
+    error: null,
+    startTime: null
+};
+
 const getInterface = (): string => {
     const interfacesFile = path.join(APP_CONFIG.configDir, 'interfaces.txt');
 
@@ -129,7 +148,7 @@ const getNextTestId = (): number => {
 
 let convergenceProcesses: Map<string, any> = new Map();
 let convergencePPS: Map<string, number> = new Map();
-let srtProcess: any = null;
+// SRT process removed as unused
 
 const getNextFailoverTestId = (): string => {
     try {
@@ -3833,56 +3852,95 @@ app.post('/api/admin/config/import', authenticateToken, async (req, res) => {
     }
 });
 
+app.get('/api/admin/maintenance/status', authenticateToken, (req, res) => {
+    res.json(G_UPGRADE_STATUS);
+});
+
 app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) => {
     const { version } = req.body;
-    console.log(`[MAINTENANCE] Upgrade requested${version ? ' to v' + version : ''}...`);
-    const execPromise = promisify(exec);
 
-    try {
-        const pullTarget = version || 'stable';
-        console.log(`[MAINTENANCE] 📦 Pulling images with tag: ${pullTarget}...`);
-
-        try {
-            const rootDir = path.join(__dirname, '..');
-            if (fs.existsSync(path.join(rootDir, 'docker-compose.yml'))) {
-                // If we have a specific version, we set an ENV var for docker compose or pull explicitly
-                if (version) {
-                    await execPromise(`TAG=${version} docker compose pull`, { cwd: rootDir });
-                } else {
-                    await execPromise('docker compose pull', { cwd: rootDir });
-                }
-            } else {
-                await execPromise(`docker pull jsuzanne/sdwan-web-ui:${pullTarget}`);
-                await execPromise(`docker pull jsuzanne/sdwan-traffic-gen:${pullTarget}`);
-                await execPromise(`docker pull jsuzanne/sdwan-voice-gen:${pullTarget}`);
-                await execPromise(`docker pull jsuzanne/sdwan-voice-echo:${pullTarget}`);
-            }
-        } catch (pullError: any) {
-            console.error('[MAINTENANCE] ❌ Pull failed:', pullError.message);
-            return res.status(500).json({ error: 'Failed to pull images', details: pullError.message });
-        }
-
-        res.json({ success: true, message: 'Pull complete. Refreshing all services...' });
-        console.log('[MAINTENANCE] 🔄 Refreshing system services (docker compose up -d)...');
-
-        setTimeout(async () => {
-            try {
-                const rootDir = path.join(__dirname, '..');
-                if (fs.existsSync(path.join(rootDir, 'docker-compose.yml'))) {
-                    await execPromise('docker compose up -d', { cwd: rootDir });
-                    console.log('[MAINTENANCE] ✅ System services refreshed.');
-                }
-            } catch (upError: any) {
-                console.error('[MAINTENANCE] ⚠️ docker compose up failed:', upError.message);
-            }
-
-            console.log('[MAINTENANCE] 🔄 Restarting dashboard container...');
-            process.exit(0);
-        }, 2000);
-
-    } catch (e: any) {
-        res.status(500).json({ error: 'Upgrade failed', message: e.message });
+    if (G_UPGRADE_STATUS.inProgress) {
+        return res.status(400).json({ error: 'Upgrade already in progress' });
     }
+
+    // Initialize status
+    G_UPGRADE_STATUS = {
+        inProgress: true,
+        version: version || 'latest',
+        stage: 'pulling',
+        logs: [`[${new Date().toISOString()}] Upgrade requested to ${version || 'latest'}`],
+        error: null,
+        startTime: Date.now()
+    };
+
+    const pullTarget = version || 'stable';
+    const { spawn } = require('child_process');
+    const rootDir = path.join(__dirname, '..');
+
+    res.json({ success: true, message: 'Upgrade started in background' });
+
+    const runUpgrade = async () => {
+        try {
+            const pullCmd = fs.existsSync(path.join(rootDir, 'docker-compose.yml'))
+                ? (version ? `TAG=${version} docker compose pull` : 'docker compose pull')
+                : `docker pull jsuzanne/sdwan-web-ui:${pullTarget} && docker pull jsuzanne/sdwan-traffic-gen:${pullTarget} && docker pull jsuzanne/sdwan-voice-gen:${pullTarget} && docker pull jsuzanne/sdwan-voice-echo:${pullTarget}`;
+
+            G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] Executing: ${pullCmd}`);
+
+            const pullProcess = spawn('sh', ['-c', pullCmd], { cwd: rootDir });
+
+            pullProcess.stdout.on('data', (data: any) => {
+                const line = data.toString().trim();
+                if (line) G_UPGRADE_STATUS.logs.push(line);
+                if (G_UPGRADE_STATUS.logs.length > 50) G_UPGRADE_STATUS.logs.shift();
+            });
+
+            pullProcess.stderr.on('data', (data: any) => {
+                const line = data.toString().trim();
+                if (line) G_UPGRADE_STATUS.logs.push(`[WARN] ${line}`);
+            });
+
+            const pullExitCode = await new Promise((resolve) => {
+                pullProcess.on('close', resolve);
+            });
+
+            if (pullExitCode !== 0) {
+                throw new Error(`Pull failed with exit code ${pullExitCode}`);
+            }
+
+            G_UPGRADE_STATUS.stage = 'restarting';
+            G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] Pull complete. Refreshing services...`);
+
+            // Short delay before restart
+            setTimeout(async () => {
+                try {
+                    G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] Running: docker compose up -d`);
+                    const { execSync } = require('child_process');
+                    if (fs.existsSync(path.join(rootDir, 'docker-compose.yml'))) {
+                        execSync('docker compose up -d', { cwd: rootDir });
+                    }
+
+                    G_UPGRADE_STATUS.stage = 'complete';
+                    G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] ✅ Upgrade complete. Restarting dashboard...`);
+
+                    setTimeout(() => process.exit(0), 1000);
+                } catch (e: any) {
+                    G_UPGRADE_STATUS.stage = 'failed';
+                    G_UPGRADE_STATUS.error = e.message;
+                    G_UPGRADE_STATUS.inProgress = false;
+                }
+            }, 2000);
+
+        } catch (e: any) {
+            console.error('[MAINTENANCE] Upgrade failed:', e);
+            G_UPGRADE_STATUS.inProgress = false;
+            G_UPGRADE_STATUS.stage = 'failed';
+            G_UPGRADE_STATUS.error = e.message;
+            G_UPGRADE_STATUS.logs.push(`[ERROR] ${e.message}`);
+        }
+    };
+
+    runUpgrade();
 });
 
 // Schedule daily log cleanup (runs at 2 AM)
@@ -3902,80 +3960,11 @@ const scheduleLogCleanup = () => {
         // Schedule next cleanup
         scheduleLogCleanup();
     }, msUntil2AM);
-
     console.log(`[LOG_CLEANUP] Next cleanup scheduled for ${tomorrow2AM.toISOString()}`);
 };
 
 
-// --- Slow App / SRT Simulation ---
-// Responder moved to engines/srt_responder.py (runs in voice-echo container)
-
-const SRT_STATS_FILE = '/tmp/srt_stats.json';
-
-app.post('/api/srt/start', authenticateToken, (req, res) => {
-    const { target } = req.body;
-    if (!target) return res.status(400).json({ error: 'Target IP/Host required' });
-
-    if (srtProcess) {
-        try { srtProcess.kill(); } catch (e) { }
-    }
-
-    const orchestratorPath = path.join(__dirname, 'engines/srt_orchestrator.py');
-    const args = ['--target', target, '--stats-file', SRT_STATS_FILE];
-
-    console.log(`🚀 [SRT] Spawning orchestrator: python3 ${orchestratorPath} ${args.join(' ')}`);
-
-    try {
-        srtProcess = spawn('python3', [orchestratorPath, ...args], { env: { ...process.env, PYTHONUNBUFFERED: '1' } });
-        console.log(`🚀 [SRT] Probe started for target: ${target}`);
-
-        srtProcess.on('close', (code: any) => {
-            console.log(`⏹️ [SRT] Probe stopped (Code: ${code})`);
-            srtProcess = null;
-        });
-
-        // Pipe SRT orchestrator logs for transparency
-        srtProcess.stdout.on('data', (data: any) => {
-            const lines = data.toString().split('\n');
-            lines.forEach((line: string) => {
-                if (line.trim()) console.log(line);
-            });
-        });
-
-        srtProcess.stderr.on('data', (data: any) => {
-            const lines = data.toString().split('\n');
-            lines.forEach((line: string) => {
-                if (line.trim()) console.error(`[SRT-ERROR] ${line}`);
-            });
-        });
-
-        res.json({ success: true, running: true });
-    } catch (e: any) {
-        res.status(500).json({ error: 'Failed to start SRT orchestrator', details: e.message });
-    }
-});
-
-app.post('/api/srt/stop', authenticateToken, (req, res) => {
-    if (srtProcess) {
-        srtProcess.kill();
-        res.json({ success: true, running: false });
-    } else {
-        res.json({ success: true, running: false, message: 'Not running' });
-    }
-});
-
-app.get('/api/srt/stats', authenticateToken, (req, res) => {
-    try {
-        if (fs.existsSync(SRT_STATS_FILE)) {
-            const stats = JSON.parse(fs.readFileSync(SRT_STATS_FILE, 'utf8'));
-            res.json({ ...stats, running: !!srtProcess });
-        } else {
-            res.json({ running: !!srtProcess, history: [] });
-        }
-    } catch (e) {
-        res.json({ running: !!srtProcess, history: [] });
-    }
-});
+// --- Slow App / SRT Simulation (REMOVED) ---
 
 // --- IoT Devices API ---
 

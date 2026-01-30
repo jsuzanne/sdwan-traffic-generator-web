@@ -64,6 +64,17 @@ def load_control():
                 content = f.read().strip()
                 if content and not content.startswith('#'):
                     default_iface = content.split('\n')[0].strip()
+        
+        # Smart auto-detection fallback if interfaces.txt is empty or missing
+        if default_iface == 'eth0':
+            try:
+                import subprocess
+                cmd = "ip route | grep '^default' | awk '{print $5}' | head -n 1"
+                output = subprocess.check_output(cmd, shell=True, text=True).strip()
+                if output:
+                    default_iface = output
+                    print(f"📡 Auto-detected default interface: {default_iface}")
+            except: pass
     except: pass
 
     try:

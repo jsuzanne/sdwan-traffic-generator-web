@@ -21,8 +21,8 @@ class SRTMetrics:
         # srt = time_starttransfer - time_connect
         curl_format = '{"rtt": %{time_connect}, "ttfb": %{time_starttransfer}, "total": %{time_total}, "code": %{http_code}}'
         
-        # Use port 8080 for the light responder by default
-        target_with_port = self.target if ":" in self.target else f"{self.target}:8080"
+        # Use port 8081 for the light responder by default (to avoid clash with web-ui on 8080)
+        target_with_port = self.target if ":" in self.target else f"{self.target}:8081"
         url = f"http://{target_with_port}/api/slow-app/delay/500"
         cmd = ["curl", "-s", "-o", "/dev/null", "-w", curl_format, url]
         
