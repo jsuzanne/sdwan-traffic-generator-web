@@ -6,16 +6,14 @@
 **ALWAYS build Docker images for multiple platforms when pushing to Docker Hub.**
 
 ```bash
-# ❌ WRONG - Single platform (ARM64 only on Mac M1)
-docker build -t jsuzanne/sdwan-web-ui:tag .
-docker push jsuzanne/sdwan-web-ui:tag
+# ❌ WRONG - Always building ARM64 on every patch (Sloooow ~20 mins)
+# git tag v1.1.2-patch.33.15 && git push origin v1.1.2-patch.33.15
 
-# ✅ CORRECT - Multi-platform (AMD64 + ARM64)
-docker buildx build --platform linux/amd64,linux/arm64 \
-  -t jsuzanne/sdwan-web-ui:tag \
-  -f web-dashboard/Dockerfile \
-  --push .
+# ✅ CORRECT - Standard push/tag uses Fast Build (AMD64 only ~7 mins)
+# git tag v1.1.2-patch.33.18 && git push origin v1.1.2-patch.33.18
 ```
+
+**Why:** Ubuntu LAB servers (Intel NUCs) are AMD64. Emulating ARM64 on GitHub is slow. We only build ARM64 manually via GitHub Actions UI ("Build Full" toggle) when Mac Silicon testing is required for a specific version.
 
 **Why:** Ubuntu LAB servers are AMD64, Mac development is ARM64. Single-platform builds cause "exec format error".
 
@@ -211,6 +209,14 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 ### 📝 Changelog Enforcement
 - **ALL commits** that modify behavior, fix bugs, or add features MUST be documented in `CHANGELOG.md`.
 - Ensure the version number is bumped accordingly in the `VERSION` file if the bundle represents a new release.
+
+### 🔍 Remote Tag Verification (The "Patch 17" Rule)
+- **NEVER** assume a tag push was successful simply because the `git push` command returned.
+- **ALWAYS** verify the tag is visible on the remote repository by running:
+  ```bash
+  git ls-remote --tags origin | grep vX.Y.Z-patch.N
+  ```
+- **Only notify the user** once the tag is confirmed to be on the remote server. This avoids "phantom releases" where the user checks GitHub and finds nothing.
 
 ---
 

@@ -12,6 +12,10 @@ on:
         description: 'Version to promote to stable (e.g. 1.1.0-patch.25)'
         required: false
         default: ''
+      build_full:
+        description: 'Build for ALL platforms (AMD64 + ARM64)? Slow!'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: docker.io
@@ -51,7 +55,7 @@ jobs:
   build:
     name: Build and Push
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.version_to_stable == '')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -96,12 +100,23 @@ jobs:
             echo "version=$BRANCH_NAME" >> $GITHUB_OUTPUT
           fi
 
+      - name: Determine Platforms
+        id: plat
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.build_full }}" == "true" ]]; then
+            echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+            echo "🚀 FULL BUILD: AMD64 + ARM64"
+          else
+            echo "platforms=linux/amd64" >> $GITHUB_OUTPUT
+            echo "⚡ FAST BUILD: AMD64 ONLY"
+          fi
+
       - name: Build and push Web UI
         uses: docker/build-push-action@v5
         with:
           context: .
           file: web-dashboard/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.plat.outputs.platforms }}
           push: true
           tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
@@ -114,7 +129,7 @@ jobs:
         with:
           context: .
           file: Dockerfile.traffic-gen
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.plat.outputs.platforms }}
           push: true
           tags: ${{ steps.tags.outputs.gen_tags }}
           cache-from: type=gha
@@ -125,7 +140,7 @@ jobs:
         with:
           context: .
           file: Dockerfile.voice
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.plat.outputs.platforms }}
           push: true
           tags: ${{ steps.tags.outputs.voice_tags }}
           cache-from: type=gha
@@ -136,7 +151,7 @@ jobs:
         with:
           context: .
           file: Dockerfile.voice-echo
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.plat.outputs.platforms }}
           push: true
           tags: ${{ steps.tags.outputs.echo_tags }}
           cache-from: type=gha
