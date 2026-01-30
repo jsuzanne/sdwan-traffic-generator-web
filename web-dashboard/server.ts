@@ -689,13 +689,11 @@ const saveIoTDevices = (devices: IoTDeviceConfig[]) => {
     saveIoTConfig(config);
 };
 
-// Sync IoT manager interface with config on startup
+// Sync IoT manager interface with the primary interface
 try {
-    const iotConfig = getIoTConfig();
-    if (iotConfig.network?.interface) {
-        console.log(`[IOT-INIT] Syncing interface from config: ${iotConfig.network.interface}`);
-        iotManager.setInterface(iotConfig.network.interface);
-    }
+    const primaryIface = getInterface();
+    console.log(`[IOT-INIT] Syncing manager with primary interface: ${primaryIface}`);
+    iotManager.setInterface(primaryIface);
 } catch (e) {
     console.warn('[IOT-INIT] Failed to sync interface on startup', e);
 }
