@@ -225,10 +225,12 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 2.  **Proposed Fix**: Describe the proposed fix in detail, outlining *exactly* what files and logic will change.
 3.  **Confirm Version & Context**: ALWAYS ask the user which version they are currently testing before analyzing a problem.
 4.  **Acknowledge Build Latency**: NEVER assume a reported bug is in the version just pushed. Docker builds take 20+ minutes, so the user is likely testing the *previous* version while the new one builds.
-5.  **Wait for Validation**: ALWAYS wait for the user to understand and explicitly validate the approach and version before touching any code.
-6.  **No "Secret" Fixes**: Do not bundle proactive fixes into an unrelated answer unless specifically requested.
+5.  **Browser Tool Restriction**: NEVER use the browser tool (for GitHub status or any other research) unless explicitly requested by the user. It causes severe performance issues (lags) on the user's system (Mac Mini).
+6.  **GitHub Status**: The user will monitor GitHub Actions themselves. Do not attempt to check, report, or "ping" build status.
+7.  **Wait for Validation**: ALWAYS wait for the user to understand and explicitly validate the approach and version before touching any code.
+8.  **No "Secret" Fixes**: Do not bundle proactive fixes into an unrelated answer unless specifically requested.
 
-**Why:** The user must maintain full mental parity with the codebase. Proactive fixes without explanation break the user's understanding of the system's state.
+**Why:** The user must maintain full mental parity with the codebase, and the assistant must not interfere with the host system's performance or the user's external monitoring workflows.
 
 ---
 
