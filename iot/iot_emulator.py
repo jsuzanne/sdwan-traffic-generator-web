@@ -194,7 +194,16 @@ class IoTDevice:
         
         self.running = True
         self.start_time = time.time()
-        self.log("info", f"🚀 Starting device simulation on interface {self.interface} [DHCP mode: {self.dhcp_mode}]")
+        
+        # Enhanced Start-up Logging for Troubleshooting
+        self.log("info", "============================================================")
+        self.log("info", f"🚀 Starting device simulation: {self.name} ({self.id})")
+        self.log("info", f"📡 interface: {self.interface}")
+        self.log("info", f"🆔 MAC addr: {self.mac}")
+        self.log("info", f"🌐 DHCP mode: {self.dhcp_mode}")
+        if self.ip_static:
+            self.log("info", f"📌 Fallback/Static IP: {self.ip_static}")
+        self.log("info", "============================================================")
         
         if JSON_OUTPUT:
             emit_json("started", device_id=self.id)
@@ -734,15 +743,16 @@ class IoTEmulator:
             
             logger.info(f"✅ Loaded config from {self.config_file}")
             
+            if self.interface:
+                logger.info(f"📡 Current Interface: {self.interface}")
+            
+            # The network config in JSON is now ignored for interface selection 
+            # to ensure the Dashboard/Installer remains the source of truth.
             network = config.get("network", {})
-            
-            if self.interface_cli == "eth0" and "interface" in network:
-                self.interface = network.get("interface")
-                logger.info(f"📡 Using interface from config: {self.interface}")
-            else:
-                logger.info(f"📡 Using interface from CLI: {self.interface}")
-            
             self.gateway = network.get("gateway", "192.168.207.1")
+            
+            if "interface" in network:
+                logger.info(f"💡 Note: interface '{network.get('interface')}' was defined in JSON but is ignored in favor of CLI/Auto-detection.")
             
             for device_config in config.get("devices", []):
                 device = IoTDevice(device_config, interface=self.interface, dhcp_mode=self.dhcp_mode)
