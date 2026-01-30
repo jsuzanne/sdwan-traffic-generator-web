@@ -1,16 +1,14 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
-## 🎯 Current Status (as of 2026-01-24)
-We are currently at version **v1.1.0-patch.68**.
-Enhanced UX for batch testing and advanced Voice QoS analytics are now live.
+## 🎯 Current Status (as of 2026-01-30)
+We are currently at version **v1.1.2-patch.33.7**.
+The system is now optimized for **Host Mode** with Smart Networking and IoT Simulation.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **UX & Analytics (v68)**: Implemented batch progress indicators for Security tests and a comprehensive QoS Summary widget (Avg/Min/Max) for Voice simulation. Added advanced filtering/search for voice history.
-2.  **Voice QoS (v67)**: Integrated real-time network measurement (Loss, RTT, Jitter) into voice calls.
-3.  **Global Reset (v66)**: Added "Reset Statistics" buttons across all modules.
-4.  **Universal DNS (v63)**: Normalized DNS tests using `nslookup`.
-5.  **Flow Separation (v61)**: Unique source ports for voice calls.
-6.  **Clean Slate (v60)**: Orchestrator reset at startup.
+1.  **Smart Upgrades (v33.7)**: Implemented non-blocking background upgrades with real-time log streaming in the UI.
+2.  **IoT Simulation (v33.7)**: Added Layer-2/3 device simulation (DHCP/ARP/Scapy) for physical network testing.
+3.  **Host Mode & Port Fix (v33.7)**: Resolved port 8080 conflicts and standardized Host Mode for all generators.
+4.  **UX & Analytics (v68)**: Implemented batch progress indicators and QoS Summary widgets.
 
 ## 🚀 Tomorrow's Roadmap (Windows Testing)
 1.  **Testing Environment**: Planning to test on Windows Docker Desktop.

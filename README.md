@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.1.2--patch.28-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.1.2--patch.33.7-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -20,8 +20,10 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **Traffic Rate Control** - Dynamically adjust generation speed from 0.1s to 5s delay via a slider
 - **Protocol & IP Flexibility** - Support for explicit `http://` or `https://` and full IP address identification
 - **Multi-interface Support** - Bind to specific network interfaces
-- **Voice Simulation (RTP)** - Simulate real-time voice calls (G.711, G.729) with Scapy-based packet forging, weighted target distribution, and standalone echo server targets. [Read more](docs/VOICE_SIMULATION.md)
-- **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times and directional RX/TX loss. [Read more](docs/CONVERGENCE_LAB.md)
+- **Voice Simulation (RTP)** - Simulate real-time voice calls (G.711, G.729) with Scapy-based packet forging. [Read more](docs/VOICE_SIMULATION.md)
+- **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. [Read more](docs/IOT_SIMULATION.md)
+- **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
+- **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
 
 ### 🛡️ Security Testing (v1.1.0)
 - **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)
@@ -623,7 +625,10 @@ Comprehensive guides for all features:
 
 ### Traffic Generation
 - **[Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md)** - Configure applications.txt and weights
+- **[Voice Simulation Guide](docs/VOICE_SIMULATION.md)** - RTP packet forging and MOS scoring theory
+- **[IoT Simulation Guide](docs/IOT_SIMULATION.md)** - Layer-2/3 device simulation and Scapy networking
 - **[Convergence Lab Guide](docs/CONVERGENCE_LAB.md)** - High-precision failover & RX/TX loss theory
+- **[Smart Networking Guide](docs/SMART_NETWORKING.md)** - Host Mode and auto-detection architecture
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
 
 ### Security Testing

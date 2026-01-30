@@ -22,6 +22,14 @@ This document serves as a high-level summary and script for **NotebookLM** to ge
 - **Host Health**: Direct visibility into the VM's Disk and System health.
 - **Flaky Endpoint Detection**: Automatically identifies unstable paths before they impact users.
 
+### 🤖 IoT Simulation
+- **Scapy-on-the-Wire**: Simulates cameras and sensors with real MAC addresses and DHCP-assigned IPs.
+- **Segmentation Testing**: Ideal for validating SD-WAN VRF and VLAN isolation.
+
+### 🛠️ Smart Upgrades (v1.1.2)
+- **Non-Blocking Logic**: Upgrades run in the background with a real-time monitor terminal.
+- **Host Mode Ready**: Optimized for physical Linux NIC access (enp2s0/eth0) with collision-free port management.
+
 ## Suggested Script Outline (For the Video/Podcast)
 1. **The Problem**: SD-WANs are complex. How do you know if your expensive circuit is *actually* delivering good voice quality?
 2. **The Solution**: Synthetic traffic that acts like a real user.
@@ -36,4 +44,4 @@ This document serves as a high-level summary and script for **NotebookLM** to ge
 - `click_feedback.png`: Demonstrates the configuration and the new probe management icons.
 
 ---
-*Generated for the SD-WAN Traffic Generator Project - v1.1.0-patch.82*
+*Generated for the SD-WAN Traffic Generator Project - v1.1.2-patch.33.7*
