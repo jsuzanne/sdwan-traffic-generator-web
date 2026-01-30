@@ -118,7 +118,13 @@ const getInterface = (): string => {
         const candidates: string[] = [];
         for (const name of Object.keys(nets)) {
             // Exclude loopback and common virtual/bridge interfaces if possible
-            if (!name.startsWith('lo') && !name.startsWith('docker') && !name.startsWith('br-') && !name.startsWith('veth')) {
+            if (!name.startsWith('lo') &&
+                !name.startsWith('docker') &&
+                !name.startsWith('br-') &&
+                !name.startsWith('veth') &&
+                !name.startsWith('vnet') &&
+                !name.startsWith('virbr') &&
+                !name.startsWith('tailscale')) {
                 candidates.push(name);
             }
         }
