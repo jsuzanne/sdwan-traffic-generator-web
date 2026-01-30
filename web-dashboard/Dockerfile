@@ -16,6 +16,7 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
+    iproute2 \
     iputils-ping \
     dnsutils \
     netcat-openbsd \

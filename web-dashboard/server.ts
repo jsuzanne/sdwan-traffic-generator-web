@@ -2251,6 +2251,12 @@ app.post('/api/config/interfaces', (req, res) => {
 
     try {
         fs.writeFileSync(INTERFACES_FILE, interfaces.join('\n'));
+
+        // Sync IoT Manager with the new primary interface
+        if (interfaces[0]) {
+            iotManager.setInterface(interfaces[0]);
+        }
+
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Write failed', details: err });

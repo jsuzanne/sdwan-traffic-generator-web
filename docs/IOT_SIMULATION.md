@@ -25,17 +25,47 @@ Running in **Host Mode** (standard for Linux installs) allows the IoT engine to 
 
 IoT devices are managed via the **IoT Tab** in the Dashboard. The configuration is stored in `config/iot-devices.json`.
 
-### Network Settings
-The system requires a global network configuration for the simulation:
-- **Interface**: The physical NIC to use (e.g., `enp2s0`).
-- **Gateway**: The default gateway for the devices (used for outbound traffic simulation).
+### Technical JSON Format
+Each device in the JSON array follows this structure:
 
-### Device Profiles
-Each device is defined by:
-- **Name**: Human-readable label (e.g., "Warehouse Camera 01").
-- **MAC Address**: Unique hardware identifier.
-- **IP Mode**: `DHCP` (Automatic) or `Static`.
-- **Type**: Camera, Sensor, Smart Plug, or Generic.
+```json
+{
+  "id": "camera_01",
+  "name": "Hikvision DS-2CD2042FWD",
+  "vendor": "Hikvision",
+  "type": "IP Camera",
+  "mac": "00:12:34:56:78:01",
+  "ip_start": "192.168.207.100",
+  "protocols": ["dhcp", "arp", "lldp", "snmp", "http", "rtsp", "cloud"],
+  "enabled": true,
+  "traffic_interval": 60,
+  "description": "Hikvision outdoor camera simulation"
+}
+```
+
+### Protocol Support Details
+- **`dhcp`**: Triggers a Scapy-based DHCP state machine (Discover -> Offer -> Request -> Ack).
+- **`arp`**: Listens for ARP Who-Has requests and responds with the spoofed MAC.
+- **`cloud`**: Simulates periodic outbound "heartbeat" traffic to a vendor-specific FQDN.
+- **`mqtt`**: Simulates periodic telemetry updates to an MQTT broker.
+
+## 📊 Live Log Examples
+
+When a device starts, you can monitor the "Real-on-the-Wire" interaction in the UI logs:
+
+### DHCP Sequence (Success)
+```text
+🔄 [IOT] Starting DHCP sequence for 'Smart Bulb' (ec:b5:fa:00:01:01)...
+📤 [DHCP] Sending DISCOVER on enp2s0
+✅ [DHCP] Received OFFER from 192.168.1.1 (Offered IP: 192.168.1.105)
+✅ [DHCP] ACK received. Device 'Smart Bulb' is now LIVE on 192.168.1.105
+```
+
+### ARP Interaction
+```text
+🔍 [IOT] ARP Request from Router (192.168.1.1): Who has 192.168.1.105?
+📤 [IOT] ARP Reply: 192.168.1.105 is at ec:b5:fa:00:01:01
+```
 
 ## 📥 Import / Export
 You can easily migrate your IoT lab setup between different generator instances using the **Import/Export** buttons. The system ensures data integrity and automatically creates backups of your configuration.
