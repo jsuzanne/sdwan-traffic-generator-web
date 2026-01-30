@@ -223,9 +223,10 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 1.  **Explain First**: When asked "how" or "why", provide a clear technical explanation of the root cause.
 2.  **Proposed Fix**: Describe the proposed fix in detail, outlining *exactly* what files and logic will change.
-3.  **Confirm Version**: ALWAYS ask the user which version (e.g., `latest`, `stable`, or a specific patch tag) they want to target before making changes.
-4.  **Wait for Validation**: ALWAYS wait for the user to understand and explicitly validate the approach and version before touching any code.
-5.  **No "Secret" Fixes**: Do not bundle proactive fixes into an unrelated answer unless specifically requested.
+3.  **Confirm Version & Context**: ALWAYS ask the user which version they are currently testing before analyzing a problem.
+4.  **Acknowledge Build Latency**: NEVER assume a reported bug is in the version just pushed. Docker builds take 20+ minutes, so the user is likely testing the *previous* version while the new one builds.
+5.  **Wait for Validation**: ALWAYS wait for the user to understand and explicitly validate the approach and version before touching any code.
+6.  **No "Secret" Fixes**: Do not bundle proactive fixes into an unrelated answer unless specifically requested.
 
 **Why:** The user must maintain full mental parity with the codebase. Proactive fixes without explanation break the user's understanding of the system's state.
 
