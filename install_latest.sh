@@ -14,6 +14,37 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+function detect_and_setup_interface() {
+    local config_dir="./config"
+    local interfaces_file="${config_dir}/interfaces.txt"
+    
+    mkdir -p "$config_dir"
+    
+    # Only detect if file is missing or empty
+    if [[ ! -s "$interfaces_file" ]]; then
+        echo "🔍 [INSTALLER] Detecting default network interface..."
+        local detected_iface=""
+        
+        # Linux detection
+        if [[ "$(uname)" == "Linux" ]]; then
+            detected_iface=$(ip route | grep '^default' | awk '{print $5}' | head -n 1)
+        # macOS detection
+        elif [[ "$(uname)" == "Darwin" ]]; then
+            detected_iface=$(route -n get default 2>/dev/null | grep 'interface:' | awk '{print $2}')
+        fi
+        
+        if [[ -n "$detected_iface" ]]; then
+            echo "✅ [INSTALLER] Found interface: ${detected_iface}"
+            echo "$detected_iface" > "$interfaces_file"
+        else
+            echo "⚠️ [INSTALLER] Could not detect default interface. Defaulting to eth0."
+            echo "eth0" > "$interfaces_file"
+        fi
+    else
+        echo "📡 [INSTALLER] interfaces.txt already exists. Skipping auto-detection."
+    fi
+}
+
 if ! docker info &> /dev/null; then
     echo "❌ Error: Docker is installed but not running."
     echo "Please start the Docker Desktop / Daemon and try again."
@@ -124,6 +155,9 @@ done
 if [ "$PULL_SUCCESS" = false ]; then
     echo "❌ Pull failed after $MAX_RETRIES attempts. Trying to start with existing images if any..."
 fi
+
+# Ensure config/interfaces.txt exists before starting
+detect_and_setup_interface
 
 docker compose up -d
 
