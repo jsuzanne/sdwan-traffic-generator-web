@@ -979,7 +979,7 @@ app.use('/api/status', authenticateToken); // Protect status too
 
 const STATS_FILE = path.join(APP_CONFIG.logDir, 'stats.json');
 const APPS_FILE = path.join(APP_CONFIG.configDir, 'applications.txt');
-const INTERFACES_FILE = path.join(APP_CONFIG.configDir, 'interfaces.txt');
+// INTERFACES_FILE is already declared at the top of the file for the watcher
 
 console.log('Using config:', APP_CONFIG);
 
