@@ -60,15 +60,38 @@ const IOT_DEVICES_FILE = path.join(APP_CONFIG.configDir, 'iot-devices.json');
 
 const getInterface = (): string => {
     const interfacesFile = path.join(APP_CONFIG.configDir, 'interfaces.txt');
-    if (!fs.existsSync(interfacesFile)) return 'eth0';
-    try {
-        const content = fs.readFileSync(interfacesFile, 'utf8');
-        const firstIface = content.split('\n')
-            .find(line => line.trim() && !line.trim().startsWith('#'));
-        return firstIface ? firstIface.trim() : 'eth0';
-    } catch {
-        return 'eth0';
+
+    // 1. Try to read from interfaces.txt
+    if (fs.existsSync(interfacesFile)) {
+        try {
+            const content = fs.readFileSync(interfacesFile, 'utf8');
+            const firstIface = content.split('\n')
+                .find(line => line.trim() && !line.trim().startsWith('#'));
+            if (firstIface) return firstIface.trim();
+        } catch (e) {
+            console.warn('[SYSTEM] Failed to read interfaces.txt', e);
+        }
     }
+
+    // 2. Auto-detect default gateway interface (Host Mode)
+    try {
+        const { execSync } = require('child_process');
+        const output = execSync("ip route | grep '^default' | awk '{print $5}' | head -n 1", { encoding: 'utf8' }).trim();
+        if (output) {
+            console.log(`[SYSTEM] Auto-detected default interface: ${output}`);
+            return output;
+        }
+    } catch (e) {
+        // Fallback to ifconfig for non-Linux or systems without 'ip' command
+        try {
+            const { execSync } = require('child_process');
+            const output = execSync("ifconfig | grep -E '^[a-z]' | grep -v '^lo' | head -n 1 | cut -d: -f1", { encoding: 'utf8' }).trim();
+            if (output) return output;
+        } catch (e2) { }
+    }
+
+    // 3. Last resort fallback
+    return 'eth0';
 };
 
 const iotManager = new IoTManager(getInterface());

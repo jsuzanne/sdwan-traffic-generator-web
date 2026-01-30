@@ -4,20 +4,18 @@
 
 services:
   # Web Dashboard - User Interface and API
+  # NOTE: Using host mode is RECOMMENDED for Linux to allow physical interface pinning 
+  # and IoT simulation (Scapy/Raw Sockets).
   sdwan-web-ui:
     image: jsuzanne/sdwan-web-ui:stable
     container_name: sdwan-web-ui
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    hostname: sdwan-web-ui
+    network_mode: host # <--- REQUIRED for full SD-WAN lab features on Linux
     cap_add:
+      - NET_ADMIN
       - NET_RAW
 
-    # Port Mapping
-    # Change 8080:8080 to 8081:8080 if port 8080 is already in use
-    ports:
-      - "${WEB_UI_PORT:-8080}:8080"
+    # In Host Mode, "ports" is ignored. The app listens on the port defined 
+    # in the environment (default 8080).
 
     # Environment Variables
     environment:
