@@ -214,5 +214,21 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 ---
 
-**Last Updated:** 2026-01-29  
+---
+
+## 🤝 Collaborative Policy
+
+### 🛡️ THE GOLDEN RULE: Explanation & Validation First
+**NEVER implement a proactive fix when answering a technical question.**
+
+1.  **Explain First**: When asked "how" or "why", provide a clear technical explanation of the root cause.
+2.  **Proposed Fix**: Describe the proposed fix in detail, outlining *exactly* what files and logic will change.
+3.  **Wait for Validation**: ALWAYS wait for the user to understand and explicitly validate the approach before touching any code.
+4.  **No "Secret" Fixes**: Do not bundle proactive fixes into an unrelated answer unless specifically requested.
+
+**Why:** The user must maintain full mental parity with the codebase. Proactive fixes without explanation break the user's understanding of the system's state.
+
+---
+
+**Last Updated:** 2026-01-30  
 **Workspace:** sdwan-traffic-generator
