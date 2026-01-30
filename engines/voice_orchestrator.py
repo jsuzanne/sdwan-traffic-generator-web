@@ -64,6 +64,7 @@ def load_control():
                 content = f.read().strip()
                 if content and not content.startswith('#'):
                     default_iface = content.split('\n')[0].strip()
+                    print(f"📡 [VOICE] System Interface: {default_iface} (Source: interfaces.txt)")
         
         # Smart auto-detection fallback if interfaces.txt is empty or missing
         if default_iface == 'eth0':

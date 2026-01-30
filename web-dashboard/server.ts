@@ -80,36 +80,35 @@ let G_UPGRADE_STATUS: UpgradeStatus = {
 const getInterface = (): string => {
     const interfacesFile = path.join(APP_CONFIG.configDir, 'interfaces.txt');
 
-    // 1. Try to read from interfaces.txt
+    // 1. Primary Source: interfaces.txt
     if (fs.existsSync(interfacesFile)) {
         try {
             const content = fs.readFileSync(interfacesFile, 'utf8');
-            const firstIface = content.split('\n')
-                .find(line => line.trim() && !line.trim().startsWith('#'));
-            if (firstIface) return firstIface.trim();
+            const cleanLines = content.split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#'));
+
+            if (cleanLines.length > 0) {
+                console.log(`📡 [SYSTEM] Using interface: ${cleanLines[0]} (Source: interfaces.txt)`);
+                return cleanLines[0];
+            }
         } catch (e) {
-            console.warn('[SYSTEM] Failed to read interfaces.txt', e);
+            console.warn('⚠️ [SYSTEM] Failed to read interfaces.txt', e);
         }
     }
 
-    // 2. Auto-detect default gateway interface (Host Mode)
+    // 2. Auto-detect fallback (Host Mode)
     try {
         const { execSync } = require('child_process');
         const output = execSync("ip route | grep '^default' | awk '{print $5}' | head -n 1", { encoding: 'utf8' }).trim();
         if (output) {
-            console.log(`[SYSTEM] Auto-detected default interface: ${output}`);
+            console.log(`📡 [SYSTEM] Auto-detected interface: ${output} (Source: system fallback)`);
             return output;
         }
-    } catch (e) {
-        // Fallback to ifconfig for non-Linux or systems without 'ip' command
-        try {
-            const { execSync } = require('child_process');
-            const output = execSync("ifconfig | grep -E '^[a-z]' | grep -v '^lo' | head -n 1 | cut -d: -f1", { encoding: 'utf8' }).trim();
-            if (output) return output;
-        } catch (e2) { }
-    }
+    } catch (e) { }
 
     // 3. Last resort fallback
+    console.warn('📡 [SYSTEM] No interface detected. Defaulting to eth0');
     return 'eth0';
 };
 

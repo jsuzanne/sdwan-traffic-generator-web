@@ -352,6 +352,10 @@ function makeRequest() {
 function main() {
     log_info "Starting SD-WAN Traffic Generator - Client: $CLIENTID"
     
+    # Standard Interface Diagnostic
+    local iface=$(getRandomInterface)
+    log_info "📡 [TRAFFIC] System Interface: $iface (Source: dynamic selection)"
+    
     # Ensure config exists
     if [[ ! -f "${CONFIG_DIR}/applications.txt" ]]; then
         log_error "Configuration file ${CONFIG_DIR}/applications.txt not found!"
