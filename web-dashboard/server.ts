@@ -97,17 +97,44 @@ const getInterface = (): string => {
         }
     }
 
-    // 2. Auto-detect fallback (Host Mode)
+    // 2. Auto-detect fallback (Host Mode) - Prefer ip route
     try {
         const { execSync } = require('child_process');
-        const output = execSync("ip route | grep '^default' | awk '{print $5}' | head -n 1", { encoding: 'utf8' }).trim();
+        const output = execSync("ip route | grep '^default' | awk '{print $5}' | head -n 1", {
+            encoding: 'utf8',
+            timeout: 2000
+        }).trim();
         if (output) {
-            console.log(`📡 [SYSTEM] Auto-detected interface: ${output} (Source: system fallback)`);
+            console.log(`📡 [SYSTEM] Auto-detected interface: ${output} (Source: ip route)`);
             return output;
+        }
+    } catch (e) {
+        // Silently fail to next step
+    }
+
+    // 3. Last Resort Fallback - os.networkInterfaces()
+    try {
+        const nets = os.networkInterfaces();
+        const candidates: string[] = [];
+        for (const name of Object.keys(nets)) {
+            // Exclude loopback and common virtual/bridge interfaces if possible
+            if (!name.startsWith('lo') && !name.startsWith('docker') && !name.startsWith('br-') && !name.startsWith('veth')) {
+                candidates.push(name);
+            }
+        }
+
+        // Priority: en* (physical), ens* (physical), eth* (common)
+        const best = candidates.find(c => c.startsWith('en')) ||
+            candidates.find(c => c.startsWith('eth')) ||
+            candidates[0];
+
+        if (best) {
+            console.log(`📡 [SYSTEM] Auto-detected interface: ${best} (Source: os.networkInterfaces fallback)`);
+            return best;
         }
     } catch (e) { }
 
-    // 3. Last resort fallback
+    // 4. Absolute Fallback
     console.warn('📡 [SYSTEM] No interface detected. Defaulting to eth0');
     return 'eth0';
 };
