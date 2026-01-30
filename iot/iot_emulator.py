@@ -196,7 +196,7 @@ class IoTDevice:
         self.start_time = time.time()
         
         # Standard Interface Diagnostic
-        if self.device_id != "orchestrator":
+        if self.id != "orchestrator":
             self.log("info", f"📡 [IOT] System Interface: {self.interface} (Source: CLI/Auto)")
             self.log("info", f"🚀 Starting device simulation: {self.name} ({self.id}) [DHCP: {self.dhcp_mode}]")
         
