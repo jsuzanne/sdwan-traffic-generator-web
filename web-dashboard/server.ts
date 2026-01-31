@@ -1826,7 +1826,6 @@ app.get('/api/convergence/history', authenticateToken, (req, res) => {
 app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) => {
     try {
         const execPromise = promisify(exec);
-        const results: any[] = [];
         const clockNow = Date.now();
 
         // Host Disk Stats

@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.26] - 2026-01-31
+### Fixed
+- **Emergency Fix**: Resolved a syntax error in `server.ts` (duplicate `results` declaration) that caused the web dashboard to crash on startup in version .25. 🩹
+
 ## [1.1.2-patch.33.25] - 2026-01-31
 ### Fixed
 - **UI Flapping**: Stabilized the "Network Status" bar with a fixed layout height and "sticky" state logic. Metrics now stay visible during transient poll delays. 🏗️
