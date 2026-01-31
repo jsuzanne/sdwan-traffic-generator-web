@@ -457,6 +457,7 @@ export default function App() {
     const interval = setInterval(() => {
       fetchDashboardData();
       fetchTrafficStatus();
+      fetchDockerStats();
     }, 1000);
 
     // RESTORE FAST POLLING (500ms) for Failover specifically when on that tab

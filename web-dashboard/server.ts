@@ -220,7 +220,7 @@ interface ContainerStats {
 }
 
 const containerStatsMap = new Map<string, ContainerStats>();
-const monitoredContainers = ['sdwan-web-ui', 'sdwan-traffic-gen', 'sdwan-voice-gen'];
+const monitoredContainers = ['sdwan-web-ui', 'sdwan-traffic-gen', 'sdwan-voice-gen', 'sdwan-iot-emulator', 'sdwan-voice-echo'];
 
 // Initialize map
 monitoredContainers.forEach(name => {

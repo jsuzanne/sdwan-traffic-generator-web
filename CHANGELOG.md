@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.24] - 2026-01-31
+### Fixed
+- **System Stats Restoration**: Fixed a bug where Docker container stats (CPU/RAM/Network) were only fetched once on dashboard load. Restored live 1s polling. 🏎️
+- **Monitoring Scope**: Expanded Docker monitoring to include `sdwan-iot-emulator` and `sdwan-voice-echo` containers.
+- **Bitrate Logic**: Optimized `formatBitrate` for more accurate reporting of micro-traffic (Kbps).
+### Added
+- **Unified Changelog**: Audited and bridged all patch notes between version .32 and .33.24.
+
+## [1.1.2-patch.33.21 - .23] - 2026-01-31
+### Added
+- **Performance Overhaul**: Drastically reduced data aggregation time on the Performance page. ⚡
+- **Backend Stream Reading**: Optimized `ConnectivityLogger` with reverse-file-reading and result capping, cutting load times by ~85% (~4s to <500ms).
+- **Parallel Fetching**: Eliminated UI "staggered" component pop-in by parallelizing connectivity API calls.
+- **Stats Caching**: Added 5s intelligent cache for heavy statistics computations to reduce server load.
+### Fixed
+- **Voice Provisioning**: Resolved a critical issue where "Save Configuration" stayed greyed out due to incorrect `isDirty` trigger logic.
+- **Polling Protection**: Prevented unsaved Voice changes from being overwritten by background polling.
+
+## [1.1.2-patch.33.1 - .20] - 2026-01-30
+### Added
+- **Smart Networking**: Implemented "Unified Interface Model" for cross-service interface synchronization.
+- **Auto-Detection**: Enhanced installer with robust physical interface auto-detection (Smart Interface Setup).
+- **Maintenance UX**: New "System" tab with real-time progress monitor for one-click upgrades.
+- **Fast Builds**: Optimized CI/CD to prioritize AMD64 builds for faster patch deployment.
+### Fixed
+- **Lab Hardware**: Filtered virtual/bridge interfaces (Tailscale, vnet*, etc.) from auto-detection.
+- **IoT Stability**: Fixed `AttributeError` in emulator and hardened SNMP diagnostics.
+
 ## [1.1.2-patch.32] - 2026-01-29
 ### Added
 - **IoT Import/Export**: Added full JSON configuration export and import for IoT devices, including network settings and legacy flat-array support.
