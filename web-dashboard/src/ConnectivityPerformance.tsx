@@ -32,16 +32,20 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
 
     const fetchData = async () => {
         try {
-            const statsRes = await fetch(`/api/connectivity/stats?range=${timeRange}`, { headers: authHeaders() });
-            const statsData = await statsRes.json();
+            const [statsRes, resultsRes, activeRes] = await Promise.all([
+                fetch(`/api/connectivity/stats?range=${timeRange}`, { headers: authHeaders() }),
+                fetch(`/api/connectivity/results?timeRange=${timeRange}&limit=500`, { headers: authHeaders() }),
+                fetch('/api/connectivity/active-probes', { headers: authHeaders() })
+            ]);
+
+            const [statsData, resultsData, activeData] = await Promise.all([
+                statsRes.json(),
+                resultsRes.json(),
+                activeRes.json()
+            ]);
+
             setStats(statsData);
-
-            const resultsRes = await fetch(`/api/connectivity/results?timeRange=${timeRange}&limit=500`, { headers: authHeaders() });
-            const resultsData = await resultsRes.json();
             setResults(resultsData.results || []);
-
-            const activeRes = await fetch('/api/connectivity/active-probes', { headers: authHeaders() });
-            const activeData = await activeRes.json();
             if (activeData.success) {
                 setActiveProbes(activeData.probes.map((p: any) => p.id));
             }
