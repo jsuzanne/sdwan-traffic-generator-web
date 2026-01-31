@@ -50,8 +50,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global flag for JSON output
+# Global flag for JSON output and DEBUG mode
 JSON_OUTPUT = False
+DEBUG_MODE = os.getenv('DEBUG', 'false').lower() == 'true'
 
 def emit_json(msg_type, **kwargs):
     """Utility to print JSON to stdout for Node.js IPC"""
@@ -822,7 +823,8 @@ class IoTEmulator:
                 try:
                     while True:
                         time.sleep(60)
-                        self.print_status()
+                        if DEBUG_MODE:
+                            self.print_status()
                 except KeyboardInterrupt:
                     logger.info("\n🛑 Interrupt received, stopping...")
                     self.stop_all()

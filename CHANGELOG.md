@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.30] - 2026-01-31
+### Added
+- **Centralized DEBUG System**: High-frequency logs (System Interface, IOT requests, Version checks) are now suppressed by default. 🔇
+- **Verbose Toggle**: Set `DEBUG=true` in `docker-compose.yml` to restore full container logs for troubleshooting. 🛡️
+- **Universal Support**: Updated `sdwan-web-ui`, `sdwan-voice-gen`, and `sdwan-traffic-gen` (IOT) to respect the new setting.
+
+## [1.1.2-patch.33.29] - 2026-01-31
+### Fixed
+- **Rollback**: Reverted all changes from versions .24 through .28. This returns the codebase to the stable state of version .23 after the recent dashboard stabilization attempts failed to resolve the "flapping" issue. 🔙🛡️
+
 ## [1.1.2-patch.32] - 2026-01-29
 ### Added
 - **IoT Import/Export**: Added full JSON configuration export and import for IoT devices, including network settings and legacy flat-array support.

@@ -28,19 +28,23 @@ const APP_CONFIG = {
     logDir: path.resolve(process.env.LOG_DIR || (fs.existsSync('/var/log/sdwan-traffic-gen') ? '/var/log/sdwan-traffic-gen' : path.join(__dirname, '../logs')))
 };
 
-console.log('[SYSTEM] 📂 Configuration Directory:', APP_CONFIG.configDir);
-console.log('[SYSTEM] 📝 Log Directory:', APP_CONFIG.logDir);
+const DEBUG = process.env.DEBUG === 'true';
+
+if (DEBUG) {
+    console.log('[SYSTEM] 📂 Configuration Directory:', APP_CONFIG.configDir);
+    console.log('[SYSTEM] 📝 Log Directory:', APP_CONFIG.logDir);
+}
 
 // Initialize Test Logger with configurable retention
 const LOG_RETENTION_DAYS = parseInt(process.env.LOG_RETENTION_DAYS || '7');
 const LOG_MAX_SIZE_MB = parseInt(process.env.LOG_MAX_SIZE_MB || '100');
 const testLogger = new TestLogger(APP_CONFIG.logDir, LOG_RETENTION_DAYS, LOG_MAX_SIZE_MB);
 
-console.log(`Test Logger initialized: retention=${LOG_RETENTION_DAYS} days, max_size=${LOG_MAX_SIZE_MB}MB`);
+if (DEBUG) console.log(`Test Logger initialized: retention=${LOG_RETENTION_DAYS} days, max_size=${LOG_MAX_SIZE_MB}MB`);
 
 // DEM Connectivity Logger
 const connectivityLogger = new ConnectivityLogger(APP_CONFIG.logDir, LOG_RETENTION_DAYS, LOG_MAX_SIZE_MB);
-console.log(`Connectivity Logger initialized (DEM)`);
+if (DEBUG) console.log(`Connectivity Logger initialized (DEM)`);
 
 // Test Counter - Persistent sequential ID for all tests
 const TEST_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'test-counter.json');
@@ -89,7 +93,7 @@ const getInterface = (): string => {
                 .filter(line => line && !line.startsWith('#'));
 
             if (cleanLines.length > 0) {
-                console.log(`📡 [SYSTEM] Using interface: ${cleanLines[0]} (Source: interfaces.txt)`);
+                if (DEBUG) console.log(`📡 [SYSTEM] Using interface: ${cleanLines[0]} (Source: interfaces.txt)`);
                 return cleanLines[0];
             }
         } catch (e) {
@@ -105,7 +109,7 @@ const getInterface = (): string => {
             timeout: 2000
         }).trim();
         if (output) {
-            console.log(`📡 [SYSTEM] Auto-detected interface: ${output} (Source: ip route)`);
+            if (DEBUG) console.log(`📡 [SYSTEM] Auto-detected interface: ${output} (Source: ip route)`);
             return output;
         }
     } catch (e) {
@@ -135,7 +139,7 @@ const getInterface = (): string => {
             candidates[0];
 
         if (best) {
-            console.log(`📡 [SYSTEM] Auto-detected interface: ${best} (Source: os.networkInterfaces fallback)`);
+            if (DEBUG) console.log(`📡 [SYSTEM] Auto-detected interface: ${best} (Source: os.networkInterfaces fallback)`);
             return best;
         }
     } catch (e) { }
@@ -148,10 +152,10 @@ const getInterface = (): string => {
 // --- Hot-Reload: Watch for interfaces.txt changes ---
 const INTERFACES_FILE = path.join(APP_CONFIG.configDir, 'interfaces.txt');
 if (fs.existsSync(INTERFACES_FILE)) {
-    console.log(`📡 [WATCH] Monitoring ${INTERFACES_FILE} for changes...`);
+    if (DEBUG) console.log(`📡 [WATCH] Monitoring ${INTERFACES_FILE} for changes...`);
     fs.watch(INTERFACES_FILE, (eventType) => {
         if (eventType === 'change') {
-            console.log('📡 [WATCH] interfaces.txt changed, reloading...');
+            if (DEBUG) console.log('📡 [WATCH] interfaces.txt changed, reloading...');
             const newIface = getInterface();
             iotManager.setInterface(newIface);
             // Also notify Voice if needed (though it reads on-demand usually)
@@ -274,7 +278,7 @@ const healLogFiles = () => {
     if (!fs.existsSync(resultsFile)) return;
 
     try {
-        console.log('[SYSTEM] 🧹 Healing log files...');
+        if (DEBUG) console.log('[SYSTEM] 🧹 Healing log files...');
         const content = fs.readFileSync(resultsFile, 'utf8');
         const lines = content.split('\n');
         const validLines = lines.filter(line => {
@@ -288,10 +292,10 @@ const healLogFiles = () => {
         });
 
         if (validLines.length !== lines.filter(l => l.trim()).length) {
-            console.log(`[SYSTEM] ✨ Removed ${lines.filter(l => l.trim()).length - validLines.length} invalid lines from test-results.jsonl`);
+            if (DEBUG) console.log(`[SYSTEM] ✨ Removed ${lines.filter(l => l.trim()).length - validLines.length} invalid lines from test-results.jsonl`);
             fs.writeFileSync(resultsFile, validLines.join('\n') + '\n', 'utf8');
         } else {
-            console.log('[SYSTEM] ✅ Log files are healthy.');
+            if (DEBUG) console.log('[SYSTEM] ✅ Log files are healthy.');
         }
     } catch (e: any) {
         console.error('[SYSTEM] Failed to heal log files:', e.message);
@@ -316,7 +320,7 @@ const checkCommand = async (command: string): Promise<boolean> => {
 
 // Initialize available commands on startup
 const initializeCommands = async () => {
-    console.log(`[PLATFORM] Detected platform: ${PLATFORM}`);
+    if (DEBUG) console.log(`[PLATFORM] Detected platform: ${PLATFORM}`);
 
     // Check DNS command availability
     availableCommands.getent = await checkCommand('getent --version 2>/dev/null');
@@ -328,7 +332,7 @@ const initializeCommands = async () => {
     availableCommands.nc = await checkCommand('nc -h 2>/dev/null || nc -v localhost 1 2>/dev/null');
     availableCommands.iperf3 = await checkCommand('iperf3 -v 2>/dev/null');
 
-    console.log('[PLATFORM] Available commands:', availableCommands);
+    if (DEBUG) console.log('[PLATFORM] Available commands:', availableCommands);
 
     if (!availableCommands.ping) console.warn('⚠️  WARNING: "ping" command not found. ICMP tests will fail.');
     if (!availableCommands.nc) console.warn('⚠️  WARNING: "nc" (netcat) command not found. TCP port tests will fail.');
@@ -343,7 +347,7 @@ const initializeCommands = async () => {
 let iperfServerProcess: any = null;
 const startIperfServer = () => {
     try {
-        console.log('[IPERF] Starting iperf3 server on port 5201...');
+        if (DEBUG) console.log('[IPERF] Starting iperf3 server on port 5201...');
         iperfServerProcess = spawn('iperf3', ['-s', '-p', '5201']);
 
         iperfServerProcess.on('error', (err: any) => {

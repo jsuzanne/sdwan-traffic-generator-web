@@ -9,6 +9,9 @@ import threading
 import json
 import socket
 import warnings
+import os
+
+DEBUG_MODE = os.getenv('DEBUG', 'false').lower() == 'true'
 
 # Disable warnings for clean logs
 warnings.filterwarnings("ignore")
@@ -199,7 +202,7 @@ if __name__ == "__main__":
     
     timestamp = time.strftime('%H:%M:%S')
     print(f"[{log_id}] [{timestamp}] 🚀 {label} - CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps", flush=True)
-    print(f"[{log_id}] [{timestamp}] ⚙️  {label} - Source Port: {source_port} (Sequence Fidelity Active)", flush=True)
+    if DEBUG_MODE: print(f"[{log_id}] [{timestamp}] ⚙️  {label} - Source Port: {source_port} (Sequence Fidelity Active)", flush=True)
 
     seq = 0
     interval = 1.0 / args.rate
