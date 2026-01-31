@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.28] - 2026-01-31
+### Added
+- **System Resource Widget**: Moved CPU, RAM, and Container Bitrates into a dedicated separate card. 🏗️
+- **Collapsible Resources**: Added a toggle to show/hide System Resources to minimize visual noise. 🛡️
+
+### Changed
+- **Widget Decoupling**: Separated Network Connectivity from System Resources to ensure total layout stability. 🏎️
+- **Dashboard Summary**: Refactored the summary bar to strictly focus on Network health (Endpoints, Speedtest, Iperf).
+
+### Removed
+- **Unused Health API**: Deleted the `/api/system/health` endpoint and all associated frontend code. 🧹
+
 ## [1.1.2-patch.33.27] - 2026-01-31
 ### Fixed
 - **State Clash Elimination**: Fixed a major bug where `dockerStats` was being overwritten with an incompatible array format every second, causing the UI to "flicker" between success and error states. 🏎️

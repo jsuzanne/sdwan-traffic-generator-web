@@ -69,6 +69,7 @@ export default function App() {
   const [connectivity, setConnectivity] = useState<any>(null);
   const [dockerStats, setDockerStats] = useState<any>(null);
   const [networkExpanded, setNetworkExpanded] = useState(false);
+  const [showSystemResources, setShowSystemResources] = useState(localStorage.getItem('showSystemResources') !== 'false');
   const [refreshInterval, setRefreshInterval] = useState(1000);
   const [appConfig, setAppConfig] = useState<any[]>([]);
   const [speedtestResult, setSpeedtestResult] = useState<any>(null);
@@ -160,6 +161,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('activeView', view);
   }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem('showSystemResources', String(showSystemResources));
+  }, [showSystemResources]);
 
   const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
 
@@ -864,105 +869,145 @@ export default function App() {
                   Manage
                 </button>
 
-                <button
-                  onClick={() => setNetworkExpanded(!networkExpanded)}
-                  className="text-slate-400 hover:text-slate-200 transition-colors ml-2"
-                >
-                  <ChevronDown size={18} className={`transform transition-transform ${networkExpanded ? 'rotate-180' : ''}`} />
-                </button>
+                <div className="flex items-center gap-1 ml-2 pl-2 border-l border-slate-700">
+                  <button
+                    onClick={() => setShowSystemResources(!showSystemResources)}
+                    title={showSystemResources ? "Hide System Resources" : "Show System Resources"}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-colors",
+                      showSystemResources ? "text-blue-400 bg-blue-500/10" : "text-slate-500 hover:text-slate-300 hover:bg-slate-800"
+                    )}
+                  >
+                    <Cpu size={18} />
+                  </button>
+                  <button
+                    onClick={() => setNetworkExpanded(!networkExpanded)}
+                    title={networkExpanded ? "Collapse Details" : "Expand Details"}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-colors",
+                      networkExpanded ? "text-blue-400 bg-blue-500/10" : "text-slate-500 hover:text-slate-300 hover:bg-slate-800"
+                    )}
+                  >
+                    <ChevronDown size={18} className={`transform transition-transform ${networkExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Compact Summary */}
-            <div className="grid grid-cols-[1fr_auto] items-center text-sm min-h-[40px] w-full">
-              <div className="flex items-center gap-6 overflow-hidden">
-                {/* Connectivity Status */}
-                {connectivity && (
-                  <div className="flex items-center gap-2 min-w-[120px]">
-                    {connectivity.connected ? (
-                      <>
-                        <CheckCircle size={14} className="text-green-400" />
-                        <span className="text-slate-300">
-                          {connectivity.results?.filter((r: any) => r.status === 'connected').length || 0}/{connectivity.results?.length || 0} endpoints
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle size={14} className="text-orange-400" />
-                        <span className="text-orange-300">
-                          {connectivity.results?.filter((r: any) => r.status !== 'connected').length || 0} offline
-                        </span>
-                      </>
-                    )}
+            {/* Split Widgets Container */}
+            <div className="flex flex-col gap-4">
+              {/* Network Status Card */}
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 shadow-xl">
+                <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Wifi size={16} className="text-blue-400" />
+                    <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Network Connectivity</h3>
                   </div>
-                )}
-
-                {/* Speedtest Result */}
-                {speedtestResult && (
-                  <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 min-w-[100px] justify-center">
-                    <Gauge size={12} className="text-blue-400" />
-                    <span className="text-blue-300 font-bold">{speedtestResult.download_mbps} <span className="text-[10px] opacity-70">Mbps</span></span>
-                  </div>
-                )}
-
-                {/* Iperf Result */}
-                {iperfResult && (
-                  <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 min-w-[120px] justify-center">
-                    <Activity size={12} className="text-purple-400" />
-                    <span className="text-purple-300 font-bold">{Math.round(iperfResult.received_mbps || iperfResult.sent_mbps)} <span className="text-[10px] opacity-70">Mbps (iperf)</span></span>
-                  </div>
-                )}
-
-                {/* Docker Stats: Network Bitrate */}
-                {dockerStats?.success && dockerStats.stats?.network && (
-                  <div className="flex items-center gap-4 animate-fade-in">
-                    <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800">
-                      <span className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <ChevronDown size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.rx_mbps) > 5 ? "text-green-400" : "text-blue-400")} />
-                        <span className="text-slate-200 font-bold min-w-[70px] inline-block">{formatBitrate(dockerStats.stats.network.rx_mbps)}</span>
-                      </span>
-                      <div className="w-px h-3 bg-slate-800" />
-                      <span className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <ChevronUp size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.tx_mbps) > 5 ? "text-green-400" : "text-purple-400")} />
-                        <span className="text-slate-200 font-bold min-w-[70px] inline-block">{formatBitrate(dockerStats.stats.network.tx_mbps)}</span>
-                      </span>
+                </div>
+                <div className="flex items-center gap-6 overflow-hidden min-h-[40px]">
+                  {/* Connectivity Status */}
+                  {connectivity && (
+                    <div className="flex items-center gap-2 min-w-[120px]">
+                      {connectivity.connected ? (
+                        <>
+                          <CheckCircle size={14} className="text-green-400" />
+                          <span className="text-slate-300">
+                            {connectivity.results?.filter((r: any) => r.status === 'connected').length || 0}/{connectivity.results?.length || 0} endpoints
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle size={14} className="text-orange-400" />
+                          <span className="text-orange-300">
+                            {connectivity.results?.filter((r: any) => r.status !== 'connected').length || 0} offline
+                          </span>
+                        </>
+                      )}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Docker Stats: Resource Monitoring */}
-                {dockerStats?.success && dockerStats.stats?.cpu && (
-                  <div className="hidden md:flex items-center gap-6 animate-fade-in">
-                    {/* CPU */}
-                    <div className="flex items-center gap-2 min-w-[100px]">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold w-8">CPU</span>
-                      <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full transition-all duration-500",
-                            parseFloat(dockerStats.stats.cpu.percent) > 80 ? "bg-red-500" : "bg-blue-500")}
-                          style={{ width: `${dockerStats.stats.cpu.percent}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.cpu.percent}%</span>
+                  {/* Speedtest Result */}
+                  {speedtestResult && (
+                    <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 min-w-[100px] justify-center">
+                      <Gauge size={12} className="text-blue-400" />
+                      <span className="text-blue-300 font-bold">{speedtestResult.download_mbps} <span className="text-[10px] opacity-70">Mbps</span></span>
                     </div>
+                  )}
 
-                    {/* RAM */}
-                    {dockerStats.stats.memory && (
-                      <div className="flex items-center gap-2 min-w-[100px]">
-                        <span className="text-[10px] text-slate-500 uppercase font-bold w-8">RAM</span>
-                        <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
-                          <div
-                            className={cn("h-full transition-all duration-500",
-                              parseFloat(dockerStats.stats.memory.percent) > 80 ? "bg-red-500" : "bg-purple-500")}
-                            style={{ width: `${dockerStats.stats.memory.percent}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.memory.percent}%</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  {/* Iperf Result */}
+                  {iperfResult && (
+                    <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 min-w-[120px] justify-center">
+                      <Activity size={12} className="text-purple-400" />
+                      <span className="text-purple-300 font-bold">{Math.round(iperfResult.received_mbps || iperfResult.sent_mbps)} <span className="text-[10px] opacity-70">Mbps (iperf)</span></span>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* System Resources Card (Collapsible) */}
+              {showSystemResources && dockerStats?.success && (
+                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 shadow-xl animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Cpu size={16} className="text-purple-400" />
+                      <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">System Resources</h3>
+                    </div>
+                    {dockerStats.timestamp && (
+                      <span className="text-[10px] text-slate-500 font-mono">Updated: {new Date(dockerStats.timestamp).toLocaleTimeString()}</span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-8 min-h-[40px]">
+                    {/* Network Bitrate */}
+                    {dockerStats.stats?.network && (
+                      <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800">
+                        <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                          <ChevronDown size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.rx_mbps) > 5 ? "text-green-400" : "text-blue-400")} />
+                          <span className="text-slate-200 font-bold min-w-[70px] inline-block">{formatBitrate(dockerStats.stats.network.rx_mbps)}</span>
+                        </span>
+                        <div className="w-px h-3 bg-slate-800" />
+                        <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                          <ChevronUp size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.tx_mbps) > 5 ? "text-green-400" : "text-purple-400")} />
+                          <span className="text-slate-200 font-bold min-w-[70px] inline-block">{formatBitrate(dockerStats.stats.network.tx_mbps)}</span>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Resource Monitoring */}
+                    {dockerStats.stats?.cpu && (
+                      <div className="flex items-center gap-6">
+                        {/* CPU */}
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <span className="text-[10px] text-slate-500 uppercase font-bold w-8">CPU</span>
+                          <div className="flex-1 h-1.5 w-16 bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className={cn("h-full transition-all duration-500",
+                                parseFloat(dockerStats.stats.cpu.percent) > 80 ? "bg-red-500" : "bg-blue-500")}
+                              style={{ width: `${dockerStats.stats.cpu.percent}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono w-10 text-right">{dockerStats.stats.cpu.percent}%</span>
+                        </div>
+
+                        {/* RAM */}
+                        {dockerStats.stats.memory && (
+                          <div className="flex items-center gap-2 min-w-[120px]">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold w-8">RAM</span>
+                            <div className="flex-1 h-1.5 w-16 bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className={cn("h-full transition-all duration-500",
+                                  parseFloat(dockerStats.stats.memory.percent) > 80 ? "bg-red-500" : "bg-purple-500")}
+                                style={{ width: `${dockerStats.stats.memory.percent}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono w-10 text-right">{dockerStats.stats.memory.percent}%</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Container Breakdown (Expanded) */}
