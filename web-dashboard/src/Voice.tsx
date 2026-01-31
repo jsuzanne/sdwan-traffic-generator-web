@@ -102,7 +102,10 @@ export default function Voice(props: VoiceProps) {
             });
             const data = await r.json();
             if (data.success) {
-                setRawServers(data.servers);
+                // ONLY update if we don't have unsaved changes
+                if (!isDirty) {
+                    setRawServers(data.servers);
+                }
                 setLoading(false);
             }
         } catch (e) {
@@ -206,6 +209,7 @@ export default function Voice(props: VoiceProps) {
         if (!host || !port) return alert("Host and Port are required");
 
         const newLine = `${host}:${port}|${codec}|${weight}|${duration}`;
+        setIsDirty(true);
         setRawServers(prev => {
             const trimmed = prev.trim();
             return trimmed ? `${trimmed}\n${newLine}` : newLine;
@@ -216,6 +220,7 @@ export default function Voice(props: VoiceProps) {
     const removeProbeAt = (lineIndex: number) => {
         const lines = rawServers.split('\n');
         const newLines = lines.filter((_, i) => i !== lineIndex);
+        setIsDirty(true);
         setRawServers(newLines.join('\n'));
     };
 
@@ -727,7 +732,10 @@ export default function Voice(props: VoiceProps) {
                                     </div>
                                     <textarea
                                         value={rawServers}
-                                        onChange={(e) => setRawServers(e.target.value)}
+                                        onChange={(e) => {
+                                            setIsDirty(true);
+                                            setRawServers(e.target.value);
+                                        }}
                                         rows={8}
                                         className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-3 text-[10px] font-mono focus:ring-1 focus:ring-blue-500 outline-none"
                                         placeholder="host:port|codec|weight|duration_sec"
