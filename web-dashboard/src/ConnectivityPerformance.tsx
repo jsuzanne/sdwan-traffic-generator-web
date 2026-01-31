@@ -69,49 +69,57 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
         return new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
-    // Aggregate data for table
-    const endpoints = Array.from(new Set(results.map(r => r.endpointId))).map(id => {
-        const endpointResults = results.filter(r => r.endpointId === id);
-        const last = endpointResults[0];
-        const reachable = endpointResults.filter(r => r.reachable);
+    // Aggregate data for table - OPTIMIZED O(N) instead of O(N^2)
+    const endpoints = React.useMemo(() => {
+        // First pass: Group results by endpointId
+        const groups: Record<string, any[]> = {};
+        results.forEach(r => {
+            if (!groups[r.endpointId]) groups[r.endpointId] = [];
+            groups[r.endpointId].push(r);
+        });
 
-        return {
-            id,
-            name: last?.endpointName,
-            type: last?.endpointType,
-            lastScore: last?.score,
-            avgScore: reachable.length > 0 ? Math.round(reachable.reduce((acc, r) => acc + r.score, 0) / reachable.length) : 0,
-            avgLatency: reachable.length > 0 ? Math.round(reachable.reduce((acc, r) => acc + r.metrics.total_ms, 0) / reachable.length) : 0,
-            maxLatency: reachable.length > 0 ? Math.max(...reachable.map(r => r.metrics.total_ms)) : 0,
-            checks: endpointResults.length,
-            successRate: Math.round((reachable.length / endpointResults.length) * 100),
-            lastResult: last
-        };
-    }).filter(e => {
-        if (!showDeleted && activeProbes.length > 0 && !activeProbes.includes(e.id)) return false;
-        if (filterType !== 'ALL' && e.type !== filterType) return false;
-        if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        return true;
-    }).sort((a: any, b: any) => {
-        let valA: any = a[sortField];
-        let valB: any = b[sortField];
+        return Object.entries(groups).map(([id, endpointResults]) => {
+            const last = endpointResults[0];
+            const reachable = endpointResults.filter(r => r.reachable);
 
-        // Custom mappings for special fields
-        if (sortField === 'reliability') {
-            valA = a.successRate;
-            valB = b.successRate;
-        } else if (sortField === 'latency') {
-            valA = a.avgLatency;
-            valB = b.avgLatency;
-        } else if (sortField === 'score') {
-            valA = a.lastScore;
-            valB = b.lastScore;
-        }
+            return {
+                id,
+                name: last?.endpointName || 'Unknown',
+                type: last?.endpointType || 'HTTP',
+                lastScore: last?.score || 0,
+                avgScore: reachable.length > 0 ? Math.round(reachable.reduce((acc, r) => acc + r.score, 0) / reachable.length) : 0,
+                avgLatency: reachable.length > 0 ? Math.round(reachable.reduce((acc, r) => acc + r.metrics.total_ms, 0) / reachable.length) : 0,
+                maxLatency: reachable.length > 0 ? Math.max(...reachable.map(r => r.metrics.total_ms)) : 0,
+                checks: endpointResults.length,
+                successRate: Math.round((reachable.length / endpointResults.length) * 100),
+                lastResult: last
+            };
+        }).filter(e => {
+            if (!showDeleted && activeProbes.length > 0 && !activeProbes.includes(e.id)) return false;
+            if (filterType !== 'ALL' && e.type !== filterType) return false;
+            if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+            return true;
+        }).sort((a: any, b: any) => {
+            let valA: any = a[sortField];
+            let valB: any = b[sortField];
 
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-    });
+            // Custom mappings for special fields
+            if (sortField === 'reliability') {
+                valA = a.successRate;
+                valB = b.successRate;
+            } else if (sortField === 'latency') {
+                valA = a.avgLatency;
+                valB = b.avgLatency;
+            } else if (sortField === 'score') {
+                valA = a.lastScore;
+                valB = b.lastScore;
+            }
+
+            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [results, showDeleted, activeProbes, filterType, searchQuery, sortField, sortDirection]);
 
     const handleSort = (field: string) => {
         if (sortField === field) {
@@ -127,17 +135,19 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
         return sortDirection === 'asc' ? <ChevronUp size={12} className="ml-1" /> : <ChevronDown size={12} className="ml-1" />;
     };
 
-    // Prepare chart data
-    const chartData = results.slice(0, 50).reverse().map(r => ({
-        time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        score: r.score,
-        total: parseFloat(r.metrics.total_ms.toFixed(1)),
-        ttfb: parseFloat((r.metrics.ttfb_ms || 0).toFixed(1)),
-        tls: parseFloat((r.metrics.tls_ms || 0).toFixed(1)),
-        tcp: parseFloat((r.metrics.tcp_ms || 0).toFixed(1)),
-        dns: parseFloat((r.metrics.dns_ms || 0).toFixed(1)),
-        endpointName: r.endpointName
-    }));
+    // Prepare chart data - Memoized
+    const chartData = React.useMemo(() => {
+        return results.slice(0, 50).reverse().map(r => ({
+            time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            score: r.score,
+            total: parseFloat(r.metrics.total_ms.toFixed(1)),
+            ttfb: parseFloat((r.metrics.ttfb_ms || 0).toFixed(1)),
+            tls: parseFloat((r.metrics.tls_ms || 0).toFixed(1)),
+            tcp: parseFloat((r.metrics.tcp_ms || 0).toFixed(1)),
+            dns: parseFloat((r.metrics.dns_ms || 0).toFixed(1)),
+            endpointName: r.endpointName
+        }));
+    }, [results]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">

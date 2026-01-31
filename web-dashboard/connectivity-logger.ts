@@ -101,23 +101,29 @@ export class ConnectivityLogger {
         }
     }
 
+    private statsCache: { data: any, timestamp: number, range: string } | null = null;
+
     async getResults(options: { limit?: number; offset?: number; type?: string; endpointId?: string; timeRange?: string } = {}): Promise<{ results: ConnectivityResult[]; total: number }> {
         try {
-            const allResults = await this.readAllResults();
+            const now = Date.now();
+            let cutoff = 0;
+            if (options.timeRange) {
+                if (options.timeRange === '1h') cutoff = now - 3600000;
+                else if (options.timeRange === '6h') cutoff = now - 6 * 3600000;
+                else if (options.timeRange === '24h') cutoff = now - 24 * 3600000;
+                else if (options.timeRange === '7d') cutoff = now - 7 * 24 * 3600000;
+            }
+
+            // If we have a strict limit and no specific time range required for the query results specifically
+            // (other than general retention), we can optimize reading.
+            const allResults = await this.readAllResults(options.limit ? (options.limit + (options.offset || 0)) * 2 : undefined, cutoff);
             let filtered = allResults;
 
             if (options.type) filtered = filtered.filter(r => r.endpointType === options.type);
             if (options.endpointId) filtered = filtered.filter(r => r.endpointId === options.endpointId);
 
-            if (options.timeRange) {
-                const now = Date.now();
-                let cutoff = 0;
-                if (options.timeRange === '1h') cutoff = now - 3600000;
-                else if (options.timeRange === '6h') cutoff = now - 6 * 3600000;
-                else if (options.timeRange === '24h') cutoff = now - 24 * 3600000;
-                else if (options.timeRange === '7d') cutoff = now - 7 * 24 * 3600000;
-                if (cutoff > 0) filtered = filtered.filter(r => r.timestamp >= cutoff);
-            }
+            // Time range filter is already partially applied in readAllResults, but let's be precise
+            if (cutoff > 0) filtered = filtered.filter(r => r.timestamp >= cutoff);
 
             filtered.sort((a, b) => b.timestamp - a.timestamp);
             const offset = options.offset || 0;
@@ -133,21 +139,28 @@ export class ConnectivityLogger {
     }
 
     async getStats(options: { timeRange?: string } = {}): Promise<any> {
-        try {
-            const allResults = await this.readAllResults();
-            if (allResults.length === 0) return null;
+        // Simple 5-second cache to prevent redundant heavy computing
+        const now = Date.now();
+        const cacheRange = options.timeRange || '24h';
+        if (this.statsCache && (now - this.statsCache.timestamp < 5000) && (this.statsCache.range === cacheRange)) {
+            return this.statsCache.data;
+        }
 
-            let filtered = allResults;
+        try {
+            let cutoff = 0;
             if (options.timeRange) {
-                const now = Date.now();
-                let cutoff = 0;
                 if (options.timeRange === '15m') cutoff = now - 15 * 60 * 1000;
                 else if (options.timeRange === '1h') cutoff = now - 3600000;
                 else if (options.timeRange === '6h') cutoff = now - 6 * 3600000;
                 else if (options.timeRange === '24h') cutoff = now - 24 * 3600000;
                 else if (options.timeRange === '7d') cutoff = now - 7 * 24 * 3600000;
-                if (cutoff > 0) filtered = filtered.filter(r => r.timestamp >= cutoff);
             }
+
+            const allResults = await this.readAllResults(undefined, cutoff);
+            if (allResults.length === 0) return null;
+
+            let filtered = allResults;
+            if (cutoff > 0) filtered = filtered.filter(r => r.timestamp >= cutoff);
 
             if (filtered.length === 0) return {
                 globalHealth: 0,
@@ -157,7 +170,6 @@ export class ConnectivityLogger {
             };
 
             const httpResults = filtered.filter(r => r.endpointType === 'HTTP' || r.endpointType === 'HTTPS');
-            const reachableHttp = httpResults.filter(r => r.reachable && r.score > 0);
 
             // Group by endpoint to find flaky ones
             const endpointStats = new Map<string, { name: string, count: number, success: number, totalScore: number }>();
@@ -182,7 +194,7 @@ export class ConnectivityLogger {
 
             const uniqueHttpEndpoints = new Set(httpResults.map(r => r.endpointId)).size;
 
-            return {
+            const computedStats = {
                 globalHealth: httpResults.length > 0 ? Math.round(httpResults.reduce((acc, r) => acc + (r.score || 0), 0) / httpResults.length) : 0,
                 httpEndpoints: {
                     total: uniqueHttpEndpoints,
@@ -193,22 +205,46 @@ export class ConnectivityLogger {
                 flakyEndpoints,
                 lastCheckTime: allResults.length > 0 ? allResults[0].timestamp : null
             };
+
+            this.statsCache = { data: computedStats, timestamp: now, range: cacheRange };
+            return computedStats;
         } catch (error) {
             console.error('[CONNECTIVITY_LOGGER] Failed to compute stats:', error);
             return null;
         }
     }
 
-    private async readAllResults(): Promise<ConnectivityResult[]> {
+    private async readAllResults(maxResults?: number, minTimestamp?: number): Promise<ConnectivityResult[]> {
         try {
             const files = await readdir(this.logDir);
-            const logFiles = files.filter((f: string) => f.startsWith('connectivity-results') && f.endsWith('.jsonl'));
+            const logFiles = files
+                .filter((f: string) => f.startsWith('connectivity-results') && f.endsWith('.jsonl'))
+                .sort()
+                .reverse(); // Newest first
+
             const allResults: ConnectivityResult[] = [];
             for (const file of logFiles) {
                 const content = await readFile(path.join(this.logDir, file), 'utf8');
-                const lines = content.trim().split('\n').filter((l: string) => l.length > 0);
+                const lines = content.trim().split('\n').filter((l: string) => l.length > 0).reverse(); // Newest lines first
+
                 for (const line of lines) {
-                    try { allResults.push(JSON.parse(line)); } catch (e) { }
+                    try {
+                        const result = JSON.parse(line) as ConnectivityResult;
+                        // Skip if too old
+                        if (minTimestamp && result.timestamp < minTimestamp) {
+                            // Since we are reading in reverse, if we hit an old record in a reverse-sorted line list,
+                            // all subsequent lines in this file are also older.
+                            break;
+                        }
+                        allResults.push(result);
+                        if (maxResults && allResults.length >= maxResults) return allResults;
+                    } catch (e) { }
+                }
+
+                // If we have a minTimestamp and we've processed a file where we hit results older than cutoff,
+                // we can stop reading older files entirely.
+                if (minTimestamp && allResults.length > 0 && allResults[allResults.length - 1].timestamp < minTimestamp) {
+                    break;
                 }
             }
             return allResults;
