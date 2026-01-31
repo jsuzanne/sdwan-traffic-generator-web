@@ -1,22 +1,23 @@
 # SD-WAN Traffic Generator - Technical Specification
 
 **Repository**: [jsuzanne/sdwan-traffic-generator-web](https://github.com/jsuzanne/sdwan-traffic-generator-web)  
-**Version**: 1.0  
-**Last Updated**: December 2025
+**Version**: 1.1.2-patch.33.19
+**Last Updated**: January 2026
 
 ---
 
 ## Executive Summary
 
-The SD-WAN Traffic Generator is a realistic enterprise application traffic simulator designed for SD-WAN testing and demonstrations. It generates weighted HTTP/HTTPS traffic to various SaaS applications, simulating real-world enterprise network usage patterns. The system features a modern web dashboard for real-time monitoring, configuration management, and traffic control.
+The SD-WAN Traffic Generator is a realistic enterprise application traffic simulator designed for SD-WAN testing and demonstrations. It generates weighted HTTP/HTTPS traffic to various SaaS applications, simulating real-world enterprise network usage patterns. The system features a modern web dashboard for real-time monitoring, configuration management, and traffic control. **New in v1.1.2**: Advanced IoT device simulation and convergence testing capabilities.
 
 ### Key Capabilities
 - **Realistic Traffic Simulation**: Generates HTTP/HTTPS requests to 60+ enterprise SaaS applications
-- **Weighted Distribution**: Configurable traffic weights per application (e.g., Microsoft 365, Google Workspace, Zoom)
+- **Weighted Distribution**: Configurable traffic weights per application
+- **IoT Simulation**: Scapy-powered Layer 2/3 simulation (ARP, DHCP, mDNS, SSDP) for 20+ device types
+- **Convergence Testing**: Dedicated RTP/Voice echo server for failover and jitter measurements
 - **Web Dashboard**: Real-time monitoring with live logs, statistics, and configuration UI
-- **Docker Deployment**: Single-command deployment using Docker Compose
+- **Docker Deployment**: Single-command deployment using Docker Compose (Host Mode for Lab fidelity)
 - **Authentication**: JWT-based authentication with user management
-- **Intelligent Backoff**: Automatic retry logic with exponential backoff for failed requests
 
 ---
 
@@ -24,23 +25,25 @@ The SD-WAN Traffic Generator is a realistic enterprise application traffic simul
 
 ### High-Level Overview
 
-The system consists of **two Docker containers** working in tandem:
+The system consists of **two primary Docker containers** and optional targets:
 
 ```mermaid
 graph TB
-    subgraph "Docker Environment"
-        TG[Traffic Generator Container<br/>Debian-based Bash Script]
-        WEB[Web Dashboard Container<br/>Node.js + React]
+    subgraph "Branch Site (Docker)"
+        TG[Traffic Generator Container<br/>Debian Bash Script]
+        WEB[Web Dashboard Container<br/>Node.js + IoT Engine]
         
         TG -->|Writes| LOGS[Shared Volume<br/>traffic_logs]
         TG -->|Reads| CONFIG[Shared Volume<br/>config]
         
         WEB -->|Reads| LOGS
         WEB -->|Reads/Writes| CONFIG
+        WEB -->|Simulates| IOT[IoT Devices<br/>Scapy/Python]
     end
     
     USER[User Browser] -->|Port 8080| WEB
-    TG -->|HTTPS Requests| INTERNET[Internet<br/>SaaS Applications]
+    TG -->|HTTPS Requests| INTERNET[SaaS / Cloud]
+    IOT -->|L2 Traffic| GW[Local Gateway]
     
     style TG fill:#e1f5ff
     style WEB fill:#fff4e1
@@ -50,19 +53,18 @@ graph TB
 
 ### Container Architecture
 
-#### 1. Traffic Generator Container (`traffic-gen`)
+#### 1. Traffic Generator Container (`sdwan-traffic-gen`)
 - **Base Image**: `debian:bookworm-slim`
 - **Primary Script**: [`traffic-generator.sh`](file:///Users/jsuzanne/Github/sdwan-traffic-generator/traffic-generator.sh)
 - **Language**: Bash
-- **Dependencies**: `curl`, `jq`, `ca-certificates`
-- **Purpose**: Generates HTTP/HTTPS traffic to configured applications
+- **Purpose**: Generates high-volume HTTP/HTTPS traffic to simulate SaaS usage
 
-#### 2. Web Dashboard Container (`web-ui`)
-- **Base Image**: `node:20-alpine` (multi-stage build)
-- **Backend**: Express.js (TypeScript)
+#### 2. Web Dashboard Container (`sdwan-web-ui`)
+- **Base Image**: `node:20-alpine` (multi-stage)
+- **Backend**: Express.js (TypeScript) + **Scapy (Python)**
 - **Frontend**: React 19 + Vite + TailwindCSS 4
-- **Port**: 8080 (exposed to host)
-- **Purpose**: Provides web interface for monitoring and configuration
+- **Port**: 8080 (Production Default)
+- **Purpose**: Unified control plane and **IoT Simulation Engine**
 
 ### Shared Resources
 
@@ -78,7 +80,8 @@ graph TB
 - **Container Path**: `/opt/sdwan-traffic-gen/config` (traffic-gen), `/app/config` (web-ui)
 - **Contents**:
   - `applications.txt` - Application list with weights
-  - `interfaces.txt` - Network interfaces to use
+  - `interfaces.txt` - **"One Truth"** file for network interface selection (Physical Host Port)
+  - `iot-devices.json` - List of simulated IoT devices and their profiles
   - `user_agents.txt` - User agent strings for requests
   - `traffic-control.json` - Start/stop control file
   - `users.json` - Authentication credentials (bcrypt hashed)
@@ -231,6 +234,26 @@ if (now - lastUpdate < 15) {
     status = 'stopped';
 }
 ```
+
+#### 3. IoT Simulation Engine
+
+The IoT engine is an event-driven simulator built into the `sdwan-web-ui` container, utilizing Python and the **Scapy** library for high-fidelity Layer 2 packet generation.
+
+##### Core Logic: `iot-manager.ts`
+- **Bridge Pattern**: Communicates with the `iot_engine.py` script via a JSON-based pipe.
+- **Unified Networking**: Shares the same `interfaces.txt` as the Traffic Generator, ensuring all simulated devices emerge from the correct physical port.
+- **Mac/Linux Support**: Automatically switches between `libpcap` (macOS) and raw sockets (Linux).
+
+##### Simulated Device Types
+The system simulates 20+ device profiles, including:
+- **Smart Home**: Philips Hue, Sonos, Amazon Echo
+- **Industrial**: PLC, Smart Meter, HVAC Controller
+- **Office**: IP Phones (Cisco/Poly), Printers, Security Cameras
+
+##### Traffic Patterns
+- **Discovery**: Periodic mDNS, SSDP, and ARP announcements.
+- **Control**: Simulated TCP/UDP telemetry to cloud endpoints.
+- **L2 Management**: Full DHCP lifecycle for each simulated device MAC.
 
 #### Frontend Application
 
@@ -631,16 +654,11 @@ npm run build
 
 Potential improvements for future versions:
 
-1. **Multi-Protocol Support**: Add UDP, DNS, ICMP traffic generation
-2. **Traffic Profiles**: Pre-configured profiles (Office Worker, Developer, Executive)
-3. **Scheduling**: Time-based traffic patterns (business hours simulation)
-4. **Metrics Export**: Prometheus/Grafana integration
-5. **Multi-Client**: Simulate multiple concurrent users
-6. **Bandwidth Control**: Configurable throughput limits
-7. **Custom Headers**: Per-application custom HTTP headers
-8. **WebSocket Support**: Real-time log streaming to dashboard
-9. **Docker Hub**: Pre-built images for easier deployment
-10. **Kubernetes**: Helm chart for K8s deployment
+1. **Jitter & Latency Injection**: Add software-based impairment for testing.
+2. **Scheduling**: Time-based traffic patterns (business hours simulation).
+3. **Metrics Export**: Prometheus/Grafana integration.
+4. **Bandwidth Control**: Configurable throughput limits.
+5. **Kubernetes**: Helm chart for K8s deployment.
 
 ---
 
