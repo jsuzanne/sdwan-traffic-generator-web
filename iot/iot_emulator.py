@@ -16,6 +16,8 @@ from datetime import datetime
 from pathlib import Path
 import os
 
+DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
+
 # Suppress Scapy import errors by redirecting stderr temporarily
 _original_stderr = sys.stderr
 sys.stderr = open(os.devnull, 'w')
@@ -197,7 +199,8 @@ class IoTDevice:
         
         # Standard Interface Diagnostic
         if self.id != "orchestrator":
-            self.log("info", f"📡 [IOT] System Interface: {self.interface} (Source: CLI/Auto)")
+            if DEBUG:
+                self.log("info", f"📡 [IOT] System Interface: {self.interface} (Source: CLI/Auto)")
             self.log("info", f"🚀 Starting device simulation: {self.name} ({self.id}) [DHCP: {self.dhcp_mode}]")
         
         self.log("info", f"🆔 MAC addr: {self.mac}")

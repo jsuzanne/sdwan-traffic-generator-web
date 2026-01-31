@@ -20,6 +20,9 @@ import { Server } from 'socket.io';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Debug mode for log reduction
+const DEBUG = process.env.DEBUG === 'true';
+
 // Configuration Paths - Environment aware
 const APP_CONFIG = {
     // In development, assume config is in ../config relative to web-dashboard
@@ -1839,19 +1842,17 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
             };
         } catch (e) { }
 
-        for (const cName of monitoredContainers) {
+        // Parallelize fetching for all containers
+        const containerStats = await Promise.all(monitoredContainers.map(async (cName) => {
             try {
-                // Get stats via Docker Socket
-                const { stdout } = await execPromise(`curl --unix-socket /var/run/docker.sock http://localhost/containers/${cName}/stats?stream=false`);
+                // Get stats via Docker Socket with a 1.5s timeout to avoid interval overlap
+                const { stdout } = await execPromise(`curl --unix-socket /var/run/docker.sock --max-time 1.5 http://localhost/containers/${cName}/stats?stream=false`);
                 const stats = JSON.parse(stdout);
-
                 const cStats = containerStatsMap.get(cName)!;
 
-                // 1. Bitrate Calculation (Mbps)
+                // 1. Bitrate Calculation
                 let rx_mbps = '0.00';
                 let tx_mbps = '0.00';
-
-                // For Docker, we might have multiple interfaces, take the sum
                 let totalRx = 0;
                 let totalTx = 0;
                 if (stats.networks) {
@@ -1864,29 +1865,25 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
                 if (cStats.prevNetwork) {
                     const deltaRx = totalRx - cStats.prevNetwork.rx;
                     const deltaTx = totalTx - cStats.prevNetwork.tx;
-                    const deltaTime = (clockNow - cStats.prevNetwork.time) / 1000; // in seconds
-
+                    const deltaTime = (clockNow - cStats.prevNetwork.time) / 1000;
                     if (deltaTime > 0) {
-                        // bits per second = (bytes * 8) / seconds
-                        // Mbps = bits / 1,000,000
                         rx_mbps = ((deltaRx * 8) / (deltaTime * 1000000)).toFixed(2);
                         tx_mbps = ((deltaTx * 8) / (deltaTime * 1000000)).toFixed(2);
                     }
                 }
                 cStats.prevNetwork = { rx: totalRx, tx: totalTx, time: clockNow };
-                cStats.currentBitrate = { rx_low: totalRx, tx_low: totalTx, rx_mbps, tx_mbps };
 
                 // 2. CPU Calculation
                 let cpuPercent = '0.0';
-                const cpuDelta = stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
-                const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage;
+                const cpuDelta = (stats.cpu_stats?.cpu_usage?.total_usage || 0) - (stats.precpu_stats?.cpu_usage?.total_usage || 0);
+                const systemDelta = (stats.cpu_stats?.system_cpu_usage || 0) - (stats.precpu_stats?.system_cpu_usage || 0);
                 if (systemDelta > 0 && cpuDelta > 0) {
                     const onlineCpus = stats.cpu_stats.online_cpus || 1;
                     cpuPercent = ((cpuDelta / systemDelta) * onlineCpus * 100).toFixed(1);
                 }
                 cStats.currentCpuPercent = cpuPercent;
 
-                results.push({
+                return {
                     name: cName,
                     id: stats.id?.substring(0, 12),
                     network: {
@@ -1894,24 +1891,19 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
                         tx_bytes: totalTx,
                         rx_mb: (totalRx / 1024 / 1024).toFixed(2),
                         tx_mb: (totalTx / 1024 / 1024).toFixed(2),
-                        received_mb: (totalRx / 1024 / 1024).toFixed(2),
-                        transmitted_mb: (totalTx / 1024 / 1024).toFixed(2),
                         rx_mbps,
                         tx_mbps
                     },
                     memory: {
-                        usage_bytes: stats.memory_stats.usage,
-                        limit_bytes: stats.memory_stats.limit,
-                        percent: ((stats.memory_stats.usage / stats.memory_stats.limit) * 100).toFixed(1)
+                        usage_bytes: stats.memory_stats?.usage || 0,
+                        limit_bytes: stats.memory_stats?.limit || 1,
+                        percent: (((stats.memory_stats?.usage || 0) / (stats.memory_stats?.limit || 1)) * 100).toFixed(1)
                     },
-                    cpu: {
-                        percent: cpuPercent
-                    }
-                });
+                    cpu: { percent: cpuPercent }
+                };
             } catch (e: any) {
-                // If container not found or stats fail, return minimal info or fallback for current node
+                // Fallback for sdwan-web-ui if socket fails but we are running in this container
                 if (cName === 'sdwan-web-ui') {
-                    // Fallback to legacy single container check for the dashboard itself if socket fails
                     try {
                         const { stdout: netOut } = await execPromise('cat /sys/class/net/eth0/statistics/rx_bytes /sys/class/net/eth0/statistics/tx_bytes');
                         const [rx, tx] = netOut.trim().split('\n').map(Number);
@@ -1922,7 +1914,6 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
                         const cStats = containerStatsMap.get(cName)!;
                         let rx_mbps = '0.00';
                         let tx_mbps = '0.00';
-
                         if (cStats.prevNetwork) {
                             const deltaRx = rx - cStats.prevNetwork.rx;
                             const deltaTx = tx - cStats.prevNetwork.tx;
@@ -1933,28 +1924,20 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
                             }
                         }
                         cStats.prevNetwork = { rx, tx, time: clockNow };
-                        cStats.currentBitrate = { rx_low: rx, tx_low: tx, rx_mbps, tx_mbps };
-
-                        results.push({
+                        return {
                             name: cName,
                             fallback: true,
-                            network: {
-                                rx_bytes: rx,
-                                tx_bytes: tx,
-                                rx_mb: (rx / 1024 / 1024).toFixed(2),
-                                tx_mb: (tx / 1024 / 1024).toFixed(2),
-                                received_mb: (rx / 1024 / 1024).toFixed(2),
-                                transmitted_mb: (tx / 1024 / 1024).toFixed(2),
-                                rx_mbps,
-                                tx_mbps
-                            },
+                            network: { rx_bytes: rx, tx_bytes: tx, rx_mb: (rx / 1024 / 1024).toFixed(2), tx_mb: (tx / 1024 / 1024).toFixed(2), rx_mbps, tx_mbps },
                             memory: { usage_bytes: memUsage, limit_bytes: memLimit, percent: ((memUsage / memLimit) * 100).toFixed(1) },
-                            cpu: { percent: cStats.currentCpuPercent } // Reverted to cStats.currentCpuPercent as currentCpuPercent is not defined in this scope
-                        });
-                    } catch (err) { }
+                            cpu: { percent: cStats.currentCpuPercent }
+                        };
+                    } catch (err) { return null; }
                 }
+                return null;
             }
-        }
+        }));
+
+        const results = containerStats.filter(s => s !== null);
 
         res.json({
             success: true,
@@ -3692,7 +3675,7 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
             }
         }
 
-        console.log(`[MAINTENANCE] Detected Version: ${currentVersion} (from ${foundPath})`);
+        if (DEBUG) console.log(`[MAINTENANCE] Detected Version: ${currentVersion} (from ${foundPath})`);
 
         const execPromise = promisify(exec);
         let latestVersion = currentVersion;
@@ -3951,9 +3934,9 @@ const scheduleLogCleanup = () => {
 // --- IoT Devices API ---
 
 app.get('/api/iot/devices', authenticateToken, (req, res) => {
-    console.log('[IOT-REQ] GET /api/iot/devices');
+    if (DEBUG) console.log('[IOT-REQ] GET /api/iot/devices');
     const devices = getIoTDevices();
-    console.log(`[IOT-REQ] Found ${devices.length} devices in config`);
+    if (DEBUG) console.log(`[IOT-REQ] Found ${devices.length} devices in config`);
     const running = iotManager.getRunningDevices();
     const result = devices.map(d => ({
         ...d,

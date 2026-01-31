@@ -26,6 +26,7 @@ fi
 CLIENTID="${1:-client01}"
 MAX_TIMEOUT=15
 SLEEP_BETWEEN_REQUESTS=1
+DEBUG="${DEBUG:-false}"
 
 # Backoff timers (seconds)
 B1=60       # 1 min - première erreur
@@ -354,7 +355,9 @@ function main() {
     
     # Standard Interface Diagnostic
     local iface=$(getRandomInterface)
-    log_info "📡 [TRAFFIC] System Interface: $iface (Source: dynamic selection)"
+    if [[ "$DEBUG" == "true" ]]; then
+        log_info "📡 [TRAFFIC] System Interface: $iface (Source: dynamic selection)"
+    fi
     
     # Ensure config exists
     if [[ ! -f "${CONFIG_DIR}/applications.txt" ]]; then

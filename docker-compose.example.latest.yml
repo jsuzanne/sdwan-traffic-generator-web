@@ -21,6 +21,7 @@ services:
       - LOG_DIR=/var/log/sdwan-traffic-gen
       # Ensure Host Mode uses the standard port unless overridden
       - PORT=${WEB_UI_PORT:-8080}
+      - DEBUG=false
 
     volumes:
       - ./config:/app/config
@@ -41,6 +42,7 @@ services:
     environment:
       - SLEEP_BETWEEN_REQUESTS=1
       - CLIENT_ID=client01
+      - DEBUG=false
     volumes:
       - ./config:/opt/sdwan-traffic-gen/config
       - ./logs:/var/log/sdwan-traffic-gen
@@ -60,6 +62,8 @@ services:
     volumes:
       - ./config:/app/config
       - ./logs:/var/log/sdwan-traffic-gen
+    environment:
+      - DEBUG=false
     restart: unless-stopped
     depends_on:
       sdwan-web-ui:

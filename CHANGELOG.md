@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.25] - 2026-01-31
+### Fixed
+- **UI Flapping**: Stabilized the "Network Status" bar with a fixed layout height and "sticky" state logic. Metrics now stay visible during transient poll delays. 🏗️
+- **Log Flooding**: Added a centralized `DEBUG` environment variable. High-frequency maintenance, version, and interface logs are now suppressed by default. 🔇
+- **State Protection**: Prevented the dashboard from collapsing when API polls are intermittently empty or delayed.
+
 ## [1.1.2-patch.33.24] - 2026-01-31
 ### Fixed
 - **System Stats Restoration**: Fixed a bug where Docker container stats (CPU/RAM/Network) were only fetched once on dashboard load. Restored live 1s polling. 🏎️

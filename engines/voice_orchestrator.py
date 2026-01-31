@@ -11,6 +11,7 @@ from datetime import datetime
 CONFIG_DIR = os.getenv('CONFIG_DIR', '/app/config')
 LOG_DIR = os.getenv('LOG_DIR', '/var/log/sdwan-traffic-gen')
 VERSION_FILE = '/app/VERSION'  # Optional
+DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
 
 def get_version():
     try:
@@ -64,7 +65,8 @@ def load_control():
                 content = f.read().strip()
                 if content and not content.startswith('#'):
                     default_iface = content.split('\n')[0].strip()
-                    print(f"📡 [VOICE] System Interface: {default_iface} (Source: interfaces.txt)")
+                    if DEBUG:
+                        print(f"📡 [VOICE] System Interface: {default_iface} (Source: interfaces.txt)")
         
         # Smart auto-detection fallback if interfaces.txt is empty or missing
         if default_iface == 'eth0':

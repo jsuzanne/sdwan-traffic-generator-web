@@ -345,7 +345,9 @@ export default function App() {
     try {
       const res = await fetch('/api/connectivity/test', { headers: authHeaders() });
       const data = await res.json();
-      setConnectivity(data);
+      if (data && data.results) {
+        setConnectivity(data);
+      }
     } catch (e) {
       console.error("Failed to fetch connectivity");
     }
@@ -356,7 +358,9 @@ export default function App() {
     try {
       const res = await fetch('/api/connectivity/docker-stats', { headers: authHeaders() });
       const data = await res.json();
-      setDockerStats(data);
+      if (data && data.success) {
+        setDockerStats(data);
+      }
     } catch (e) {
       console.error("Failed to fetch Docker stats");
     }
@@ -457,8 +461,11 @@ export default function App() {
     const interval = setInterval(() => {
       fetchDashboardData();
       fetchTrafficStatus();
-      fetchDockerStats();
     }, 1000);
+
+    const statsInterval = setInterval(() => {
+      fetchDockerStats();
+    }, 2000);
 
     // RESTORE FAST POLLING (500ms) for Failover specifically when on that tab
     let fastInterval: any = null;
@@ -480,6 +487,7 @@ export default function App() {
 
     return () => {
       clearInterval(interval);
+      clearInterval(statsInterval);
       if (fastInterval) clearInterval(fastInterval);
       clearInterval(connectivityInterval);
       clearInterval(maintenanceInterval);
@@ -862,7 +870,7 @@ export default function App() {
             </div>
 
             {/* Compact Summary */}
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm min-h-[40px]">
               <div className="flex items-center gap-6">
                 {/* Connectivity Status */}
                 {connectivity && (
@@ -902,8 +910,8 @@ export default function App() {
                 )}
 
                 {/* Docker Stats: Network Bitrate */}
-                {dockerStats?.success && dockerStats.stats.network && (
-                  <div className="flex items-center gap-4">
+                {dockerStats?.success && dockerStats.stats?.network && (
+                  <div className="flex items-center gap-4 animate-fade-in">
                     <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800">
                       <span className="flex items-center gap-1.5 font-mono text-[11px]">
                         <ChevronDown size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.rx_mbps) > 5 ? "text-green-400" : "text-blue-400")} />
@@ -915,17 +923,12 @@ export default function App() {
                         <span className="text-slate-200 font-bold min-w-[60px]">{formatBitrate(dockerStats.stats.network.tx_mbps)}</span>
                       </span>
                     </div>
-                    <div className="hidden lg:flex items-center gap-3 text-[10px] text-slate-500 font-mono">
-                      <span>TOT: {dockerStats.stats.network.rx_mb || dockerStats.stats.network.received_mb} MB</span>
-                      <span>/</span>
-                      <span>{dockerStats.stats.network.tx_mb || dockerStats.stats.network.transmitted_mb} MB</span>
-                    </div>
                   </div>
                 )}
 
                 {/* Docker Stats: Resource Monitoring */}
-                {dockerStats?.success && (
-                  <div className="hidden md:flex items-center gap-6">
+                {dockerStats?.success && dockerStats.stats?.cpu && (
+                  <div className="hidden md:flex items-center gap-6 animate-fade-in">
                     {/* CPU */}
                     <div className="flex items-center gap-2 min-w-[100px]">
                       <span className="text-[10px] text-slate-500 uppercase font-bold w-8">CPU</span>
@@ -940,30 +943,17 @@ export default function App() {
                     </div>
 
                     {/* RAM */}
-                    <div className="flex items-center gap-2 min-w-[100px]">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold w-8">RAM</span>
-                      <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full transition-all duration-500",
-                            parseFloat(dockerStats.stats.memory.percent) > 80 ? "bg-red-500" : "bg-purple-500")}
-                          style={{ width: `${dockerStats.stats.memory.percent}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.memory.percent}%</span>
-                    </div>
-
-                    {/* DISK (Host) */}
-                    {dockerStats.host?.disk && (
+                    {dockerStats.stats.memory && (
                       <div className="flex items-center gap-2 min-w-[100px]">
-                        <span className="text-[10px] text-slate-500 uppercase font-bold w-8">DISK</span>
+                        <span className="text-[10px] text-slate-500 uppercase font-bold w-8">RAM</span>
                         <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className={cn("h-full transition-all duration-500",
-                              dockerStats.host.disk.percent > 85 ? "bg-red-500" : "bg-orange-500")}
-                            style={{ width: `${dockerStats.host.disk.percent}%` }}
+                              parseFloat(dockerStats.stats.memory.percent) > 80 ? "bg-red-500" : "bg-purple-500")}
+                            style={{ width: `${dockerStats.stats.memory.percent}%` }}
                           />
                         </div>
-                        <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.host.disk.percent}%</span>
+                        <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.memory.percent}%</span>
                       </div>
                     )}
                   </div>
