@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.27] - 2026-01-31
+### Fixed
+- **State Clash Elimination**: Fixed a major bug where `dockerStats` was being overwritten with an incompatible array format every second, causing the UI to "flicker" between success and error states. 🏎️
+- **Layout Hardening**: Implemented a stable grid with `min-w` slots for the "Network Status" bar. Elements no longer slide horizontally when data updates. 🏗️
+- **Session Stability**: Removed aggressive `logout()` triggers from background polling. Intermittent 403 errors are now handled gracefully without clearing the user session. 🛡️
+- **Auth Debugging**: Added detailed `[AUTH]` logs (visible when `DEBUG=true`) to help diagnose token verification issues.
+
 ## [1.1.2-patch.33.26] - 2026-01-31
 ### Fixed
 - **Emergency Fix**: Resolved a syntax error in `server.ts` (duplicate `results` declaration) that caused the web dashboard to crash on startup in version .25. 🩹

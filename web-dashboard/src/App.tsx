@@ -122,6 +122,7 @@ export default function App() {
 
 
   const logout = () => {
+    // Only logout if not in a background refresh or if explicitly triggered
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     setToken(null);
@@ -224,13 +225,16 @@ export default function App() {
     if (!token) return;
     try {
       const res = await fetch('/api/admin/system/dashboard-data', { headers: authHeaders() });
-      if (res.status === 403 || res.status === 401) logout();
+      if (res.status === 403 || res.status === 401) {
+        console.warn('Dashboard fetch failed (403/401). Keeping current state.');
+        return;
+      }
       const data = await res.json();
 
       if (data.stats) processStats(data.stats);
       if (data.status) setStatus(data.status);
       if (data.logs) setLogs(data.logs);
-      if (data.dockerStats) setDockerStats(data.dockerStats);
+      if (data.dockerStats?.success) setDockerStats(data.dockerStats);
       if (data.convergenceTests) setGlobalConvStatus(data.convergenceTests);
       if (data.voice) setGlobalVoiceStatus(data.voice);
     } catch (e) {
@@ -870,11 +874,11 @@ export default function App() {
             </div>
 
             {/* Compact Summary */}
-            <div className="flex items-center justify-between text-sm min-h-[40px]">
-              <div className="flex items-center gap-6">
+            <div className="grid grid-cols-[1fr_auto] items-center text-sm min-h-[40px] w-full">
+              <div className="flex items-center gap-6 overflow-hidden">
                 {/* Connectivity Status */}
                 {connectivity && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-[120px]">
                     {connectivity.connected ? (
                       <>
                         <CheckCircle size={14} className="text-green-400" />
@@ -895,7 +899,7 @@ export default function App() {
 
                 {/* Speedtest Result */}
                 {speedtestResult && (
-                  <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                  <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 min-w-[100px] justify-center">
                     <Gauge size={12} className="text-blue-400" />
                     <span className="text-blue-300 font-bold">{speedtestResult.download_mbps} <span className="text-[10px] opacity-70">Mbps</span></span>
                   </div>
@@ -903,7 +907,7 @@ export default function App() {
 
                 {/* Iperf Result */}
                 {iperfResult && (
-                  <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20">
+                  <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 min-w-[120px] justify-center">
                     <Activity size={12} className="text-purple-400" />
                     <span className="text-purple-300 font-bold">{Math.round(iperfResult.received_mbps || iperfResult.sent_mbps)} <span className="text-[10px] opacity-70">Mbps (iperf)</span></span>
                   </div>
@@ -915,12 +919,12 @@ export default function App() {
                     <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800">
                       <span className="flex items-center gap-1.5 font-mono text-[11px]">
                         <ChevronDown size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.rx_mbps) > 5 ? "text-green-400" : "text-blue-400")} />
-                        <span className="text-slate-200 font-bold min-w-[60px]">{formatBitrate(dockerStats.stats.network.rx_mbps)}</span>
+                        <span className="text-slate-200 font-bold min-w-[70px] inline-block">{formatBitrate(dockerStats.stats.network.rx_mbps)}</span>
                       </span>
                       <div className="w-px h-3 bg-slate-800" />
                       <span className="flex items-center gap-1.5 font-mono text-[11px]">
                         <ChevronUp size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.tx_mbps) > 5 ? "text-green-400" : "text-purple-400")} />
-                        <span className="text-slate-200 font-bold min-w-[60px]">{formatBitrate(dockerStats.stats.network.tx_mbps)}</span>
+                        <span className="text-slate-200 font-bold min-w-[70px] inline-block">{formatBitrate(dockerStats.stats.network.tx_mbps)}</span>
                       </span>
                     </div>
                   </div>

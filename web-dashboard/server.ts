@@ -495,10 +495,16 @@ const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) return res.sendStatus(401);
+    if (!token) {
+        if (DEBUG) console.log('[AUTH] No token provided');
+        return res.sendStatus(401);
+    }
 
     jwt.verify(token, SECRET_KEY, (err: any, user: any) => {
-        if (err) return res.sendStatus(403);
+        if (err) {
+            if (DEBUG) console.log('[AUTH] Token verification failed:', err.message);
+            return res.sendStatus(403);
+        }
         req.user = user;
         next();
     });
@@ -3640,7 +3646,12 @@ app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) 
             stats,
             status,
             logs,
-            dockerStats: dockerResults,
+            dockerStats: {
+                success: true,
+                containers: dockerResults,
+                stats: dockerResults.find(r => r.container === 'sdwan-web-ui') || dockerResults[0],
+                timestamp: Date.now()
+            },
             convergenceTests: convergenceResults,
             voice: {
                 control: voiceControl,
