@@ -103,7 +103,7 @@ jobs:
       - name: Determine Platforms
         id: plat
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.build_full }}" == "true" ]] || [[ $GITHUB_REF == refs/tags/* ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.build_full }}" == "true" ]]; then
             echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
             echo "🚀 FULL BUILD: AMD64 + ARM64"
           else
