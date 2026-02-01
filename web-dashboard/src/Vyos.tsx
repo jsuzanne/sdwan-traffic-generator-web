@@ -1,0 +1,1443 @@
+import React, { useState, useEffect } from 'react';
+import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2 } from 'lucide-react';
+import { io } from 'socket.io-client';
+import toast from 'react-hot-toast';
+
+const socket = io();
+
+export interface VyosRouterInterface {
+    name: string;
+    description: string | null;
+    address: string[];
+}
+
+export interface VyosRouter {
+    id: string;
+    name: string;
+    host: string;
+    apiKey: string;
+    version: string;
+    location?: string;
+    interfaces: VyosRouterInterface[];
+    enabled: boolean;
+    status: 'online' | 'offline' | 'unknown';
+    lastSeen?: number;
+}
+
+export interface VyosAction {
+    id: string;
+    offset_minutes: number;
+    router_id: string;
+    interface: string;
+    command: string;
+    parameters?: any;
+}
+
+export interface VyosSequence {
+    id: string;
+    name: string;
+    enabled: boolean;
+    cycle_duration: number;
+    actions: VyosAction[];
+    lastRun?: number;
+}
+
+interface VyosProps {
+    token: string;
+}
+
+export default function Vyos(props: VyosProps) {
+    const { token } = props;
+    const [routers, setRouters] = useState<VyosRouter[]>([]);
+    const [sequences, setSequences] = useState<VyosSequence[]>([]);
+    const [history, setHistory] = useState<any[]>([]);
+    const [view, setView] = useState<'routers' | 'sequences' | 'history' | 'timeline' | 'metrics'>('routers');
+
+    // Live Monitoring State
+    const [activeExecution, setActiveExecution] = useState<{ sequenceId: string, step: string, status: string, error?: string } | null>(null);
+
+    // Modals
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showSeqModal, setShowSeqModal] = useState(false);
+    const [editingSeq, setEditingSeq] = useState<VyosSequence | null>(null);
+    const [showEditRouterModal, setShowEditRouterModal] = useState(false);
+    const [editingRouter, setEditingRouter] = useState<VyosRouter | null>(null);
+
+    // Discovery Form
+    const [discoveryHost, setDiscoveryHost] = useState('');
+    const [discoveryKey, setDiscoveryKey] = useState('');
+    const [discoveryLocation, setDiscoveryLocation] = useState('');
+    const [discovering, setDiscovering] = useState(false);
+    const [discoveryResult, setDiscoveryResult] = useState<VyosRouter | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        confirmText: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        onConfirm: () => { }
+    });
+
+    // Update countdowns when in timeline view
+    useEffect(() => {
+        if (view !== 'timeline') return;
+
+        const interval = setInterval(() => {
+            setView('timeline');
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [view]);
+
+    const calculateMetrics = () => {
+        const total = history.length;
+        const successful = history.filter(h => h.status === 'success').length;
+        const successRate = total > 0 ? ((successful / total) * 100).toFixed(1) : '0.0';
+
+        const last24h = history.filter(h => Date.now() - h.timestamp < 86400000).length;
+        const failedLastHour = history.filter(h =>
+            h.status === 'failed' && Date.now() - h.timestamp < 3600000
+        ).length;
+
+        const routerCounts = history.reduce((acc, h) => {
+            acc[h.router_id] = (acc[h.router_id] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const mostUsedRouterId = Object.keys(routerCounts).sort((a, b) =>
+            routerCounts[b] - routerCounts[a]
+        )[0];
+
+        const mostUsedRouter = routers.find(r => r.id === mostUsedRouterId);
+
+        return {
+            total,
+            successRate,
+            last24h,
+            activeSequences: sequences.filter(s => s.enabled).length,
+            failedLastHour,
+            mostUsedRouter: mostUsedRouter?.name || 'N/A'
+        };
+    };
+
+    const metrics = calculateMetrics();
+
+    const authHeaders = () => ({
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    });
+
+    const fetchData = async () => {
+        try {
+            const [rRes, sRes, hRes] = await Promise.all([
+                fetch('/api/vyos/routers', { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch('/api/vyos/sequences', { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch('/api/vyos/history', { headers: { 'Authorization': `Bearer ${token}` } })
+            ]);
+
+            const rData = await rRes.json();
+            const sData = await sRes.json();
+            const hData = await hRes.json();
+
+            setRouters(Array.isArray(rData) ? rData : []);
+            setSequences(Array.isArray(sData) ? sData : []);
+            setHistory(Array.isArray(hData) ? hData : []);
+        } catch (e) {
+            console.error('Failed to fetch VyOS data');
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+
+        socket.on('vyos:sequence_step', (data) => {
+            setActiveExecution(data);
+        });
+
+        socket.on('vyos:sequence_completed', (_log) => {
+            setActiveExecution(null);
+            fetchData();
+        });
+
+        const interval = setInterval(fetchData, 10000);
+        return () => {
+            socket.off('vyos:sequence_step');
+            socket.off('vyos:sequence_completed');
+            clearInterval(interval);
+        };
+    }, []);
+
+    const startDiscovery = async () => {
+        if (!discoveryHost || !discoveryKey) return;
+        const toastId = toast.loading('Initiating router discovery scan...');
+        setDiscovering(true);
+        setDiscoveryResult(null);
+        setError(null);
+        try {
+            const res = await fetch('/api/vyos/routers/discover', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ host: discoveryHost, apiKey: discoveryKey, location: discoveryLocation })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setDiscoveryResult(data.router);
+                toast.success(`✓ Router ${data.router.name} discovered!`, { id: toastId });
+            } else {
+                const errMsg = data.error || 'Discovery failed';
+                setError(errMsg);
+                toast.error(`❌ ${errMsg}`, { id: toastId });
+            }
+        } catch (e: any) {
+            setError('Network error during discovery');
+            toast.error('❌ Network error during discovery', { id: toastId });
+        } finally {
+            setDiscovering(false);
+        }
+    };
+
+    const saveRouter = async () => {
+        if (!discoveryResult) return;
+        // The router is already saved on discovery in this workflow
+        setShowAddModal(false);
+        resetDiscovery();
+        fetchData();
+        toast.success('✓ Router configuration deployed');
+    };
+
+    const editRouter = (router: VyosRouter) => {
+        setEditingRouter(JSON.parse(JSON.stringify(router)));
+        setShowEditRouterModal(true);
+    };
+
+    const saveRouterChanges = async () => {
+        if (!editingRouter) return;
+        const toastId = toast.loading('Syncing node parameters...');
+        try {
+            const res = await fetch(`/api/vyos/routers/${editingRouter.id}`, {
+                method: 'POST', // Repurposing POST for update
+                headers: authHeaders(),
+                body: JSON.stringify(editingRouter)
+            });
+            if (res.ok) {
+                toast.success('✓ Node parameters updated', { id: toastId });
+                setShowEditRouterModal(false);
+                fetchData();
+            } else {
+                toast.error('❌ Update failed', { id: toastId });
+            }
+        } catch (e) {
+            toast.error('❌ Network error', { id: toastId });
+        }
+    };
+
+    const deleteRouter = async (id: string) => {
+        const router = routers.find(r => r.id === id);
+
+        setConfirmModal({
+            isOpen: true,
+            title: 'Revoke Router',
+            message: `Are you sure you want to delete ${router?.name || 'this router'}? All associated sequences will be affected. This action cannot be undone.`,
+            confirmText: 'Delete Router',
+            onConfirm: async () => {
+                try {
+                    await fetch(`/api/vyos/routers/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    toast.success('✓ Router deleted');
+                    fetchData();
+                } catch (e) {
+                    toast.error('Failed to delete router');
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const testRouter = async (id: string) => {
+        const toastId = toast.loading('Testing connection...');
+        try {
+            const res = await fetch(`/api/vyos/routers/test/${id}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('✓ Connection successful!', { id: toastId });
+            } else {
+                toast.error(`❌ Connection failed: ${data.status}`, { id: toastId });
+            }
+            fetchData();
+        } catch (e: any) {
+            toast.error(`❌ Error: ${e.message}`, { id: toastId });
+        }
+    };
+
+    const runSequence = async (id: string) => {
+        const toastId = toast.loading('Starting sequence...');
+        try {
+            const res = await fetch(`/api/vyos/sequences/run/${id}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.ok) {
+                toast.success('✓ Mission sequence initiated', { id: toastId });
+            } else {
+                toast.error('❌ Failed to start sequence', { id: toastId });
+            }
+            fetchData();
+        } catch (e) {
+            toast.error('❌ Network error starting sequence', { id: toastId });
+        }
+    };
+
+    const deleteSequence = async (id: string) => {
+        const sequence = sequences.find(s => s.id === id);
+
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Sequence',
+            message: `Are you sure you want to delete "${sequence?.name || 'this sequence'}"? This action cannot be undone.`,
+            confirmText: 'Delete Sequence',
+            onConfirm: async () => {
+                try {
+                    await fetch(`/api/vyos/sequences/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    toast.success('✓ Sequence deleted');
+                    fetchData();
+                } catch (e) {
+                    toast.error('Failed to delete sequence');
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const openSeqModal = (seq?: VyosSequence) => {
+        setEditingSeq(seq ? JSON.parse(JSON.stringify(seq)) : {
+            id: `seq-${Date.now()}`,
+            name: '',
+            enabled: true,
+            cycle_duration: 60,
+            actions: []
+        });
+        setShowSeqModal(true);
+    };
+
+    const saveSequence = async () => {
+        if (!editingSeq) return;
+        const toastId = toast.loading('Saving mission blueprint...');
+        try {
+            const res = await fetch('/api/vyos/sequences', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(editingSeq)
+            });
+            if (res.ok) {
+                fetchData();
+                setShowSeqModal(false);
+                toast.success('✓ Mission blueprint saved', { id: toastId });
+            } else {
+                toast.error('❌ Failed to save blueprint', { id: toastId });
+            }
+        } catch (e) {
+            toast.error('❌ Network error saving blueprint', { id: toastId });
+        }
+    };
+
+    const resetDiscovery = () => {
+        setDiscoveryHost('');
+        setDiscoveryKey('');
+        setDiscoveryLocation('');
+        setDiscoveryResult(null);
+        setError(null);
+    };
+
+    return (
+        <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+            {/* Live Indicator Overlay */}
+            {activeExecution && (
+                <div className="fixed top-24 right-8 z-[100] animate-in slide-in-from-right-8 fade-in flex items-center gap-4 bg-purple-900/40 border border-purple-500/50 backdrop-blur-md px-6 py-4 rounded-2xl shadow-2xl shadow-purple-900/50">
+                    <div className="relative">
+                        <Zap size={24} className="text-purple-400 animate-pulse" />
+                        <div className="absolute inset-0 bg-purple-400 rounded-full animate-ping opacity-20" />
+                    </div>
+                    <div>
+                        <h4 className="text-xs font-black text-white uppercase tracking-tighter">Sequence In Progress</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-purple-200 font-mono bg-purple-500/20 px-1.5 rounded">{activeExecution.step}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Header / Nav */}
+            <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-purple-600/20 rounded-xl">
+                            <Shield size={24} className="text-purple-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">VyOS Control</h2>
+                            <div className="flex items-center gap-4 mt-1">
+                                <button onClick={() => setView('routers')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'routers' ? 'text-blue-400 border-b-2 border-blue-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>Routers</button>
+                                <button onClick={() => setView('sequences')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'sequences' ? 'text-purple-400 border-b-2 border-purple-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>Sequences</button>
+                                <button onClick={() => setView('history')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'history' ? 'text-green-400 border-b-2 border-green-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>History</button>
+                                <button onClick={() => setView('timeline')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'timeline' ? 'text-purple-400 border-b-2 border-purple-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>Timeline</button>
+                                <button onClick={() => setView('metrics')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'metrics' ? 'text-orange-400 border-b-2 border-orange-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>Metrics</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {view === 'routers' && (
+                            <button
+                                onClick={() => setShowAddModal(true)}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-blue-900/20"
+                            >
+                                <Wifi size={18} /> DISCOVER ROUTER
+                            </button>
+                        )}
+                        {view === 'sequences' && (
+                            <button
+                                onClick={() => openSeqModal()}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-purple-900/20"
+                            >
+                                <Plus size={18} /> NEW SEQUENCE
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* View Content */}
+            {view === 'routers' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-300">
+                    {routers.map((router) => (
+                        <div key={router.id} className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden group hover:border-blue-500/30 transition-all flex flex-col shadow-lg">
+                            <div className="p-6 border-b border-slate-800/50 flex items-start justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-3 rounded-xl ${router.status === 'online' ? 'bg-green-500/10' : 'bg-red-500/10'} shadow-sm`}>
+                                        <Server size={22} className={router.status === 'online' ? 'text-green-400' : 'text-red-400'} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-100 uppercase tracking-tight text-lg">{router.name}</h4>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-slate-500 font-mono bg-slate-950 px-1.5 py-0.5 rounded">{router.host}</span>
+                                            {router.location && (
+                                                <span className="text-[9px] text-slate-400 font-bold uppercase flex items-center gap-1">
+                                                    <MapPin size={8} /> {router.location}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-2">
+                                    <div className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${router.status === 'online' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                                        {router.status}
+                                    </div>
+                                    {/* Last Seen Indicator */}
+                                    {router.lastSeen && (
+                                        <div className="flex items-center gap-1.5 text-[9px] text-slate-600">
+                                            <Clock size={10} />
+                                            <span>
+                                                Checked {Math.floor((Date.now() - router.lastSeen) / 60000)}m ago
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Offline Warning */}
+                                    {router.status === 'offline' && router.lastSeen && (Date.now() - router.lastSeen) > 300000 && (
+                                        <div className="text-[9px] text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 animate-pulse">
+                                            ⚠️ Offline for {Math.floor((Date.now() - router.lastSeen) / 60000)}m
+                                        </div>
+                                    )}
+                                    <div className="text-[10px] text-slate-600 font-mono font-bold uppercase transition-opacity">ID: {router.id}</div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 flex-1 space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest pl-1">VyOS Node Info</span>
+                                    <span className="text-[10px] text-slate-300 font-mono bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">v{router.version}</span>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between text-[10px] mb-1">
+                                        <span className="text-slate-500 uppercase font-black tracking-widest pl-1">Network Interfaces</span>
+                                        <span className="text-blue-400 font-black">{router.interfaces.length} DETECTED</span>
+                                    </div>
+                                    <div className="space-y-2 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar group/list">
+                                        {router.interfaces.map((iface) => (
+                                            <div key={iface.name} className="flex flex-col p-2.5 bg-slate-950/40 border border-slate-800/50 rounded-xl hover:border-blue-500/20 transition-all">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] text-slate-200 font-black uppercase tracking-tighter">{iface.name}</span>
+                                                    <span className="text-[9px] text-slate-500 font-mono truncate max-w-[120px]">{iface.address?.[0] || 'no-ip'}</span>
+                                                </div>
+                                                {iface.description && (
+                                                    <div className="text-[9px] text-slate-400 italic mt-1 line-clamp-1">{iface.description}</div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="px-6 py-4 bg-slate-950/50 border-t border-slate-800 flex items-center justify-between">
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => testRouter(router.id)}
+                                        className="p-2 bg-slate-800 hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all border border-slate-700/50"
+                                        title="Test Connectivity"
+                                    >
+                                        <Zap size={16} />
+                                    </button>
+                                    <button
+                                        className="p-2 bg-slate-800 hover:bg-purple-600/20 text-slate-400 hover:text-purple-400 rounded-lg transition-all border border-slate-700/50"
+                                        title="Refresh Info"
+                                        onClick={() => testRouter(router.id)} // Re-using test for now as it discovery
+                                    >
+                                        <RefreshCw size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => editRouter(router)}
+                                        className="p-2 bg-slate-800 hover:bg-orange-600/20 text-slate-400 hover:text-orange-400 rounded-lg transition-all border border-slate-700/50"
+                                        title="Node Settings"
+                                    >
+                                        <Settings size={16} />
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => deleteRouter(router.id)}
+                                    className="p-2 text-slate-600 hover:text-red-400 transition-colors"
+                                    title="Revoke Router"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                    {routers.length === 0 && (
+                        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl text-slate-500">
+                            <Monitor size={64} className="mb-6 opacity-20" />
+                            <p className="text-lg font-bold uppercase tracking-[0.2em] opacity-40">Tactical Node Map Empty</p>
+                            <p className="text-sm mt-2 opacity-30">Initiate router discovery to begin impairment testing.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {view === 'sequences' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-300">
+                    {sequences.map((seq) => (
+                        <div key={seq.id} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:border-purple-500/30 transition-all flex flex-col justify-between group shadow-lg">
+                            <div className="flex items-start justify-between mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-all shadow-sm">
+                                        <RefreshCw size={24} className="text-purple-400" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-slate-100 uppercase tracking-tighter text-xl">{seq.name}</h4>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{seq.actions.length} ACTIONS</span>
+                                            <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                                            <span className="text-[10px] text-purple-400/70 font-black uppercase tracking-widest flex items-center gap-1">
+                                                <Clock size={10} /> {seq.cycle_duration === 0 ? 'MANUAL' : `${seq.cycle_duration}M CYCLE`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => openSeqModal(seq)}
+                                        className="p-2 text-slate-500 hover:text-blue-400 transition-colors bg-slate-800/50 rounded-lg border border-slate-700/50"
+                                    >
+                                        <Layout size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => deleteSequence(seq.id)}
+                                        className="p-2 text-slate-500 hover:text-red-400 transition-colors bg-slate-800/50 rounded-lg border border-slate-700/50"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 mb-8 h-28 overflow-hidden relative">
+                                {seq.actions.map((action, i) => (
+                                    <div key={i} className="flex gap-4 items-center text-[10px] bg-slate-950/40 p-2 rounded-lg border border-slate-800/30">
+                                        <span className="text-purple-500 font-black w-6 text-center">T+{action.offset_minutes}</span>
+                                        <span className="text-slate-100 font-black uppercase w-28 truncate tracking-tighter">{action.command}</span>
+                                        <span className="text-slate-600"><ChevronRight size={12} /></span>
+                                        <span className="text-slate-400 font-mono text-[9px] truncate">{routers.find(r => r.id === action.router_id)?.name || 'Unknown'} : {action.interface}</span>
+                                        {/* Show impairment parameters */}
+                                        {action.parameters && Object.keys(action.parameters).length > 0 && (
+                                            <span className="text-[9px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 ml-auto group-hover:bg-blue-500/20 transition-colors">
+                                                {action.parameters.latency && `${action.parameters.latency}ms`}
+                                                {action.parameters.loss && ` ${action.parameters.loss}% loss`}
+                                                {action.parameters.rate && ` ${action.parameters.rate}`}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-slate-900/50 to-transparent" />
+                            </div>
+
+                            <div className="flex items-center gap-4 pt-6 border-t border-slate-800/50">
+                                <button
+                                    onClick={() => runSequence(seq.id)}
+                                    disabled={activeExecution !== null}
+                                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black transition-all shadow-lg shadow-purple-900/40 uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
+                                >
+                                    {activeExecution?.sequenceId === seq.id ? 'RUNNING...' : 'EXECUTE MISSION'}
+                                </button>
+                                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${seq.enabled ? 'bg-green-500/5 border-green-500/20' : 'bg-slate-800/10 border-slate-700/20'}`}>
+                                    <div className={`w-2 h-2 rounded-full ${seq.enabled ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`} />
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${seq.enabled ? 'text-green-400' : 'text-slate-500'}`}>{seq.enabled ? 'ACTIVE' : 'IDLE'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {sequences.length === 0 && (
+                        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl text-slate-500 text-center">
+                            <Terminal size={64} className="mb-6 opacity-20" />
+                            <p className="text-lg font-bold uppercase tracking-[0.2em] opacity-40">Impairment Engine Standby</p>
+                            <p className="text-sm mt-2 opacity-30 max-w-sm">No action loops programmed. Design a sequence to automate network failure testing.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {view === 'history' && (
+                <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 shadow-2xl">
+                    <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-slate-950/80 border-b border-slate-800 sticky top-0">
+                            <tr>
+                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Execution Time</th>
+                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Mission Type</th>
+                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Target Node</th>
+                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Objective</th>
+                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em] text-center">Verdict</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/50">
+                            {history.map((log, idx) => (
+                                <tr key={idx} className="hover:bg-slate-800/30 transition-colors group">
+                                    <td className="px-6 py-5">
+                                        <div className="text-slate-100 font-mono font-bold text-sm tracking-tight">{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                                        <div className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mt-1">{new Date(log.timestamp).toLocaleDateString()}</div>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-1.5 bg-purple-500/10 rounded-lg">
+                                                <Zap size={14} className="text-purple-400" />
+                                            </div>
+                                            <span className="text-slate-200 font-black uppercase tracking-tight">{log.sequence_name}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <div className="flex flex-col">
+                                            <span className="text-slate-300 font-bold uppercase text-[10px]">{log.router_id}</span>
+                                            <span className="text-[9px] text-slate-600 font-mono">{log.interface || 'global'}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-300 font-black uppercase text-[9px] tracking-widest">{log.command}</span>
+                                            {log.parameters && Object.keys(log.parameters).length > 0 && (
+                                                <span className="text-[9px] text-slate-500 font-mono italic">({JSON.stringify(log.parameters)})</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-5 text-center">
+                                        <div className="flex justify-center">
+                                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${log.status === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                {log.status === 'success' ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
+                                                {log.status}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {history.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-28 text-center">
+                                        <div className="flex flex-col items-center gap-4 opacity-10">
+                                            <Clock size={64} className="text-slate-400" />
+                                            <span className="text-lg font-black uppercase tracking-[0.4em] text-slate-400">Chronicle Database Empty</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            {view === 'timeline' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="lg:col-span-2 space-y-6">
+                        {sequences.filter(s => s.enabled).map(seq => (
+                            <ExecutionTimeline
+                                key={seq.id}
+                                sequence={seq}
+                                history={history}
+                                routers={routers}
+                            />
+                        ))}
+
+                        {sequences.filter(s => s.enabled).length === 0 && (
+                            <div className="py-20 flex flex-col items-center justify-center bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl text-slate-500">
+                                <Activity size={64} className="mb-6 opacity-20" />
+                                <p className="text-lg font-bold uppercase tracking-wider opacity-40">No Active Sequences</p>
+                                <p className="text-sm mt-2 opacity-30">Enable a sequence to see its execution timeline.</p>
+                            </div>
+                        )}
+                    </div>
+                    <div className="lg:col-span-1">
+                        <LiveFeed />
+                    </div>
+                </div>
+            )}
+
+            {view === 'metrics' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in zoom-in-95 duration-300">
+                    <MetricCard title="Total Executions" value={metrics.total} icon={<Activity className="text-blue-400" />} />
+                    <MetricCard title="Success Rate" value={`${metrics.successRate}%`} icon={<CheckCircle className="text-green-400" />} />
+                    <MetricCard title="Last 24 Hours" value={metrics.last24h} icon={<Clock className="text-purple-400" />} />
+                    <MetricCard title="Active Sequences" value={metrics.activeSequences} icon={<Zap className="text-yellow-400" />} />
+                    <MetricCard title="Failed (1h)" value={metrics.failedLastHour} icon={<XCircle className="text-red-400" />} />
+                    <MetricCard title="Top Router" value={metrics.mostUsedRouter} icon={<Server className="text-orange-400" />} />
+                </div>
+            )}
+
+            {/* Router Discovery Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 sticky top-0 z-10">
+                            <h3 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
+                                <Globe size={28} className="text-blue-400" /> Tactical Node Discovery
+                            </h3>
+                            <button onClick={() => { setShowAddModal(false); resetDiscovery(); }} className="text-slate-500 hover:text-white transition-all bg-slate-800/50 p-2 rounded-full">
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
+                            {!discoveryResult ? (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                                                <ExternalLink size={10} /> Node IPv4 Address
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. 192.168.122.64"
+                                                value={discoveryHost}
+                                                onChange={(e) => setDiscoveryHost(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono text-sm shadow-inner transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                                                <Zap size={10} /> HTTPS API Key
+                                            </label>
+                                            <input
+                                                type="password"
+                                                placeholder="VyOS Secret Radius"
+                                                value={discoveryKey}
+                                                onChange={(e) => setDiscoveryKey(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono text-sm shadow-inner transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                                            <MapPin size={10} /> Physical Location (Optional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Paris Edge-Point A"
+                                            value={discoveryLocation}
+                                            onChange={(e) => setDiscoveryLocation(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 uppercase tracking-tight font-black text-xs"
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4 text-red-400 text-xs font-black uppercase tracking-tight animate-pulse shadow-sm">
+                                            <AlertCircle size={20} />
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <div className="p-6 bg-blue-600/5 border border-blue-500/20 rounded-2xl">
+                                        <div className="flex items-start gap-4">
+                                            <Info size={20} className="text-blue-400 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] leading-relaxed text-slate-400 font-medium"> Discovery will execute <code className="text-blue-300 bg-blue-900/30 px-1 py-0.5 rounded">get-info</code> via the VyOS controller script to extract hardware, software, and interface metadata. Ensure the HTTPS API is enabled on the target router.</p>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="animate-in slide-in-from-right-8 duration-500 space-y-8 pb-4">
+                                    <div className="p-8 bg-green-500/10 border border-green-500/20 rounded-3xl relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                            <CheckCircle size={120} />
+                                        </div>
+                                        <div className="flex items-center gap-4 mb-8">
+                                            <div className="p-3 bg-green-500/20 rounded-2xl border border-green-500/30">
+                                                <Server size={32} className="text-green-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-2xl font-black text-white uppercase tracking-tighter">{discoveryResult.name}</h4>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xs text-green-400 font-black tracking-widest uppercase">Verified Connection</span>
+                                                    <div className="w-1 h-1 bg-green-900 rounded-full" />
+                                                    <span className="text-xs text-slate-500 font-mono bg-slate-950/50 px-2 py-0.5 rounded">ID: {discoveryResult.id}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-8 relative z-10">
+                                            <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50">
+                                                <span className="text-[10px] text-slate-500 block uppercase font-black tracking-[0.2em] mb-2">Hardware Node</span>
+                                                <span className="text-slate-100 font-black uppercase text-sm tracking-tight">{discoveryResult.host}</span>
+                                            </div>
+                                            <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50">
+                                                <span className="text-[10px] text-slate-500 block uppercase font-black tracking-[0.2em] mb-2">VyOS Kernel</span>
+                                                <span className="text-slate-100 font-black uppercase text-sm tracking-tight">Version {discoveryResult.version}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Extracted Interfaces</span>
+                                            <span className="text-[11px] font-black text-blue-400">{discoveryResult.interfaces?.length} PATHS FOUND</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {discoveryResult.interfaces?.map(iface => (
+                                                <div key={iface.name} className="flex flex-col p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-blue-500/20 transition-all">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-black text-slate-200 uppercase tracking-tighter text-sm">{iface.name}</span>
+                                                        <Wifi size={14} className="text-slate-700" />
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500 font-mono bg-slate-900/50 px-2 py-1 rounded inline-block w-fit mb-2">{iface.address?.[0] || 'DHCP/NO-IP'}</div>
+                                                    {iface.description && (
+                                                        <div className="text-[9px] text-slate-500 font-medium bg-blue-500/5 p-2 rounded-lg italic">"{iface.description}"</div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-8 border-t border-slate-800 bg-slate-900/80 backdrop-blur-md flex gap-4 sticky bottom-0">
+                            <button
+                                onClick={() => { setShowAddModal(false); resetDiscovery(); }}
+                                className="flex-1 px-6 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-black transition-all text-xs uppercase tracking-[0.3em] border border-slate-700/50 shadow-inner"
+                            >
+                                ABORT
+                            </button>
+                            {!discoveryResult ? (
+                                <button
+                                    onClick={startDiscovery}
+                                    disabled={discovering || !discoveryHost || !discoveryKey}
+                                    className="flex-2 px-10 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black transition-all shadow-xl shadow-blue-900/40 text-xs uppercase tracking-[0.3em] disabled:opacity-20 flex items-center justify-center gap-3 active:scale-95"
+                                >
+                                    {discovering ? <RefreshCw size={20} className="animate-spin" /> : <><Globe size={20} /> INITIATE SCAN</>}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={saveRouter}
+                                    className="flex-2 px-10 py-4 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-black transition-all shadow-xl shadow-green-900/40 text-xs uppercase tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 animate-in slide-in-from-bottom-2"
+                                >
+                                    <CheckCircle size={20} /> AUTHORIZE & DEPLOY
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Sequence Builder Modal */}
+            {showSeqModal && editingSeq && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+                        <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 backdrop-blur-md sticky top-0 z-10">
+                            <h3 className="text-2xl font-black text-white flex items-center gap-4 uppercase tracking-tighter">
+                                <Activity size={28} className="text-purple-400" />
+                                {editingSeq.id ? 'Mission Parameters' : 'Blueprint Mission'}
+                            </h3>
+                            <button onClick={() => setShowSeqModal(false)} className="text-slate-500 hover:text-white transition-all bg-slate-800/50 p-2 rounded-full">
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-8 overflow-y-auto flex-1 space-y-8 custom-scrollbar">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] pl-1">Mission Identifier</label>
+                                    <input
+                                        type="text"
+                                        value={editingSeq.name}
+                                        onChange={(e) => setEditingSeq({ ...editingSeq, name: e.target.value })}
+                                        placeholder="e.g. AWS-CONVERGENCE-STRESS"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-black uppercase tracking-tight text-sm shadow-inner transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] pl-1">Cycle duration (Min)</label>
+                                    <select
+                                        value={editingSeq.cycle_duration}
+                                        onChange={(e) => setEditingSeq({ ...editingSeq, cycle_duration: parseInt(e.target.value) })}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-black uppercase tracking-tight text-sm appearance-none cursor-pointer shadow-inner"
+                                    >
+                                        <option value={0}>Manual Trigger Only</option>
+                                        <option value={10}>10 Minute Cycle</option>
+                                        <option value={30}>30 Minute Cycle</option>
+                                        <option value={60}>60 Minute Cycle</option>
+                                        <option value={120}>2 Hour Cycle</option>
+                                        <option value={1440}>24 Hour Cycle</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between bg-purple-600/5 p-4 rounded-2xl border border-purple-500/10">
+                                    <div className="flex flex-col">
+                                        <h4 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.3em]">Operational Flow</h4>
+                                        <span className="text-[10px] text-slate-600 font-bold">ACTIONS WILL TRIGGER AT DEFINED OFFSETS WITHIN THE CYCLE</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setEditingSeq({
+                                            ...editingSeq,
+                                            actions: [...editingSeq.actions, { id: `act-${Date.now()}`, offset_minutes: 0, router_id: routers[0]?.id || '', interface: routers[0]?.interfaces?.[0]?.name || '', command: 'interface-down', parameters: {} }]
+                                        })}
+                                        className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-purple-900/20 active:scale-95"
+                                    >
+                                        + APPEND ACTION
+                                    </button>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {editingSeq.actions.map((action, idx) => (
+                                        <div key={idx} className="bg-slate-950/80 border border-slate-800 rounded-2xl p-6 space-y-6 group relative overflow-hidden animate-in slide-in-from-left-6 duration-300">
+                                            <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-500/20 group-hover:bg-purple-500/60 transition-all" />
+
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="flex flex-col items-center justify-center p-3 bg-slate-900 rounded-xl border border-slate-800 shadow-sm">
+                                                        <span className="text-[8px] text-slate-500 font-black uppercase tracking-tighter mb-0.5">T+ (Min)</span>
+                                                        <input
+                                                            type="number"
+                                                            value={action.offset_minutes}
+                                                            onChange={(e) => {
+                                                                const newActions = [...editingSeq.actions];
+                                                                newActions[idx].offset_minutes = Math.min(editingSeq.cycle_duration, Math.max(0, parseInt(e.target.value) || 0));
+                                                                setEditingSeq({ ...editingSeq, actions: newActions });
+                                                            }}
+                                                            className="bg-transparent border-none text-purple-400 font-black text-center w-10 p-0 text-sm focus:ring-0 shadow-none outline-none"
+                                                        />
+                                                    </div>
+                                                    <select
+                                                        value={action.command}
+                                                        onChange={(e) => {
+                                                            const newActions = [...editingSeq.actions];
+                                                            newActions[idx].command = e.target.value;
+                                                            setEditingSeq({ ...editingSeq, actions: newActions });
+                                                        }}
+                                                        className="bg-transparent border-none text-slate-100 font-black uppercase text-base focus:ring-0 cursor-pointer hover:text-purple-400 transition-colors shadow-none outline-none appearance-none tracking-tighter"
+                                                    >
+                                                        <option value="interface-down">Shutdown Path</option>
+                                                        <option value="interface-up">Restore Path</option>
+                                                        <option value="set-impairment">Inject Latency/Loss</option>
+                                                        <option value="reset-impairment">Clear Global TC</option>
+                                                    </select>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        const newActions = editingSeq.actions.filter((_, i) => i !== idx);
+                                                        setEditingSeq({ ...editingSeq, actions: newActions });
+                                                    }}
+                                                    className="p-2.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Server size={8} /> Target Node</label>
+                                                    <select
+                                                        value={action.router_id}
+                                                        onChange={(e) => {
+                                                            const newActions = [...editingSeq.actions];
+                                                            newActions[idx].router_id = e.target.value;
+                                                            const r = routers.find(router => router.id === e.target.value);
+                                                            if (r && r.interfaces.length > 0) {
+                                                                newActions[idx].interface = r.interfaces[0].name;
+                                                            }
+                                                            setEditingSeq({ ...editingSeq, actions: newActions });
+                                                        }}
+                                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black uppercase appearance-none cursor-pointer"
+                                                    >
+                                                        {routers.map(r => <option key={r.id} value={r.id}>{r.name} ({r.host})</option>)}
+                                                    </select>
+                                                </div>
+
+                                                {(action.command !== 'reset-impairment') && (
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Wifi size={8} /> Interface Path</label>
+                                                        <select
+                                                            value={action.interface}
+                                                            onChange={(e) => {
+                                                                const newActions = [...editingSeq.actions];
+                                                                newActions[idx].interface = e.target.value;
+                                                                setEditingSeq({ ...editingSeq, actions: newActions });
+                                                            }}
+                                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black uppercase appearance-none cursor-pointer"
+                                                        >
+                                                            {(routers.find(r => r.id === action.router_id)?.interfaces || []).map(iface => (
+                                                                <option key={iface.name} value={iface.name} title={iface.description || undefined}>{iface.name} {iface.description ? `- ${iface.description}` : ''}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+
+                                                {action.command === 'set-impairment' && (
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Latency (ms)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={action.parameters?.latency || 0}
+                                                            onChange={(e) => {
+                                                                const newActions = [...editingSeq.actions];
+                                                                newActions[idx].parameters = { ...newActions[idx].parameters, latency: parseInt(e.target.value) };
+                                                                setEditingSeq({ ...editingSeq, actions: newActions });
+                                                            }}
+                                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {editingSeq.actions.length === 0 && (
+                                        <div className="py-20 text-center bg-slate-950/40 border border-dashed border-slate-800 rounded-[2.5rem] flex flex-col items-center gap-4">
+                                            <div className="p-4 bg-slate-900 rounded-full border border-slate-800/50">
+                                                <Cpu size={40} className="text-slate-800" />
+                                            </div>
+                                            <span className="text-[11px] font-black text-slate-600 uppercase tracking-[0.4em]">Engine Logic Empty</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 border-t border-slate-800 bg-slate-950/80 backdrop-blur-md rounded-b-3xl flex gap-4 sticky bottom-0 z-10">
+                            <button
+                                onClick={() => setShowSeqModal(false)}
+                                className="flex-1 px-6 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-black transition-all text-xs uppercase tracking-[0.3em] border border-slate-700/50 shadow-inner"
+                            >
+                                DISCARD
+                            </button>
+                            <button
+                                onClick={saveSequence}
+                                disabled={!editingSeq.name || editingSeq.actions.length === 0}
+                                className="flex-2 px-10 py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black transition-all shadow-xl shadow-purple-900/40 text-xs uppercase tracking-[0.3em] disabled:opacity-20 flex items-center justify-center gap-3 active:scale-95"
+                            >
+                                <CheckCircle size={20} /> AUTHORIZE BLUEPRINT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Router Edit Modal */}
+            {showEditRouterModal && editingRouter && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
+                        <div className="p-8 border-b border-slate-800 flex items-center justify-between">
+                            <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
+                                <Settings size={24} className="text-orange-400" /> Node Parameters: {editingRouter.name}
+                            </h3>
+                            <button onClick={() => setShowEditRouterModal(false)} className="text-slate-500 hover:text-white transition-all bg-slate-800/50 p-1.5 rounded-full">
+                                <XCircle size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5 opacity-50">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Router ID</label>
+                                    <input value={editingRouter.id} disabled className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-mono" />
+                                </div>
+                                <div className="space-y-1.5 opacity-50">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">IP Address</label>
+                                    <input value={editingRouter.host} disabled className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-mono" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Tactical Location</label>
+                                <input
+                                    type="text"
+                                    value={editingRouter.location || ''}
+                                    onChange={(e) => setEditingRouter({ ...editingRouter, location: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm font-black text-slate-100 uppercase tracking-tight focus:ring-1 focus:ring-orange-500/50 outline-none"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-xl border border-slate-800">
+                                <div>
+                                    <h4 className="text-xs font-black text-slate-200 uppercase tracking-widest">Node Power State</h4>
+                                    <p className="text-[10px] text-slate-600 uppercase font-bold">ENABLE/DISABLE AUTOMATED IMPAIRMENT TARGETING</p>
+                                </div>
+                                <button
+                                    onClick={() => setEditingRouter({ ...editingRouter, enabled: !editingRouter.enabled })}
+                                    className={`w-12 h-6 rounded-full transition-all relative ${editingRouter.enabled ? 'bg-orange-600' : 'bg-slate-800 border border-slate-700'}`}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 rounded-full transition-all bg-white ${editingRouter.enabled ? 'right-1' : 'left-1'}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-8 border-t border-slate-800 bg-slate-900/50 flex gap-4">
+                            <button onClick={() => setShowEditRouterModal(false)} className="flex-1 px-6 py-3 rounded-xl bg-slate-800 border border-slate-700/50 text-slate-400 font-black text-xs uppercase tracking-widest">ABORT</button>
+                            <button onClick={saveRouterChanges} className="flex-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-900/20 transition-all active:scale-95">SYNC Node</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Confirmation Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                cancelText="Cancel"
+                danger={true}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
+        </div>
+    );
+}
+
+interface ConfirmModalProps {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    danger?: boolean;
+}
+
+
+function ExecutionTimeline({
+    sequence,
+    history,
+    routers
+}: {
+    sequence: VyosSequence;
+    history: any[];
+    routers: VyosRouter[]
+}) {
+    const [countdown, setCountdown] = useState('');
+
+    const getNextCycleTime = (seq: VyosSequence) => {
+        if (!seq.lastRun || seq.cycle_duration === 0) return null;
+        const nextRunMs = seq.lastRun + (seq.cycle_duration * 60 * 1000);
+        const remainingMs = Math.max(0, nextRunMs - Date.now());
+        const minutes = Math.floor(remainingMs / 60000);
+        const seconds = Math.floor((remainingMs % 60000) / 1000);
+        return `${minutes}m ${seconds}s`;
+    };
+
+    const getLastExecution = (actionId: string, seqId: string) => {
+        return history
+            .filter(h => h.sequence_id === seqId && h.action_id === actionId)
+            .sort((a, b) => b.timestamp - a.timestamp)[0];
+    };
+
+    const getDotColor = (lastExec: any) => {
+        if (!lastExec) return 'bg-slate-800 border-slate-700'; // Never executed
+        if (lastExec.status === 'success') return 'bg-green-500 border-green-400 shadow-lg shadow-green-500/50';
+        return 'bg-red-500 border-red-400 shadow-lg shadow-red-500/50';
+    };
+
+    // Update countdown every second
+    useEffect(() => {
+        if (sequence.cycle_duration === 0) return;
+
+        const interval = setInterval(() => {
+            setCountdown(getNextCycleTime(sequence) || 'Calculating...');
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [sequence]);
+
+    return (
+        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+            {/* Header with sequence name and status */}
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+                <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">
+                        {sequence.name}
+                    </h3>
+                    <span className="text-xs text-slate-500 uppercase tracking-widest">
+                        Cycle Duration: {sequence.cycle_duration}min
+                    </span>
+                </div>
+                {sequence.enabled && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-xs font-black text-green-400 uppercase">ACTIVE</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Action Timeline */}
+            <div className="space-y-3 relative">
+                {sequence.actions.map((action, idx) => {
+                    const lastExec = getLastExecution(action.id, sequence.id);
+                    const router = routers.find(r => r.id === action.router_id);
+
+                    return (
+                        <div key={idx} className="flex items-start gap-4">
+                            {/* T+ Offset Label */}
+                            <div className="flex flex-col items-center justify-center w-16">
+                                <span className="text-[8px] text-slate-600 uppercase font-black tracking-tighter">T+MIN</span>
+                                <span className="text-purple-400 font-black text-lg">{action.offset_minutes}</span>
+                            </div>
+
+                            {/* Status Dot */}
+                            <div className={`w-4 h-4 rounded-full border-2 ${getDotColor(lastExec)} mt-2 z-10`} />
+
+                            {/* Vertical Connecting Line (except for last item) */}
+                            {idx < sequence.actions.length - 1 && (
+                                <div className="absolute left-[87.5px] w-px h-16 bg-slate-800 translate-y-8" />
+                            )}
+
+                            {/* Action Details Card */}
+                            <div className="flex-1 bg-slate-950/50 border border-slate-800 rounded-xl p-4 hover:border-blue-500/30 transition-all">
+                                <div className="flex items-center justify-between">
+                                    {/* Command + Target */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-black text-slate-100 uppercase tracking-tight">
+                                            {action.command}
+                                        </span>
+                                        <ChevronRight size={12} className="text-slate-700" />
+                                        <span className="text-xs text-slate-400">
+                                            {router?.name || 'Unknown'} - {action.interface}
+                                        </span>
+                                    </div>
+
+                                    {/* Execution Status */}
+                                    {lastExec && (
+                                        <div className="flex items-center gap-2">
+                                            {lastExec.status === 'success' ? (
+                                                <CheckCircle size={16} className="text-green-400" />
+                                            ) : (
+                                                <XCircle size={16} className="text-red-400" />
+                                            )}
+                                            <span className="text-[9px] text-slate-600 font-mono">
+                                                {new Date(lastExec.timestamp).toLocaleTimeString()}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Impairment Parameters */}
+                                {action.parameters && Object.keys(action.parameters).length > 0 && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        {action.parameters.latency && (
+                                            <span className="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20 font-bold">
+                                                {action.parameters.latency}ms latency
+                                            </span>
+                                        )}
+                                        {action.parameters.loss && (
+                                            <span className="text-[9px] bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded border border-orange-500/20 font-bold">
+                                                {action.parameters.loss}% loss
+                                            </span>
+                                        )}
+                                        {action.parameters.rate && (
+                                            <span className="text-[9px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20 font-bold">
+                                                {action.parameters.rate} rate
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Error Message (if failed) */}
+                                {lastExec?.error && (
+                                    <div className="mt-2 text-[9px] text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
+                                        ⚠️ {lastExec.error}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Next Cycle Countdown */}
+            {sequence.enabled && sequence.cycle_duration > 0 && (
+                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-center gap-3">
+                    <Clock size={14} className="text-blue-400" />
+                    <span className="text-xs text-slate-400 uppercase tracking-wider">Next Cycle In:</span>
+                    <span className="text-sm font-black text-blue-400 font-mono">{countdown}</span>
+                </div>
+            )}
+
+            {/* Manual Mode Notice */}
+            {sequence.cycle_duration === 0 && (
+                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-center gap-2 text-xs text-slate-500">
+                    <AlertCircle size={12} />
+                    <span>Manual trigger mode (no automatic cycling)</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ConfirmModal({
+    isOpen,
+    title,
+    message,
+    confirmText = 'Confirm',
+    cancelText = 'Cancel',
+    onConfirm,
+    onCancel,
+    danger = false
+}: ConfirmModalProps) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[120] flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 max-w-md w-full rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-800">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                        {danger && <AlertCircle size={24} className="text-red-400" />}
+                        {title}
+                    </h3>
+                </div>
+
+                {/* Body */}
+                <div className="p-6">
+                    <p className="text-sm text-slate-400 leading-relaxed">{message}</p>
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-800 flex gap-4">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-black transition-all text-xs uppercase tracking-widest"
+                    >
+                        {cancelText}
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className={`flex-1 px-6 py-3 rounded-xl font-black transition-all text-xs uppercase tracking-widest shadow-lg ${danger
+                            ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
+                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
+                            }`}
+                    >
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function MetricCard({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) {
+    return (
+        <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl hover:border-slate-700 transition-all group">
+            <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 group-hover:border-slate-700 transition-colors">
+                    {icon}
+                </div>
+                <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="text-[8px] text-slate-600 font-black uppercase tracking-widest">Live</span>
+                </div>
+            </div>
+            <div className="text-2xl font-black text-white tracking-tight mb-1">{value}</div>
+            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{title}</div>
+        </div>
+    );
+}
+
+function LiveFeed() {
+    const [feed, setFeed] = useState<any[]>([]);
+
+    useEffect(() => {
+        socket.on('vyos:sequence:step', (data) => {
+            setFeed(prev => [
+                { ...data, timestamp: Date.now(), id: `${data.sequenceId}-${Date.now()}` },
+                ...prev.slice(0, 49) // Keep last 50
+            ]);
+        });
+
+        return () => {
+            socket.off('vyos:sequence:step');
+        };
+    }, []);
+
+    return (
+        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 h-full flex flex-col min-h-[500px]">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                Live Activity Feed
+            </h3>
+            <div className="space-y-4 overflow-y-auto custom-scrollbar flex-1 pr-2">
+                {feed.map(item => (
+                    <div key={item.id} className="flex items-start gap-4 text-[11px] animate-in fade-in slide-in-from-top-2 duration-300 border-b border-slate-800/50 pb-3">
+                        <div className="text-slate-600 font-mono text-[9px] mt-0.5 whitespace-nowrap">
+                            {new Date(item.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.status === 'running' ? 'bg-blue-500 animate-pulse' :
+                                    item.status === 'success' ? 'bg-green-500' :
+                                        'bg-red-500'
+                                    }`} />
+                                <span className="text-slate-100 font-black uppercase tracking-tight truncate">
+                                    {item.sequenceId}
+                                </span>
+                                <ChevronRight size={10} className="text-slate-700" />
+                                <span className="text-slate-400 font-bold uppercase tracking-tighter truncate">{item.step}</span>
+                            </div>
+                            {item.error && (
+                                <div className="text-red-400 text-[10px] bg-red-500/10 px-2 py-1 rounded border border-red-500/20 mt-1">
+                                    ⚠️ {item.error}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+                {feed.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-600">
+                        <Activity size={48} className="mb-4 opacity-10 animate-pulse" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30">Awaiting Signal</p>
+                        <p className="text-[9px] mt-1 opacity-20 uppercase">Real-time telemetry will appear here</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

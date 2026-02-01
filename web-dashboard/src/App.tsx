@@ -9,9 +9,11 @@ import ConnectivityPerformance from './ConnectivityPerformance';
 import Failover from './Failover';
 import System from './System';
 import Iot from './Iot';
+import Vyos from './Vyos';
 import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap, Monitor, Cpu } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { Toaster } from 'react-hot-toast';
 
 function formatBitrate(mbpsStr: string) {
   const mbps = parseFloat(mbpsStr);
@@ -39,7 +41,7 @@ interface Stats {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt' | 'iot'>(
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt' | 'iot' | 'vyos'>(
     (localStorage.getItem('activeView') as any) || 'performance'
   );
   const [stats, setStats] = useState<Stats | null>(null);
@@ -495,6 +497,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
+      <Toaster position="top-right" />
       <header className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
@@ -699,6 +702,15 @@ export default function App() {
           )}
         >
           <Cpu size={18} /> IoT <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-500/20 text-blue-400 border border-blue-500/30">Beta</span>
+        </button>
+        <button
+          onClick={() => setView('vyos')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
+            view === 'vyos' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Monitor size={18} /> VyOS Control <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-purple-500/20 text-purple-400 border border-purple-500/30">Alpha</span>
         </button>
         <button
           onClick={() => setView('voice')}
@@ -1113,6 +1125,8 @@ export default function App() {
         <System token={token!} />
       ) : view === 'iot' ? (
         <Iot token={token!} />
+      ) : view === 'vyos' ? (
+        <Vyos token={token!} />
       ) : (
         <Config token={token!} />
       )}

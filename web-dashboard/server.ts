@@ -13,6 +13,8 @@ import { TestLogger, TestResult } from './test-logger.js';
 import { ConnectivityLogger, ConnectivityResult } from './connectivity-logger.js';
 import { URL_CATEGORIES, DNS_TEST_DOMAINS } from './shared/security-categories.js';
 import { IoTManager, IoTDeviceConfig } from './iot-manager.js';
+import { VyosManager } from './vyos-manager.js';
+import { VyosScheduler } from './vyos-scheduler.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
@@ -164,6 +166,8 @@ if (fs.existsSync(INTERFACES_FILE)) {
 }
 
 const iotManager = new IoTManager(getInterface());
+const vyosManager = new VyosManager(APP_CONFIG.configDir);
+const vyosScheduler = new VyosScheduler(vyosManager, APP_CONFIG.configDir, APP_CONFIG.logDir);
 
 
 const getNextBatchId = (): string => {
@@ -823,6 +827,110 @@ app.post('/api/auth/users', authenticateToken, (req: any, res) => {
     users.push({ username, passwordHash });
     saveUsers(users);
     res.json({ success: true, message: 'User created' });
+});
+
+// --- VyOS Endpoints ---
+
+app.get('/api/vyos/routers', authenticateToken, (req, res) => {
+    res.json(vyosManager.getRouters());
+});
+
+app.post('/api/vyos/routers/discover', authenticateToken, async (req, res) => {
+    const { host, apiKey, location } = req.body;
+    if (!host || !apiKey) return res.status(400).json({ error: 'Host and API Key required' });
+
+    try {
+        // 1. Discover router info
+        const info = await vyosManager.discoverRouter(host, apiKey);
+
+        // 2. Slugify hostname to create router ID
+        const routerId = vyosManager.slugify(info.hostname);
+
+        // 3. Check duplicate
+        if (vyosManager.getRouter(routerId)) {
+            return res.status(400).json({ success: false, error: 'Router already exists' });
+        }
+
+        // 4. Create router object
+        const newRouter = {
+            id: routerId,
+            name: info.hostname,
+            host: host,
+            apiKey: apiKey,
+            version: info.version,
+            location: location || undefined,
+            interfaces: info.interfaces,
+            enabled: true,
+            status: 'online',
+            lastSeen: Date.now()
+        };
+
+        // 5. Save
+        vyosManager.saveRouter(newRouter as any);
+
+        res.json({ success: true, router: newRouter });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/vyos/routers', authenticateToken, (req, res) => {
+    const router = req.body;
+    if (!router.id || !router.host) return res.status(400).json({ error: 'Invalid router data' });
+    vyosManager.saveRouter(router);
+    res.json({ success: true });
+});
+
+app.delete('/api/vyos/routers/:id', authenticateToken, (req, res) => {
+    vyosManager.deleteRouter(req.params.id);
+    res.json({ success: true });
+});
+
+app.post('/api/vyos/routers/test/:id', authenticateToken, async (req, res) => {
+    try {
+        const isOnline = await vyosManager.testConnection(req.params.id);
+        if (isOnline) {
+            res.json({ success: true, status: 'online' });
+        } else {
+            res.status(500).json({ success: false, status: 'offline' });
+        }
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// --- VyOS Sequence Endpoints ---
+
+app.get('/api/vyos/sequences', authenticateToken, (req, res) => {
+    res.json(vyosScheduler.getSequences());
+});
+
+app.post('/api/vyos/sequences', authenticateToken, (req, res) => {
+    const sequence = req.body;
+    if (!sequence.id || !sequence.name || !Array.isArray(sequence.actions)) {
+        return res.status(400).json({ error: 'Invalid sequence data' });
+    }
+    vyosScheduler.saveSequence(sequence);
+    res.json({ success: true });
+});
+
+app.delete('/api/vyos/sequences/:id', authenticateToken, (req, res) => {
+    vyosScheduler.deleteSequence(req.params.id);
+    res.json({ success: true });
+});
+
+app.post('/api/vyos/sequences/run/:id', authenticateToken, async (req, res) => {
+    try {
+        await vyosScheduler.runSequenceManually(req.params.id);
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/vyos/history', authenticateToken, (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    res.json(vyosScheduler.getHistory(limit));
 });
 
 // API: Get UI Configuration (Public endpoint)
@@ -2875,6 +2983,19 @@ const stopAllSchedulers = () => {
 // Start schedulers on server startup
 setTimeout(() => {
     startSchedulers();
+
+    // VyOS Health Check (60s)
+    setInterval(() => {
+        vyosManager.checkHealth().catch(e => console.error('[VYOS] Health check error:', e));
+    }, 60000);
+
+    // VyOS Socket Events
+    vyosScheduler.on('sequence:step', (data) => {
+        io.emit('vyos:sequence_step', data);
+    });
+    vyosScheduler.on('sequence:completed', (log) => {
+        io.emit('vyos:sequence_completed', log);
+    });
 }, 5000);
 
 
