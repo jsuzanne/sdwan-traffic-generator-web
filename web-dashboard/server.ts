@@ -839,6 +839,7 @@ app.post('/api/vyos/routers/discover', authenticateToken, async (req, res) => {
     const { host, apiKey, location } = req.body;
     if (!host || !apiKey) return res.status(400).json({ error: 'Host and API Key required' });
 
+    console.log(`[API] VyOS Discovery Request: host=${host}, apiKey=${apiKey.substring(0, 4)}***`);
     try {
         // 1. Discover router info
         const info = await vyosManager.discoverRouter(host, apiKey);

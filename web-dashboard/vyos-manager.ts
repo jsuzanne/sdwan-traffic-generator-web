@@ -103,7 +103,9 @@ export class VyosManager extends EventEmitter {
                 reject(new Error('Discovery timeout (5s)'));
             }, 5000);
 
-            const proc = spawn('python3', [this.pythonScriptPath, 'get-info', '--ip', host, '--key', apiKey]);
+            const args = [this.pythonScriptPath, 'get-info', '--host', host, '--key', apiKey];
+            console.log(`[VYOS] Discover CLI: python3 ${args.join(' ')}`);
+            const proc = spawn('python3', args);
 
             let output = '';
             let errorMsg = '';
@@ -223,7 +225,7 @@ export class VyosManager extends EventEmitter {
         const router = this.routers.get(routerId);
         if (!router) throw new Error('Router not found');
 
-        const args = [this.pythonScriptPath, action.command, '--ip', router.host, '--key', router.apiKey];
+        const args = [this.pythonScriptPath, action.command, '--host', router.host, '--key', router.apiKey];
 
         // Map params to CLI arguments
         if (action.params) {

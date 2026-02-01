@@ -7,6 +7,14 @@ import textwrap
 import requests
 import urllib3
 import re
+import logging
+
+# Configure logging to /tmp/vyos_sdwan_ctl.log
+logging.basicConfig(
+    filename='/tmp/vyos_sdwan_ctl.log',
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
 
 # Disable SSL warnings for self-signed certificates
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -298,7 +306,8 @@ def main():
         """),
     )
 
-    parser.add_argument("--host", required=True, help="VyOS IP or hostname")
+    parser.add_argument("--host", help="VyOS IP or hostname")
+    parser.add_argument("--ip", help="Alias for --host")
     parser.add_argument("--key", required=True, help="VyOS HTTPS API key")
     parser.add_argument("--version", choices=["1.4", "1.5"], help="VyOS version (not needed for get-info)")
     parser.add_argument("--secure", action="store_true", help="Enable TLS verification")
@@ -369,6 +378,19 @@ def main():
     p_cqos.add_argument("--iface", required=True)
 
     args = parser.parse_args()
+
+    # Log CLI execution
+    logging.info("CLI Call: %s", " ".join(sys.argv))
+    logging.info("Parsed Args: cmd=%s host=%s ip=%s key=%s", 
+                 args.cmd, args.host, args.ip, 
+                 args.key[:4] + "***" if args.key else "None")
+
+    # Handle IP alias fallback
+    if not args.host and args.ip:
+        args.host = args.ip
+    
+    if not args.host:
+        parser.error("The following arguments are required: --host (or --ip)")
 
     # Handle get-info command
     if args.cmd == "get-info":
