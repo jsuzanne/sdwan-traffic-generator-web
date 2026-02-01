@@ -103,7 +103,8 @@ export class VyosManager extends EventEmitter {
                 reject(new Error('Discovery timeout (5s)'));
             }, 5000);
 
-            const args = [this.pythonScriptPath, 'get-info', '--host', host, '--key', apiKey];
+            // FIX: Global flags MUST be before the subcommand 'get-info'
+            const args = [this.pythonScriptPath, '--host', host, '--key', apiKey, 'get-info'];
             console.log(`[VYOS] Discover CLI: python3 ${args.join(' ')}`);
             const proc = spawn('python3', args);
 
@@ -232,6 +233,7 @@ export class VyosManager extends EventEmitter {
         if (command === 'set-impairment') command = 'set-qos';
         if (command === 'reset-impairment') command = 'clear-qos';
 
+        // Action syntax: vyos_sdwan_ctl.py <subcommand> --host ... --key ... --version ... [params...]
         const args = [
             this.pythonScriptPath,
             command,
@@ -241,13 +243,12 @@ export class VyosManager extends EventEmitter {
         ];
 
         // Map params to CLI arguments
-        // Ensure every non-null entry is added
         if (action.params) {
             Object.keys(action.params).forEach(key => {
                 const val = action.params[key];
                 if (val !== null && val !== undefined && val !== '') {
-                    // Map common UI parameter names to Python CLI flags if needed
                     let flag = key;
+                    // Alignment with Python CLI flags
                     if (key === 'latency') flag = 'ms';
                     if (key === 'loss') flag = 'percent';
                     if (key === 'corrupt') flag = 'corruption';
@@ -258,7 +259,7 @@ export class VyosManager extends EventEmitter {
             });
         }
 
-        console.log(`[VYOS] Executing: python3 ${args.join(' ')}`);
+        console.log(`[VYOS] Executing CLI: python3 ${args.join(' ')}`);
 
         return new Promise((resolve, reject) => {
             const proc = spawn('python3', args);
