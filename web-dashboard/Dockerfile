@@ -46,6 +46,8 @@ COPY web-dashboard/tsconfig.json ./
 COPY VERSION ./VERSION
 # Copy engines orchestration script
 COPY engines ./engines
+# Copy VyOS orchestration script
+COPY vyos ./vyos
 # Copy IoT emulation script and devices template
 COPY iot ./iot
 

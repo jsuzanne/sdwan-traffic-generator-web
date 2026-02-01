@@ -1,4 +1,4 @@
-import { VyosManager, VyosRouter } from './vyos-manager';
+import { VyosManager, VyosRouter } from './vyos-manager.js';
 import fs from 'fs';
 import path from 'path';
 import { EventEmitter } from 'events';
