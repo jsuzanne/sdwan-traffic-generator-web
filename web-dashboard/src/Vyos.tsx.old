@@ -1084,10 +1084,10 @@ export default function Vyos(props: VyosProps) {
                                                         }}
                                                         className="bg-transparent border-none text-slate-100 font-black uppercase text-base focus:ring-0 cursor-pointer hover:text-purple-400 transition-colors shadow-none outline-none appearance-none tracking-tighter"
                                                     >
-                                                        <option value="interface-down">Shut</option>
-                                                        <option value="interface-up">No Shut</option>
-                                                        <option value="set-qos">Latency/Loss</option>
-                                                        <option value="clear-qos">Clear Qos</option>
+                                                        <option value="interface-down">Shutdown Path</option>
+                                                        <option value="interface-up">Restore Path</option>
+                                                        <option value="set-impairment">Inject Latency/Loss</option>
+                                                        <option value="reset-impairment">Clear Global TC</option>
                                                     </select>
                                                 </div>
                                                 <button
@@ -1121,7 +1121,7 @@ export default function Vyos(props: VyosProps) {
                                                     </select>
                                                 </div>
 
-                                                {(action.command !== 'clear-qos') && (
+                                                {(action.command !== 'reset-impairment') && (
                                                     <div className="space-y-1.5">
                                                         <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Wifi size={8} /> Interface Path</label>
                                                         <select
@@ -1140,7 +1140,7 @@ export default function Vyos(props: VyosProps) {
                                                     </div>
                                                 )}
 
-                                                {action.command === 'set-qos' && (
+                                                {action.command === 'set-impairment' && (
                                                     <>
                                                         <div className="space-y-1.5">
                                                             <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Latency (ms)</label>

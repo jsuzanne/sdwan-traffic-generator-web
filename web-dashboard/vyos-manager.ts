@@ -230,8 +230,8 @@ export class VyosManager extends EventEmitter {
         let command = action.command;
         if (command === 'interface-down') command = 'shut';
         if (command === 'interface-up') command = 'no-shut';
-        if (command === 'set-impairment') command = 'set-qos';
-        if (command === 'reset-impairment') command = 'clear-qos';
+        if (command === 'set-qos') command = 'set-qos';
+        if (command === 'clear-qos') command = 'clear-qos';
 
         // Action syntax: vyos_sdwan_ctl.py --host ... --key ... --version ... <subcommand> [params...]
         const args = [
@@ -250,7 +250,7 @@ export class VyosManager extends EventEmitter {
                     let flag = key;
                     // Alignment with Python CLI flags
                     if (key === 'latency') flag = 'ms';
-                    if (key === 'loss') flag = 'percent';
+                    if (key === 'loss') flag = 'loss';
                     if (key === 'corrupt') flag = 'corruption';
                     if (key === 'interface') flag = 'iface';
 
