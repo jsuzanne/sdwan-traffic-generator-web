@@ -10,10 +10,38 @@ Unlike standard traffic generators that use high-level HTTP libraries, our IoT e
 - **ARP Handling**: Devices respond to ARP requests on the wire, making them appear "real" to networking equipment.
 - **MAC Spoofing**: Each simulated device has its own unique, configurable MAC address.
 
-### 🏠 Host Mode Advantage
-Running in **Host Mode** (standard for Linux installs) allows the IoT engine to bypass the Docker bridge and talk directly to your physical network interface (e.g., `enp2s0`).
-- **Zero Latency**: Direct access to the host's network stack.
-- **Physical Wire Presence**: Devices are seen as local neighbors by your SD-WAN appliance or Switch.
+## Platform Compatibility
+
+### ✅ Full IoT Support (Host Mode - Linux Only)
+IoT simulation with DHCP, ARP, and Layer 2 protocols requires **Host Mode networking**, which is only available on **native Linux installations**.
+
+**Supported:**
+- Ubuntu (bare metal or VM)
+- Debian
+- CentOS/RHEL
+- Other native Linux distributions
+
+**Requirements:**
+- Native Linux (not WSL2)
+- Docker installed
+- Root/sudo access for network capabilities
+
+### ⚠️ Limited IoT Support (Bridge Mode)
+On macOS, Windows, and WSL2, IoT simulation runs in **Bridge Mode** with these limitations:
+
+**Platforms:**
+- macOS (Docker Desktop)
+- Windows (Docker Desktop + WSL2)
+- WSL2 (Windows Subsystem for Linux)
+
+**Limitations:**
+- ❌ No DHCP simulation
+- ❌ No ARP spoofing
+- ❌ No Layer 2 protocol simulation
+- ✅ HTTP/HTTPS traffic simulation still works
+- ✅ Voice/RTP simulation works (with reduced features)
+
+**Why:** Docker's Host Mode networking is not supported on macOS and Windows. These platforms use a VM-based Docker engine that doesn't expose the host network stack directly.
 
 ## 🛠️ Use Cases
 

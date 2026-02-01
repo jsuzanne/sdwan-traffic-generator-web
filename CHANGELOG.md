@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.34] - 2026-02-01
+### Added
+- **Platform-Aware Host Mode**: The installer now automatically detects the host platform and selects the optimal networking mode. 🐧🍎
+    - **Native Linux**: Uses Host Mode (`docker-compose.host.yml`) for full IoT/Voice simulation support (DHCP/ARP/L2).
+    - **macOS/Windows/WSL2**: Uses Bridge Mode (`docker-compose.example.yml`) for maximum compatibility.
+- **New Compose Files**: Added `docker-compose.host.yml` and `docker-compose.target-host.yml`.
+### Changed
+- **Documentation Update**: Detailed Host vs Bridge mode differences in `README.md`, `QUICK_START.md`, and `IOT_SIMULATION.md`.
+
 ## [1.1.2-patch.33.33] - 2026-02-01
 ### Changed
 - **Non-Interactive Installation**: Refactored `install.sh` and `install_latest.sh` to be non-interactive by default. 🚀

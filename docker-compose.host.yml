@@ -1,0 +1,84 @@
+# SD-WAN Traffic Generator - Host Mode Configuration (Linux Only)
+# ✅ Full IoT simulation support (DHCP, ARP, Layer 2)
+# ✅ Optimized for native Linux performance
+
+services:
+  # Web Dashboard - User Interface and API
+  sdwan-web-ui:
+    image: jsuzanne/sdwan-web-ui:stable
+    container_name: sdwan-web-ui
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - JWT_SECRET=your-super-secret-jwt-key-change-me-in-production
+      - CONFIG_DIR=/app/config
+      - LOG_DIR=/var/log/sdwan-traffic-gen
+      - PORT=8080
+      - DEBUG=false
+    volumes:
+      - ./config:/app/config
+      - ./logs:/var/log/sdwan-traffic-gen
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "test", "-f", "/app/config/applications.txt" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # Traffic Generator - Background Traffic Simulation
+  sdwan-traffic-gen:
+    image: jsuzanne/sdwan-traffic-gen:stable
+    container_name: sdwan-traffic-gen
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - SLEEP_BETWEEN_REQUESTS=1
+      - CLIENT_ID=client01
+      - DEBUG=false
+    volumes:
+      - ./config:/opt/sdwan-traffic-gen/config
+      - ./logs:/var/log/sdwan-traffic-gen
+    restart: unless-stopped
+    depends_on:
+      sdwan-web-ui:
+        condition: service_healthy
+
+  # Voice Traffic Generator - RTP/Voice Simulation
+  sdwan-voice-gen:
+    image: jsuzanne/sdwan-voice-gen:stable
+    container_name: sdwan-voice-gen
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - DEBUG=false
+    volumes:
+      - ./config:/app/config
+      - ./logs:/var/log/sdwan-traffic-gen
+    restart: unless-stopped
+    depends_on:
+      sdwan-web-ui:
+        condition: service_healthy
+
+  # Voice Echo Server - Target for Voice Tests
+  sdwan-voice-echo:
+    image: jsuzanne/sdwan-voice-echo:stable
+    container_name: sdwan-voice-echo
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - DEBUG=false
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

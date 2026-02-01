@@ -85,11 +85,35 @@ fi
 if [ "$INSTALL_MODE" == "2" ]; then
     echo "🎯 Mode: Target Site (Echo Server)"
     INSTALL_DIR="sdwan-target"
-    COMPOSE_FILE="docker-compose.target.yml"
+    
+    # Platform-specific for target mode too
+    if [[ "$OS_TYPE" == "Linux" ]] && ! grep -qi microsoft /proc/version 2>/dev/null; then
+        COMPOSE_FILE="docker-compose.target-host.yml"
+        echo "🐧 Native Linux detected - Using host mode for echo responder"
+    else
+        COMPOSE_FILE="docker-compose.target.yml"
+    fi
 else
     echo "🖥️  Mode: Full Dashboard"
     INSTALL_DIR="sdwan-traffic-gen"
-    COMPOSE_FILE="docker-compose.example.yml"
+    
+    # Select compose file based on platform
+    if [[ "$OS_TYPE" == "Linux" ]]; then
+        # Check if this is WSL2 (Windows Subsystem for Linux)
+        if grep -qi microsoft /proc/version 2>/dev/null; then
+            echo "🪟 WSL2 detected - Using bridge mode (Host mode not recommended on WSL2)"
+            COMPOSE_FILE="docker-compose.example.yml"
+        else
+            echo "🐧 Native Linux detected - Using host mode for full IoT/Voice simulation support"
+            COMPOSE_FILE="docker-compose.host.yml"
+        fi
+    elif [[ "$OS_TYPE" == "Darwin" ]]; then
+        echo "🍎 macOS detected - Using bridge mode (Host mode not supported on macOS)"
+        COMPOSE_FILE="docker-compose.example.yml"
+    else
+        echo "💻 Unknown platform - Using bridge mode (safe default)"
+        COMPOSE_FILE="docker-compose.example.yml"
+    fi
 fi
 
 # 3. Check for Existing Installation

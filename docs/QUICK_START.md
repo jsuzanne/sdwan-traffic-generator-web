@@ -117,6 +117,39 @@ Open your browser to: **http://localhost:8080**
 
 ---
 
+## 📡 Network Mode: Host vs Bridge
+
+The installer automatically selects the best network mode for your platform:
+
+### Host Mode (Linux only - Native)
+- ✅ **Enabled on:** Native Linux (Ubuntu, Debian, CentOS, etc.)
+- ✅ **Benefits:** 
+  - Full IoT simulation support (DHCP, ARP, Layer 2 protocols)
+  - Better Voice/RTP performance with real network stack access
+  - Real MAC address spoofing for device simulation
+  - Direct access to network interfaces
+- ⚙️ **Uses:** `docker-compose.host.yml`
+
+### Bridge Mode (macOS, Windows, WSL2)
+- ✅ **Enabled on:** macOS, Windows (Docker Desktop), WSL2
+- ⚠️ **Limitations:**
+  - IoT simulation features limited (no DHCP/ARP/Layer 2)
+  - Voice/RTP works but without advanced network features
+  - Network interface binding may have restrictions
+- ℹ️ **Why:** Docker's Host Mode is not supported on macOS/Windows
+- ⚙️ **Uses:** `docker-compose.example.yml`
+
+### Platform Detection
+The install script automatically detects your platform and selects the appropriate mode:
+- **Native Linux** → Host Mode (full features)
+- **WSL2** → Bridge Mode (Host Mode not recommended on WSL2)
+- **macOS** → Bridge Mode (Host Mode not available)
+- **Windows** → Bridge Mode (via WSL2)
+
+**Note:** If you're on Linux and want to force Bridge Mode, you can manually download `docker-compose.example.yml` instead of using the install script.
+
+---
+
 ## First-Time Configuration
 
 ### 1. Login to Dashboard

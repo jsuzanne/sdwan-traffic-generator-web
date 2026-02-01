@@ -168,12 +168,12 @@ docker ps
 
 **Requirements:** Docker must be running (see [Prerequisites](#-prerequisites) above)
 
-**Full Dashboard (Interactive):**
+**Full Dashboard (Default):**
 ```bash
 curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/install.sh | bash
 ```
 
-**Target Site Only (Non-Interactive):**
+**Target Site Only:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/install.sh | bash -s -- --target
 ```
@@ -207,7 +207,7 @@ docker compose up -d
 open http://localhost:8080
 ```
 
-**Target Site Only (Non-Interactive):**
+**Target Site Only:**
 ```bash
 # Create directory
 mkdir -p sdwan-target && cd sdwan-target
