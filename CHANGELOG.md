@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.37.1] - 2026-02-01
+### Removed
+- **SNMP Support in IoT Emulator**: Completely removed SNMP agent functionality from `iot_emulator.py`. The protocol is incompatible with Host Mode networking as it cannot bind to simulated IP addresses. A deprecation warning is now logged if "snmp" is specified in device protocols. 🤖🚫📡
+
 ## [1.1.2-patch.33.37] - 2026-02-01
 ### Changed
 - **IoT Emulator Dynamic Gateway**: Modified `iot_emulator.py` to automatically extract the network gateway (router) from DHCP ACK packets. Simulating devices no longer rely on hardcoded gateway IPs, ensuring correct ARP and routing behavior in dynamic environments. 🤖📡🎯

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 IoT Device Emulator for Palo Alto SD-WAN/IoT Security Lab
-Generates ARP, DHCP, MQTT, HTTP, RTSP, LLDP traffic and responds to SNMP queries
+Generates ARP, DHCP, MQTT, HTTP, RTSP, LLDP traffic and cloud heartbeats
 """
 
 import json
@@ -218,14 +218,13 @@ class IoTDevice:
             threading.Thread(target=self.do_dhcp_sequence, daemon=True).start()
             time.sleep(2)
         
-        # Start SNMP agent first (needs IP address)
-        if "snmp" in self.protocols:
-            threading.Thread(target=self.start_snmp_agent, daemon=True).start()
-            time.sleep(1)  # Let SNMP agent start
-        
         # Start protocol-specific threads
         for protocol in self.protocols:
-            if protocol not in ["dhcp", "snmp"]:
+            if protocol == "snmp":
+                self.log("warning", "⚠️ SNMP protocol is deprecated and will be ignored (incompatible with host mode)")
+                continue
+                
+            if protocol != "dhcp":
                 thread = threading.Thread(
                     target=self._protocol_handler,
                     args=(protocol,),
@@ -473,70 +472,6 @@ class IoTDevice:
             
             time.sleep(30)  # LLDP advertisement every 30 seconds
     
-    def start_snmp_agent(self):
-        """Start SNMP agent to respond to discovery queries (SNMPv2c, community: public)"""
-        self.log("info", "🔍 Starting SNMP agent...")
-        
-        # Wait for valid IP address
-        wait_count = 0
-        while (not self.ip or self.ip == "0.0.0.0") and wait_count < 40:
-            time.sleep(0.5)
-            wait_count += 1
-        
-        if not self.ip or self.ip == "0.0.0.0":
-            self.log("error", "❌ SNMP agent timeout: no valid IP")
-            return
-        
-        try:
-            from pysnmp.entity import engine, config
-            from pysnmp.entity.rfc3413 import cmdrsp, context
-            from pysnmp.carrier.asyncore.dgram import udp
-            from pysnmp.proto.api import v2c
-            
-            # Create SNMP engine
-            snmpEngine = engine.SnmpEngine()
-            
-            # UDP transport on device IP
-            config.addTransport(
-                snmpEngine,
-                udp.domainName,
-                udp.UdpTransport().openServerMode((self.ip, 161))
-            )
-            
-            # SNMPv2c community "public" (read-only)
-            config.addV1System(snmpEngine, 'my-area', 'public')
-            
-            # SNMP context
-            snmpContext = context.SnmpContext(snmpEngine)
-            
-            # Allow queries on MIB-2 tree (1.3.6.1.2.1)
-            config.addVacmUser(
-                snmpEngine, 2, 'my-area', 'noAuthNoPriv',
-                (1, 3, 6, 1, 2, 1)  # MIB-2 base OID
-            )
-            
-            # Add command responders (GET, GETNEXT, GETBULK)
-            cmdrsp.GetCommandResponder(snmpEngine, snmpContext)
-            cmdrsp.NextCommandResponder(snmpEngine, snmpContext)
-            cmdrsp.BulkCommandResponder(snmpEngine, snmpContext)
-            
-            self.log("info", f"✅ SNMP agent listening on {self.ip}:161 (SNMPv2c, community: public)")
-            
-            # Non-blocking event loop
-            snmpEngine.transportDispatcher.jobStarted(1)
-            
-            while self.running:
-                # Run dispatcher with timeout to check self.running
-                snmpEngine.transportDispatcher.runDispatcher(timeout=0.5)
-            
-            # Clean shutdown
-            snmpEngine.transportDispatcher.closeDispatcher()
-            logger.info(f"⏹️  SNMP agent stopped for {self.id}")
-            
-        except ImportError as ie:
-            self.log("error", f"❌ PySNMP Import Error: {ie}. Ensure pysnmp, pyasn1, and pysmi are installed.")
-        except Exception as e:
-            self.log("error", f"❌ SNMP agent error: {type(e).__name__}: {e}")
     
     def send_arp(self):
         """Send ARP requests (device discovery)"""
@@ -858,7 +793,7 @@ Protocols Supported:
   - dhcp: DHCP client (Discover/Offer/Request/ACK)
   - arp: ARP requests for gateway discovery
   - lldp: LLDP advertisements (Layer 2 discovery)
-  - snmp: SNMPv2c agent (responds to queries, community: public)
+  - snmp: SNMPv2c agent (deprecated - non fonctionnel en mode host)
   - http: HTTP traffic to gateway
   - mqtt: MQTT traffic to broker
   - rtsp: RTSP traffic (cameras)
@@ -872,9 +807,6 @@ Examples:
   
 Test LLDP:
   sudo tcpdump -i ens4 -vvv ether proto 0x88cc
-  
-Test SNMP:
-  snmpwalk -v2c -c public <device-ip> system
         """
     )
     parser.add_argument(
