@@ -38,6 +38,8 @@ COPY web-dashboard/server.ts ./
 COPY web-dashboard/test-logger.ts ./
 COPY web-dashboard/connectivity-logger.ts ./
 COPY web-dashboard/iot-manager.ts ./
+COPY web-dashboard/vyos-manager.ts ./
+COPY web-dashboard/vyos-scheduler.ts ./
 COPY web-dashboard/shared ./shared
 COPY web-dashboard/tsconfig.json ./
 # Copy VERSION file from root of build context
