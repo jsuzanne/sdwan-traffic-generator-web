@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-scapy \
     python3-requests \
+    python3-urllib3 \
     docker.io \
     && rm -rf /var/lib/apt/lists/*
 
