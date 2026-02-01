@@ -233,13 +233,13 @@ export class VyosManager extends EventEmitter {
         if (command === 'set-impairment') command = 'set-qos';
         if (command === 'reset-impairment') command = 'clear-qos';
 
-        // Action syntax: vyos_sdwan_ctl.py <subcommand> --host ... --key ... --version ... [params...]
+        // Action syntax: vyos_sdwan_ctl.py --host ... --key ... --version ... <subcommand> [params...]
         const args = [
             this.pythonScriptPath,
-            command,
             '--host', router.host,
             '--key', router.apiKey,
-            '--version', router.version || '1.4'
+            '--version', router.version || '1.4',
+            command
         ];
 
         // Map params to CLI arguments
@@ -254,7 +254,17 @@ export class VyosManager extends EventEmitter {
                     if (key === 'corrupt') flag = 'corruption';
                     if (key === 'interface') flag = 'iface';
 
-                    args.push(`--${flag}`, val.toString());
+                    // Filter parameters based on subcommand
+                    const isSetLatency = command === 'set-latency' && flag === 'ms';
+                    const isSetLoss = command === 'set-loss' && flag === 'percent';
+                    const isSetCorruption = command === 'set-corruption' && flag === 'corruption';
+                    const isSetRate = command === 'set-rate' && flag === 'rate';
+                    const isIface = flag === 'iface';
+                    const isQoS = command === 'set-qos';
+
+                    if (isQoS || isIface || isSetLatency || isSetLoss || isSetCorruption || isSetRate) {
+                        args.push(`--${flag}`, val.toString());
+                    }
                 }
             });
         }

@@ -52,6 +52,11 @@ export default function Vyos(props: VyosProps) {
     const [sequences, setSequences] = useState<VyosSequence[]>([]);
     const [history, setHistory] = useState<any[]>([]);
     const [view, setView] = useState<'routers' | 'sequences' | 'history' | 'timeline' | 'metrics'>('routers');
+    const [historySearch, setHistorySearch] = useState('');
+    const [historyMissionFilter, setHistoryMissionFilter] = useState('all');
+    const [historyNodeFilter, setHistoryNodeFilter] = useState('all');
+    const [historyStatusFilter, setHistoryStatusFilter] = useState('all');
+    const [isGrouped, setIsGrouped] = useState(false);
 
     // Live Monitoring State
     const [activeExecution, setActiveExecution] = useState<{ sequenceId: string, step: string, status: string, error?: string } | null>(null);
@@ -615,68 +620,188 @@ export default function Vyos(props: VyosProps) {
             )}
 
             {view === 'history' && (
-                <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 shadow-2xl">
-                    <table className="w-full text-left text-xs border-collapse">
-                        <thead className="bg-slate-950/80 border-b border-slate-800 sticky top-0">
-                            <tr>
-                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Execution Time</th>
-                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Mission Type</th>
-                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Target Node</th>
-                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Objective</th>
-                                <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em] text-center">Verdict</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/50">
-                            {history.map((log, idx) => (
-                                <tr key={idx} className="hover:bg-slate-800/30 transition-colors group">
-                                    <td className="px-6 py-5">
-                                        <div className="text-slate-100 font-mono font-bold text-sm tracking-tight">{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
-                                        <div className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mt-1">{new Date(log.timestamp).toLocaleDateString()}</div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-1.5 bg-purple-500/10 rounded-lg">
-                                                <Zap size={14} className="text-purple-400" />
-                                            </div>
-                                            <span className="text-slate-200 font-black uppercase tracking-tight">{log.sequence_name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="flex flex-col">
-                                            <span className="text-slate-300 font-bold uppercase text-[10px]">{log.router_id}</span>
-                                            <span className="text-[9px] text-slate-600 font-mono">{log.interface || 'global'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center gap-2">
-                                            <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-300 font-black uppercase text-[9px] tracking-widest">{log.command}</span>
-                                            {log.parameters && Object.keys(log.parameters).length > 0 && (
-                                                <span className="text-[9px] text-slate-500 font-mono italic">({JSON.stringify(log.parameters)})</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5 text-center">
-                                        <div className="flex justify-center">
-                                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${log.status === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                                {log.status === 'success' ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
-                                                {log.status}
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
+                <div className="space-y-4">
+                    {/* Tactical Filter Bar */}
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-slate-900/50 border border-slate-800 p-4 rounded-2xl backdrop-blur-md">
+                        <div className="md:col-span-2 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                            <input
+                                type="text"
+                                placeholder="Search Mission, Node, or Command..."
+                                value={historySearch}
+                                onChange={(e) => setHistorySearch(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-green-500/50 font-bold placeholder:text-slate-600 uppercase tracking-tight"
+                            />
+                        </div>
+                        <select
+                            value={historyMissionFilter}
+                            onChange={(e) => setHistoryMissionFilter(e.target.value)}
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-300 focus:outline-none font-bold uppercase cursor-pointer"
+                        >
+                            <option value="all">ANY MISSION</option>
+                            {[...new Set(history.map(h => h.sequence_name))].map(name => (
+                                <option key={name} value={name}>{name}</option>
                             ))}
-                            {history.length === 0 && (
+                        </select>
+                        <select
+                            value={historyNodeFilter}
+                            onChange={(e) => setHistoryNodeFilter(e.target.value)}
+                            className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-300 focus:outline-none font-bold uppercase cursor-pointer"
+                        >
+                            <option value="all">ANY NODE</option>
+                            {[...new Set(history.map(h => h.router_id))].map(id => (
+                                <option key={id} value={id}>{id}</option>
+                            ))}
+                        </select>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setIsGrouped(!isGrouped)}
+                                className={`flex-1 px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${isGrouped ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-slate-950 text-slate-500 border-slate-800 hover:border-slate-700'}`}
+                            >
+                                Group Runs
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 shadow-2xl">
+                        <table className="w-full text-left text-xs border-collapse">
+                            <thead className="bg-slate-950/80 border-b border-slate-800 sticky top-0">
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-28 text-center">
-                                        <div className="flex flex-col items-center gap-4 opacity-10">
-                                            <Clock size={64} className="text-slate-400" />
-                                            <span className="text-lg font-black uppercase tracking-[0.4em] text-slate-400">Chronicle Database Empty</span>
-                                        </div>
-                                    </td>
+                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Execution Time</th>
+                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Mission Type</th>
+                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Target Node</th>
+                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Objective</th>
+                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em] text-center">Verdict</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/50">
+                                {(() => {
+                                    let filtered = history.filter(log => {
+                                        const matchesSearch = !historySearch ||
+                                            log.sequence_name.toLowerCase().includes(historySearch.toLowerCase()) ||
+                                            log.router_id.toLowerCase().includes(historySearch.toLowerCase()) ||
+                                            log.command.toLowerCase().includes(historySearch.toLowerCase());
+                                        const matchesMission = historyMissionFilter === 'all' || log.sequence_name === historyMissionFilter;
+                                        const matchesNode = historyNodeFilter === 'all' || log.router_id === historyNodeFilter;
+                                        const matchesStatus = historyStatusFilter === 'all' || log.status === historyStatusFilter;
+                                        return matchesSearch && matchesMission && matchesNode && matchesStatus;
+                                    });
+
+                                    if (isGrouped) {
+                                        // Grouping logic: Actions within 5 seconds with same sequence_id are grouped
+                                        const groups: any[][] = [];
+                                        filtered.forEach(log => {
+                                            const lastGroup = groups[groups.length - 1];
+                                            if (lastGroup &&
+                                                lastGroup[0].sequence_id === log.sequence_id &&
+                                                Math.abs(lastGroup[0].timestamp - log.timestamp) < 5000) {
+                                                lastGroup.push(log);
+                                            } else {
+                                                groups.push([log]);
+                                            }
+                                        });
+
+                                        return groups.map((group, gIdx) => (
+                                            <React.Fragment key={gIdx}>
+                                                <tr className="bg-slate-950/40">
+                                                    <td colSpan={5} className="px-6 py-2 border-b border-slate-800/30">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Run Sequence: {group[0].sequence_name}</span>
+                                                            <div className="h-px flex-1 bg-slate-800/20" />
+                                                            <span className="text-[9px] font-mono text-slate-600">{new Date(group[0].timestamp).toLocaleString()}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {group.map((log, idx) => (
+                                                    <tr key={`${gIdx}-${idx}`} className="hover:bg-slate-800/30 transition-colors group">
+                                                        <td className="px-6 py-4 pl-12 border-l-2 border-slate-800/50">
+                                                            <div className="text-slate-400 font-mono font-bold text-xs tracking-tight">{new Date(log.timestamp).toLocaleTimeString()}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center gap-3 opacity-60">
+                                                                <div className="p-1 px-2 bg-slate-800 rounded font-black text-[9px] uppercase tracking-tighter text-slate-400">Step {idx + 1}</div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-slate-300 font-bold uppercase text-[10px]">{log.router_id}</span>
+                                                                <span className="text-[9px] text-slate-600 font-mono">{log.interface || 'global'}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-300 font-black uppercase text-[9px] tracking-widest">{log.command}</span>
+                                                                {log.parameters && Object.keys(log.parameters).length > 0 && (
+                                                                    <span className="text-[9px] text-slate-500 font-mono italic">({JSON.stringify(log.parameters)})</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <div className="flex justify-center">
+                                                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${log.status === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                                    {log.status === 'success' ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
+                                                                    {log.status}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        ));
+                                    }
+
+                                    return filtered.map((log, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-800/30 transition-colors group">
+                                            <td className="px-6 py-5">
+                                                <div className="text-slate-100 font-mono font-bold text-sm tracking-tight">{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                                                <div className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mt-1">{new Date(log.timestamp).toLocaleDateString()}</div>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-1.5 bg-purple-500/10 rounded-lg">
+                                                        <Zap size={14} className="text-purple-400" />
+                                                    </div>
+                                                    <span className="text-slate-200 font-black uppercase tracking-tight">{log.sequence_name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-slate-300 font-bold uppercase text-[10px]">{log.router_id}</span>
+                                                    <span className="text-[9px] text-slate-600 font-mono">{log.interface || 'global'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-300 font-black uppercase text-[9px] tracking-widest">{log.command}</span>
+                                                    {log.parameters && Object.keys(log.parameters).length > 0 && (
+                                                        <span className="text-[9px] text-slate-500 font-mono italic">({JSON.stringify(log.parameters)})</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5 text-center">
+                                                <div className="flex justify-center">
+                                                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${log.status === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                        {log.status === 'success' ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
+                                                        {log.status}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ));
+                                })()}
+                                {history.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-28 text-center">
+                                            <div className="flex flex-col items-center gap-4 opacity-10">
+                                                <Clock size={64} className="text-slate-400" />
+                                                <span className="text-lg font-black uppercase tracking-[0.4em] text-slate-400">Chronicle Database Empty</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
             {view === 'timeline' && (
