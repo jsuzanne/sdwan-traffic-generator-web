@@ -399,9 +399,17 @@ class IoTDevice:
                         assigned_ip = ack_pkt[BOOTP].yiaddr
                         self.ip = assigned_ip
                         
+                        # Extract gateway from DHCP option 3 (router)
+                        router = options.get('router')
+                        if router:
+                            self.gateway = router[0] if isinstance(router, list) else router
+                            self.log("info", f"🌐 Gateway from DHCP: {self.gateway}")
+                        else:
+                            self.log("warning", f"⚠️ No router option in DHCP ACK, keeping {self.gateway}")
+                        
                         self.log("info", f"✅ Received DHCP ACK from {ack_pkt[IP].src} (Assigned IP: {assigned_ip})")
                         if JSON_OUTPUT:
-                            emit_json("dhcp_ack", device_id=self.id, assigned_ip=assigned_ip, server_id=ack_pkt[IP].src)
+                            emit_json("dhcp_ack", device_id=self.id, assigned_ip=assigned_ip, server_id=ack_pkt[IP].src, gateway=self.gateway)
                     elif msg_type == 6:  # NAK
                         self.log("error", "❌ Received DHCP NAK - request rejected by server")
                     else:

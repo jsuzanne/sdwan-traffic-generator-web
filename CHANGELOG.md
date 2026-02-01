@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.37] - 2026-02-01
+### Changed
+- **IoT Emulator Dynamic Gateway**: Modified `iot_emulator.py` to automatically extract the network gateway (router) from DHCP ACK packets. Simulating devices no longer rely on hardcoded gateway IPs, ensuring correct ARP and routing behavior in dynamic environments. 🤖📡🎯
+
 ## [1.1.2-patch.33.36] - 2026-02-01
 ### Added
 - **Automated Multi-Platform Releases**: The GitHub Actions workflow now automatically builds both **AMD64** and **ARM64** images for every version tag. This ensures that "stable" promotions always support Apple Silicon (M1/M2/M3) and other ARM architectures without manual intervention. 🐳🌍✨
