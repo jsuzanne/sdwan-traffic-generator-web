@@ -1,6 +1,6 @@
 #!/bin/bash
 # Quick install script for SD-WAN Traffic Generator (LATEST/TEST MODE)
-# Version: 1.1.2-patch.33.36-RC
+# Version: 1.1.2-patch.33.40-RC
 
 set -e
 
@@ -173,12 +173,37 @@ fi
 # Query the container for its default network interface
 CONTAINER_IFACE=$(docker compose exec -T "$CONTAINER_SERVICE" sh -c "ip route 2>/dev/null | grep '^default' | awk '{print \$5}' | head -n 1" 2>/dev/null || echo "")
 
-# Fallback to eth0 if detection fails
-if [[ -z "$CONTAINER_IFACE" ]] || [[ "$CONTAINER_IFACE" == "lo" ]]; then
+# Verify the detected interface has internet connectivity
+if [[ -n "$CONTAINER_IFACE" ]] && [[ "$CONTAINER_IFACE" != "lo" ]]; then
+    echo "🔍 [INSTALLER] Testing connectivity on ${CONTAINER_IFACE}..."
+
+    # Quick ping test to 8.8.8.8 (Google DNS) to verify internet access
+    if docker compose exec -T "$CONTAINER_SERVICE" sh -c "ping -c 1 -W 2 -I $CONTAINER_IFACE 8.8.8.8 >/dev/null 2>&1" 2>/dev/null; then
+        echo "✅ [INSTALLER] Interface ${CONTAINER_IFACE} has internet connectivity"
+    else
+        echo "⚠️  [INSTALLER] Interface ${CONTAINER_IFACE} failed connectivity test"
+        echo "🔄 [INSTALLER] Searching for working interface..."
+
+        # Try to find an interface that actually has internet access
+        CONTAINER_IFACE=$(docker compose exec -T "$CONTAINER_SERVICE" sh -c '
+            for iface in $(ip -o link show | awk -F": " '"'"'{print $2}'"'"' | grep -v "^lo$"); do
+                if ping -c 1 -W 2 -I $iface 8.8.8.8 >/dev/null 2>&1; then
+                    echo $iface
+                    break
+                fi
+            done
+        ' 2>/dev/null)
+
+        if [[ -n "$CONTAINER_IFACE" ]]; then
+            echo "✅ [INSTALLER] Found working interface: ${CONTAINER_IFACE}"
+        else
+            echo "⚠️  [INSTALLER] No interface passed connectivity test, falling back to eth0"
+            CONTAINER_IFACE="eth0"
+        fi
+    fi
+else
     echo "⚠️  [INSTALLER] Auto-detection failed, using eth0 (Docker default)"
     CONTAINER_IFACE="eth0"
-else
-    echo "✅ [INSTALLER] Detected interface: ${CONTAINER_IFACE}"
 fi
 
 # Write the detected interface to config file
