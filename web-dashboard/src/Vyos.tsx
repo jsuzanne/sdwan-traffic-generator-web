@@ -1016,19 +1016,47 @@ export default function Vyos(props: VyosProps) {
                                                 )}
 
                                                 {action.command === 'set-impairment' && (
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Latency (ms)</label>
-                                                        <input
-                                                            type="number"
-                                                            value={action.parameters?.latency || 0}
-                                                            onChange={(e) => {
-                                                                const newActions = [...editingSeq.actions];
-                                                                newActions[idx].parameters = { ...newActions[idx].parameters, latency: parseInt(e.target.value) };
-                                                                setEditingSeq({ ...editingSeq, actions: newActions });
-                                                            }}
-                                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
-                                                        />
-                                                    </div>
+                                                    <>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Latency (ms)</label>
+                                                            <input
+                                                                type="number"
+                                                                value={action.parameters?.latency || 0}
+                                                                onChange={(e) => {
+                                                                    const newActions = [...editingSeq.actions];
+                                                                    newActions[idx].parameters = { ...newActions[idx].parameters, latency: parseInt(e.target.value) };
+                                                                    setEditingSeq({ ...editingSeq, actions: newActions });
+                                                                }}
+                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Loss (%)</label>
+                                                            <input
+                                                                type="number"
+                                                                value={action.parameters?.loss || 0}
+                                                                onChange={(e) => {
+                                                                    const newActions = [...editingSeq.actions];
+                                                                    newActions[idx].parameters = { ...newActions[idx].parameters, loss: parseInt(e.target.value) };
+                                                                    setEditingSeq({ ...editingSeq, actions: newActions });
+                                                                }}
+                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Rate (e.g. 10mbit)</label>
+                                                            <input
+                                                                type="text"
+                                                                value={action.parameters?.rate || ''}
+                                                                onChange={(e) => {
+                                                                    const newActions = [...editingSeq.actions];
+                                                                    newActions[idx].parameters = { ...newActions[idx].parameters, rate: e.target.value };
+                                                                    setEditingSeq({ ...editingSeq, actions: newActions });
+                                                                }}
+                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                            />
+                                                        </div>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>

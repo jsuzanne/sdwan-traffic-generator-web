@@ -225,12 +225,36 @@ export class VyosManager extends EventEmitter {
         const router = this.routers.get(routerId);
         if (!router) throw new Error('Router not found');
 
-        const args = [this.pythonScriptPath, action.command, '--host', router.host, '--key', router.apiKey];
+        // Command mapping: UI -> Python CLI
+        let command = action.command;
+        if (command === 'interface-down') command = 'shut';
+        if (command === 'interface-up') command = 'no-shut';
+        if (command === 'set-impairment') command = 'set-qos';
+        if (command === 'reset-impairment') command = 'clear-qos';
+
+        const args = [
+            this.pythonScriptPath,
+            command,
+            '--host', router.host,
+            '--key', router.apiKey,
+            '--version', router.version || '1.4'
+        ];
 
         // Map params to CLI arguments
+        // Ensure every non-null entry is added
         if (action.params) {
             Object.keys(action.params).forEach(key => {
-                args.push(`--${key}`, action.params[key].toString());
+                const val = action.params[key];
+                if (val !== null && val !== undefined && val !== '') {
+                    // Map common UI parameter names to Python CLI flags if needed
+                    let flag = key;
+                    if (key === 'latency') flag = 'ms';
+                    if (key === 'loss') flag = 'percent';
+                    if (key === 'corrupt') flag = 'corruption';
+                    if (key === 'interface') flag = 'iface';
+
+                    args.push(`--${flag}`, val.toString());
+                }
             });
         }
 
