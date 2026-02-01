@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.36] - 2026-02-01
+### Added
+- **Automated Multi-Platform Releases**: The GitHub Actions workflow now automatically builds both **AMD64** and **ARM64** images for every version tag. This ensures that "stable" promotions always support Apple Silicon (M1/M2/M3) and other ARM architectures without manual intervention. 🐳🌍✨
+
 ## [1.1.2-patch.33.35] - 2026-02-01
 ### Fixed
 - **Container Interface Detection**: Improved network interface detection in `install.sh` and `install_latest.sh`. The script now queries the interface from *inside* the Docker container after startup, resolving "Error 000000" issues on macOS and other bridge-mode environments. 🐳📡✅
