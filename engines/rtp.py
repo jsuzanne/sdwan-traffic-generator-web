@@ -141,9 +141,9 @@ if __name__ == "__main__":
 
     # Pre-build packet template for performance
     if args['source_ip'] is None:
-        base_packet = IP(dst=args['destination_ip'], proto=17, len=240)
+        base_packet = IP(dst=args['destination_ip'], proto=17, len=240, tos=184)  # DSCP EF (46)
     else:
-        base_packet = IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240)
+        base_packet = IP(dst=args['destination_ip'], src=args['source_ip'], proto=17, len=240, tos=184)  # DSCP EF (46)
         
     base_packet = base_packet/UDP(sport=source_port, dport=args['destination_port'], len=220)
 

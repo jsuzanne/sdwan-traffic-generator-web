@@ -1,8 +1,16 @@
 #!/bin/bash
 # Quick install script for SD-WAN Traffic Generator (LATEST/TEST MODE)
-# Version: 1.1.2-patch.33.7-RC
+# Version: 1.1.2-patch.33.31-RC
 
 set -e
+
+# Fix stdin for interactive prompts when piped from curl
+# Works on Linux, macOS, and WSL2
+if [ ! -t 0 ] && [ -t 1 ]; then
+    if [ -e /dev/tty ]; then
+        exec < /dev/tty
+    fi
+fi
 
 echo "🚀 SD-WAN Traffic Generator - Installation"
 echo "=========================================="
