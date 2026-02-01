@@ -1,6 +1,6 @@
 #!/bin/bash
 # Quick install script for SD-WAN Traffic Generator (LATEST/TEST MODE)
-# Version: 1.1.2-patch.33.32-RC
+# Version: 1.1.2-patch.33.35-RC
 
 set -e
 
@@ -15,36 +15,6 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-function detect_and_setup_interface() {
-    local config_dir="./config"
-    local interfaces_file="${config_dir}/interfaces.txt"
-    
-    mkdir -p "$config_dir"
-    
-    # Only detect if file is missing or empty
-    if [[ ! -s "$interfaces_file" ]]; then
-        echo "🔍 [INSTALLER] Detecting default network interface..."
-        local detected_iface=""
-        
-        # Linux detection
-        if [[ "$(uname)" == "Linux" ]]; then
-            detected_iface=$(ip route | grep '^default' | awk '{print $5}' | head -n 1)
-        # macOS detection
-        elif [[ "$(uname)" == "Darwin" ]]; then
-            detected_iface=$(route -n get default 2>/dev/null | grep 'interface:' | awk '{print $2}')
-        fi
-        
-        if [[ -n "$detected_iface" ]]; then
-            echo "✅ [INSTALLER] Found interface: ${detected_iface}"
-            echo "$detected_iface" > "$interfaces_file"
-        else
-            echo "⚠️ [INSTALLER] Could not detect default interface. Defaulting to eth0."
-            echo "eth0" > "$interfaces_file"
-        fi
-    else
-        echo "📡 [INSTALLER] interfaces.txt already exists. Skipping auto-detection."
-    fi
-}
 
 if ! docker info &> /dev/null; then
     echo "❌ Error: Docker is installed but not running."
@@ -179,10 +149,46 @@ if [ "$PULL_SUCCESS" = false ]; then
     echo "❌ Pull failed after $MAX_RETRIES attempts. Trying to start with existing images if any..."
 fi
 
-# Ensure config/interfaces.txt exists before starting
-detect_and_setup_interface
+# Create config directory
+mkdir -p ./config
 
+# Start services
+echo "🔧 Starting services..."
 docker compose up -d
+
+# Wait for containers to initialize
+echo "⏳ Waiting for containers to be ready..."
+sleep 5
+
+# Detect network interface INSIDE the container (not on host)
+echo "🔍 [INSTALLER] Detecting network interface from container..."
+
+# Determine which container to query based on installation mode
+if [[ "$INSTALL_MODE" == "2" ]]; then
+    CONTAINER_SERVICE="sdwan-voice-echo"
+else
+    CONTAINER_SERVICE="sdwan-traffic-gen"
+fi
+
+# Query the container for its default network interface
+CONTAINER_IFACE=$(docker compose exec -T "$CONTAINER_SERVICE" sh -c "ip route 2>/dev/null | grep '^default' | awk '{print \$5}' | head -n 1" 2>/dev/null || echo "")
+
+# Fallback to eth0 if detection fails
+if [[ -z "$CONTAINER_IFACE" ]] || [[ "$CONTAINER_IFACE" == "lo" ]]; then
+    echo "⚠️  [INSTALLER] Auto-detection failed, using eth0 (Docker default)"
+    CONTAINER_IFACE="eth0"
+else
+    echo "✅ [INSTALLER] Detected interface: ${CONTAINER_IFACE}"
+fi
+
+# Write the detected interface to config file
+echo "$CONTAINER_IFACE" > ./config/interfaces.txt
+
+# Restart containers to apply the interface configuration
+echo "🔄 Applying network configuration..."
+docker compose restart
+
+echo "✅ Network interface configured: $CONTAINER_IFACE"
 
 echo ""
 echo "=========================================="
