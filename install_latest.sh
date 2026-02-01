@@ -4,13 +4,6 @@
 
 set -e
 
-# Fix stdin for interactive prompts when piped from curl
-# Works on Linux, macOS, and WSL2
-if [ ! -t 0 ] && [ -t 1 ]; then
-    if [ -e /dev/tty ]; then
-        exec < /dev/tty
-    fi
-fi
 
 echo "🚀 SD-WAN Traffic Generator - Installation"
 echo "=========================================="
@@ -83,12 +76,10 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
+# Default to Full Dashboard if no flag provided
 if [ -z "$INSTALL_MODE" ]; then
-    echo ""
-    echo "What would you like to install?"
-    echo "1) Full Dashboard (UI + Generator + Echo Server)"
-    echo "2) Target Site Only (Echo Server for Convergence Lab)"
-    read -p "Select an option [1-2]: " INSTALL_MODE
+    INSTALL_MODE="1"
+    echo "📌 Installing Full Dashboard (use --target flag for Target Site only)"
 fi
 
 if [ "$INSTALL_MODE" == "2" ]; then

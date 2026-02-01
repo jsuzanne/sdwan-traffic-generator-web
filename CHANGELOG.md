@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.33] - 2026-02-01
+### Changed
+- **Non-Interactive Installation**: Refactored `install.sh` and `install_latest.sh` to be non-interactive by default. 🚀
+    - Removed `/dev/tty` redirection.
+    - Defaulted to "Full Dashboard" mode (can be overridden with `--target` flag).
+    - Preserved upgrade/overwrite interactivity for existing installations.
+
 ## [1.1.2-patch.33.32] - 2026-02-01
 ### Fixed
 - **Install Script Syntax Error**: Fixed a missing closing brace in `install.sh` and `install_latest.sh` that caused `curl | bash` installations to fail. 🛠️🐛
