@@ -103,10 +103,10 @@ export class VyosManager extends EventEmitter {
                 reject(new Error('Discovery timeout (5s)'));
             }, 5000);
 
-            // FIX: Global flags MUST be before the subcommand 'get-info'
-            const args = [this.pythonScriptPath, '--host', host, '--key', apiKey, 'get-info'];
-            console.log(`[VYOS] Discover CLI: python3 ${args.join(' ')}`);
-            const proc = spawn('python3', args);
+            // Scrub API key for logging
+            const scrubbedArgs = [this.pythonScriptPath, '--host', host, '--key', apiKey.substring(0, 4) + '***', 'get-info'];
+            console.log(`[VYOS] Discover CLI: python3 ${scrubbedArgs.join(' ')}`);
+            const proc = spawn('python3', [this.pythonScriptPath, '--host', host, '--key', apiKey, 'get-info']);
 
             let output = '';
             let errorMsg = '';
@@ -143,9 +143,19 @@ export class VyosManager extends EventEmitter {
     }
 
     saveRouter(router: VyosRouter) {
-        this.routers.set(router.id, router);
+        const existing = this.routers.get(router.id);
+        if (existing) {
+            // Perform a shallow merge to preserve fields like 'status' or 'interfaces' 
+            // if the incoming payload is partial (e.g. from the location edit modal)
+            const updated = { ...existing, ...router };
+            this.routers.set(router.id, updated);
+            console.log(`[VYOS] Router ${router.id} updated (Location: ${updated.location || 'none'})`);
+        } else {
+            this.routers.set(router.id, router);
+            console.log(`[VYOS] Router ${router.id} created`);
+        }
         this.saveRouters();
-        this.emit('router:updated', router);
+        this.emit('router:updated', this.routers.get(router.id)!);
     }
 
     deleteRouter(id: string) {
@@ -269,7 +279,9 @@ export class VyosManager extends EventEmitter {
             });
         }
 
-        console.log(`[VYOS] Executing CLI: python3 ${args.join(' ')}`);
+        // Scrub secrets for logging
+        const scrubbedArgs = args.map(arg => (arg === router.apiKey ? '***' : arg));
+        console.log(`[VYOS] Executing CLI: python3 ${scrubbedArgs.join(' ')}`);
 
         return new Promise((resolve, reject) => {
             const proc = spawn('python3', args);

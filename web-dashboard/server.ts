@@ -875,7 +875,7 @@ app.post('/api/vyos/routers/discover', authenticateToken, async (req, res) => {
     }
 });
 
-app.post('/api/vyos/routers', authenticateToken, (req, res) => {
+app.post('/api/vyos/routers/:id?', authenticateToken, (req, res) => {
     const router = req.body;
     if (!router.id || !router.host) return res.status(400).json({ error: 'Invalid router data' });
     vyosManager.saveRouter(router);

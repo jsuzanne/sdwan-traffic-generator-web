@@ -17,6 +17,8 @@ export interface VyosAction {
         rate?: string;               // rate limit, e.g., '10mbit'
         interface?: string;          // fallback for older scripts
     };
+    duration_ms?: number;          // Measured execution time
+    run_id?: string;               // Sequence run identifier
 }
 
 export interface VyosSequence {
@@ -48,6 +50,7 @@ export class VyosScheduler extends EventEmitter {
     private logFile: string;
     private sequences: Map<string, VyosSequence> = new Map();
     private activeTimers: Map<string, NodeJS.Timeout[]> = new Map();
+    private runCounter: number = 0;
 
     constructor(private manager: VyosManager, configDir: string, logDir: string) {
         super();
@@ -68,9 +71,18 @@ export class VyosScheduler extends EventEmitter {
                         if (s.cycleMinutes !== undefined && s.cycle_duration === undefined) {
                             s.cycle_duration = s.cycleMinutes;
                         }
+
+                        // SANITIZATION: Force offsets within cycle_duration
+                        if (s.cycle_duration > 0 && s.actions) {
+                            s.actions.forEach((a: VyosAction) => {
+                                a.offset_minutes = Math.min(s.cycle_duration, Math.max(0, a.offset_minutes));
+                            });
+                        }
+
                         this.sequences.set(s.id, s);
                     });
                 }
+                if (data.runCounter) this.runCounter = data.runCounter;
             } catch (e) {
                 console.error('[VYOS-SCHED] Failed to load sequences:', e);
             }
@@ -79,7 +91,10 @@ export class VyosScheduler extends EventEmitter {
 
     private saveSequences() {
         try {
-            const data = { sequences: Array.from(this.sequences.values()) };
+            const data = {
+                sequences: Array.from(this.sequences.values()),
+                runCounter: this.runCounter
+            };
             fs.writeFileSync(this.sequencesFile, JSON.stringify(data, null, 2));
         } catch (e) {
             console.error('[VYOS-SCHED] Failed to save sequences:', e);
@@ -91,6 +106,13 @@ export class VyosScheduler extends EventEmitter {
     }
 
     saveSequence(sequence: VyosSequence) {
+        // ENFORCEMENT: Clamp offsets before saving
+        if (sequence.cycle_duration > 0 && sequence.actions) {
+            sequence.actions.forEach(a => {
+                a.offset_minutes = Math.min(sequence.cycle_duration, Math.max(0, a.offset_minutes));
+            });
+        }
+
         this.sequences.set(sequence.id, sequence);
         this.saveSequences();
         this.restartScheduled(sequence.id);
@@ -122,9 +144,10 @@ export class VyosScheduler extends EventEmitter {
             const offsetMs = action.offset_minutes * 60 * 1000;
 
             const executeAction = async () => {
-                const startTime = Date.now();
-                console.log(`[VYOS-SCHED] Executing action ${action.id} (offset=${action.offset_minutes}m)`);
+                const runId = `SEQ-${(++this.runCounter).toString().padStart(4, '0')}`;
+                this.saveSequences(); // Persist run counter
 
+                const startTime = performance.now();
                 try {
                     this.emit('sequence:step', { sequenceId: seq.id, step: action.command, status: 'running' });
 
@@ -137,11 +160,12 @@ export class VyosScheduler extends EventEmitter {
                         params: { ...action.parameters, interface: action.interface }
                     });
 
-                    this.logActionExecution(seq.id, action, 'success');
+                    const duration = Math.round(performance.now() - startTime);
+                    this.logActionExecution(seq.id, action, 'success', undefined, runId, duration);
                     this.emit('sequence:step', { sequenceId: seq.id, step: action.command, status: 'success' });
                 } catch (error: any) {
-                    console.error(`[VYOS-SCHED] Action ${action.id} failed:`, error.message);
-                    this.logActionExecution(seq.id, action, 'failed', error.message);
+                    const duration = Math.round(performance.now() - startTime);
+                    this.logActionExecution(seq.id, action, 'failed', error.message, runId, duration);
                     this.emit('sequence:step', { sequenceId: seq.id, step: action.command, status: 'failed', error: error.message });
                 }
             };
@@ -190,21 +214,43 @@ export class VyosScheduler extends EventEmitter {
         sequenceId: string,
         action: VyosAction,
         status: 'success' | 'failed',
-        error?: string
+        error?: string,
+        runId?: string,
+        durationMs?: number
     ) {
         const seq = this.sequences.get(sequenceId);
+        const timestamp = Date.now();
+
+        // Structured JSON log entry
         const log = {
-            timestamp: Date.now(),
+            timestamp,
             sequence_id: sequenceId,
             sequence_name: seq?.name || 'Unknown',
             action_id: action.id,
+            run_id: runId,
             router_id: action.router_id,
             interface: action.interface,
             command: action.command,
             parameters: action.parameters,
             status,
+            duration_ms: durationMs,
             error
         };
+
+        // Format parameters for console log
+        const paramsStr = action.parameters ?
+            Object.entries(action.parameters)
+                .map(([k, v]) => `${k}=${v}`)
+                .join(' ') : 'none';
+
+        // VoIP-style Formatted Console Output
+        const timeStr = new Date(timestamp).toLocaleTimeString('en-GB', { hour12: false });
+        const runTag = runId ? `[${runId}]` : '[SEQ-xxxx]';
+        const statusLabel = status === 'success' ? 'SUCCESS' : 'FAILED';
+        const durStr = durationMs !== undefined ? `(${durationMs}ms)` : '';
+        const errorMessage = error ? ` ERROR: ${error}` : '';
+
+        console.log(`[${timeStr}] ${runTag} ${action.id} ${action.command.toUpperCase()} ${action.router_id}:${action.interface} | ${paramsStr} | ${statusLabel} ${durStr}${errorMessage}`);
 
         try {
             fs.appendFileSync(this.logFile, JSON.stringify(log) + '\n');
@@ -219,8 +265,12 @@ export class VyosScheduler extends EventEmitter {
 
         console.log(`[VYOS-SCHED] Manual execution: ${seq.name}`);
 
+        const runId = `MAN-${(++this.runCounter).toString().padStart(4, '0')}`;
+        this.saveSequences();
+
         // Execute all actions immediately (ignore offsets)
         for (const action of seq.actions) {
+            const startTime = performance.now();
             try {
                 await this.manager.executeAction(action.router_id, {
                     id: action.id,
@@ -229,9 +279,11 @@ export class VyosScheduler extends EventEmitter {
                     command: action.command,
                     params: { ...action.parameters, interface: action.interface }
                 });
-                this.logActionExecution(seq.id, action, 'success');
+                const duration = Math.round(performance.now() - startTime);
+                this.logActionExecution(seq.id, action, 'success', undefined, runId, duration);
             } catch (error: any) {
-                this.logActionExecution(seq.id, action, 'failed', error.message);
+                const duration = Math.round(performance.now() - startTime);
+                this.logActionExecution(seq.id, action, 'failed', error.message, runId, duration);
             }
         }
 
