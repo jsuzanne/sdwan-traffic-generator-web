@@ -541,14 +541,14 @@ export default function Vyos(props: VyosProps) {
             {view === 'sequences' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-300">
                     {sequences.map((seq) => (
-                        <div key={seq.id} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:border-purple-500/30 transition-all flex flex-col justify-between group shadow-lg">
-                            <div className="flex items-start justify-between mb-6">
+                        <div key={seq.id} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 hover:border-purple-500/30 transition-all flex flex-col justify-between group shadow-md">
+                            <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-all shadow-sm">
                                         <RefreshCw size={24} className="text-purple-400" />
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-slate-100 uppercase tracking-tighter text-xl">{seq.name}</h4>
+                                        <h4 className="font-black text-slate-100 uppercase tracking-tighter text-lg">{seq.name}</h4>
                                         <div className="flex items-center gap-3 mt-1">
                                             <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{seq.actions.length} ACTIONS</span>
                                             <div className="w-1 h-1 bg-slate-700 rounded-full" />
@@ -574,7 +574,7 @@ export default function Vyos(props: VyosProps) {
                                 </div>
                             </div>
 
-                            <div className="space-y-3 mb-8 h-28 overflow-hidden relative">
+                            <div className="space-y-2 mb-6 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent pr-1">
                                 {seq.actions.map((action, i) => (
                                     <div key={i} className="flex gap-4 items-center text-[10px] bg-slate-950/40 p-2 rounded-lg border border-slate-800/30">
                                         <span className="text-purple-500 font-black w-6 text-center">T+{action.offset_minutes}</span>
@@ -591,7 +591,6 @@ export default function Vyos(props: VyosProps) {
                                         )}
                                     </div>
                                 ))}
-                                <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-slate-900/50 to-transparent" />
                             </div>
 
                             <div className="flex items-center gap-4 pt-6 border-t border-slate-800/50">
@@ -600,7 +599,7 @@ export default function Vyos(props: VyosProps) {
                                     disabled={activeExecution !== null}
                                     className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black transition-all shadow-lg shadow-purple-900/40 uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
                                 >
-                                    {activeExecution?.sequenceId === seq.id ? 'RUNNING...' : 'EXECUTE MISSION'}
+                                    {activeExecution?.sequenceId === seq.id ? 'RUNNING...' : 'EXECUTE...'}
                                 </button>
                                 <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${seq.enabled ? 'bg-green-500/5 border-green-500/20' : 'bg-slate-800/10 border-slate-700/20'}`}>
                                     <div className={`w-2 h-2 rounded-full ${seq.enabled ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`} />
@@ -1045,10 +1044,14 @@ export default function Vyos(props: VyosProps) {
                                         <span className="text-[10px] text-slate-600 font-bold">ACTIONS WILL TRIGGER AT DEFINED OFFSETS WITHIN THE CYCLE</span>
                                     </div>
                                     <button
-                                        onClick={() => setEditingSeq({
-                                            ...editingSeq,
-                                            actions: [...editingSeq.actions, { id: `act-${Date.now()}`, offset_minutes: 0, router_id: routers[0]?.id || '', interface: routers[0]?.interfaces?.[0]?.name || '', command: 'interface-down', parameters: {} }]
-                                        })}
+                                        onClick={() => {
+                                            const lastAction = editingSeq.actions[editingSeq.actions.length - 1];
+                                            const nextOffset = lastAction ? lastAction.offset_minutes + 10 : 0;
+                                            setEditingSeq({
+                                                ...editingSeq,
+                                                actions: [...editingSeq.actions, { id: `act-${Date.now()}`, offset_minutes: nextOffset, router_id: routers[0]?.id || '', interface: routers[0]?.interfaces?.[0]?.name || '', command: 'interface-down', parameters: {} }]
+                                            });
+                                        }}
                                         className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-purple-900/20 active:scale-95"
                                     >
                                         + APPEND ACTION
@@ -1121,7 +1124,7 @@ export default function Vyos(props: VyosProps) {
                                                     </select>
                                                 </div>
 
-                                                {(action.command !== 'clear-qos') && (
+                                                {true && (
                                                     <div className="space-y-1.5">
                                                         <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Wifi size={8} /> Interface Path</label>
                                                         <select
@@ -1336,7 +1339,7 @@ function ExecutionTimeline({
         if (sequence.cycle_duration === 0) return;
 
         const interval = setInterval(() => {
-            setCountdown(getNextCycleTime(sequence) || 'Calculating...');
+            setCountdown(getNextCycleTime(sequence) || (sequence.cycle_duration > 0 ? 'WAITING...' : 'N/A'));
         }, 1000);
 
         return () => clearInterval(interval);

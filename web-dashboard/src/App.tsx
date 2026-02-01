@@ -704,15 +704,6 @@ export default function App() {
           <Cpu size={18} /> IoT <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-500/20 text-blue-400 border border-blue-500/30">Beta</span>
         </button>
         <button
-          onClick={() => setView('vyos')}
-          className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'vyos' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
-          )}
-        >
-          <Monitor size={18} /> VyOS Control <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-purple-500/20 text-purple-400 border border-purple-500/30">Alpha</span>
-        </button>
-        <button
           onClick={() => setView('voice')}
           className={cn(
             "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
@@ -729,6 +720,15 @@ export default function App() {
           )}
         >
           <Zap size={18} /> Failover
+        </button>
+        <button
+          onClick={() => setView('vyos')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
+            view === 'vyos' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Monitor size={18} /> VyOS Control <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-purple-500/20 text-purple-400 border border-purple-500/30">Alpha</span>
         </button>
         {/* SRT Tab hidden in v1.1.2-patch.28 */}
         {username === 'admin' && (
