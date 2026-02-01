@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.1.2--patch.33.7-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.1.2--patch.33.54-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -24,6 +24,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. [Read more](docs/IOT_SIMULATION.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
+- **VyOS Control (Impairment Lab)** - Orchestrate network impairments (latency, loss, rate-limiting) on VyOS routers via API. Supports path visibility and mission audit trails. [Read more](docs/VYOS_CONTROL.md)
 
 ### 🛡️ Security Testing (v1.1.0)
 - **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)
@@ -629,6 +630,7 @@ Comprehensive guides for all features:
 - **[IoT Simulation Guide](docs/IOT_SIMULATION.md)** - Layer-2/3 device simulation and Scapy networking
 - **[Convergence Lab Guide](docs/CONVERGENCE_LAB.md)** - High-precision failover & RX/TX loss theory
 - **[Smart Networking Guide](docs/SMART_NETWORKING.md)** - Host Mode and auto-detection architecture
+- **[VyOS Control Guide](docs/VYOS_CONTROL.md)** - Orchestrating SD-WAN impairments on VyOS nodes
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
 
 ### Security Testing
