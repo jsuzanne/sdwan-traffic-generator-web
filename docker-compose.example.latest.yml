@@ -26,6 +26,7 @@ services:
     volumes:
       - ./config:/app/config
       - ./logs:/var/log/sdwan-traffic-gen
+      - ./vyos:/app/vyos
 
     restart: unless-stopped
     healthcheck:
