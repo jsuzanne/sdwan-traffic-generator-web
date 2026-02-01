@@ -1,6 +1,6 @@
 #!/bin/bash
 # Quick install script for SD-WAN Traffic Generator
-# Version: 1.1.2-patch.33.31
+# Version: 1.1.2-patch.33.32
 
 set -e
 
