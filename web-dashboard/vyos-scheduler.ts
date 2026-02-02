@@ -135,10 +135,20 @@ export class VyosScheduler extends EventEmitter {
     private startScheduled(seq: VyosSequence) {
         this.stopScheduled(seq.id);
 
+        seq.lastRun = Date.now();
+        this.saveSequences();
+
         const cycleDurationMs = seq.cycle_duration * 60 * 1000;
         const timers: NodeJS.Timeout[] = [];
 
         console.log(`[VYOS-SCHED] Starting cyclic sequence "${seq.name}" (${seq.cycle_duration}min cycle)`);
+
+        // Master cycle timer to update lastRun every cycle reboot
+        const masterTimer = setInterval(() => {
+            seq.lastRun = Date.now();
+            this.saveSequences();
+        }, cycleDurationMs);
+        timers.push(masterTimer);
 
         for (const action of seq.actions) {
             const offsetMs = action.offset_minutes * 60 * 1000;

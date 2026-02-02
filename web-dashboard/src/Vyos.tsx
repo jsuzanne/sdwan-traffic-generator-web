@@ -1329,6 +1329,7 @@ function ExecutionTimeline({
     routers: VyosRouter[]
 }) {
     const [countdown, setCountdown] = useState('');
+    const [currentOffset, setCurrentOffset] = useState(-1);
 
     const getNextCycleTime = (seq: VyosSequence) => {
         if (!seq.lastRun || seq.cycle_duration === 0) return null;
@@ -1345,18 +1346,42 @@ function ExecutionTimeline({
             .sort((a, b) => b.timestamp - a.timestamp)[0];
     };
 
-    const getDotColor = (lastExec: any) => {
-        if (!lastExec) return 'bg-slate-800 border-slate-700'; // Never executed
-        if (lastExec.status === 'success') return 'bg-green-500 border-green-400 shadow-lg shadow-green-500/50';
-        return 'bg-red-500 border-red-400 shadow-lg shadow-red-500/50';
+    const getDotState = (actionOffset: number, current: number): 'past' | 'current' | 'future' => {
+        if (!sequence.enabled || current === -1) return 'past';
+        const epsilon = 0.5; // 30s window
+        if (current < actionOffset - epsilon) return 'future';
+        if (current > actionOffset + epsilon) return 'past';
+        return 'current';
     };
 
-    // Update countdown every second
-    useEffect(() => {
-        if (sequence.cycle_duration === 0) return;
+    const getDotStyles = (state: 'past' | 'current' | 'future', lastExec: any) => {
+        if (state === 'current') {
+            return 'bg-blue-500 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse scale-125';
+        }
+        if (state === 'future') {
+            return 'bg-slate-800 border-slate-700 opacity-30';
+        }
+        // Past state depends on history
+        if (!lastExec) return 'bg-slate-800 border-slate-700';
+        if (lastExec.status === 'success') return 'bg-green-500 border-green-400';
+        return 'bg-red-500 border-red-400';
+    };
 
+    // Update countdown and current offset every second
+    useEffect(() => {
         const interval = setInterval(() => {
-            setCountdown(getNextCycleTime(sequence) || (sequence.cycle_duration > 0 ? 'WAITING...' : 'N/A'));
+            if (sequence.cycle_duration > 0) {
+                setCountdown(getNextCycleTime(sequence) || 'WAITING...');
+                if (sequence.enabled && sequence.lastRun) {
+                    const elapsed = (Date.now() - sequence.lastRun) / 60000;
+                    setCurrentOffset(elapsed % sequence.cycle_duration);
+                } else {
+                    setCurrentOffset(-1);
+                }
+            } else {
+                setCountdown('N/A');
+                setCurrentOffset(-1);
+            }
         }, 1000);
 
         return () => clearInterval(interval);
@@ -1370,9 +1395,16 @@ function ExecutionTimeline({
                     <h3 className="text-xl font-black text-white uppercase tracking-tighter">
                         {sequence.name}
                     </h3>
-                    <span className="text-xs text-slate-500 uppercase tracking-widest">
-                        Cycle Duration: {sequence.cycle_duration}min
-                    </span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-500 uppercase tracking-widest">
+                            Cycle: {sequence.cycle_duration}min
+                        </span>
+                        {currentOffset !== -1 && (
+                            <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono border border-slate-700">
+                                POSITION: T+{currentOffset.toFixed(1)}m
+                            </span>
+                        )}
+                    </div>
                 </div>
                 {sequence.enabled && (
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg">
@@ -1387,59 +1419,78 @@ function ExecutionTimeline({
                 {sequence.actions.map((action, idx) => {
                     const lastExec = getLastExecution(action.id, sequence.id);
                     const router = routers.find(r => r.id === action.router_id);
+                    const state = getDotState(action.offset_minutes, currentOffset);
 
                     return (
-                        <div key={idx} className="flex items-start gap-4">
+                        <div key={idx} className={`flex items-start gap-4 transition-all duration-500 ${state === 'future' ? 'opacity-40 grayscale-[0.5]' : ''}`}>
                             {/* T+ Offset Label */}
                             <div className="flex flex-col items-center justify-center w-16">
                                 <span className="text-[8px] text-slate-600 uppercase font-black tracking-tighter">T+MIN</span>
-                                <span className="text-purple-400 font-black text-lg">{action.offset_minutes}</span>
+                                <span className={`font-black text-lg transition-colors ${state === 'current' ? 'text-blue-400' : 'text-purple-400'}`}>
+                                    {action.offset_minutes}
+                                </span>
                             </div>
 
                             {/* Status Dot */}
-                            <div className={`w-4 h-4 rounded-full border-2 ${getDotColor(lastExec)} mt-2 z-10`} />
+                            <div className={`w-4 h-4 rounded-full border-2 ${getDotStyles(state, lastExec)} mt-2 z-10 transition-all duration-500`} />
 
                             {/* Vertical Connecting Line (except for last item) */}
                             {idx < sequence.actions.length - 1 && (
-                                <div className="absolute left-[87.5px] w-px h-16 bg-slate-800 translate-y-8" />
+                                <div className={`absolute left-[87.5px] w-px h-16 translate-y-8 ${state === 'future' ? 'bg-slate-800' : 'bg-slate-700'}`} />
                             )}
 
                             {/* Action Details Card */}
-                            <div className="flex-1 bg-slate-950/50 border border-slate-800 rounded-xl p-4 hover:border-blue-500/30 transition-all">
+                            <div className={`flex-1 bg-slate-950/50 border rounded-xl p-4 transition-all duration-500 
+                                ${state === 'current' ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-slate-800'}
+                                ${state === 'past' ? 'border-slate-800/50' : ''}
+                            `}>
                                 <div className="flex items-center justify-between">
                                     {/* Command + Target */}
                                     <div className="flex items-center gap-3">
-                                        <span className="text-sm font-black text-slate-100 uppercase tracking-tight">
-                                            {action.command}
-                                        </span>
-                                        <ChevronRight size={12} className="text-slate-700" />
-                                        <span className="text-xs text-slate-400">
-                                            {router?.name || 'Unknown'} - {action.interface}
-                                            {(() => {
-                                                const iface = router?.interfaces?.find(i => i.name === action.interface);
-                                                return iface?.description ? ` (${iface.description})` : '';
-                                            })()}
-                                        </span>
-                                    </div>
-
-                                    {/* Execution Status */}
-                                    {lastExec && (
-                                        <div className="flex items-center gap-2">
-                                            {lastExec.status === 'success' ? (
-                                                <CheckCircle size={16} className="text-green-400" />
-                                            ) : (
-                                                <XCircle size={16} className="text-red-400" />
-                                            )}
-                                            <span className="text-[9px] text-slate-600 font-mono">
-                                                {new Date(lastExec.timestamp).toLocaleTimeString()}
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-sm font-black uppercase tracking-tight ${state === 'current' ? 'text-blue-400' : 'text-slate-100'}`}>
+                                                    {action.command}
+                                                </span>
+                                                {state === 'current' && (
+                                                    <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black animate-pulse">RUNNING</span>
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                                                {router?.name || 'Unknown'} <ChevronRight size={8} /> {action.interface}
+                                                {(() => {
+                                                    const iface = router?.interfaces?.find(i => i.name === action.interface);
+                                                    return iface?.description ? ` [${iface.description}]` : '';
+                                                })()}
                                             </span>
                                         </div>
-                                    )}
+                                    </div>
+
+                                    {/* Execution Status / Indicator */}
+                                    <div className="flex items-center gap-2">
+                                        {state === 'current' ? (
+                                            <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded-md">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
+                                                <span className="text-[9px] font-black text-blue-400 uppercase">Active Now</span>
+                                            </div>
+                                        ) : lastExec && (
+                                            <div className="flex items-center gap-2 opacity-60">
+                                                {lastExec.status === 'success' ? (
+                                                    <CheckCircle size={14} className="text-green-500" />
+                                                ) : (
+                                                    <XCircle size={14} className="text-red-500" />
+                                                )}
+                                                <span className="text-[9px] text-slate-500 font-mono">
+                                                    {new Date(lastExec.timestamp).toLocaleTimeString()}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Impairment Parameters */}
                                 {action.parameters && Object.keys(action.parameters).length > 0 && (
-                                    <div className="flex items-center gap-2 mt-2">
+                                    <div className="flex items-center gap-2 mt-2 opacity-80">
                                         {action.parameters.latency && (
                                             <span className="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20 font-bold">
                                                 {action.parameters.latency}ms latency
