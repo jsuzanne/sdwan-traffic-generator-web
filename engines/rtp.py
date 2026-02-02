@@ -96,17 +96,42 @@ if __name__ == "__main__":
     options_group.add_argument("--call-id", help="Call ID to embed in the payload for tracking",
                                type=str, default="NONE")
 
+#   args = vars(parser.parse_args())
+
+#   # pull args for count.
+#   min_count = args['min_count']
+#   max_count = args['max_count']
+#   count = random.randrange(min_count, max_count)
+    
+#   source_port = args['source_port']
+#   if source_port == 0:
+#       # Use a random port but fixed for this entire call session
+#       source_port = random.randrange(10000, 65535)
+
     args = vars(parser.parse_args())
 
     # pull args for count.
     min_count = args['min_count']
     max_count = args['max_count']
     count = random.randrange(min_count, max_count)
-    
+
     source_port = args['source_port']
     if source_port == 0:
-        # Use a random port but fixed for this entire call session
-        source_port = random.randrange(10000, 65535)
+        # Derive deterministic source port from CALL-ID
+        # Example: CALL-001 -> 31001, CALL-042 -> 31042
+        call_num = 0
+        call_id = args.get('call_id', 'NONE')
+        if call_id.startswith("CALL-") and call_id[5:].isdigit():
+            call_num = int(call_id[5:])
+
+        if call_num > 0:
+            source_port = 31000 + call_num
+            if source_port > 65535:
+                source_port = 65535  # Safety cap
+        else:
+            # Fallback to random port if CALL-ID format not recognized
+            source_port = random.randrange(10000, 65535)
+
 
     # Setup receiving socket to capture echoes
     metrics = VoiceMetrics()

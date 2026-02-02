@@ -179,26 +179,11 @@ if __name__ == "__main__":
     start_time = time.time()
     metrics = ConvergenceMetrics(args.rate, args.id, start_time)
     stop_event = threading.Event()
-
-    # Derive deterministic source port from CONV-ID
-    # Example: CONV-001 -> 30001, CONV-042 -> 30042
-    test_num = 0
-    if args.id.startswith("CONV-") and args.id[5:].split()[0].isdigit():
-        test_num = int(args.id[5:].split()[0])  # Handle "CONV-001 (DC1)" format
-
-    source_port = 30000 + test_num
-    if source_port > 65535:
-        source_port = 65535  # Safety cap
-
+    
     # Create single UDP socket for both TX and RX
+    source_port = random.randrange(30000, 60000)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        sock.bind(('0.0.0.0', source_port))
-    except OSError as e:
-        # Fallback to random port if deterministic port is already in use
-        print(f"Warning: Port {source_port} in use, falling back to random port", flush=True)
-        source_port = random.randrange(40000, 60000)
-        sock.bind(('0.0.0.0', source_port))
+    sock.bind(('0.0.0.0', source_port))
 
     # Start helper threads
     t_recv = threading.Thread(target=receiver_thread, args=(sock, metrics, stop_event))
