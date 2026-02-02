@@ -130,7 +130,11 @@ export default function Security({ token }: SecurityProps) {
     const [edlExpanded, setEdlExpanded] = useState(true);
     const [resultsExpanded, setResultsExpanded] = useState(true);
 
-    const [edlResults, setEdlResults] = useState<{ ip: any[], url: any[], dns: any[] }>({ ip: [], url: [], dns: [] });
+    const [edlResults, setEdlResults] = useState<{ [key: string]: { results: any[], summary?: any } }>({
+        ip: { results: [] },
+        url: { results: [] },
+        dns: { results: [] }
+    });
     const [edlSyncing, setEdlSyncing] = useState<{ [key: string]: boolean }>({});
     const [edlTestingState, setEdlTestingState] = useState<{ [key: string]: boolean }>({});
 
@@ -616,8 +620,21 @@ export default function Security({ token }: SecurityProps) {
             });
             const data = await res.json();
             if (data.success) {
-                setEdlResults(prev => ({ ...prev, [type]: data.results }));
-                showToast(`EDL ${type.toUpperCase()} testing completed: ${data.testedCount} elements`, 'success');
+                setEdlResults(prev => ({
+                    ...prev,
+                    [type]: {
+                        results: data.results || [],
+                        summary: {
+                            testedCount: data.testedCount,
+                            allowedCount: data.allowedCount,
+                            blockedCount: data.blockedCount,
+                            errorCount: data.errorCount,
+                            successRate: data.successRate
+                        }
+                    }
+                }));
+                const summary = `${data.testedCount} tested – ${data.allowedCount} allowed, ${data.blockedCount} blocked (${(data.successRate * 100).toFixed(0)}% OK)`;
+                showToast(`EDL ${type.toUpperCase()} test completed: ${summary}`, 'success');
                 fetchResults(); // Update global log
             } else {
                 showToast(data.error || 'Test failed', 'error');
@@ -1298,8 +1315,8 @@ export default function Security({ token }: SecurityProps) {
                                                 key={m}
                                                 onClick={() => updateEdlConfig({ testMode: m })}
                                                 className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-tight transition-all ${config.edlTesting.testMode === m
-                                                        ? 'bg-orange-500 text-white shadow-lg'
-                                                        : 'text-slate-500 hover:text-slate-300'
+                                                    ? 'bg-orange-500 text-white shadow-lg'
+                                                    : 'text-slate-500 hover:text-slate-300'
                                                     }`}
                                             >
                                                 {m}
@@ -1343,7 +1360,9 @@ export default function Security({ token }: SecurityProps) {
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {(['ip', 'url', 'dns'] as const).map(type => {
-                                    const results = (edlResults as any)[type];
+                                    const edlData = (edlResults as any)[type];
+                                    const results = edlData.results;
+                                    const summary = edlData.summary;
                                     const isTesting = edlTestingState[type];
                                     const listName = `${type}List` as keyof typeof config.edlTesting;
                                     const list = config.edlTesting[listName] as any;
@@ -1358,6 +1377,22 @@ export default function Security({ token }: SecurityProps) {
                                                 {isTesting ? <RefreshCcw size={14} className="animate-spin" /> : <Play size={14} className="group-hover:scale-110 transition-transform" />}
                                                 Test {type.toUpperCase()} EDL
                                             </button>
+
+                                            {summary && (
+                                                <div className="bg-slate-950/40 border border-slate-800/60 rounded-lg p-2 flex flex-col gap-1">
+                                                    <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
+                                                        <span className="text-slate-500">Last run summary</span>
+                                                        <span className={summary.successRate >= 0.8 ? "text-green-400" : summary.successRate >= 0.5 ? "text-orange-400" : "text-red-400"}>
+                                                            {(summary.successRate * 100).toFixed(0)}% OK
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex gap-3 text-[10px] items-center">
+                                                        <span className="text-slate-400">Tested: <b className="text-slate-200">{summary.testedCount}</b></span>
+                                                        <span className="text-slate-400">Allowed: <b className="text-green-400">{summary.allowedCount}</b></span>
+                                                        <span className="text-slate-400">Blocked: <b className="text-red-400">{summary.blockedCount}</b></span>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {results && results.length > 0 && (
                                                 <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
@@ -1382,7 +1417,7 @@ export default function Security({ token }: SecurityProps) {
                                                             ))}
                                                             {results.length > 5 && (
                                                                 <tr>
-                                                                    <td colSpan={2} className="py-2 px-3 text-center text-slate-500 font-medium italic">
+                                                                    <td colSpan={2} className="py-2 px-3 text-center text-slate-500 font-medium italic border-t border-slate-800">
                                                                         + {results.length - 5} more results in global log
                                                                     </td>
                                                                 </tr>

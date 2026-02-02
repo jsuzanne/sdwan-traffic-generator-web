@@ -379,18 +379,20 @@ const startIperfServer = () => {
 // For security tests, we prefer tools that bypass OS caching and provide more detail (nslookup/dig)
 const getDnsCommand = (domain: string): { command: string; type: string } => {
     // Priority 1: nslookup (Universal and provides CNAME info which is vital for sinkhole detection)
+    // Adding timeout for robustness
     if (availableCommands.nslookup) {
-        return { command: `nslookup ${domain}`, type: 'nslookup' };
+        const cmd = PLATFORM === 'win32' ? `nslookup -timeout=2 ${domain}` : `nslookup -timeout=2 ${domain}`;
+        return { command: cmd, type: 'nslookup' };
     }
 
     // Priority 2: dig (Linux/Mac standard for deep inspection)
     if (availableCommands.dig) {
-        return { command: `dig ${domain} +short`, type: 'dig' };
+        return { command: `dig ${domain} +short +time=2 +tries=1`, type: 'dig' };
     }
 
     // Fallbacks for specific platforms if technical tools missing
     if (PLATFORM === 'linux' && availableCommands.getent) {
-        return { command: `getent ahosts ${domain}`, type: 'getent' };
+        return { command: `timeout 2 getent ahosts ${domain}`, type: 'getent' };
     }
 
     if (PLATFORM === 'darwin' && availableCommands.dscacheutil) {
@@ -398,7 +400,7 @@ const getDnsCommand = (domain: string): { command: string; type: string } => {
     }
 
     // Ultimate fallback
-    return { command: `nslookup ${domain}`, type: 'nslookup' };
+    return { command: `nslookup -timeout=2 ${domain}`, type: 'nslookup' };
 };
 
 // Parse DNS command output based on command type
@@ -3778,8 +3780,11 @@ app.post('/api/security/edl-upload', authenticateToken, upload.single('file'), (
 // API: Execute EDL Tests
 app.post('/api/security/edl-test', authenticateToken, async (req, res) => {
     const { type, mode, limit } = req.body;
+    const testId = getNextTestId();
     const config = getSecurityConfig();
     const edl = config.edlTesting;
+
+    logTest(`[EDL-TEST-${testId}] Request received: type=${type}, mode=${mode || edl.testMode}, limit=${limit || edl.maxElementsPerRun}`);
 
     const listMap: Record<string, any> = {
         'ip': edl.ipList,
@@ -3788,7 +3793,8 @@ app.post('/api/security/edl-test', authenticateToken, async (req, res) => {
     };
 
     const targetList = listMap[type];
-    if (!targetList || !targetList.elements.length) {
+    if (!targetList || !targetList.elements || !targetList.elements.length) {
+        logTest(`[EDL-TEST-${testId}] Error: List is empty or invalid`);
         return res.status(400).json({ error: 'List is empty or invalid' });
     }
 
@@ -3801,53 +3807,77 @@ app.post('/api/security/edl-test', authenticateToken, async (req, res) => {
 
     let testElements = [...targetList.elements];
     if (testMode === 'random') {
-        // Shuffle and take sample
         testElements = testElements.sort(() => Math.random() - 0.5);
     }
     testElements = testElements.slice(0, effectiveLimit);
 
-    const results = [];
+    logTest(`[EDL-TEST-${testId}] Selected ${testElements.length} elements for testing (${testMode})`);
+
+    const results: any[] = [];
     const execPromise = promisify(exec);
 
-    for (const item of testElements) {
-        try {
-            if (type === 'url') {
-                // Ensure protocol
-                const url = item.startsWith('http') ? item : `http://${item}`;
-                const curlCmd = `curl -fsS --max-time 10 -o /dev/null -w "%{http_code}" "${url}"`;
-                try {
-                    const { stdout } = await execPromise(curlCmd);
-                    const code = parseInt(stdout);
-                    const status = (code >= 200 && code < 400) ? 'allowed' : 'blocked';
-                    results.push({ value: item, status, details: `HTTP ${code}`, timestamp: Date.now() });
-                } catch (e: any) {
-                    results.push({ value: item, status: 'blocked', details: e.message.includes('timeout') ? 'Timeout' : 'Blocked', timestamp: Date.now() });
+    // Parallel execution with concurrency limit
+    const concurrency = 10;
+    for (let i = 0; i < testElements.length; i += concurrency) {
+        const batch = testElements.slice(i, i + concurrency);
+        await Promise.all(batch.map(async (item) => {
+            try {
+                if (type === 'url') {
+                    const url = item.startsWith('http') ? item : `http://${item}`;
+                    // Use a shorter timeout per item
+                    const curlCmd = `curl -fsS --max-time 10 -o /dev/null -w "%{http_code}" "${url}"`;
+                    try {
+                        const { stdout } = await execPromise(curlCmd);
+                        const code = parseInt(stdout);
+                        const status = (code >= 200 && code < 400) ? 'allowed' : 'blocked';
+                        results.push({ value: item, status, details: `HTTP ${code}`, timestamp: Date.now() });
+                    } catch (e: any) {
+                        results.push({ value: item, status: 'blocked', details: e.message.includes('timeout') ? 'Timeout' : 'Blocked', timestamp: Date.now() });
+                    }
+                } else if (type === 'dns') {
+                    const { command } = getDnsCommand(item);
+                    try {
+                        const { stdout } = await execPromise(command);
+                        const resolvedIp = parseDnsOutput(stdout, command.startsWith('nslookup') ? 'nslookup' : 'dig');
+                        const status = resolvedIp ? 'allowed' : 'blocked';
+                        results.push({ value: item, status, details: resolvedIp ? `IP: ${resolvedIp}` : 'NXDOMAIN', timestamp: Date.now() });
+                    } catch (e: any) {
+                        results.push({ value: item, status: 'blocked', details: 'DNS Error', timestamp: Date.now() });
+                    }
+                } else if (type === 'ip') {
+                    const pingCmd = PLATFORM === 'darwin' ? `ping -c 1 -t 2 ${item}` : `ping -c 1 -W 2 ${item}`;
+                    try {
+                        await execPromise(pingCmd);
+                        results.push({ value: item, status: 'allowed', details: 'Ping OK', timestamp: Date.now() });
+                    } catch (e) {
+                        results.push({ value: item, status: 'blocked', details: 'Timeout/Unreachable', timestamp: Date.now() });
+                    }
                 }
-            } else if (type === 'dns') {
-                const { command } = getDnsCommand(item);
-                try {
-                    const { stdout } = await execPromise(command);
-                    const resolvedIp = parseDnsOutput(stdout, command.startsWith('nslookup') ? 'nslookup' : 'dig');
-                    const status = resolvedIp ? 'allowed' : 'blocked';
-                    results.push({ value: item, status, details: resolvedIp ? `IP: ${resolvedIp}` : 'NXDOMAIN', timestamp: Date.now() });
-                } catch (e: any) {
-                    results.push({ value: item, status: 'blocked', details: 'DNS Error', timestamp: Date.now() });
-                }
-            } else if (type === 'ip') {
-                const pingCmd = PLATFORM === 'darwin' ? `ping -c 1 -t 2 ${item}` : `ping -c 1 -W 2 ${item}`;
-                try {
-                    await execPromise(pingCmd);
-                    results.push({ value: item, status: 'allowed', details: 'Ping OK', timestamp: Date.now() });
-                } catch (e) {
-                    results.push({ value: item, status: 'blocked', details: 'Timeout/Unreachable', timestamp: Date.now() });
-                }
+            } catch (e: any) {
+                results.push({ value: item, status: 'error', details: e.message, timestamp: Date.now() });
             }
-        } catch (e: any) {
-            results.push({ value: item, status: 'error', details: e.message, timestamp: Date.now() });
-        }
+        }));
     }
 
-    res.json({ success: true, type, mode: testMode, testedCount: results.length, results });
+    const allowedCount = results.filter(r => r.status === 'allowed').length;
+    const blockedCount = results.filter(r => r.status === 'blocked').length;
+    const errorCount = results.filter(r => r.status === 'error').length;
+    const successRate = results.length > 0 ? (allowedCount / results.length).toFixed(2) : "0.00";
+
+    const summary = {
+        success: true,
+        type,
+        mode: testMode,
+        testedCount: results.length,
+        allowedCount,
+        blockedCount,
+        errorCount,
+        successRate: parseFloat(successRate),
+        results: results.sort((a, b) => b.timestamp - a.timestamp)
+    };
+
+    logTest(`[EDL-TEST-${testId}] Completed: tested=${summary.testedCount}, allowed=${allowedCount}, blocked=${blockedCount}, errors=${errorCount} (${(parseFloat(successRate) * 100).toFixed(0)}% OK)`);
+    res.json(summary);
 });
 
 // API: Threat Prevention Test (EICAR)
