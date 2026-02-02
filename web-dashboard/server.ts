@@ -875,7 +875,16 @@ app.post('/api/vyos/routers/discover', authenticateToken, async (req, res) => {
     }
 });
 
-app.post('/api/vyos/routers/:id?', authenticateToken, (req, res) => {
+// Create / discover (generic save)
+app.post('/api/vyos/routers', authenticateToken, (req, res) => {
+    const router = req.body;
+    if (!router.id || !router.host) return res.status(400).json({ error: 'Invalid router data' });
+    vyosManager.saveRouter(router);
+    res.json({ success: true });
+});
+
+// Update existing router
+app.post('/api/vyos/routers/:id', authenticateToken, (req, res) => {
     const router = req.body;
     if (!router.id || !router.host) return res.status(400).json({ error: 'Invalid router data' });
     vyosManager.saveRouter(router);
@@ -4254,6 +4263,28 @@ httpServer.listen(PORT, async () => {
 
     // Start cleanup scheduler
     scheduleLogCleanup();
+
+    // Smoke Test: Validate all Express routes to catch PathError regressions early
+    try {
+        console.log('🔍 Validating routes...');
+        const routes: string[] = [];
+        const processLayer = (layer: any, prefix: string = '') => {
+            if (layer.route) {
+                const path = prefix + layer.route.path;
+                routes.push(path);
+            } else if (layer.name === 'router' && layer.handle.stack) {
+                layer.handle.stack.forEach((subLayer: any) => {
+                    processLayer(subLayer, prefix + (layer.regexp.source.replace('^\\', '').replace('\\/?(?=\\/|$)', '')));
+                });
+            }
+        };
+        (app as any)._router.stack.forEach((layer: any) => processLayer(layer));
+        console.log(`✅ ${routes.length} routes validated successfully`);
+    } catch (e: any) {
+        console.error(`❌ CRITICAL: Route validation failed: ${e.message}`);
+        console.error(`This is usually caused by incompatible route syntax (e.g. optional params like :id?)`);
+        process.exit(1);
+    }
 
     console.log(`Backend running at http://localhost:${PORT}`);
 });
