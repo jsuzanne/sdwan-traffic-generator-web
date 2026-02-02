@@ -2,6 +2,19 @@
 
 The **VyOS Control** module is a specialized subsystem of the SD-WAN Traffic Generator designed to simulate network-level impairments on VyOS routers. It allows for highly orchestrated "missions" that can automate latency, packet loss, and rate-limiting across multiple SD-WAN paths.
 
+```mermaid
+graph TD
+    User["User Browser (React UI)"] -- "JSON API (JWT Auth)" --> Server["Express Server (Node.js)"]
+    subgraph "VyOS Subsystem"
+        Server -- "State Management" --> VyosManager["VyosManager"]
+        Server -- "Execution & Timing" --> VyosScheduler["VyosScheduler"]
+        VyosManager -- "Discovery & CLI" --> PyScript["vyos_sdwan_ctl.py"]
+        VyosScheduler -- "Execute Commands" --> PyScript
+        PyScript -- "HTTPS API" --> VyOS["VyOS Router API"]
+    end
+    VyosScheduler -- "Logging" --> History["vyos-history.jsonl"]
+```
+
 ## 🚀 Core Features
 
 - **Automated Router Discovery**: Connects via the VyOS HTTP API to retrieve interfaces, IP addresses, and operational descriptions.
@@ -22,6 +35,30 @@ Create a "Sequence" to define your impairment mission.
 - **Actions**: Each step in a sequence targets a specific router and interface.
 - **Command**: Currently supports `SET-QOS` (latency, loss, rate) and `CLEAR-QOS`.
 - **Offsets**: Define when an action happens relative to the start of the cycle (T+0, T+10, etc.).
+
+```mermaid
+sequenceDiagram
+    participant UI as Vyos UI
+    participant S as Server
+    participant Sch as VyosScheduler
+    participant Py as Python Script
+    participant V as VyOS Router
+
+    UI->>S: Run Sequence (ID)
+    S->>Sch: runSequence(id)
+    Note over Sch: Assign Run ID (SEQ-xxxx)
+    loop For each Action in Sequence
+        Sch->>Sch: Wait for Offset (T+)
+        Sch->>Py: exec (set-qos, router, params)
+        Py->>V: POST /configure
+        V-->>Py: HTTP 200 (OK)
+        Py-->>Sch: Success (stdout)
+        Note over Sch: Record Duration (ms)
+        Sch->>S: Live Status Update
+        S->>UI: WebSocket Update
+    end
+    Sch->>Sch: Persist History (JSONL)
+```
 
 ### 3. Monitoring Missions
 - **Execution Timeline**: Watch actions trigger in real-time with status indicators.
