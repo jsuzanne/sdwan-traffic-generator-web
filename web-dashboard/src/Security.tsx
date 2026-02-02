@@ -150,6 +150,7 @@ export default function Security({ token }: SecurityProps) {
     // Detailed log viewer
     const [selectedTest, setSelectedTest] = useState<any>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
+    const [modalSearchQuery, setModalSearchQuery] = useState('');
 
     // System health
     const [systemHealth, setSystemHealth] = useState<any>(null);
@@ -357,6 +358,7 @@ export default function Security({ token }: SecurityProps) {
     }, [searchQuery, testTypeFilter]);
 
     const viewTestDetails = async (testId: number) => {
+        setModalSearchQuery('');
         try {
             const response = await fetch(`/api/security/results/${testId}`, {
                 headers: authHeaders()
@@ -1644,6 +1646,57 @@ export default function Security({ token }: SecurityProps) {
                                                 <span className="text-slate-200 ml-2">{selectedTest.details.executionTime}ms</span>
                                             </div>
                                         )}
+                                        {selectedTest.details.isBatch && selectedTest.details.results && (
+                                            <div className="mt-4 pt-4 border-t border-slate-700">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="text-sm font-semibold text-slate-300">Detailed Batch Results</h4>
+                                                    <div className="relative w-48">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search results..."
+                                                            value={modalSearchQuery}
+                                                            onChange={(e) => setModalSearchQuery(e.target.value)}
+                                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg py-1.5 px-3 text-[11px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+                                                    <div className="max-h-96 overflow-y-auto">
+                                                        <table className="w-full text-xs">
+                                                            <thead className="bg-slate-800 sticky top-0 z-10">
+                                                                <tr className="border-b border-slate-800">
+                                                                    <th className="text-left py-2.5 px-3 text-slate-400 font-bold uppercase tracking-wider text-[9px]">Value</th>
+                                                                    <th className="text-right py-2.5 px-3 text-slate-400 font-bold uppercase tracking-wider text-[9px]">Status</th>
+                                                                    <th className="text-left py-2.5 px-3 text-slate-400 font-bold uppercase tracking-wider text-[9px]">Details</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-slate-800/50">
+                                                                {selectedTest.details.results
+                                                                    .filter((r: any) =>
+                                                                        r.value.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
+                                                                        r.status.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
+                                                                        (r.details && r.details.toLowerCase().includes(modalSearchQuery.toLowerCase()))
+                                                                    )
+                                                                    .map((r: any, i: number) => (
+                                                                        <tr key={i} className="hover:bg-slate-800/30">
+                                                                            <td className="py-2.5 px-3 text-slate-300 font-mono text-[11px] break-all">{r.value}</td>
+                                                                            <td className="py-2.5 px-3 text-right">
+                                                                                <span className={`px-2 py-0.5 rounded-md font-bold uppercase text-[9px] ${r.status === 'allowed' ? 'bg-green-500/10 text-green-400' :
+                                                                                    r.status === 'error' ? 'bg-orange-500/10 text-orange-400' : 'bg-red-500/10 text-red-400'
+                                                                                    }`}>
+                                                                                    {r.status}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="py-2.5 px-3 text-slate-500 text-[10px] break-words max-w-[150px]">{r.details || '-'}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {selectedTest.details.reason && (
                                             <div className="mt-4 pt-4 border-t border-slate-700">
                                                 <span className="text-blue-400 font-bold uppercase text-[10px] tracking-wider block mb-1">Decision Reason</span>

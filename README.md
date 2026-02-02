@@ -24,7 +24,8 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. [Read more](docs/IOT_SIMULATION.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
-- **VyOS Control (Impairment Lab)** - Orchestrate network impairments (latency, loss, rate-limiting) on VyOS routers via API. Supports path visibility and mission audit trails. [Read more](docs/VYOS_CONTROL.md)
+- **VyOS Control ** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API.
+ [Read more](docs/VYOS_CONTROL.md)
 
 ### 🛡️ Security Testing (v1.1.0)
 - **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)
@@ -46,7 +47,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **Auto-generated Config** - Creates applications.txt with 67 apps automatically
 - **One-liner Install** - Ready in 30 seconds with single command (Linux/macOS). Supports **Dashboard** or **Target Site** modes.
 - **Docker-based** - Pre-built multi-platform images (AMD64 + ARM64).
-- **One-Click Upgrade** - Built-in maintenance UI to pull latest images and restart services with a single click.
+- **One-Click Upgrade (Beta)** - Built-in maintenance UI to pull latest images and restart services with a single click.
 
 ### 🔒 Production Ready
 - **JWT Authentication** - Secure login with token-based auth

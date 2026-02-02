@@ -3665,11 +3665,46 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
 
 // --- EDL (External Dynamic List) API ---
 
-// Helper: Parse EDL content
-const parseEdlContent = (content: string) => {
-    return content.split('\n')
+// Helper: Validate IP Address or Subnet
+const isValidIp = (ip: string): boolean => {
+    // Basic IPv4 / Subnet regex
+    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[12][0-9]|3[0-2]))?$/;
+    return ipRegex.test(ip);
+};
+
+// Helper: Validate Domain Name
+const isValidDomain = (domain: string): boolean => {
+    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-2][a-z0-9-]{0,61}[a-z0-2]$/i;
+    return domainRegex.test(domain);
+};
+
+// Helper: Validate URL
+const isValidUrl = (url: string): boolean => {
+    try {
+        // If it doesn't have protocol, add it for validation
+        const toVal = url.includes('://') ? url : `http://${url}`;
+        new URL(toVal);
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
+
+// Helper: Parse EDL content with validation
+const parseEdlContent = (content: string, type?: 'ip' | 'url' | 'dns') => {
+    const rawLines = content.split('\n')
         .map(line => line.trim())
-        .filter(line => line && !line.startsWith('#'));
+        .filter(line => line && !line.startsWith('#') && !line.startsWith(';'));
+
+    if (!type) return rawLines;
+
+    // Apply strict validation based on type
+    return rawLines.filter(line => {
+        if (type === 'ip') return isValidIp(line);
+        if (type === 'dns') return isValidDomain(line);
+        if (type === 'url') return isValidUrl(line);
+        return true;
+    });
 };
 
 // API: Get EDL Configuration
@@ -3730,7 +3765,7 @@ app.post('/api/security/edl-sync', authenticateToken, async (req, res) => {
         // Using curl to fetch the list. Param escaping is basic here but respects the spec.
         const { stdout } = await execPromise(`curl -fsS --max-time 20 "${targetList.remoteUrl}"`);
 
-        const elements = parseEdlContent(stdout);
+        const elements = parseEdlContent(stdout, type);
         targetList.elements = elements;
         targetList.lastSyncTime = Date.now();
 
@@ -3763,7 +3798,7 @@ app.post('/api/security/edl-upload', authenticateToken, upload.single('file'), (
 
     try {
         const content = file.buffer.toString('utf8');
-        const elements = parseEdlContent(content);
+        const elements = parseEdlContent(content, type);
         targetList.elements = elements;
         targetList.lastSyncTime = Date.now();
 
@@ -3877,6 +3912,45 @@ app.post('/api/security/edl-test', authenticateToken, async (req, res) => {
     };
 
     logTest(`[EDL-TEST-${testId}] Completed: tested=${summary.testedCount}, allowed=${allowedCount}, blocked=${blockedCount}, errors=${errorCount} (${(parseFloat(successRate) * 100).toFixed(0)}% OK)`);
+
+    // --- INTEGRATION: Global History & Stats ---
+    try {
+        const globalCategory = (type === 'dns') ? 'dns_security' : 'url_filtering';
+        const testName = `EDL ${type.toUpperCase()} Run (${summary.testedCount} items)`;
+
+        // Update statistics for each item in the batch
+        // We do this manually to avoid multiple saveSecurityConfig calls in addTestResult
+        const configToUpdate = getSecurityConfig();
+        if (configToUpdate && configToUpdate.statistics) {
+            configToUpdate.statistics.total_tests_run += results.length;
+            results.forEach(r => {
+                if (globalCategory === 'url_filtering') {
+                    if (r.status === 'blocked') configToUpdate.statistics.url_tests_blocked++;
+                    else configToUpdate.statistics.url_tests_allowed++;
+                } else {
+                    if (r.status === 'blocked') configToUpdate.statistics.dns_tests_blocked++;
+                    else configToUpdate.statistics.dns_tests_allowed++;
+                }
+            });
+            configToUpdate.statistics.last_test_time = Date.now();
+            saveSecurityConfig(configToUpdate);
+        }
+
+        // Add a single history entry for the whole batch
+        await addTestResult(
+            globalCategory,
+            testName,
+            {
+                status: summary.successRate >= 0.8 ? 'allowed' : 'blocked', // General status for the batch
+                ...summary,
+                isBatch: true // Flag for UI to render table
+            },
+            testId
+        );
+    } catch (e) {
+        console.error('[EDL-TEST] Failed to update global history:', e);
+    }
+
     res.json(summary);
 });
 
