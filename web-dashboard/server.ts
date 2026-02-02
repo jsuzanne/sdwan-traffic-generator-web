@@ -4269,17 +4269,22 @@ httpServer.listen(PORT, async () => {
         console.log('🔍 Validating routes...');
         const routes: string[] = [];
         const processLayer = (layer: any, prefix: string = '') => {
+            if (!layer) return;
             if (layer.route) {
                 const path = prefix + layer.route.path;
                 routes.push(path);
-            } else if (layer.name === 'router' && layer.handle.stack) {
+            } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
                 layer.handle.stack.forEach((subLayer: any) => {
                     processLayer(subLayer, prefix + (layer.regexp.source.replace('^\\', '').replace('\\/?(?=\\/|$)', '')));
                 });
             }
         };
-        (app as any)._router.stack.forEach((layer: any) => processLayer(layer));
-        console.log(`✅ ${routes.length} routes validated successfully`);
+        if ((app as any)._router && (app as any)._router.stack) {
+            (app as any)._router.stack.forEach((layer: any) => processLayer(layer));
+            console.log(`✅ ${routes.length} routes validated successfully`);
+        } else {
+            console.log('⚠️ Could not validate routes: _router.stack not found');
+        }
     } catch (e: any) {
         console.error(`❌ CRITICAL: Route validation failed: ${e.message}`);
         console.error(`This is usually caused by incompatible route syntax (e.g. optional params like :id?)`);
