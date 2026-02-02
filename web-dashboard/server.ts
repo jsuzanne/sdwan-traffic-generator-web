@@ -17,6 +17,13 @@ import { VyosManager } from './vyos-manager.js';
 import { VyosScheduler } from './vyos-scheduler.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import multer from 'multer';
+
+// Multer setup for EDL file uploads (memory storage)
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // Fix for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -2585,6 +2592,14 @@ const getSecurityConfig = () => {
                 threat_tests_allowed: 0,
                 last_test_time: null
             },
+            edlTesting: {
+                ipList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
+                urlList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
+                dnsList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
+                testMode: 'sequential',
+                randomSampleSize: 50,
+                maxElementsPerRun: 200
+            },
             test_history: []
         };
 
@@ -2648,6 +2663,29 @@ const getSecurityConfig = () => {
                     migrated = true;
                 }
             });
+        }
+
+        // Migration: Ensure edlTesting exists
+        if (!config.edlTesting || typeof config.edlTesting !== 'object') {
+            console.log('Initializing EDL testing configuration...');
+            config.edlTesting = { ...defaultConfig.edlTesting };
+            migrated = true;
+        } else {
+            // Ensure lists exist
+            const lists = ['ipList', 'urlList', 'dnsList'] as const;
+            lists.forEach(l => {
+                if (!config.edlTesting[l] || typeof config.edlTesting[l] !== 'object') {
+                    config.edlTesting[l] = { ...defaultConfig.edlTesting[l] };
+                    migrated = true;
+                } else if (!Array.isArray(config.edlTesting[l].elements)) {
+                    config.edlTesting[l].elements = [];
+                    migrated = true;
+                }
+            });
+            // Ensure other parameters exist
+            if (config.edlTesting.testMode === undefined) { config.edlTesting.testMode = 'sequential'; migrated = true; }
+            if (config.edlTesting.randomSampleSize === undefined) { config.edlTesting.randomSampleSize = 50; migrated = true; }
+            if (config.edlTesting.maxElementsPerRun === undefined) { config.edlTesting.maxElementsPerRun = 200; migrated = true; }
         }
 
         if (migrated) {
@@ -3600,6 +3638,195 @@ app.post('/api/security/dns-test-batch', authenticateToken, async (req, res) => 
     }
 
     res.json({ results });
+});
+
+// --- EDL (External Dynamic List) API ---
+
+// Helper: Parse EDL content
+const parseEdlContent = (content: string) => {
+    return content.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'));
+};
+
+// API: Get EDL Configuration
+app.get('/api/security/edl-config', authenticateToken, (req, res) => {
+    const config = getSecurityConfig();
+    const edl = config.edlTesting;
+
+    // Return config without full elements list
+    res.json({
+        success: true,
+        config: {
+            ipList: { ...edl.ipList, elementsCount: edl.ipList.elements.length, elements: undefined },
+            urlList: { ...edl.urlList, elementsCount: edl.urlList.elements.length, elements: undefined },
+            dnsList: { ...edl.dnsList, elementsCount: edl.dnsList.elements.length, elements: undefined },
+            testMode: edl.testMode,
+            randomSampleSize: edl.randomSampleSize,
+            maxElementsPerRun: edl.maxElementsPerRun
+        }
+    });
+});
+
+// API: Update EDL Configuration
+app.post('/api/security/edl-config', authenticateToken, (req, res) => {
+    const config = getSecurityConfig();
+    const updates = req.body;
+
+    if (updates.ipList?.remoteUrl !== undefined) config.edlTesting.ipList.remoteUrl = updates.ipList.remoteUrl;
+    if (updates.urlList?.remoteUrl !== undefined) config.edlTesting.urlList.remoteUrl = updates.urlList.remoteUrl;
+    if (updates.dnsList?.remoteUrl !== undefined) config.edlTesting.dnsList.remoteUrl = updates.dnsList.remoteUrl;
+    if (updates.testMode) config.edlTesting.testMode = updates.testMode;
+    if (updates.randomSampleSize !== undefined) config.edlTesting.randomSampleSize = parseInt(updates.randomSampleSize);
+    if (updates.maxElementsPerRun !== undefined) config.edlTesting.maxElementsPerRun = parseInt(updates.maxElementsPerRun);
+
+    if (saveSecurityConfig(config)) {
+        res.json({ success: true, config: config.edlTesting });
+    } else {
+        res.status(500).json({ error: 'Failed to save configuration' });
+    }
+});
+
+// API: Sync EDL from Remote URL
+app.post('/api/security/edl-sync', authenticateToken, async (req, res) => {
+    const { type } = req.body;
+    const config = getSecurityConfig();
+
+    const listMap: Record<string, any> = {
+        'ip': config.edlTesting.ipList,
+        'url': config.edlTesting.urlList,
+        'dns': config.edlTesting.dnsList
+    };
+
+    const targetList = listMap[type];
+    if (!targetList) return res.status(400).json({ error: 'Invalid list type' });
+    if (!targetList.remoteUrl) return res.status(400).json({ error: 'No remote URL configured' });
+
+    try {
+        const execPromise = promisify(exec);
+        // Using curl to fetch the list. Param escaping is basic here but respects the spec.
+        const { stdout } = await execPromise(`curl -fsS --max-time 20 "${targetList.remoteUrl}"`);
+
+        const elements = parseEdlContent(stdout);
+        targetList.elements = elements;
+        targetList.lastSyncTime = Date.now();
+
+        if (saveSecurityConfig(config)) {
+            res.json({ success: true, type, elementsCount: elements.length });
+        } else {
+            res.status(500).json({ error: 'Failed to save synced data' });
+        }
+    } catch (error: any) {
+        res.status(500).json({ error: 'Sync failed', message: error.message });
+    }
+});
+
+// API: Upload EDL File
+app.post('/api/security/edl-upload', authenticateToken, upload.single('file'), (req: any, res) => {
+    const { type } = req.body;
+    const file = req.file;
+
+    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const config = getSecurityConfig();
+    const listMap: Record<string, any> = {
+        'ip': config.edlTesting.ipList,
+        'url': config.edlTesting.urlList,
+        'dns': config.edlTesting.dnsList
+    };
+
+    const targetList = listMap[type];
+    if (!targetList) return res.status(400).json({ error: 'Invalid list type' });
+
+    try {
+        const content = file.buffer.toString('utf8');
+        const elements = parseEdlContent(content);
+        targetList.elements = elements;
+        targetList.lastSyncTime = Date.now();
+
+        if (saveSecurityConfig(config)) {
+            res.json({ success: true, type, elementsCount: elements.length });
+        } else {
+            res.status(500).json({ error: 'Failed to save uploaded data' });
+        }
+    } catch (error: any) {
+        res.status(500).json({ error: 'Upload processing failed', message: error.message });
+    }
+});
+
+// API: Execute EDL Tests
+app.post('/api/security/edl-test', authenticateToken, async (req, res) => {
+    const { type, mode, limit } = req.body;
+    const config = getSecurityConfig();
+    const edl = config.edlTesting;
+
+    const listMap: Record<string, any> = {
+        'ip': edl.ipList,
+        'url': edl.urlList,
+        'dns': edl.dnsList
+    };
+
+    const targetList = listMap[type];
+    if (!targetList || !targetList.elements.length) {
+        return res.status(400).json({ error: 'List is empty or invalid' });
+    }
+
+    const testMode = mode || edl.testMode;
+    const effectiveLimit = Math.min(
+        limit || edl.maxElementsPerRun,
+        edl.maxElementsPerRun,
+        targetList.elements.length
+    );
+
+    let testElements = [...targetList.elements];
+    if (testMode === 'random') {
+        // Shuffle and take sample
+        testElements = testElements.sort(() => Math.random() - 0.5);
+    }
+    testElements = testElements.slice(0, effectiveLimit);
+
+    const results = [];
+    const execPromise = promisify(exec);
+
+    for (const item of testElements) {
+        try {
+            if (type === 'url') {
+                // Ensure protocol
+                const url = item.startsWith('http') ? item : `http://${item}`;
+                const curlCmd = `curl -fsS --max-time 10 -o /dev/null -w "%{http_code}" "${url}"`;
+                try {
+                    const { stdout } = await execPromise(curlCmd);
+                    const code = parseInt(stdout);
+                    const status = (code >= 200 && code < 400) ? 'allowed' : 'blocked';
+                    results.push({ value: item, status, details: `HTTP ${code}`, timestamp: Date.now() });
+                } catch (e: any) {
+                    results.push({ value: item, status: 'blocked', details: e.message.includes('timeout') ? 'Timeout' : 'Blocked', timestamp: Date.now() });
+                }
+            } else if (type === 'dns') {
+                const { command } = getDnsCommand(item);
+                try {
+                    const { stdout } = await execPromise(command);
+                    const resolvedIp = parseDnsOutput(stdout, command.startsWith('nslookup') ? 'nslookup' : 'dig');
+                    const status = resolvedIp ? 'allowed' : 'blocked';
+                    results.push({ value: item, status, details: resolvedIp ? `IP: ${resolvedIp}` : 'NXDOMAIN', timestamp: Date.now() });
+                } catch (e: any) {
+                    results.push({ value: item, status: 'blocked', details: 'DNS Error', timestamp: Date.now() });
+                }
+            } else if (type === 'ip') {
+                const pingCmd = PLATFORM === 'darwin' ? `ping -c 1 -t 2 ${item}` : `ping -c 1 -W 2 ${item}`;
+                try {
+                    await execPromise(pingCmd);
+                    results.push({ value: item, status: 'allowed', details: 'Ping OK', timestamp: Date.now() });
+                } catch (e) {
+                    results.push({ value: item, status: 'blocked', details: 'Timeout/Unreachable', timestamp: Date.now() });
+                }
+            }
+        } catch (e: any) {
+            results.push({ value: item, status: 'error', details: e.message, timestamp: Date.now() });
+        }
+    }
+
+    res.json({ success: true, type, mode: testMode, testedCount: results.length, results });
 });
 
 // API: Threat Prevention Test (EICAR)

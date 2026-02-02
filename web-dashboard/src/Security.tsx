@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Play, AlertTriangle, CheckCircle, XCircle, Clock, Download, Trash2, ChevronDown, ChevronUp, Copy, Filter } from 'lucide-react';
+import { Shield, Play, AlertTriangle, CheckCircle, XCircle, Clock, Download, Trash2, ChevronDown, ChevronUp, Copy, Filter, Link, Upload, RefreshCcw } from 'lucide-react';
 import { URL_CATEGORIES, DNS_TEST_DOMAINS } from '../shared/security-categories';
 
 interface SecurityProps {
@@ -44,6 +44,14 @@ interface SecurityConfig {
         last_test_time: number | null;
     };
     test_history: TestResult[];
+    edlTesting: {
+        ipList: { remoteUrl: string | null; lastSyncTime: number; elementsCount?: number };
+        urlList: { remoteUrl: string | null; lastSyncTime: number; elementsCount?: number };
+        dnsList: { remoteUrl: string | null; lastSyncTime: number; elementsCount?: number };
+        testMode: 'sequential' | 'random';
+        randomSampleSize: number;
+        maxElementsPerRun: number;
+    };
 }
 
 // Sub-component for scheduler settings to avoid unmounting on parent re-render
@@ -119,7 +127,12 @@ export default function Security({ token }: SecurityProps) {
     const [urlExpanded, setUrlExpanded] = useState(true);
     const [dnsExpanded, setDnsExpanded] = useState(true);
     const [threatExpanded, setThreatExpanded] = useState(true);
+    const [edlExpanded, setEdlExpanded] = useState(true);
     const [resultsExpanded, setResultsExpanded] = useState(true);
+
+    const [edlResults, setEdlResults] = useState<{ ip: any[], url: any[], dns: any[] }>({ ip: [], url: [], dns: [] });
+    const [edlSyncing, setEdlSyncing] = useState<{ [key: string]: boolean }>({});
+    const [edlTestingState, setEdlTestingState] = useState<{ [key: string]: boolean }>({});
 
     // Test results filter
     const [testTypeFilter, setTestTypeFilter] = useState<'all' | 'url_filtering' | 'dns_security' | 'threat_prevention'>('all');
@@ -525,6 +538,94 @@ export default function Security({ token }: SecurityProps) {
             console.error('Threat test failed:', e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const syncEdl = async (type: 'ip' | 'url' | 'dns') => {
+        setEdlSyncing(prev => ({ ...prev, [type]: true }));
+        try {
+            const res = await fetch('/api/security/edl-sync', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`EDL ${type.toUpperCase()} synced: ${data.elementsCount} elements`, 'success');
+                fetchConfig(); // Refresh counts
+            } else {
+                showToast(data.message || 'Sync failed', 'error');
+            }
+        } catch (e) {
+            showToast('Sync failed', 'error');
+        } finally {
+            setEdlSyncing(prev => ({ ...prev, [type]: false }));
+        }
+    };
+
+    const uploadEdl = async (type: 'ip' | 'url' | 'dns', file: File) => {
+        const formData = new FormData();
+        formData.append('type', type);
+        formData.append('file', file);
+
+        setEdlSyncing(prev => ({ ...prev, [type]: true }));
+        try {
+            const res = await fetch('/api/security/edl-upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }, // No content-type for FormData
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`EDL ${type.toUpperCase()} uploaded: ${data.elementsCount} elements`, 'success');
+                fetchConfig(); // Refresh counts
+            } else {
+                showToast(data.message || 'Upload failed', 'error');
+            }
+        } catch (e) {
+            showToast('Upload failed', 'error');
+        } finally {
+            setEdlSyncing(prev => ({ ...prev, [type]: false }));
+        }
+    };
+
+    const updateEdlConfig = async (updates: any) => {
+        try {
+            const res = await fetch('/api/security/edl-config', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('EDL configuration saved', 'success');
+                fetchConfig();
+            }
+        } catch (e) {
+            showToast('Failed to save EDL config', 'error');
+        }
+    };
+
+    const runEdlTest = async (type: 'ip' | 'url' | 'dns') => {
+        setEdlTestingState(prev => ({ ...prev, [type]: true }));
+        try {
+            const res = await fetch('/api/security/edl-test', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setEdlResults(prev => ({ ...prev, [type]: data.results }));
+                showToast(`EDL ${type.toUpperCase()} testing completed: ${data.testedCount} elements`, 'success');
+                fetchResults(); // Update global log
+            } else {
+                showToast(data.error || 'Test failed', 'error');
+            }
+        } catch (e) {
+            showToast('Test failed', 'error');
+        } finally {
+            setEdlTestingState(prev => ({ ...prev, [type]: false }));
         }
     };
 
@@ -1088,6 +1189,211 @@ export default function Security({ token }: SecurityProps) {
                                         {getStatusBadge(testResults.find(r => r.testType === 'threat_prevention' || r.testType === 'threat')?.result)}
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* EDL Lists (IP / URL / DNS) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <button
+                    onClick={() => setEdlExpanded(!edlExpanded)}
+                    className="w-full px-6 py-4 flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <Filter size={20} className="text-orange-400" />
+                        <h3 className="text-lg font-semibold text-white">EDL Lists (IP / URL / DNS)</h3>
+                        <span className="text-sm text-slate-400">
+                            (Dynamic External Lists testing)
+                        </span>
+                    </div>
+                    {edlExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+
+                {edlExpanded && (
+                    <div className="p-6 space-y-8">
+                        {/* 3 Columns for Lists */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {(['ip', 'url', 'dns'] as const).map(type => {
+                                const listName = `${type}List` as keyof typeof config.edlTesting;
+                                const list = config.edlTesting[listName] as any;
+                                const isSyncing = edlSyncing[type];
+
+                                return (
+                                    <div key={type} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-bold text-white uppercase tracking-wider">{type.toUpperCase()} EDL</h4>
+                                            <span className="text-[10px] font-mono bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
+                                                {list.elementsCount || 0} Elements
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1 ml-1">Remote URL</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <Link size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                        <input
+                                                            type="text"
+                                                            value={list.remoteUrl || ''}
+                                                            onChange={(e) => updateEdlConfig({ [listName]: { remoteUrl: e.target.value } })}
+                                                            placeholder="https://..."
+                                                            className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg pl-9 pr-3 py-2 outline-none focus:border-orange-500"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => syncEdl(type)}
+                                                        disabled={isSyncing || !list.remoteUrl}
+                                                        className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-orange-400 rounded-lg transition-colors"
+                                                        title="Sync from URL"
+                                                    >
+                                                        <RefreshCcw size={16} className={isSyncing ? 'animate-spin' : ''} />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1 ml-1">Manual Upload</label>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-900 border border-dashed border-slate-700 hover:border-slate-500 rounded-lg cursor-pointer transition-colors group text-center">
+                                                        <Upload size={14} className="text-slate-500 group-hover:text-slate-300" />
+                                                        <span className="text-[10px] text-slate-400 font-medium truncate">Choose File</span>
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept=".txt,.csv"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (file) uploadEdl(type, file);
+                                                            }}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-slate-700/50 flex flex-col gap-1">
+                                                <div className="text-[10px] text-slate-500">
+                                                    Last Sync: <span className="text-slate-400">{list.lastSyncTime ? new Date(list.lastSyncTime).toLocaleString() : 'Never'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Parameter Controls */}
+                        <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-5">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Filter size={14} /> Global EDL Parameters
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div>
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2 ml-1">Test Mode</label>
+                                    <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                        {(['sequential', 'random'] as const).map(m => (
+                                            <button
+                                                key={m}
+                                                onClick={() => updateEdlConfig({ testMode: m })}
+                                                className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-tight transition-all ${config.edlTesting.testMode === m
+                                                        ? 'bg-orange-500 text-white shadow-lg'
+                                                        : 'text-slate-500 hover:text-slate-300'
+                                                    }`}
+                                            >
+                                                {m}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2 ml-1">Random Sample Size</label>
+                                    <input
+                                        type="number"
+                                        value={config.edlTesting.randomSampleSize}
+                                        onChange={(e) => updateEdlConfig({ randomSampleSize: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg px-3 py-2 outline-none focus:border-orange-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2 ml-1">Max Elements / Run</label>
+                                    <input
+                                        type="number"
+                                        value={config.edlTesting.maxElementsPerRun}
+                                        onChange={(e) => updateEdlConfig({ maxElementsPerRun: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-lg px-3 py-2 outline-none focus:border-orange-500"
+                                    />
+                                </div>
+                                <div className="flex items-end">
+                                    <button
+                                        onClick={() => showToast('Configuration automatically saved', 'info')}
+                                        className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-[10px] font-bold uppercase transition-colors"
+                                    >
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Test Execution & Mini Results */}
+                        <div className="space-y-4">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <Play size={14} /> Execute EDL Tests
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {(['ip', 'url', 'dns'] as const).map(type => {
+                                    const results = (edlResults as any)[type];
+                                    const isTesting = edlTestingState[type];
+                                    const listName = `${type}List` as keyof typeof config.edlTesting;
+                                    const list = config.edlTesting[listName] as any;
+
+                                    return (
+                                        <div key={type} className="space-y-3">
+                                            <button
+                                                onClick={() => runEdlTest(type)}
+                                                disabled={isTesting || !list.elementsCount}
+                                                className="w-full py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-xl font-bold uppercase text-[10px] transition-all flex items-center justify-center gap-2 group"
+                                            >
+                                                {isTesting ? <RefreshCcw size={14} className="animate-spin" /> : <Play size={14} className="group-hover:scale-110 transition-transform" />}
+                                                Test {type.toUpperCase()} EDL
+                                            </button>
+
+                                            {results && results.length > 0 && (
+                                                <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+                                                    <table className="w-full text-[10px]">
+                                                        <thead className="bg-slate-850">
+                                                            <tr className="border-b border-slate-800">
+                                                                <th className="text-left py-2 px-3 text-slate-500 uppercase">Value</th>
+                                                                <th className="text-right py-2 px-3 text-slate-500 uppercase">Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-800/50">
+                                                            {results.slice(0, 5).map((r: any, i: number) => (
+                                                                <tr key={i} className="hover:bg-slate-800/30">
+                                                                    <td className="py-2 px-3 text-slate-300 font-mono truncate max-w-[120px]">{r.value}</td>
+                                                                    <td className="py-2 px-3 text-right">
+                                                                        <span className={`px-1.5 py-0.5 rounded-md font-bold uppercase text-[9px] ${r.status === 'allowed' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                                                                            }`}>
+                                                                            {r.status}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                            {results.length > 5 && (
+                                                                <tr>
+                                                                    <td colSpan={2} className="py-2 px-3 text-center text-slate-500 font-medium italic">
+                                                                        + {results.length - 5} more results in global log
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>

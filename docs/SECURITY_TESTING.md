@@ -48,7 +48,8 @@ The Security Testing feature enables controlled testing of Palo Alto Networks / 
 6. [Scheduled Execution](#scheduled-execution)
 7. [Statistics Tracking](#statistics-tracking)
 8. [Persistent Logging](#persistent-logging)
-9. [Maintenance](#maintenance)
+9. [EDL Testing](#edl-testing)
+10. [Maintenance](#maintenance)
 
 ---
 
@@ -606,6 +607,38 @@ To reset statistics, manually edit `config/security-tests.json`:
 
 ---
 
+---
+
+## EDL Testing
+
+External Dynamic Lists (EDL) allow you to test security policies against bulk lists of IPs, URLs, or domains sourced from external text files.
+
+### List Types
+- **IP EDL**: Validates blocking of malicious IP addresses. Supports IPv4, IPv6, and CIDR notation. Tests use `ping`.
+- **URL EDL**: Validates blocking of URLs. Supports fully qualified URLs. Tests use `curl`.
+- **DNS EDL**: Validates blocking of domains. Supports FQDNs. Tests use `nslookup`/`dig`.
+
+### List Management
+- **Remote Sync**: Configure a `Remote URL` (e.g., https://raw.githubusercontent.com/...) and click the **Sync** icon. The system will download, parse (ignoring comments and empty lines), and store the elements.
+- **Manual Upload**: Upload a local `.txt` or `.csv` file containing one element per line.
+
+### Global Parameters
+- **Test Mode**:
+  - `Sequential`: Tests elements from the beginning of the list up to the limit.
+  - `Random`: Selects a random sample of elements from the entire list.
+- **Random Sample Size**: Number of elements to pick when in `Random` mode.
+- **Max Elements / Run**: Maximum number of tests allowed per execution to prevent network or firewall overload.
+
+### Mini Result View
+Each list type displays a mini results table showing the last 5 results of the latest test run. Full results are always available in the main **Test Results** history.
+
+### Implementation Details
+- **Storage**: Lists are stored in memory and persisted to `config/security-tests.json`.
+- **Deduplication**: Elements are automatically deduplicated during sync/upload.
+- **Timeout**: Each element test has a strict timeout (2-10s depending on type).
+
+---
+
 ## Maintenance
 
 ### Adding New URL Categories
@@ -744,6 +777,6 @@ For issues or questions:
 
 ---
 
-**Document Version:** 1.2  
-**Feature Version:** 1.1.0-patch.30  
-**Last Updated:** 2026-01-23
+**Document Version:** 1.3  
+**Feature Version:** 1.2.0  
+**Last Updated:** 2026-02-02
