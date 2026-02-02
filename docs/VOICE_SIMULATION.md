@@ -51,9 +51,13 @@ docker run -d --name sdwan-voice-echo \
 ### 🎯 Deep Inspection & Call IDs (v1.1.0-patch.61+)
 The generator embeds its internal **CALL-ID** (e.g., `CALL-0001`) directly inside the RTP payload. The Echo Server decodes this ID and logs it, allowing you to trace exactly which call is hitting which target in your logs.
 
-### 🔗 Flow Separation (v1.1.0-patch.61+)
-To provide realistic SD-WAN testing, each call now uses a **unique random source port**. 
-- **Benefit**: Your SD-WAN router sees each call as a distinct flow (quadruplet), allowing for proper Load Balancing and Multi-link distribution.
+### 🔗 Flow Separation & Traceability (v1.1.2+)
+To provide realistic SD-WAN testing and easy flow correlation, each call now uses a **deterministic source port** (Range **31000+**) derived from the **CALL-ID**.
+- **Deterministic Mapping**: 
+    - `CALL-0001` → Source Port `31001`
+    - `CALL-0015` → Source Port `31015`
+- **SD-WAN Benefit**: You can search for `src-port 31015` in your SD-WAN Orchestrator flow browser to isolate and trace exactly which tunnels/circuits a specific call utilized.
+- **Graceful Fallback**: If a deterministic port is already in use by the OS, the engine automatically falls back to a random port in the **40000-65535** range.
 - **Echo Logic**: The Echo server identifies call completion using a **5-second silence timeout** per flow.
 
 ### 🧹 Clean Slate Architecture
@@ -125,6 +129,11 @@ docker compose logs -f sdwan-voice-gen
 *Output example:*
 ```text
 [CALL-0012] 📞 CALL STARTED: 192.168.203.100:6100 | G.711-ulaw | 15s
+```
+
+If you enable `DEBUG=true` in your environment, you will also see the explicit source port being used for flow tracking:
+```text
+[11:00:00] [CALL-0012] ⚙️ Source Port: 31012 (Flow tracking enabled)
 ```
 
 **Echo Server (Target) logs:**

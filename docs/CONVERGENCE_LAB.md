@@ -11,6 +11,9 @@ The tool uses a **High-Frequency UDP Probe** strategy to identify sub-second net
 ### 1. High-Frequency Probing
 - **Default Rate**: 50 PPS (Packets Per Second), meaning a packet is sent every **20ms**.
 - **Default Port**: **UDP 6101** (Separated from Voice traffic on 6100).
+- **Source Port**: Deterministic based on Test ID (Range **30000+**).
+    - `CONV-001` → Source Port `30001`
+    - `CONV-042` → Source Port `30042`
 - **Payload**: Each packet contains a unique **Sequence Number** and a high-resolution **Timestamp**.
 - **Echo Mechanism**: The destination `echo_server.py` receives the packet and echoes it back, appending its own reception counter to allow for directional loss analysis.
 
@@ -53,8 +56,9 @@ You can adjust the probe frequency based on your testing goals:
 
 ### Correlation with Infrastructure
 Each test is assigned a unique **Test ID** (e.g., `[CONV-042]`). 
-- When a probe is active, the orchestrator binds to a specific **Source Port**.
-- You can use this Source Port to search for specific flow logs in your SD-WAN Orchestrator (Viptela, Silver Peak, Velocloud, etc.) to verify which tunnel or circuit was used during the outage.
+- When a probe is active, the orchestrator binds to a **deterministic Source Port** (30000 + Test Number).
+- **Benefit**: You can filter by source port directly in your SD-WAN flow browser (Viptela, Prisma Access, etc.) to isolate exactly which tunnel or circuit was used during a specific failover event.
+- **Graceful Fallback**: If the deterministic port is already in use by the OS, the tool automatically falls back to a random port in the **40000-60000** range to ensure the test starts.
 
 ### Warmup Period
 To ensure accurate "Failover" measurements, the tool implements a **5-second warmup period**. 
