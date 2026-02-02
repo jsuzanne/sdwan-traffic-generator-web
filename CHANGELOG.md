@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-patch.33.56] - 2026-02-02
+### Fixed
+- **Stable Smoke Test**: Applied comprehensive null-safety to the startup route validator. This prevents crashes in certain Express middleware configurations that were observed in v33.55. 🛡️✅
+### Added
+- **Visual Documentation**: Enhanced `docs/VYOS_CONTROL.md` with Mermaid diagrams for architecture and execution sequences. 📊📐
+
+## [1.1.2-patch.33.55] - 2026-02-02
+### Fixed
+- **Critical PathError Recovery**: Resolved a crash loop in environments with newer `path-to-regexp` (Node 20+) by splitting ambiguous optional routes into explicit endpoints. 🩹🛑
+### Added
+- **Route Validation Hook**: Added a startup "Smoke Test" that validates all registered Express routes against the current environment to catch syntax incompatibilities early. 🔍🚀
+
+## [1.1.2-patch.33.54] - 2026-02-01
+### Added
+- **VyOS Mastery (Phases 5-8)**: 🚀
+    - **Structured Logging (Phase 7)**: Introduced VoIP-style console logs with unique Run IDs (`SEQ-xxxx`, `MAN-xxxx`) and millisecond duration tracking.
+    - **Path Visibility (Phase 8)**: Promoted interface descriptions (e.g., "Paris MPLS") as first-class UI citizens on router cards and in the sequence builder.
+    - **Offset Clamping (Phase 6)**: Mandatory data integrity checks to ensure action offsets never exceed the cycle duration.
+### Fixed
+- **Persistence Leak**: Resolved a critical issue where router metadata (Tactical Location) was not saved during "Sync Node" operations due to route masking. 💾✅
+
+## [1.1.2-patch.33.53] - 2026-02-01
+### Added
+- **Phase 4 UX Refinement**: 🎨
+    - **Compact Layout**: Streamlined VyOS Router cards for better screen real-estate.
+    - **Smart Offsets**: Simplified action timing logic and fixed transition countdowns for manual vs cyclic runs.
+
+## [1.1.2-patch.33.41] - 2026-02-01
+### Added
+- **VyOS Control (Impairment Lab)**: 📡🌪️
+    - **Orchestration**: Direct control over VyOS routers via HTTP API.
+    - **Unified Controller**: New `set-qos` command dispatcher for latency, loss, and rate-limiting.
+    - **Sequence Builder**: Create Blueprints for complex SD-WAN impairment missions.
+    - **Service Logic**: Decoupled VyosManager and VyosScheduler for high-precision timing.
+
 ## [1.1.2-patch.33.40] - 2026-02-01
 ### Fixed
 - **Connectivity-Aware Interface Detection**: The installer now performs a real-time internet connectivity test (ping) against detected interfaces. If the primary interface fails, it automatically scans all available system interfaces to find a working internet path. This eliminates "Error 000000" at startup and removes the 1-minute fallback delay on multi-interface Linux servers. 📡⚡🔍
