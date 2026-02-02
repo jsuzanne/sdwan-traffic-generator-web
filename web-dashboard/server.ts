@@ -2716,6 +2716,27 @@ const getSecurityConfig = () => {
     }
 };
 
+/**
+ * Returns a security configuration optimized for the UI.
+ * It adds elementsCount to EDL lists and removes the actual large arrays of elements.
+ */
+const getSecurityUIConfig = () => {
+    const config = getSecurityConfig();
+    if (!config) return null;
+
+    const uiConfig = JSON.parse(JSON.stringify(config));
+    if (uiConfig.edlTesting) {
+        const lists = ['ipList', 'urlList', 'dnsList'] as const;
+        lists.forEach(l => {
+            if (uiConfig.edlTesting[l]) {
+                uiConfig.edlTesting[l].elementsCount = config.edlTesting[l].elements?.length || 0;
+                delete uiConfig.edlTesting[l].elements;
+            }
+        });
+    }
+    return uiConfig;
+};
+
 // Helper: Save security config
 const saveSecurityConfig = (config: any) => {
     try {
@@ -3049,7 +3070,7 @@ setTimeout(() => {
 
 // API: Get Security Configuration
 app.get('/api/security/config', authenticateToken, (req, res) => {
-    const config = getSecurityConfig();
+    const config = getSecurityUIConfig();
     if (!config) return res.status(500).json({ error: 'Failed to read config' });
     res.json(config);
 });
@@ -3071,7 +3092,7 @@ app.post('/api/security/config', authenticateToken, (req, res) => {
     }
 
     if (saveSecurityConfig(config)) {
-        res.json({ success: true, config });
+        res.json({ success: true, config: getSecurityUIConfig() });
     } else {
         res.status(500).json({ error: 'Failed to save config' });
     }
