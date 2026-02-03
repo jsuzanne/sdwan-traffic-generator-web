@@ -10,6 +10,9 @@ export default {
                 background: "var(--background)",
                 foreground: "var(--foreground)",
                 border: "var(--border)",
+                card: "var(--card)",
+                "card-hover": "var(--card-hover)",
+                accent: "var(--accent)",
             }
         },
     },

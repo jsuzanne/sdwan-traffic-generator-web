@@ -10,7 +10,7 @@ import Failover from './Failover';
 import System from './System';
 import Iot from './Iot';
 import Vyos from './Vyos';
-import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap, Monitor, Cpu } from 'lucide-react';
+import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap, Monitor, Cpu, Sun, Moon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Toaster } from 'react-hot-toast';
@@ -44,6 +44,20 @@ export default function App() {
   const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt' | 'iot' | 'vyos'>(
     (localStorage.getItem('activeView') as any) || 'performance'
   );
+
+  // --- Theme Management ---
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown');
@@ -496,7 +510,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <Toaster position="top-right" />
       <header className="mb-8 flex justify-between items-center">
         <div>
@@ -511,18 +525,26 @@ export default function App() {
 
 
         <div className="flex gap-4 items-center">
-          <span className="text-sm font-medium text-slate-300">{username}</span>
+          <span className="text-sm font-medium text-slate-300 dark:text-slate-300 light:text-slate-600">{username}</span>
+
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Passer au mode clair' : 'Passer au mode sombre'}
+            className="p-2 hover:bg-slate-800 dark:hover:bg-slate-800 light:hover:bg-slate-200 rounded-lg text-slate-400 hover:text-yellow-400 transition-colors"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
 
           {username === 'admin' && (
-            <button onClick={() => setShowAddUserModal(true)} title="Add User" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-green-400 transition-colors">
+            <button onClick={() => setShowAddUserModal(true)} title="Add User" className="p-2 hover:bg-slate-800 dark:hover:bg-slate-800 light:hover:bg-slate-200 rounded-lg text-slate-400 hover:text-green-400 transition-colors">
               <UserPlus size={18} />
             </button>
           )}
 
-          <button onClick={() => setShowPwdModal(true)} title="Change Password" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-400 transition-colors">
+          <button onClick={() => setShowPwdModal(true)} title="Change Password" className="p-2 hover:bg-slate-800 dark:hover:bg-slate-800 light:hover:bg-slate-200 rounded-lg text-slate-400 hover:text-blue-400 transition-colors">
             <Key size={18} />
           </button>
-          <button onClick={logout} title="Sign Out" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
+          <button onClick={logout} title="Sign Out" className="p-2 hover:bg-slate-800 dark:hover:bg-slate-800 light:hover:bg-slate-200 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
             <LogOut size={18} />
           </button>
         </div>
