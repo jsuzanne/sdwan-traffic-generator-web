@@ -10,6 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **VyOS Control**: Fixed a bug in `vyos_sdwan_ctl.py` where clearing combined QoS policies could fail due to incorrect argument handling. 🛠️🐛
 ### Changed
 - **Script Refactoring**: Refactored `vyos_sdwan_ctl.py` for better CLI ergonomics, streamlined argument descriptions, and improved auto-detection logic for router versions. 🚀📝
+- **VyOS Beta Warning**: Added a caution regarding VyOS Firewall automation. Still in **Beta** due to significant CLI disparities between legacy (1.4 2021/2022) and modern (1.5) releases. 🛡️⚠️
+
+## [1.1.2-patch.33.75] - 2026-02-03
+### Added
+- **Premium Light/Dark Mode**: Finalized system-wide semantic theming. Borders in light mode now apply a soft 3:1 contrast ratio against white backgrounds (`#e2e8f0`) while dark mode remains unchanged at the optimal 3:1 ratio. 🌓🎨
+### Changed
+- **Tailwind v4 Modernization**: Migrated all remaining hardcoded slate classes to semantic CSS variables with full `@theme` support. 🚀🛠️
+
+## [1.1.2-patch.33.71 - 33.74] - 2026-02-03
+### Added
+- **Theme Persistence**: Light/Dark mode state is now preserved across sessions.
+- **Semantic Components**: Migrated `Failover`, `VyOS`, and `Statistics` components to full semantic theme tokens. 🎨✨
+
+## [1.1.2-patch.33.65 - 33.70] - 2026-02-03
+### Added
+- **VyOS Firewall Integration**: Direct `block`, `unblock`, and `get-blocks` capability for SD-WAN endpoints.
+### Fixed
+- **Log Optimization**: Implemented 5s caching for system health and deduplicated high-frequency logs. 🔇⚡
+- **Docker Stability**: Resolved `ERR_MODULE_NOT_FOUND` and `TypeError` collisions in VyosScheduler.
+
+## [1.1.2-patch.33.57 - 33.64] - 2026-02-02
+### Added
+- **EDL Testing**: Comprehensive External Dynamic List validator for IP, URL, and DNS feeds. 🔍📄
+- **Visual Feedback**: Active cycle highlighting on VyOS timelines and deterministic UDP source ports for flow tracking.
 
 ## [1.1.2-patch.33.56] - 2026-02-02
 ### Fixed
@@ -37,6 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Phase 4 UX Refinement**: 🎨
     - **Compact Layout**: Streamlined VyOS Router cards for better screen real-estate.
     - **Smart Offsets**: Simplified action timing logic and fixed transition countdowns for manual vs cyclic runs.
+
+## [1.1.2-patch.33.42 - 33.52] - 2026-02-01
+### Changed
+- **VyOS Pipeline**: Unified the action dispatcher into a single `set-qos` call.
+- **Robustness**: Enhanced Python dependency injection (requests, urllib3) for containerized VyOS control. 📦🛡️
+- **History**: Improved execution history visibility with millisecond precision.
 
 ## [1.1.2-patch.33.41] - 2026-02-01
 ### Added
