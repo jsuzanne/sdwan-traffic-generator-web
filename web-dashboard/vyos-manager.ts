@@ -243,6 +243,11 @@ export class VyosManager extends EventEmitter {
         if (command === 'set-qos') command = 'set-qos';
         if (command === 'clear-qos') command = 'clear-qos';
 
+        // NEW: Firewall commands
+        if (command === 'deny-traffic') command = 'simple-block';
+        if (command === 'allow-traffic') command = 'simple-unblock';
+        if (command === 'show-denied') command = 'get-blocks';
+
         // Action syntax: vyos_sdwan_ctl.py --host ... --key ... --version ... <subcommand> [params...]
         const args = [
             this.pythonScriptPath,
@@ -264,6 +269,10 @@ export class VyosManager extends EventEmitter {
                     if (key === 'corrupt') flag = 'corruption';
                     if (key === 'interface') flag = 'iface';
 
+                    // NEW: Firewall flags
+                    if (key === 'ip') flag = 'ip';
+                    if (key === 'force') flag = 'force';
+
                     // Filter parameters based on subcommand
                     const isSetLatency = command === 'set-latency' && flag === 'ms';
                     const isSetLoss = command === 'set-loss' && flag === 'percent';
@@ -272,8 +281,22 @@ export class VyosManager extends EventEmitter {
                     const isIface = flag === 'iface';
                     const isQoS = command === 'set-qos';
 
-                    if (isQoS || isIface || isSetLatency || isSetLoss || isSetCorruption || isSetRate) {
-                        args.push(`--${flag}`, val.toString());
+                    // NEW: Firewall filters
+                    const isDenyTraffic = command === 'simple-block' && (flag === 'iface' || flag === 'ip' || flag === 'force');
+                    const isAllowTraffic = command === 'simple-unblock' && (flag === 'iface' || flag === 'ip');
+                    const isShowDenied = command === 'get-blocks' && flag === 'iface';
+
+                    if (isQoS || isIface || isSetLatency || isSetLoss || isSetCorruption || isSetRate ||
+                        isDenyTraffic || isAllowTraffic || isShowDenied) {
+
+                        // Handle boolean flags (e.g., --force)
+                        if (typeof val === 'boolean') {
+                            if (val === true) {
+                                args.push(`--${flag}`);  // Only add flag if true
+                            }
+                        } else {
+                            args.push(`--${flag}`, val.toString());
+                        }
                     }
                 }
             });
@@ -321,5 +344,46 @@ export class VyosManager extends EventEmitter {
         } catch {
             return false;
         }
+    }
+
+    /**
+     * Get list of denied traffic rules on an interface
+     */
+    async getBlocks(routerId: string, iface: string): Promise<any> {
+        const router = this.routers.get(routerId);
+        if (!router) throw new Error('Router not found');
+
+        const args = [
+            this.pythonScriptPath,
+            '--host', router.host,
+            '--key', router.apiKey,
+            '--version', router.version || '1.4',
+            'get-blocks',
+            '--iface', iface
+        ];
+
+        const scrubbedArgs = args.map(arg => (arg === router.apiKey ? '***' : arg));
+        console.log(`[VYOS] Get blocks CLI: python3 ${scrubbedArgs.join(' ')}`);
+
+        return new Promise((resolve, reject) => {
+            const proc = spawn('python3', args);
+            let output = '';
+            let errorMsg = '';
+
+            proc.stdout.on('data', (data) => output += data.toString());
+            proc.stderr.on('data', (data) => errorMsg += data.toString());
+
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    try {
+                        resolve(JSON.parse(output));
+                    } catch {
+                        reject(new Error('Invalid JSON response'));
+                    }
+                } else {
+                    reject(new Error(errorMsg.trim() || `Process exited with code ${code}`));
+                }
+            });
+        });
     }
 }

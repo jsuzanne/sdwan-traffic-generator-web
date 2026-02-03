@@ -336,7 +336,41 @@ export default function Vyos(props: VyosProps) {
 
     const saveSequence = async () => {
         if (!editingSeq) return;
-        const toastId = toast.loading('Saving mission blueprint...');
+
+        // NEW: Validate firewall commands
+        for (const action of editingSeq.actions) {
+            if (action.command === 'deny-traffic' || action.command === 'allow-traffic') {
+                if (!action.parameters?.ip) {
+                    toast.error(`IP address or subnet is required for ${action.command}`);
+                    return;
+                }
+
+                // Validate CIDR format
+                const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+                if (!cidrRegex.test(action.parameters.ip)) {
+                    toast.error(`Invalid IP format for ${action.command}. Use CIDR notation (e.g., 8.8.8.8/32)`);
+                    return;
+                }
+
+                // Validate IP octets (0-255)
+                const octets = action.parameters.ip.split('/')[0].split('.');
+                if (octets.some((o: string) => parseInt(o) > 255 || parseInt(o) < 0)) {
+                    toast.error(`Invalid IP address in ${action.command}. Each octet must be 0-255`);
+                    return;
+                }
+
+                // Validate CIDR mask (0-32)
+                if (action.parameters.ip.includes('/')) {
+                    const mask = parseInt(action.parameters.ip.split('/')[1]);
+                    if (mask < 0 || mask > 32) {
+                        toast.error(`Invalid subnet mask in ${action.command}. Must be 0-32`);
+                        return;
+                    }
+                }
+            }
+        }
+
+        const toastId = toast.loading('Saving mission ...');
         try {
             const res = await fetch('/api/vyos/sequences', {
                 method: 'POST',
@@ -346,12 +380,12 @@ export default function Vyos(props: VyosProps) {
             if (res.ok) {
                 fetchData();
                 setShowSeqModal(false);
-                toast.success('✓ Mission blueprint saved', { id: toastId });
+                toast.success('✓ Mission saved', { id: toastId });
             } else {
-                toast.error('❌ Failed to save blueprint', { id: toastId });
+                toast.error('❌ Failed to save ', { id: toastId });
             }
         } catch (e) {
-            toast.error('❌ Network error saving blueprint', { id: toastId });
+            toast.error('❌ Network error saving ', { id: toastId });
         }
     };
 
@@ -590,12 +624,19 @@ export default function Vyos(props: VyosProps) {
                                                 return iface?.description ? ` (${iface.description})` : '';
                                             })()}
                                         </span>
-                                        {/* Show impairment parameters */}
+                                        {/* Show impairment/firewall parameters */}
                                         {action.parameters && Object.keys(action.parameters).length > 0 && (
                                             <span className="text-[9px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 ml-auto group-hover:bg-blue-500/20 transition-colors">
-                                                {action.parameters.latency && `${action.parameters.latency}ms`}
-                                                {action.parameters.loss && ` ${action.parameters.loss}% loss`}
-                                                {action.parameters.rate && ` ${action.parameters.rate}`}
+                                                {action.command === 'set-qos' && (
+                                                    <>
+                                                        {action.parameters.latency && `${action.parameters.latency}ms`}
+                                                        {action.parameters.loss && ` ${action.parameters.loss}% loss`}
+                                                        {action.parameters.rate && ` ${action.parameters.rate}`}
+                                                    </>
+                                                )}
+                                                {action.command === 'deny-traffic' && `${action.parameters.ip || 'N/A'}${action.parameters.force ? ' (forced)' : ''}`}
+                                                {action.command === 'allow-traffic' && `IP: ${action.parameters.ip || 'N/A'}`}
+                                                {action.command === 'show-denied' && 'Query denied traffic'}
                                             </span>
                                         )}
                                     </div>
@@ -1108,6 +1149,11 @@ export default function Vyos(props: VyosProps) {
                                                         <option value="interface-up">No Shut</option>
                                                         <option value="set-qos">Latency/Loss</option>
                                                         <option value="clear-qos">Clear Qos</option>
+                                                        <optgroup label="Traffic Control">
+                                                            <option value="deny-traffic">🚫 Deny Traffic From IP/Subnet</option>
+                                                            <option value="allow-traffic">✅ Allow Traffic From IP/Subnet</option>
+                                                            <option value="show-denied">📋 Show Denied Traffic</option>
+                                                        </optgroup>
                                                     </select>
                                                 </div>
                                                 <button
@@ -1202,6 +1248,79 @@ export default function Vyos(props: VyosProps) {
                                                             />
                                                         </div>
                                                     </>
+                                                )}
+
+                                                {/* NEW: Deny Traffic From IP/Subnet */}
+                                                {action.command === 'deny-traffic' && (
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5">
+                                                                IP Address or Subnet (CIDR) <span className="text-red-400">*</span>
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g., 8.8.8.8/32 or 10.0.0.0/24"
+                                                                value={action.parameters?.ip || ''}
+                                                                onChange={(e) => {
+                                                                    const newActions = [...editingSeq.actions];
+                                                                    newActions[idx].parameters = { ...newActions[idx].parameters, ip: e.target.value };
+                                                                    setEditingSeq({ ...editingSeq, actions: newActions });
+                                                                }}
+                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                            />
+                                                            <p className="text-[8px] text-slate-500 mt-1 uppercase font-bold">
+                                                                Use /32 for single IP, /24 for subnet
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 p-3 bg-amber-900/10 border border-amber-600/20 rounded-xl">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`force-${idx}`}
+                                                                checked={action.parameters?.force || false}
+                                                                onChange={(e) => {
+                                                                    const newActions = [...editingSeq.actions];
+                                                                    newActions[idx].parameters = { ...newActions[idx].parameters, force: e.target.checked };
+                                                                    setEditingSeq({ ...editingSeq, actions: newActions });
+                                                                }}
+                                                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500/20"
+                                                            />
+                                                            <label htmlFor={`force-${idx}`} className="text-[10px] text-amber-400 font-bold uppercase">
+                                                                ⚠️ Override existing rules
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* NEW: Allow Traffic From IP/Subnet */}
+                                                {action.command === 'allow-traffic' && (
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5">
+                                                                IP Address or Subnet to Allow <span className="text-red-400">*</span>
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g., 8.8.8.8/32"
+                                                                value={action.parameters?.ip || ''}
+                                                                onChange={(e) => {
+                                                                    const newActions = [...editingSeq.actions];
+                                                                    newActions[idx].parameters = { ...newActions[idx].parameters, ip: e.target.value };
+                                                                    setEditingSeq({ ...editingSeq, actions: newActions });
+                                                                }}
+                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* NEW: Show Denied Traffic */}
+                                                {action.command === 'show-denied' && (
+                                                    <div className="p-4 bg-blue-900/10 border border-blue-600/20 rounded-xl">
+                                                        <p className="text-[10px] text-blue-400 font-bold uppercase leading-relaxed">
+                                                            ℹ️ Lists all denied traffic rules on selected interface. No parameters required.
+                                                        </p>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -1450,7 +1569,18 @@ function ExecutionTimeline({
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
                                                 <span className={`text-sm font-black uppercase tracking-tight ${state === 'current' ? 'text-blue-400' : 'text-slate-100'}`}>
-                                                    {action.command}
+                                                    {(() => {
+                                                        switch (action.command) {
+                                                            case 'interface-down': return 'Shut';
+                                                            case 'interface-up': return 'No Shut';
+                                                            case 'set-qos': return 'Latency/Loss';
+                                                            case 'clear-qos': return 'Clear Qos';
+                                                            case 'deny-traffic': return 'Deny Traffic From';
+                                                            case 'allow-traffic': return 'Allow Traffic From';
+                                                            case 'show-denied': return 'Show Denied Traffic';
+                                                            default: return action.command;
+                                                        }
+                                                    })()}
                                                 </span>
                                                 {state === 'current' && (
                                                     <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black animate-pulse">RUNNING</span>
