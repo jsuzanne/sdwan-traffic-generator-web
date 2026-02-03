@@ -233,7 +233,7 @@ export class VyosScheduler extends EventEmitter {
         const timestamp = Date.now();
 
         // Structured JSON log entry
-        const log = {
+        const logEntry = {
             timestamp,
             sequence_id: sequenceId,
             sequence_name: seq?.name || 'Unknown',
@@ -264,7 +264,7 @@ export class VyosScheduler extends EventEmitter {
         log(runTag.replace('[', '').replace(']', ''), `${action.id} ${action.command.toUpperCase()} ${action.router_id}:${action.interface} | ${paramsStr} | ${statusLabel} ${durStr}${errorMessage}`);
 
         try {
-            fs.appendFileSync(this.logFile, JSON.stringify(log) + '\n');
+            fs.appendFileSync(this.logFile, JSON.stringify(logEntry) + '\n');
         } catch (e: any) {
             log('VYOS-SCHED', `Failed to log action: ${e.message}`, 'error');
         }
