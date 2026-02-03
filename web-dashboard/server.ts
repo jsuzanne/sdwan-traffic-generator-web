@@ -1882,25 +1882,15 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
             convergencePPS.delete(testId);
         });
 
-        proc.on('close', (code) => {
-            const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
-            console.log(`[${testId}] [${now}] ℹ️ Process exited with code ${code}`);
+        proc.on('close', (code: any) => {
+            const status = code === 0 || code === null ? 'SUCCESS' : 'FAILED';
+            const emoji = code === 0 || code === null ? '✅' : '❌';
+            log(`CONV-${testId}`, `${emoji} Convergence test ended: ${status} (exit code: ${code})`);
+
             convergenceProcesses.delete(testId);
             convergencePPS.delete(testId);
-        });
 
-        proc.stdout.on('data', (data: any) => {
-            const lines = data.toString().split('\n');
-            lines.forEach((line: string) => {
-                if (line.trim()) console.log(line);
-            });
-        });
-
-        proc.on('close', (code: any) => {
-            const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
-            console.log(`[${testId}] [${now}] ✅ Process finished with code ${code}`);
-            convergenceProcesses.delete(testId);
-            convergencePPS.delete(testId); // Ensure PPS is cleared on close
+            // Finalize history entry
 
             // Finalize history entry
             if (fs.existsSync(statsFile)) {
@@ -3846,7 +3836,7 @@ app.post('/api/security/edl-test', authenticateToken, async (req, res) => {
     const config = getSecurityConfig();
     const edl = config.edlTesting;
 
-    logTest(`[EDL-TEST-${testId}] Request received: type=${type}, mode=${mode || edl.testMode}, limit=${limit || edl.maxElementsPerRun}`);
+    log(`EDL-TEST-${testId}`, `Request received: type=${type}, mode=${mode === 'random' ? 'random' : 'sequential'}, limit=${limit || edl.maxElementsPerRun}`);
 
     const listMap: Record<string, any> = {
         'ip': edl.ipList,
@@ -3873,7 +3863,7 @@ app.post('/api/security/edl-test', authenticateToken, async (req, res) => {
     }
     testElements = testElements.slice(0, effectiveLimit);
 
-    logTest(`[EDL-TEST-${testId}] Selected ${testElements.length} elements for testing (${testMode})`);
+    log(`EDL-TEST-${testId}`, `Selected ${testElements.length} elements for testing (${testMode})`);
 
     const results: any[] = [];
     const execPromise = promisify(exec);
@@ -3938,7 +3928,7 @@ app.post('/api/security/edl-test', authenticateToken, async (req, res) => {
         results: results.sort((a, b) => b.timestamp - a.timestamp)
     };
 
-    logTest(`[EDL-TEST-${testId}] Completed: tested=${summary.testedCount}, allowed=${allowedCount}, blocked=${blockedCount}, errors=${errorCount} (${(parseFloat(successRate) * 100).toFixed(0)}% OK)`);
+    log(`EDL-TEST-${testId}`, `Completed: tested=${summary.testedCount}, allowed=${allowedCount}, blocked=${blockedCount}, errors=${errorCount} (${(parseFloat(successRate) * 100).toFixed(0)}% OK)`);
 
     // --- INTEGRATION: Global History & Stats ---
     try {
@@ -4474,9 +4464,12 @@ const scheduleLogCleanup = () => {
 // --- IoT Devices API ---
 
 app.get('/api/iot/devices', authenticateToken, (req, res) => {
-    console.log('[IOT-REQ] GET /api/iot/devices');
     const devices = getIoTDevices();
-    console.log(`[IOT-REQ] Found ${devices.length} devices in config`);
+
+    // Logger uniquement en mode DEBUG
+    if (process.env.DEBUG_IOT === 'true') {
+        log('IOT-REQ', `GET /api/iot/devices - Found ${devices.length} devices`, 'debug');
+    }
     const running = iotManager.getRunningDevices();
     const result = devices.map(d => ({
         ...d,
