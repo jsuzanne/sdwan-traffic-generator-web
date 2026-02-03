@@ -269,63 +269,69 @@ export default function Config({ token }: ConfigProps) {
         <div className="space-y-8 max-w-5xl mx-auto relative">
             {/* Toast Notification */}
             {savedMsg && (
-                <div className="fixed top-24 right-8 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-lg flex items-center gap-3 shadow-xl backdrop-blur-sm animate-in fade-in slide-in-from-top-4 z-50">
-                    <CheckCircle2 size={20} />
-                    <span className="font-medium">{savedMsg}</span>
+                <div className="fixed top-24 right-8 bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 px-6 py-3.5 rounded-2xl flex items-center gap-3 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-4 z-50">
+                    <CheckCircle2 size={18} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.15em]">{savedMsg}</span>
                 </div>
             )}
 
             {/* Interfaces Section */}
-            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-3 text-text-primary">
-                        <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400">
+            <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-600/10 rounded-lg text-purple-600 dark:text-purple-400">
                             <Network size={20} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold">Network Interfaces</h2>
-                            <p className="text-sm text-text-muted">Manually specify physical interfaces for traffic generation</p>
+                            <h2 className="text-lg font-black text-text-primary uppercase tracking-tight">Network Interfaces</h2>
+                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1 opacity-70">Physical interfaces for traffic egress</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Help Text */}
-                <div className="mb-4 bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                    <h3 className="text-blue-400 font-semibold text-sm mb-2 flex items-center gap-2">
-                        <Server size={16} />
-                        How to find your network interface name:
+                <div className="mb-8 bg-blue-600/5 border border-blue-500/20 rounded-2xl p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                        <Server size={80} />
+                    </div>
+                    <h3 className="text-blue-600 dark:text-blue-400 font-black text-[10px] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <Server size={14} />
+                        Environment Discovery
                     </h3>
-                    <div className="text-sm text-text-secondary space-y-2">
-                        <div>
-                            <span className="font-semibold text-blue-300">Linux:</span>
-                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">ip link show</code>
-                            <span className="ml-2 text-text-muted">or</span>
-                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">ifconfig</code>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                            { os: 'Linux', cmd: 'ip link show', sub: 'or ifconfig' },
+                            { os: 'Windows', cmd: 'ipconfig', sub: 'look for Eth/Wi-Fi' },
+                            { os: 'macOS', cmd: 'ifconfig', sub: 'or networksetup' }
+                        ].map(item => (
+                            <div key={item.os} className="space-y-2">
+                                <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">{item.os}</span>
+                                <div className="flex items-center gap-2">
+                                    <code className="bg-card-secondary/50 border border-border px-3 py-1.5 rounded-xl text-[10px] font-black font-mono text-text-primary shadow-inner">
+                                        {item.cmd}
+                                    </code>
+                                </div>
+                                <p className="text-[9px] text-text-muted font-bold tracking-tight opacity-50">{item.sub}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-blue-500/10 flex items-center gap-3">
+                        <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">Common handles:</span>
+                        <div className="flex gap-2">
+                            {['eth0', 'ens33', 'en0', 'wlan0'].map(h => (
+                                <code key={h} className="bg-card-secondary/30 px-2 py-0.5 rounded-lg border border-border text-[9px] font-black text-blue-500/70">{h}</code>
+                            ))}
                         </div>
-                        <div>
-                            <span className="font-semibold text-blue-300">Windows:</span>
-                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">ipconfig</code>
-                            <span className="ml-2 text-text-muted">(look for "Ethernet adapter" or "Wi-Fi")</span>
-                        </div>
-                        <div>
-                            <span className="font-semibold text-blue-300">macOS:</span>
-                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">ifconfig</code>
-                            <span className="ml-2 text-text-muted">or</span>
-                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">networksetup -listallhardwareports</code>
-                        </div>
-                        <p className="text-xs text-text-muted mt-2">
-                            Common names: <code className="bg-card-secondary px-1 rounded border border-border">eth0</code>, <code className="bg-card-secondary px-1 rounded border border-border">ens33</code>, <code className="bg-card-secondary px-1 rounded border border-border">en0</code>, <code className="bg-card-secondary px-1 rounded border border-border">wlan0</code>
-                        </p>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-6">
                     {/* Manual Entry Input */}
                     <div className="flex gap-4 items-center">
                         <input
                             type="text"
-                            placeholder="Type interface name (e.g., eth0, ens33, en0)"
-                            className="flex-1 bg-card-secondary border border-border text-text-primary rounded-lg px-4 py-2 outline-none focus:border-purple-500"
+                            placeholder="INJECT INTERFACE NAME (e.g. eth0)..."
+                            className="flex-1 bg-card-secondary/50 border border-border text-[11px] font-black uppercase tracking-widest text-text-primary rounded-xl px-5 py-3 outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-inner"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     const input = e.currentTarget;
@@ -350,14 +356,14 @@ export default function Config({ token }: ConfigProps) {
                                     input.value = '';
                                 }
                             }}
-                            className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                            className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 shadow-lg shadow-purple-900/20"
                         >
-                            <Plus size={18} />
-                            Add
+                            <Plus size={16} />
+                            Register
                         </button>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2.5">
                         {availableInterfaces.map(iface => {
                             const isSelected = interfaces.includes(iface);
                             return (
@@ -365,13 +371,13 @@ export default function Config({ token }: ConfigProps) {
                                     key={iface}
                                     onClick={() => toggleInterface(iface)}
                                     className={cn(
-                                        "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-2",
+                                        "px-4 py-2 rounded-xl text-[10px] font-black border transition-all flex items-center gap-3 uppercase tracking-widest shadow-sm",
                                         isSelected
-                                            ? "bg-purple-500/20 border-purple-500/50 text-purple-400 shadow-sm"
-                                            : "bg-card-secondary border-border text-text-muted hover:border-text-muted/30"
+                                            ? "bg-purple-600/10 border-purple-500/30 text-purple-600 dark:text-purple-400"
+                                            : "bg-card-secondary/30 border-border text-text-muted hover:border-text-muted/30"
                                     )}
                                 >
-                                    <div className={cn("w-2 h-2 rounded-full", isSelected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-text-muted/30")} />
+                                    <div className={cn("w-1.5 h-1.5 rounded-full", isSelected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-text-muted/30")} />
                                     {iface}
                                     {isSelected && <CheckCircle2 size={12} />}
                                 </button>
@@ -381,9 +387,9 @@ export default function Config({ token }: ConfigProps) {
                             <button
                                 key={iface}
                                 onClick={() => toggleInterface(iface)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-500/20 border border-purple-500/50 text-purple-400 flex items-center gap-2"
+                                className="px-4 py-2 rounded-xl text-[10px] font-black bg-purple-600/10 border border-purple-500/30 text-purple-600 dark:text-purple-400 flex items-center gap-2.5 uppercase tracking-widest"
                             >
-                                <div className="w-2 h-2 rounded-full bg-green-500" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                                 {iface}
                                 <Plus size={12} className="rotate-45" />
                             </button>
@@ -393,115 +399,113 @@ export default function Config({ token }: ConfigProps) {
             </div>
 
             {/* Connectivity Probes Section */}
-            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-3 text-text-primary">
-                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+            <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+                <div className="flex justify-between items-center mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-600/10 rounded-lg text-blue-600 dark:text-blue-400">
                             <Network size={20} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold">Connectivity Probes (DEM)</h2>
-                            <p className="text-sm text-text-muted">Add custom synthetic endpoints for real-time monitoring</p>
+                            <h2 className="text-lg font-black text-text-primary uppercase tracking-tight">Synthetic Probes (DEM)</h2>
+                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1 opacity-70">Custom telemetry for real-time monitoring</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-8">
                     {/* Form to add probe */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-card-secondary/50 p-4 rounded-xl border border-border shadow-sm">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-text-muted uppercase ml-1">Name</label>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-card-secondary/30 p-6 rounded-2xl border border-border shadow-inner">
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Profile Name</label>
                             <input
                                 type="text"
-                                placeholder="Branch-Office"
-                                className="w-full bg-card border border-border text-text-primary rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                placeholder="HQ-GATEWAY"
+                                className="w-full bg-card border border-border text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 text-[11px] font-black uppercase tracking-widest shadow-sm"
                                 value={newProbe.name}
                                 onChange={e => setNewProbe({ ...newProbe, name: e.target.value })}
                             />
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-text-muted uppercase ml-1">Type</label>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Protocol Type</label>
                             <select
-                                className="w-full bg-card border border-border text-text-primary rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                className="w-full bg-card border border-border text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 text-[11px] font-black uppercase tracking-widest shadow-sm"
                                 value={newProbe.type}
                                 onChange={e => setNewProbe({ ...newProbe, type: e.target.value as any, timeout: e.target.value === 'PING' ? 2000 : 5000 })}
                             >
-                                <option value="HTTP">HTTP (Scoring)</option>
-                                <option value="HTTPS">HTTPS (Scoring)</option>
-                                <option value="PING">ICMP Ping</option>
-                                <option value="TCP">TCP Port</option>
-                                <option value="DNS">DNS Resolution</option>
-                                <option value="UDP">UDP Quality (iperf3)</option>
+                                <option value="HTTP">HTTP/S (MOS)</option>
+                                <option value="HTTPS">SSL (RTT)</option>
+                                <option value="PING">ICMP (LOSS)</option>
+                                <option value="TCP">TCP (HANDSHAKE)</option>
+                                <option value="DNS">DNS (RESOLVE)</option>
+                                <option value="UDP">UDP (IPERF3)</option>
                             </select>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-text-muted uppercase ml-1">Target</label>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Target URI/IP</label>
                             <input
                                 type="text"
-                                placeholder={newProbe.type === 'TCP' || newProbe.type === 'UDP' ? '12.34.56.78:5201' : (newProbe.type === 'PING' ? '8.8.8.8' : (newProbe.type === 'DNS' ? '8.8.8.8' : 'google.com'))}
-                                className="w-full bg-card border border-border text-text-primary rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                placeholder={newProbe.type === 'TCP' || newProbe.type === 'UDP' ? '10.0.0.1:5201' : (newProbe.type === 'PING' ? '8.8.8.8' : 'google.com')}
+                                className="w-full bg-card border border-border text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 text-[11px] font-black uppercase tracking-widest shadow-sm"
                                 value={newProbe.target}
                                 onChange={e => setNewProbe({ ...newProbe, target: e.target.value })}
                             />
-                            <p className="text-[9px] text-text-muted ml-1 italic">
-                                {newProbe.type === 'HTTP' || newProbe.type === 'HTTPS' ?
-                                    "Domain or IP (http:// added if missing)" :
-                                    (newProbe.type === 'UDP' ? "IP:Port (Server must run iperf3 -s -u)" : "IP or Domain only")}
+                            <p className="text-[8px] text-text-muted font-bold tracking-widest uppercase opacity-40 ml-1">
+                                {newProbe.type === 'HTTP' ? "FQDN or IP" : (newProbe.type === 'UDP' ? "iperf3 host:port" : "IP/FQDN ONLY")}
                             </p>
                         </div>
                         <div className="flex items-end">
                             <button
                                 onClick={addProbe}
                                 disabled={!newProbe.name || !newProbe.target}
-                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-card-secondary disabled:text-text-muted text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm shadow-md"
+                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-card-secondary disabled:text-text-muted text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
                             >
-                                <Plus size={18} />
-                                {editingIndex !== null ? 'Update Probe' : 'Add Probe'}
+                                <Plus size={16} />
+                                {editingIndex !== null ? 'Commit Update' : 'Initialize'}
                             </button>
                         </div>
                     </div>
 
                     {/* Probes List */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-text-muted uppercase ml-1">Active Custom Probes</label>
-                        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Provisioned Endpoints</label>
+                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                             {customProbes.map((probe, idx) => (
-                                <div key={idx} className="group bg-card-secondary border border-border hover:border-blue-500/30 rounded-xl p-4 flex items-center justify-between transition-all shadow-sm">
-                                    <div className="flex items-center gap-3">
+                                <div key={idx} className="group bg-card border border-border hover:border-blue-500/30 rounded-2xl p-5 flex items-center justify-between transition-all shadow-sm">
+                                    <div className="flex items-center gap-4">
                                         <div className={cn(
-                                            "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold",
-                                            probe.type === 'PING' ? "bg-orange-500/10 text-orange-400" :
-                                                probe.type === 'UDP' ? "bg-purple-500/10 text-purple-400" :
-                                                    "bg-blue-500/10 text-blue-400"
+                                            "w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black",
+                                            probe.type === 'PING' ? "bg-orange-600/10 text-orange-600 dark:text-orange-400" :
+                                                probe.type === 'UDP' ? "bg-purple-600/10 text-purple-600 dark:text-purple-400" :
+                                                    "bg-blue-600/10 text-blue-600 dark:text-blue-400"
                                         )}>
-                                            {probe.type.substring(0, 1)}
+                                            {probe.type.substring(0, 3)}
                                         </div>
                                         <div>
-                                            <div className="text-sm font-semibold text-text-primary group-hover:text-blue-400 transition-colors">{probe.name}</div>
-                                            <div className="text-[10px] text-text-muted font-mono truncate max-w-[150px]">{probe.target}</div>
+                                            <div className="text-[11px] font-black text-text-primary uppercase tracking-tight group-hover:text-blue-600 transition-colors">{probe.name}</div>
+                                            <div className="text-[10px] text-text-muted font-mono tracking-tighter truncate max-w-[140px] opacity-70">{probe.target}</div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1">
+                                    <div className="flex gap-1.5">
                                         <button
                                             onClick={() => editProbe(idx)}
-                                            className="p-2 text-text-muted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all"
-                                            title="Edit probe"
+                                            className="p-2 text-text-muted hover:text-blue-600 hover:bg-blue-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Edit"
                                         >
                                             <Save size={14} />
                                         </button>
                                         <button
                                             onClick={() => deleteProbe(idx)}
-                                            className="p-2 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                                            title="Delete probe"
+                                            className="p-2 text-text-muted hover:text-red-600 hover:bg-red-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Purge"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
                                 </div>
                             ))}
                             {customProbes.length === 0 && (
-                                <div className="col-span-full py-8 text-center border-2 border-dashed border-border rounded-xl">
-                                    <span className="text-text-muted text-sm">No custom probes added yet. These will appear alongside endpoints from your environment files.</span>
+                                <div className="col-span-full py-12 text-center border-2 border-dashed border-border rounded-2xl">
+                                    <span className="text-text-muted text-[10px] font-black uppercase tracking-[0.2em] opacity-40">No synthetic monitors active</span>
                                 </div>
                             )}
                         </div>
@@ -511,19 +515,19 @@ export default function Config({ token }: ConfigProps) {
 
             {/* Applications Section */}
             <div className="space-y-4">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3 text-text-primary">
-                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-600/10 rounded-lg text-blue-600 dark:text-blue-400">
                             <Sliders size={20} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold">Traffic Distribution</h2>
-                            <p className="text-sm text-text-muted">Adjust weights by category or individual app</p>
+                            <h2 className="text-lg font-black text-text-primary uppercase tracking-tight">Traffic Distribution</h2>
+                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1 opacity-70">Adjust weights by category or individual app</p>
                         </div>
                     </div>
 
                     {/* Import/Export Buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                         <button
                             onClick={async () => {
                                 try {
@@ -544,10 +548,10 @@ export default function Config({ token }: ConfigProps) {
                                     console.error('Export failed', e);
                                 }
                             }}
-                            className="bg-card-secondary hover:bg-card-secondary-hover text-text-primary px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2"
+                            className="bg-card-secondary/50 hover:bg-card-secondary text-text-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-border flex items-center gap-2 shadow-sm"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                             Export
                         </button>
@@ -586,10 +590,10 @@ export default function Config({ token }: ConfigProps) {
                                 };
                                 input.click();
                             }}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2 shadow-md"
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-900/20"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
                             </svg>
                             Import
                         </button>
@@ -601,26 +605,28 @@ export default function Config({ token }: ConfigProps) {
                     const categoryPercent = Math.round((categoryWeight / GLOBAL_TOTAL) * 100);
 
                     return (
-                        <div key={category.name} className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+                        <div key={category.name} className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
                             {/* Category Header */}
-                            <div className="bg-card-secondary/50 p-4 flex items-center justify-between">
+                            <div className="bg-card-secondary/30 p-5 flex items-center justify-between border-b border-border">
                                 <button
                                     onClick={() => toggleCategory(category.name)}
-                                    className="flex items-center gap-3 font-semibold text-text-primary hover:text-foreground transition-colors"
+                                    className="flex items-center gap-3 text-[11px] font-black text-text-primary uppercase tracking-widest hover:text-blue-600 transition-colors"
                                 >
-                                    {category.expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                    <div className="p-1.5 bg-card border border-border rounded-lg shadow-sm">
+                                        {category.expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                    </div>
                                     {category.name}
                                 </button>
 
-                                <div className="flex items-center gap-4">
-                                    <div className="flex flex-col items-end mr-2">
-                                        <span className="text-[10px] uppercase text-text-muted font-bold tracking-wider">Group Share</span>
-                                        <span className="text-sm font-mono text-blue-400">{categoryPercent}%</span>
+                                <div className="flex items-center gap-6">
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[9px] uppercase text-text-muted font-black tracking-widest opacity-50">Global Segment</span>
+                                        <span className="text-xs font-black text-blue-600 dark:text-blue-400">{categoryPercent}%</span>
                                     </div>
                                     <input
                                         type="range"
                                         min="1" max="100"
-                                        className="w-32 accent-blue-500"
+                                        className="w-32 accent-blue-600 h-1 bg-card-secondary border border-border rounded-lg"
                                         value={categoryPercent}
                                         onChange={(e) => handleCategoryPercentageChange(category.name, parseInt(e.target.value))}
                                     />
@@ -629,22 +635,22 @@ export default function Config({ token }: ConfigProps) {
 
                             {/* Apps List */}
                             {category.expanded && (
-                                <div className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2">
+                                <div className="p-6 grid gap-6 grid-cols-1 lg:grid-cols-2 bg-card">
                                     {category.apps.map(app => {
                                         const appPercent = categoryWeight > 0 ? Math.round((app.weight / categoryWeight) * 100) : 0;
 
                                         return (
-                                            <div key={app.domain} className="bg-card-secondary/50 border border-border rounded-lg p-3 flex flex-col gap-2 shadow-sm">
+                                            <div key={app.domain} className="bg-card-secondary/20 border border-border rounded-2xl p-4 flex flex-col gap-4 shadow-sm hover:border-blue-500/20 transition-all group">
                                                 <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <div className="font-medium text-text-primary">{app.domain}</div>
-                                                        <div className="text-xs text-text-muted font-mono">{app.endpoint}</div>
+                                                    <div className="space-y-1">
+                                                        <div className="text-[11px] font-black text-text-primary uppercase tracking-tight">{app.domain}</div>
+                                                        <div className="text-[10px] text-text-muted font-mono tracking-tighter opacity-50">{app.endpoint}</div>
                                                     </div>
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-sm font-mono text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className="text-[11px] font-black text-blue-600 dark:text-blue-400 bg-blue-600/10 border border-blue-500/20 px-2.5 py-1 rounded-xl shadow-sm">
                                                             {appPercent}%
                                                         </span>
-                                                        <span className="text-[9px] text-text-muted mt-1">Weight: {app.weight}</span>
+                                                        <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest opacity-40">Weight: {app.weight}</span>
                                                     </div>
                                                 </div>
                                                 <input

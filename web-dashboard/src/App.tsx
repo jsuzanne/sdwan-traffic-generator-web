@@ -598,46 +598,47 @@ export default function App() {
       )}
 
       {/* Iperf Client Modal */}
+      {/* Iperf Client Modal */}
       {showIperfModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full max-w-md shadow-2xl animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-card border border-border p-6 rounded-xl w-full max-w-md shadow-2xl">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-purple-500/20 rounded-lg text-purple-400">
+              <div className="p-2 bg-purple-600/10 rounded-lg text-purple-600 dark:text-purple-400 border border-purple-500/20">
                 <Activity size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-100">Iperf Client Test</h3>
-                <p className="text-slate-400 text-xs">Test bandwidth against an iperf3 server</p>
+                <h3 className="text-xl font-bold text-text-primary uppercase tracking-tight">Iperf Client Test</h3>
+                <p className="text-text-muted text-xs mt-0.5">Test bandwidth against an iperf3 server.</p>
               </div>
             </div>
 
             <div className="space-y-4 mb-8">
               <div className="space-y-1.5">
-                <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Target IP / Hostname</label>
+                <label className="text-[10px] text-text-muted uppercase font-black tracking-widest">Target IP / Hostname</label>
                 <input
                   type="text"
                   placeholder="e.g. 192.168.1.100"
                   value={iperfTarget}
                   onChange={e => setIperfTarget(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
+                  className="w-full bg-card-secondary border border-border rounded-lg px-4 py-3 text-text-primary focus:ring-1 focus:ring-purple-500 outline-none transition-all"
                 />
               </div>
 
               {/* Show last result if exists */}
               {iperfResult && (
-                <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20 flex items-center justify-between">
+                <div className="p-3 bg-purple-600/5 rounded-lg border border-purple-500/20 flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-2">
-                    <Activity size={14} className="text-purple-400" />
-                    <span className="text-xs text-slate-300">Last Test ({iperfResult.target}):</span>
+                    <Activity size={14} className="text-purple-600 dark:text-purple-400" />
+                    <span className="text-xs text-text-muted font-bold uppercase tracking-tight">Last Test ({iperfResult.target}):</span>
                   </div>
-                  <span className="text-sm font-bold text-purple-300">
+                  <span className="text-sm font-black text-purple-600 dark:text-purple-400">
                     {Math.round(iperfResult.received_mbps || iperfResult.sent_mbps)} Mbps
                   </span>
                 </div>
               )}
 
-              <div className="p-3 bg-slate-800/30 rounded-lg border border-slate-800">
-                <p className="text-[10px] text-slate-500 leading-relaxed italic">
+              <div className="p-3 bg-card-secondary/20 rounded-lg border border-border shadow-inner">
+                <p className="text-[10px] text-text-muted leading-relaxed italic opacity-80">
                   Note: The test will run for 5 seconds using TCP. Results will also appear in the top Network Status bar.
                 </p>
               </div>
@@ -646,7 +647,7 @@ export default function App() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowIperfModal(false)}
-                className="px-6 py-2.5 text-slate-400 hover:text-slate-200 font-medium transition-colors"
+                className="px-6 py-2.5 text-text-muted hover:text-text-primary font-bold transition-colors uppercase tracking-widest text-[10px]"
               >
                 Cancel
               </button>
@@ -654,10 +655,10 @@ export default function App() {
                 onClick={runIperf}
                 disabled={runningIperf || !iperfTarget}
                 className={cn(
-                  "px-8 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg",
+                  "px-8 py-2.5 rounded-lg font-black flex items-center gap-2 transition-all shadow-lg uppercase tracking-widest text-xs",
                   runningIperf
-                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                    : "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20"
+                    ? "bg-card-secondary text-text-muted border border-border cursor-not-allowed opacity-50"
+                    : "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/40"
                 )}
               >
                 {runningIperf ? <><Gauge size={18} className="animate-spin" /> Running...</> : 'Launch Test'}
@@ -670,12 +671,12 @@ export default function App() {
 
 
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-800">
+      <div className="flex flex-wrap gap-2 mb-8 border-b border-border">
         <button
           onClick={() => setView('dashboard')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'dashboard' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'dashboard' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
           <LayoutDashboard size={18} /> Dashboard
@@ -683,8 +684,8 @@ export default function App() {
         <button
           onClick={() => setView('statistics')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'statistics' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'statistics' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
           <BarChart3 size={18} /> Statistics
@@ -692,8 +693,8 @@ export default function App() {
         <button
           onClick={() => setView('config')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'config' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'config' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
           <Settings size={18} /> Configuration
@@ -701,8 +702,8 @@ export default function App() {
         <button
           onClick={() => setView('security')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'security' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'security' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
           <Shield size={18} /> Security
@@ -710,8 +711,8 @@ export default function App() {
         <button
           onClick={() => setView('performance')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'performance' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'performance' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
           <Gauge size={18} /> Performance
@@ -719,17 +720,17 @@ export default function App() {
         <button
           onClick={() => setView('iot')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'iot' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'iot' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
-          <Cpu size={18} /> IoT <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-500/20 text-blue-400 border border-blue-500/30">Beta</span>
+          <Cpu size={18} /> IoT <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-600/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 ml-1">Beta</span>
         </button>
         <button
           onClick={() => setView('voice')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'voice' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'voice' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
           <Phone size={18} /> Voice
@@ -737,8 +738,8 @@ export default function App() {
         <button
           onClick={() => setView('failover')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'failover' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'failover' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
           <Zap size={18} /> Failover
@@ -746,24 +747,24 @@ export default function App() {
         <button
           onClick={() => setView('vyos')}
           className={cn(
-            "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors",
-            view === 'vyos' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'vyos' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
-          <Monitor size={18} /> VyOS Control <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-purple-500/20 text-purple-400 border border-purple-500/30">Alpha</span>
+          <Monitor size={18} /> VyOS Control <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-purple-600/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 ml-1">Alpha</span>
         </button>
         {/* SRT Tab hidden in v1.1.2-patch.28 */}
         {username === 'admin' && (
           <button
             onClick={() => setView('system')}
             className={cn(
-              "px-4 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors relative",
-              view === 'system' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-400 hover:text-slate-200"
+              "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all relative",
+              view === 'system' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
             )}
           >
-            <Monitor size={18} /> System <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-amber-500/20 text-amber-400 border border-amber-500/30">Beta</span>
+            <Monitor size={18} /> System <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 ml-1">Beta</span>
             {maintenance?.updateAvailable && (
-              <span className="absolute top-2 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-slate-950" />
+              <span className="absolute top-2 right-1 w-2 h-2 bg-blue-600 rounded-full animate-pulse border border-background" />
             )}
           </button>
         )}
@@ -772,31 +773,31 @@ export default function App() {
       {view === 'dashboard' ? (
         <>
           {/* Traffic Control Panel */}
-          <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-5 mb-8">
+          <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/30 rounded-xl p-5 mb-8 shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               {/* Part 1: Status */}
               <div className="min-w-[200px]">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Activity size={20} className={trafficRunning ? "text-green-400 animate-pulse" : "text-slate-500"} />
+                <h3 className="text-lg font-black text-text-primary flex items-center gap-2 uppercase tracking-tight">
+                  <Activity size={20} className={trafficRunning ? "text-green-600 dark:text-green-400 animate-pulse" : "text-text-muted opacity-50"} />
                   Traffic Generation
                 </h3>
-                <p className="text-slate-400 text-xs mt-1">
-                  Status: <span className={trafficRunning ? "text-green-400 font-semibold" : "text-slate-500"}>{trafficRunning ? 'Active' : 'Paused'}</span>
+                <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest mt-1">
+                  Status: <span className={trafficRunning ? "text-green-600 dark:text-green-400" : "text-text-muted opacity-60"}>{trafficRunning ? 'Active' : 'Paused'}</span>
                   {' • '}
-                  Config: <span className={configValid ? "text-green-400" : "text-yellow-400"}>{configValid ? 'Valid' : 'Required'}</span>
+                  Config: <span className={configValid ? "text-green-600 dark:text-green-400" : "text-amber-500"}>{configValid ? 'Valid' : 'Required'}</span>
                 </p>
               </div>
 
               {/* Part 2: Integrated Slider */}
-              <div className="flex-1 max-w-md bg-slate-900/40 p-3 rounded-lg border border-white/5">
+              <div className="flex-1 max-w-md bg-card-secondary/50 p-3 rounded-lg border border-border/50 shadow-inner">
                 <div className="flex items-center justify-between mb-2 px-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Speed Control</span>
-                    <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">Speed Control</span>
+                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 uppercase tracking-tighter">
                       {trafficRate <= 0.5 ? '🚀 Turbo' : trafficRate <= 2 ? '⚡ Fast' : trafficRate <= 5 ? '📱 Normal' : '🐢 Slow'}
                     </span>
                   </div>
-                  <span className="text-xs font-mono text-slate-400">{trafficRate}s delay</span>
+                  <span className="text-[10px] font-mono font-bold text-text-muted uppercase">{trafficRate}s delay</span>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -809,7 +810,7 @@ export default function App() {
                     value={trafficRate}
                     disabled={updatingRate}
                     onChange={(e) => updateTrafficRate(parseFloat(e.target.value))}
-                    className="flex-1 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all"
+                    className="flex-1 h-1.5 bg-card border border-border rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500 hover:accent-blue-500 transition-all"
                   />
                   <span className="text-lg">🐢</span>
                 </div>
@@ -820,10 +821,10 @@ export default function App() {
                 onClick={handleTrafficToggle}
                 disabled={!configValid}
                 className={cn(
-                  "px-6 py-3 rounded-lg font-bold transition-all shadow-lg flex items-center gap-2 min-w-[160px] justify-center",
+                  "px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs transition-all shadow-lg flex items-center gap-2 min-w-[170px] justify-center",
                   trafficRunning
                     ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-500/20'
-                    : 'bg-green-600 hover:bg-green-500 text-white shadow-green-500/20 disabled:bg-slate-800 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-500 text-white shadow-green-500/20 border-transparent disabled:bg-card-secondary disabled:text-text-muted disabled:border-border disabled:shadow-none disabled:cursor-not-allowed opacity-80 disabled:opacity-50'
                 )}
               >
                 {trafficRunning ? <><Pause size={18} fill="currentColor" /> Stop Traffic</> : <><Play size={18} fill="currentColor" /> Start Traffic</>}
@@ -831,25 +832,25 @@ export default function App() {
             </div>
 
             {!configValid && (
-              <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                <p className="text-yellow-400 text-xs flex items-center gap-2">
+              <div className="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                <p className="text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wide flex items-center gap-2">
                   <AlertCircle size={14} />
-                  Configure an interface in <button onClick={() => setView('config')} className="underline font-semibold hover:text-yellow-300 ml-1">Configuration</button> to enable traffic.
+                  Configure an interface in <button onClick={() => setView('config')} className="underline font-black hover:text-amber-500 ml-1">Configuration</button> to enable traffic.
                 </p>
               </div>
             )}
           </div>
 
           {/* Network Monitoring */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-8">
+          <div className="bg-card border border-border rounded-xl p-4 mb-8 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-                <Wifi size={20} className="text-blue-400" />
+              <h3 className="text-lg font-black text-text-primary flex items-center gap-2 uppercase tracking-tight">
+                <Wifi size={20} className="text-blue-600 dark:text-blue-400" />
                 Network Status
 
                 {/* Iperf Status Badge */}
                 {iperfServerInfo?.running && (
-                  <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded text-[10px] font-bold text-green-400">
+                  <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">
                     <Server size={10} /> IPERF SERVER UP (5201)
                   </div>
                 )}
@@ -859,10 +860,10 @@ export default function App() {
                   onClick={runSpeedtest}
                   disabled={runningSpeedtest}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border",
                     runningSpeedtest
-                      ? "bg-blue-500/10 text-blue-400 cursor-not-allowed"
-                      : "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700"
+                      ? "bg-blue-500/5 text-blue-400 border-blue-500/20 cursor-not-allowed"
+                      : "bg-card-secondary hover:bg-card-hover text-text-muted hover:text-text-primary border-border"
                   )}
                 >
                   <Gauge size={14} className={runningSpeedtest ? "animate-spin" : ""} />
@@ -871,7 +872,7 @@ export default function App() {
 
                 <button
                   onClick={() => setShowIperfModal(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-card-secondary hover:bg-card-hover text-text-muted hover:text-text-primary border border-border transition-all shadow-sm"
                 >
                   <Activity size={14} />
                   Iperf Client
@@ -879,7 +880,7 @@ export default function App() {
 
                 <button
                   onClick={() => setView('config')}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all shadow-sm"
                 >
                   <Plus size={14} />
                   Manage
@@ -887,7 +888,7 @@ export default function App() {
 
                 <button
                   onClick={() => setNetworkExpanded(!networkExpanded)}
-                  className="text-slate-400 hover:text-slate-200 transition-colors ml-2"
+                  className="text-text-muted hover:text-text-primary transition-colors ml-2"
                 >
                   <ChevronDown size={18} className={`transform transition-transform ${networkExpanded ? 'rotate-180' : ''}`} />
                 </button>
@@ -902,16 +903,16 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     {connectivity.connected ? (
                       <>
-                        <CheckCircle size={14} className="text-green-400" />
-                        <span className="text-slate-300">
-                          {connectivity.results?.filter((r: any) => r.status === 'connected').length || 0}/{connectivity.results?.length || 0} endpoints
+                        <CheckCircle size={14} className="text-green-600 dark:text-green-400" />
+                        <span className="text-text-primary font-bold">
+                          {connectivity.results?.filter((r: any) => r.status === 'connected').length || 0}/{connectivity.results?.length || 0} <span className="text-[10px] text-text-muted uppercase tracking-widest ml-1">Endpoints</span>
                         </span>
                       </>
                     ) : (
                       <>
-                        <XCircle size={14} className="text-orange-400" />
-                        <span className="text-orange-300">
-                          {connectivity.results?.filter((r: any) => r.status !== 'connected').length || 0} offline
+                        <XCircle size={14} className="text-orange-500" />
+                        <span className="text-orange-600 dark:text-orange-400 font-black">
+                          {connectivity.results?.filter((r: any) => r.status !== 'connected').length || 0} <span className="text-[10px] uppercase tracking-widest ml-1 opacity-70">Offline</span>
                         </span>
                       </>
                     )}
@@ -937,20 +938,20 @@ export default function App() {
                 {/* Docker Stats: Network Bitrate */}
                 {dockerStats?.success && dockerStats.stats.network && (
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800">
-                      <span className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <ChevronDown size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.rx_mbps) > 5 ? "text-green-400" : "text-blue-400")} />
-                        <span className="text-slate-200 font-bold min-w-[60px]">{formatBitrate(dockerStats.stats.network.rx_mbps)}</span>
+                    <div className="flex items-center gap-3 bg-card-secondary/50 px-3 py-1 rounded-full border border-border shadow-inner">
+                      <span className="flex items-center gap-1.5 font-mono text-[11px] font-black">
+                        <ChevronDown size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.rx_mbps) > 5 ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400")} />
+                        <span className="text-text-primary min-w-[60px]">{formatBitrate(dockerStats.stats.network.rx_mbps)}</span>
                       </span>
-                      <div className="w-px h-3 bg-slate-800" />
-                      <span className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <ChevronUp size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.tx_mbps) > 5 ? "text-green-400" : "text-purple-400")} />
-                        <span className="text-slate-200 font-bold min-w-[60px]">{formatBitrate(dockerStats.stats.network.tx_mbps)}</span>
+                      <div className="w-px h-3 bg-border" />
+                      <span className="flex items-center gap-1.5 font-mono text-[11px] font-black">
+                        <ChevronUp size={14} className={cn("transition-colors", parseFloat(dockerStats.stats.network.tx_mbps) > 5 ? "text-green-600 dark:text-green-400" : "text-purple-600 dark:text-purple-400")} />
+                        <span className="text-text-primary min-w-[60px]">{formatBitrate(dockerStats.stats.network.tx_mbps)}</span>
                       </span>
                     </div>
-                    <div className="hidden lg:flex items-center gap-3 text-[10px] text-slate-500 font-mono">
+                    <div className="hidden lg:flex items-center gap-3 text-[9px] text-text-muted font-bold uppercase tracking-widest">
                       <span>TOT: {dockerStats.stats.network.rx_mb || dockerStats.stats.network.received_mb} MB</span>
-                      <span>/</span>
+                      <span className="opacity-30">/</span>
                       <span>{dockerStats.stats.network.tx_mb || dockerStats.stats.network.transmitted_mb} MB</span>
                     </div>
                   </div>
@@ -961,42 +962,42 @@ export default function App() {
                   <div className="hidden md:flex items-center gap-6">
                     {/* CPU */}
                     <div className="flex items-center gap-2 min-w-[100px]">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold w-8">CPU</span>
-                      <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <span className="text-[9px] text-text-muted uppercase font-black tracking-widest w-8">CPU</span>
+                      <div className="flex-1 h-1 bg-card rounded-full overflow-hidden border border-border shadow-inner">
                         <div
                           className={cn("h-full transition-all duration-500",
-                            parseFloat(dockerStats.stats.cpu.percent) > 80 ? "bg-red-500" : "bg-blue-500")}
+                            parseFloat(dockerStats.stats.cpu.percent) > 80 ? "bg-red-500" : "bg-blue-600 dark:bg-blue-500")}
                           style={{ width: `${dockerStats.stats.cpu.percent}%` }}
                         />
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.cpu.percent}%</span>
+                      <span className="text-[10px] text-text-muted font-mono font-bold w-8 text-right">{dockerStats.stats.cpu.percent}%</span>
                     </div>
 
                     {/* RAM */}
                     <div className="flex items-center gap-2 min-w-[100px]">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold w-8">RAM</span>
-                      <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <span className="text-[9px] text-text-muted uppercase font-black tracking-widest w-8">RAM</span>
+                      <div className="flex-1 h-1 bg-card rounded-full overflow-hidden border border-border shadow-inner">
                         <div
                           className={cn("h-full transition-all duration-500",
-                            parseFloat(dockerStats.stats.memory.percent) > 80 ? "bg-red-500" : "bg-purple-500")}
+                            parseFloat(dockerStats.stats.memory.percent) > 80 ? "bg-red-500" : "bg-purple-600 dark:bg-purple-500")}
                           style={{ width: `${dockerStats.stats.memory.percent}%` }}
                         />
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.stats.memory.percent}%</span>
+                      <span className="text-[10px] text-text-muted font-mono font-bold w-8 text-right">{dockerStats.stats.memory.percent}%</span>
                     </div>
 
                     {/* DISK (Host) */}
                     {dockerStats.host?.disk && (
                       <div className="flex items-center gap-2 min-w-[100px]">
-                        <span className="text-[10px] text-slate-500 uppercase font-bold w-8">DISK</span>
-                        <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <span className="text-[9px] text-text-muted uppercase font-black tracking-widest w-8">DISK</span>
+                        <div className="flex-1 h-1 bg-card rounded-full overflow-hidden border border-border shadow-inner">
                           <div
                             className={cn("h-full transition-all duration-500",
-                              dockerStats.host.disk.percent > 85 ? "bg-red-500" : "bg-orange-500")}
+                              dockerStats.host.disk.percent > 85 ? "bg-red-500" : "bg-orange-600 dark:bg-orange-500")}
                             style={{ width: `${dockerStats.host.disk.percent}%` }}
                           />
                         </div>
-                        <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{dockerStats.host.disk.percent}%</span>
+                        <span className="text-[10px] text-text-muted font-mono font-bold w-8 text-right">{dockerStats.host.disk.percent}%</span>
                       </div>
                     )}
                   </div>
@@ -1116,20 +1117,26 @@ export default function App() {
           </div>
 
           {/* Logs Terminal */}
-          <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden font-mono text-sm leading-6 shadow-md">
-            <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-2 text-slate-400">
-              <div className="w-3 h-3 rounded-full bg-red-500/50" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-              <div className="w-3 h-3 rounded-full bg-green-500/50" />
-              <span className="ml-2">Live Logs</span>
+          <div className="bg-card border border-border rounded-xl overflow-hidden font-mono text-sm leading-6 shadow-md shadow-black/10">
+            <div className="bg-card-secondary/80 backdrop-blur-md px-4 py-2.5 border-b border-border flex items-center gap-2 text-text-muted">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+              </div>
+              <span className="ml-2 text-[10px] font-black uppercase tracking-widest opacity-70">Live Streaming Logs</span>
             </div>
-            <div className="p-4 h-[300px] overflow-y-auto text-slate-300">
+            <div className="p-4 h-[300px] overflow-y-auto text-text-primary dark:text-slate-300 bg-slate-950 dark:bg-black/20 font-bold scrollbar-thin scrollbar-thumb-border">
               {logs.map((log, i) => (
-                <div key={i} className="border-b border-slate-900/50 py-1">
-                  {log}
+                <div key={i} className="border-b border-border/10 dark:border-white/5 py-1.5 flex gap-3 text-[11px]">
+                  <span className="text-text-muted opacity-40 select-none">{(i + 1).toString().padStart(3, '0')}</span>
+                  <span className="break-all">{log}</span>
                 </div>
               ))}
-              {logs.length === 0 && <div className="text-slate-600 italic">Waiting for logs... (Make sure traffic logs exist)</div>}
+              {logs.length === 0 && <div className="text-text-muted italic opacity-50 flex flex-col items-center justify-center h-full gap-2">
+                <Activity size={32} className="opacity-20" />
+                <p className="uppercase tracking-[0.2em] font-black text-[10px]">Waiting for traffic logs...</p>
+              </div>}
             </div>
           </div>
         </>
@@ -1152,7 +1159,7 @@ export default function App() {
       ) : (
         <Config token={token!} />
       )}
-    </div >
+    </div>
   );
 }
 

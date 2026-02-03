@@ -122,51 +122,51 @@ export default function System({ token }: { token: string }) {
         }
     };
 
-    if (loading) return <div className="text-slate-400 animate-pulse">Checking system status...</div>;
+    if (loading) return <div className="text-text-muted animate-pulse font-bold uppercase tracking-widest text-xs">Checking system status...</div>;
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {/* Maintenance / Version Card */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+                <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                        <div className="p-2 bg-blue-600/10 rounded-lg text-blue-600 dark:text-blue-400 border border-blue-500/20">
                             <RefreshCw size={24} className={upgrading ? "animate-spin" : ""} />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="text-xl font-bold text-slate-100">System Maintenance</h3>
+                                <h3 className="text-xl font-bold text-text-primary uppercase tracking-tight">System Maintenance</h3>
                                 <BetaBadge />
                             </div>
-                            <p className="text-slate-400 text-xs text-balance">Update system logic and engine to the latest stable release (Validation in Progress).</p>
+                            <p className="text-text-muted text-xs text-balance mt-0.5">Update system logic and engine to the latest stable release.</p>
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <div className="flex justify-between items-center p-3 bg-slate-950 rounded-lg border border-slate-800">
-                            <span className="text-sm text-slate-400 font-medium">Current Version</span>
-                            <span className="text-sm font-mono text-blue-400 font-bold">v{status?.current}</span>
+                        <div className="flex justify-between items-center p-3 bg-card-secondary/50 rounded-lg border border-border">
+                            <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Current Version</span>
+                            <span className="text-sm font-mono text-blue-600 dark:text-blue-400 font-bold">v{status?.current}</span>
                         </div>
 
-                        <div className="flex justify-between items-center p-3 bg-slate-950 rounded-lg border border-slate-800">
-                            <span className="text-sm text-slate-400 font-medium">Latest Available</span>
-                            <span className="text-sm font-mono text-green-400 font-bold">v{status?.latest}</span>
+                        <div className="flex justify-between items-center p-3 bg-card-secondary/50 rounded-lg border border-border">
+                            <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Latest Available</span>
+                            <span className="text-sm font-mono text-green-600 dark:text-green-400 font-bold">v{status?.latest}</span>
                         </div>
 
                         {status?.updateAvailable && !success && (
                             <div className={cn(
-                                "p-4 rounded-lg flex gap-3 border transition-colors",
-                                status.dockerReady ? "bg-amber-500/10 border-amber-500/30" : "bg-blue-500/10 border-blue-500/30"
+                                "p-4 rounded-lg flex gap-3 border transition-colors shadow-sm",
+                                status.dockerReady ? "bg-amber-500/5 border-amber-500/30" : "bg-blue-600/5 border-blue-500/30"
                             )}>
                                 {status.dockerReady
                                     ? <AlertCircle className="text-amber-500 shrink-0" size={20} />
-                                    : <RefreshCw className="text-blue-400 animate-spin shrink-0" size={20} />
+                                    : <RefreshCw className="text-blue-600 dark:text-blue-400 animate-spin shrink-0" size={20} />
                                 }
                                 <div className="space-y-2">
                                     <p className={cn(
-                                        "text-xs leading-relaxed font-medium",
-                                        status.dockerReady ? "text-amber-200" : "text-blue-200"
+                                        "text-[11px] leading-relaxed font-bold",
+                                        status.dockerReady ? "text-amber-600 dark:text-amber-200" : "text-blue-600 dark:text-blue-200"
                                     )}>
                                         {status.dockerReady
                                             ? `A newer version (v${status.latest}) is available on GitHub and ready to pull from Docker Hub.`
@@ -177,10 +177,10 @@ export default function System({ token }: { token: string }) {
                                         onClick={handleUpgrade}
                                         disabled={upgrading || !status.dockerReady}
                                         className={cn(
-                                            "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg",
+                                            "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg uppercase tracking-widest",
                                             (upgrading || !status.dockerReady)
-                                                ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                                                : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20"
+                                                ? "bg-card-secondary text-text-muted border border-border cursor-not-allowed opacity-50"
+                                                : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/40"
                                         )}
                                     >
                                         {upgrading ? <RefreshCw className="animate-spin" size={14} /> : <Download size={14} />}
@@ -191,20 +191,20 @@ export default function System({ token }: { token: string }) {
                         )}
 
                         {!status?.updateAvailable && (
-                            <div className="flex items-center gap-2 px-4 py-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400">
+                            <div className="flex items-center gap-2 px-4 py-3 bg-green-500/5 border border-green-500/20 rounded-lg text-green-600 dark:text-green-400 shadow-sm">
                                 <CheckCircle size={16} />
-                                <span className="text-xs font-bold uppercase tracking-wider">System is Up to Date</span>
+                                <span className="text-xs font-bold uppercase tracking-widest">System is Up to Date</span>
                             </div>
                         )}
 
                         {error && (
-                            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs font-medium">
+                            <div className="p-3 bg-red-500/5 border border-red-500/30 rounded-lg text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-tight shadow-sm">
                                 ❌ {error}
                             </div>
                         )}
 
                         {success && !upgrading && (
-                            <div className="p-4 bg-green-600/20 border border-green-500/30 rounded-lg text-green-200 text-xs font-medium leading-relaxed">
+                            <div className="p-4 bg-green-600/10 border border-green-500/30 rounded-lg text-green-700 dark:text-green-200 text-xs font-bold leading-relaxed shadow-sm">
                                 🚀 {success}
                             </div>
                         )}
@@ -212,38 +212,38 @@ export default function System({ token }: { token: string }) {
                         {upgrading && upgradeStatus && (
                             <div className="mt-4 space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
+                                    <div className="flex items-center gap-2 text-xs font-black text-blue-600 dark:text-blue-400">
                                         <RefreshCw size={14} className="animate-spin" />
                                         <span className="uppercase tracking-widest">
                                             {upgradeStatus.stage === 'pulling' ? 'Pulling Images...' : 'Restarting Services...'}
                                         </span>
                                     </div>
-                                    <span className="text-[10px] font-mono text-slate-500">
+                                    <span className="text-[10px] font-mono text-text-muted font-bold">
                                         {Math.floor((Date.now() - (upgradeStatus.startTime || Date.now())) / 1000)}s elapsed
                                     </span>
                                 </div>
 
-                                <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-2xl">
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 border-b border-slate-800">
-                                        <Terminal size={12} className="text-slate-400" />
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Upgrade Monitor</span>
+                                <div className="bg-card-secondary/20 rounded-xl border border-border overflow-hidden shadow-xl">
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-card-secondary/80 border-b border-border">
+                                        <Terminal size={12} className="text-text-muted" />
+                                        <span className="text-[10px] font-black text-text-muted uppercase tracking-tighter">Upgrade Monitor</span>
                                     </div>
-                                    <div className="p-3 h-48 overflow-y-auto font-mono text-[10px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                                    <div className="p-3 h-48 overflow-y-auto font-mono text-[10px] leading-relaxed scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
                                         {upgradeStatus.logs.map((log, i) => (
                                             <div key={i} className={cn(
                                                 "border-l-2 pl-2 mb-1",
-                                                log.startsWith('[WARN]') ? "border-amber-500/50 text-amber-300/80" :
-                                                    log.startsWith('[ERROR]') ? "border-red-500/50 text-red-300" :
-                                                        log.includes('✅') ? "border-green-500/50 text-green-300" :
-                                                            "border-slate-800 text-slate-400"
+                                                log.startsWith('[WARN]') ? "border-amber-500/50 text-amber-600 dark:text-amber-300/80" :
+                                                    log.startsWith('[ERROR]') ? "border-red-500/50 text-red-600 dark:text-red-300" :
+                                                        log.includes('✅') ? "border-green-500/50 text-green-600 dark:text-green-300" :
+                                                            "border-border text-text-muted opacity-80"
                                             )}>
                                                 {log}
                                             </div>
                                         ))}
-                                        <div className="animate-pulse inline-block w-1.5 h-3 bg-blue-500 ml-1 translate-y-0.5" />
+                                        <div className="animate-pulse inline-block w-1.5 h-3 bg-blue-600 dark:bg-blue-500 ml-1 translate-y-0.5" />
                                     </div>
                                 </div>
-                                <p className="text-[10px] text-slate-500 italic text-center">
+                                <p className="text-[10px] text-text-muted font-bold italic text-center uppercase tracking-tight">
                                     Do not close this tab. The dashboard will automatically reconnect once the restart is complete.
                                 </p>
                             </div>
@@ -252,21 +252,21 @@ export default function System({ token }: { token: string }) {
                 </div>
 
                 {/* Configuration Backup & Restore */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+                <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
+                        <div className="p-2 bg-green-600/10 rounded-lg text-green-600 dark:text-green-400 border border-green-500/20">
                             <Download size={24} />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-100">Configuration Backup</h3>
-                            <p className="text-slate-400 text-xs">Export or Restore your entire system settings.</p>
+                            <h3 className="text-xl font-bold text-text-primary uppercase tracking-tight">Configuration Backup</h3>
+                            <p className="text-text-muted text-xs mt-0.5">Export or Restore your entire system settings.</p>
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg">
-                            <h4 className="text-sm font-bold text-slate-300 mb-2">Export Configuration</h4>
-                            <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+                        <div className="p-4 bg-card-secondary/40 border border-border rounded-lg shadow-inner">
+                            <h4 className="text-xs font-black text-text-muted uppercase tracking-widest mb-2">Export Configuration</h4>
+                            <p className="text-[10px] text-text-muted mb-3 leading-relaxed italic opacity-80">
                                 Download a JSON bundle containing your applications, security tests, connectivity probes, and user accounts.
                             </p>
                             <button
@@ -289,15 +289,15 @@ export default function System({ token }: { token: string }) {
                                         }
                                     } catch (e) { alert('Export request failed. Check network connection.'); }
                                 }}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-all border border-slate-700"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-card-secondary hover:bg-card-hover text-text-primary rounded-lg text-xs font-bold transition-all border border-border uppercase tracking-widest shadow-sm"
                             >
                                 <Download size={14} /> Download Backup Bundle
                             </button>
                         </div>
 
-                        <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg">
-                            <h4 className="text-sm font-bold text-slate-300 mb-2">Restore Configuration</h4>
-                            <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+                        <div className="p-4 bg-card-secondary/40 border border-border rounded-lg shadow-inner">
+                            <h4 className="text-xs font-black text-text-muted uppercase tracking-widest mb-2">Restore Configuration</h4>
+                            <p className="text-[10px] text-text-muted mb-3 leading-relaxed italic opacity-80">
                                 Upload a backup bundle to restore settings. <strong>This will overwrite current settings and restart the system.</strong>
                             </p>
                             <div className="flex gap-2">
@@ -337,7 +337,7 @@ export default function System({ token }: { token: string }) {
                                 />
                                 <button
                                     onClick={() => document.getElementById('config-upload')?.click()}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-xs font-bold transition-all border border-blue-500/30"
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold transition-all border border-blue-500/30 uppercase tracking-widest shadow-sm"
                                 >
                                     <RefreshCw size={14} /> Upload & Restore Bundle
                                 </button>

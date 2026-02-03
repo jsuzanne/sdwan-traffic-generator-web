@@ -75,7 +75,7 @@ export default function SRTAnalytics({ token }: SRTAnalyticsProps) {
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Config Card */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+            <div className="bg-card/50 border border-border rounded-xl p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-amber-500/20 rounded-lg text-amber-400">
@@ -83,23 +83,23 @@ export default function SRTAnalytics({ token }: SRTAnalyticsProps) {
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="text-xl font-bold text-slate-100">SRT Analytics</h3>
+                                <h3 className="text-xl font-bold text-text-primary">SRT Analytics</h3>
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30">Beta</span>
                             </div>
-                            <p className="text-slate-400 text-xs">Measure Network RTT vs Application SRT (Server Response Time)</p>
+                            <p className="text-text-muted text-xs">Measure Network RTT vs Application SRT (Server Response Time)</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <div className="flex flex-col gap-1">
-                            <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider px-1">Target Host / IP</label>
+                            <label className="text-[10px] text-text-muted uppercase font-bold tracking-wider px-1">Target Host / IP</label>
                             <input
                                 type="text"
                                 value={target}
                                 disabled={isRunning}
                                 onChange={(e) => setTarget(e.target.value)}
                                 placeholder="e.g. 192.168.1.50"
-                                className="bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-slate-200 focus:border-amber-500 outline-none w-48 transition-all disabled:opacity-50"
+                                className="bg-card border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-amber-500 outline-none w-48 transition-all disabled:opacity-50"
                             />
                         </div>
                         <button
@@ -127,8 +127,8 @@ export default function SRTAnalytics({ token }: SRTAnalyticsProps) {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 gap-6">
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm">
-                    <h3 className="text-lg font-semibold mb-6 text-slate-200 flex items-center gap-2">
+                <div className="bg-card/50 border border-border rounded-xl p-6 backdrop-blur-sm">
+                    <h3 className="text-lg font-semibold mb-6 text-text-primary flex items-center gap-2">
                         <Activity className="text-amber-400" size={18} /> Delay Analysis (ms)
                     </h3>
                     <div className="h-[400px] w-full">
@@ -144,11 +144,11 @@ export default function SRTAnalytics({ token }: SRTAnalyticsProps) {
                                         <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} />
-                                <YAxis stroke="#94a3b8" fontSize={10} unit="ms" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                                <XAxis dataKey="time" stroke="var(--text-muted)" fontSize={10} />
+                                <YAxis stroke="var(--text-muted)" fontSize={10} unit="ms" />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
+                                    contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
                                 />
                                 <Legend iconType="circle" />
                                 <Area
@@ -174,20 +174,20 @@ export default function SRTAnalytics({ token }: SRTAnalyticsProps) {
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="mt-4 p-4 bg-slate-950 border border-slate-800 rounded-lg flex gap-4">
+                    <div className="mt-4 p-4 bg-card border border-border rounded-lg flex gap-4">
                         <div className="flex-1">
-                            <span className="text-[10px] text-slate-500 uppercase font-black">How to read this:</span>
-                            <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                            <span className="text-[10px] text-text-muted uppercase font-black">How to read this:</span>
+                            <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
                                 The chart shows the **Total Time to First Byte (TTFB)** split into two parts:
                             </p>
                             <div className="grid grid-cols-2 gap-4 mt-2">
                                 <div className="p-2 border border-blue-500/20 rounded">
                                     <span className="text-blue-400 font-bold block">RTT (Blue)</span>
-                                    <span className="text-[10px] text-slate-500">Pure network delay for TCP connection across the SD-WAN fabric.</span>
+                                    <span className="text-[10px] text-text-muted">Pure network delay for TCP connection across the SD-WAN fabric.</span>
                                 </div>
                                 <div className="p-2 border border-amber-500/20 rounded">
                                     <span className="text-amber-400 font-bold block">SRT (Yellow)</span>
-                                    <span className="text-[10px] text-slate-500">Time spent by the application/server processing the request before responding.</span>
+                                    <span className="text-[10px] text-text-muted">Time spent by the application/server processing the request before responding.</span>
                                 </div>
                             </div>
                         </div>

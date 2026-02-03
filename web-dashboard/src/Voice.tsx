@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi } from 'lucide-react';
+import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -313,22 +313,32 @@ export default function Voice(props: VoiceProps) {
     return (
         <div className="space-y-6">
             {/* Header Control */}
-            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
+            <div className="bg-card border border-border rounded-2xl p-8 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                    <Phone size={120} />
+                </div>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+                    <div className="flex items-center gap-6">
                         <div className={cn(
-                            "p-3 rounded-lg shadow-lg transition-all",
-                            enabled ? "bg-blue-500/20 text-blue-400" : "bg-card-secondary text-text-muted"
+                            "p-5 rounded-2xl shadow-xl transition-all border",
+                            enabled
+                                ? "bg-blue-600 text-white shadow-blue-900/30 border-blue-500/20"
+                                : "bg-card-secondary text-text-muted border-border"
                         )}>
-                            <Phone size={24} className={enabled ? "animate-pulse" : ""} />
+                            <Phone size={32} className={cn(enabled && "animate-pulse")} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-foreground">Voice Simulation (RTP)</h2>
-                            <p className="text-text-secondary text-sm">
-                                Status: <span className={enabled ? "text-blue-400 font-semibold" : "text-text-muted font-medium"}>
-                                    {enabled ? 'Simulating' : 'Stopped'}
+                            <div className="flex items-center gap-3 mb-1">
+                                <h2 className="text-2xl font-black text-text-primary uppercase tracking-tight">Voice Simulation</h2>
+                                <span className={cn(
+                                    "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                    enabled ? "bg-green-600/10 text-green-600 dark:text-green-400 border-green-500/20" : "bg-red-600/10 text-red-600 dark:text-red-400 border-red-500/20"
+                                )}>
+                                    {enabled ? 'Active' : 'Offline'}
                                 </span>
-                                {enabled && ` • ${activeCalls.length} active calls`}
+                            </div>
+                            <p className="text-text-muted text-xs font-bold uppercase tracking-widest opacity-70">
+                                Real-time RTP Stream Emulation • {enabled ? `${activeCalls.length} Concurrent Streams` : "Engine Standby"}
                             </p>
                         </div>
                     </div>
@@ -337,92 +347,108 @@ export default function Voice(props: VoiceProps) {
                         onClick={handleToggle}
                         disabled={isStartingV || isStoppingV}
                         className={cn(
-                            "px-8 py-3 rounded-lg font-bold transition-all shadow-lg flex items-center gap-2 min-w-[180px] justify-center",
+                            "px-10 py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-2xl flex items-center justify-center gap-3 group relative overflow-hidden",
                             enabled
-                                ? "bg-red-600 hover:bg-red-500 text-white shadow-red-500/20"
-                                : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20",
-                            (isStartingV || isStoppingV) && "opacity-50"
+                                ? "bg-red-600 hover:bg-red-500 text-white shadow-red-900/40"
+                                : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/40",
+                            (isStartingV || isStoppingV) && "opacity-50 cursor-not-allowed"
                         )}
                     >
-                        {(isStartingV || isStoppingV) ? <Activity size={20} className="animate-spin" /> : (enabled ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />)}
-                        {isStartingV ? 'STARTING...' : isStoppingV ? 'STOPPING...' : (enabled ? 'Stop Voice' : 'Start Voice')}
+                        {(isStartingV || isStoppingV) ? (
+                            <Activity size={20} className="animate-spin" />
+                        ) : (
+                            enabled ? <Pause size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" /> : <Play size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
+                        )}
+                        <span className="relative z-10">
+                            {isStartingV ? 'Initializing...' : isStoppingV ? 'Terminating...' : (enabled ? 'Cease Traffic' : 'Execute Simulation')}
+                        </span>
                     </button>
                 </div>
 
                 {/* QoS Summary Widget */}
                 {qosSummary && (
-                    <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
-                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Total Calls</div>
-                            <div className="text-lg font-bold text-foreground">{qosSummary.totalCalls}</div>
-                        </div>
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
-                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Avg Loss</div>
-                            <div className={cn("text-lg font-bold", parseFloat(qosSummary.avgLoss) < 1 ? "text-green-400" : "text-yellow-400")}>
-                                {qosSummary.avgLoss}%
+                    <div className="mt-10 grid grid-cols-2 lg:grid-cols-5 gap-4">
+                        {[
+                            { label: 'Total Calls', value: qosSummary.totalCalls, icon: Activity, color: 'text-text-primary' },
+                            { label: 'Avg Loss', value: `${qosSummary.avgLoss}%`, icon: Wifi, color: parseFloat(qosSummary.avgLoss) < 1 ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400" },
+                            { label: 'Avg Latency', value: `${qosSummary.avgRtt}ms`, icon: Clock, color: "text-blue-600 dark:text-blue-400" },
+                            { label: 'RTT Variance', value: `${qosSummary.minRtt} / ${qosSummary.maxRtt}ms`, icon: BarChart2, color: "text-text-muted" },
+                            { label: 'Avg Jitter', value: `${qosSummary.avgJitter}ms`, icon: Activity, color: "text-purple-600 dark:text-purple-400" }
+                        ].map((stat, i) => (
+                            <div key={i} className="bg-card-secondary/50 border border-border rounded-2xl p-4 shadow-sm group hover:border-blue-500/30 transition-colors">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <stat.icon size={12} className="text-text-muted opacity-50" />
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest">{stat.label}</label>
+                                </div>
+                                <div className={cn("text-lg font-black tracking-tighter truncate", stat.color)}>
+                                    {stat.value}
+                                </div>
                             </div>
-                        </div>
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
-                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Avg RTT</div>
-                            <div className="text-lg font-bold text-blue-400">{qosSummary.avgRtt}ms</div>
-                        </div>
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
-                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Min / Max RTT</div>
-                            <div className="text-sm font-bold text-text-secondary">
-                                {qosSummary.minRtt} <span className="text-text-muted">/</span> {qosSummary.maxRtt}ms
-                            </div>
-                        </div>
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
-                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Avg Jitter</div>
-                            <div className="text-lg font-bold text-purple-400">{qosSummary.avgJitter}ms</div>
-                        </div>
+                        ))}
                     </div>
                 )}
             </div>
 
             {/* Main Tabs */}
-            <div className="flex border-b border-border">
+            <div className="flex gap-1 bg-card-secondary/50 p-1 rounded-2xl border border-border w-fit shadow-inner">
                 <button
                     onClick={() => setActiveTab('status')}
-                    className={cn("px-6 py-3 font-medium transition-all border-b-2",
-                        activeTab === 'status' ? "border-blue-500 text-blue-400" : "border-transparent text-text-muted")}
+                    className={cn(
+                        "px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                        activeTab === 'status'
+                            ? "bg-card text-blue-600 dark:text-blue-400 shadow-md border border-border"
+                            : "text-text-muted hover:text-text-primary"
+                    )}
                 >
-                    Monitoring
+                    Diagnostic Monitoring
                 </button>
                 <button
                     onClick={() => setActiveTab('config')}
-                    className={cn("px-6 py-3 font-medium transition-all border-b-2",
-                        activeTab === 'config' ? "border-blue-500 text-blue-400" : "border-transparent text-text-muted")}
+                    className={cn(
+                        "px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                        activeTab === 'config'
+                            ? "bg-card text-blue-600 dark:text-blue-400 shadow-md border border-border"
+                            : "text-text-muted hover:text-text-primary"
+                    )}
                 >
-                    Servers & Config
+                    Payload Configuration
                 </button>
             </div>
 
             {activeTab === 'status' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Active Calls Widget */}
-                    <div className="lg:col-span-1 bg-card border border-border rounded-xl p-6 shadow-sm">
-                        <h3 className="text-foreground font-bold mb-4 flex items-center gap-2">
-                            <Activity size={18} className="text-blue-400" /> Active Calls
-                        </h3>
-                        <div className="space-y-3">
+                    <div className="lg:col-span-1 bg-card border border-border rounded-2xl p-6 shadow-sm overflow-hidden relative">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[10px] font-black text-text-primary uppercase tracking-[0.2em] flex items-center gap-2 border-l-2 border-blue-500 pl-2">
+                                <Activity size={14} className="text-blue-500" /> Live Streams
+                            </h3>
+                            <span className="text-[10px] font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                {activeCalls.length} UP
+                            </span>
+                        </div>
+                        <div className="space-y-4">
                             {activeCalls.length === 0 ? (
-                                <div className="text-text-muted text-sm py-8 text-center bg-card-secondary rounded-lg">
-                                    No active voice calls
+                                <div className="text-text-muted text-[10px] font-bold uppercase tracking-widest py-12 text-center bg-card-secondary/30 rounded-2xl border border-dashed border-border/50">
+                                    No active voice telemetry
                                 </div>
                             ) : (
                                 activeCalls.map((call, idx) => (
-                                    <div key={idx} className="bg-card-secondary p-3 rounded-lg border border-border flex items-center justify-between shadow-sm">
-                                        <div>
+                                    <div key={idx} className="bg-card-secondary/50 p-4 rounded-2xl border border-border flex items-center justify-between shadow-sm group hover:border-blue-500/30 transition-all">
+                                        <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-1 rounded">{call.call_id}</span>
-                                                <div className="text-xs font-mono text-text-primary">{call.target}</div>
+                                                <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic">
+                                                    #{call.call_id.slice(0, 8)}
+                                                </span>
+                                                <div className="text-xs font-black text-text-primary tracking-tight uppercase">{call.target}</div>
                                             </div>
-                                            <div className="text-[10px] text-text-muted mt-1">{call.codec} • {call.duration}s</div>
+                                            <div className="text-[9px] text-text-muted font-bold uppercase tracking-widest opacity-60">
+                                                {call.codec} • Started {call.duration}s ago
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-ping" />
-                                            <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">Live</span>
+                                        <div className="flex items-center gap-2 bg-green-600/10 px-2 py-1 rounded-lg border border-green-500/20">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                                            <span className="text-[9px] text-green-600 dark:text-green-400 font-black uppercase tracking-tighter">Live</span>
                                         </div>
                                     </div>
                                 ))
@@ -431,108 +457,116 @@ export default function Voice(props: VoiceProps) {
                     </div>
 
                     {/* Stats Summary */}
-                    <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                            <h3 className="text-foreground font-bold flex items-center gap-2">
-                                <BarChart2 size={18} className="text-blue-400" /> Recent History
-                            </h3>
+                    <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-600/10 rounded-lg text-blue-600 dark:text-blue-400">
+                                    <BarChart2 size={18} />
+                                </div>
+                                <h3 className="text-[10px] font-black text-text-primary uppercase tracking-[0.2em]">Diagnostic History</h3>
+                            </div>
 
-                            <div className="flex flex-1 max-w-md gap-2">
+                            <div className="flex flex-1 max-w-md gap-3">
                                 <div className="relative flex-1">
-                                    <Clock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted opacity-50" />
                                     <input
                                         type="text"
-                                        placeholder="Search calls..."
+                                        placeholder="SEARCH TRACES..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full bg-card-secondary border border-border text-xs text-text-primary rounded-lg pl-8 pr-3 py-1.5 outline-none focus:border-blue-500"
+                                        className="w-full bg-card-secondary/50 border border-border text-[10px] font-black uppercase tracking-widest text-text-primary rounded-xl pl-10 pr-3 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
                                     />
                                 </div>
                                 <select
                                     value={qualityFilter}
                                     onChange={(e) => setQualityFilter(e.target.value as any)}
-                                    className="bg-card-secondary border border-border text-xs text-text-primary rounded-lg px-2 py-1.5 outline-none focus:border-blue-500"
+                                    className="bg-card-secondary/50 border border-border text-[10px] font-black uppercase tracking-widest text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
                                 >
-                                    <option value="all">All Qualities</option>
-                                    <option value="excellent">Excellent 🟢</option>
-                                    <option value="fair">Fair 🟡</option>
-                                    <option value="poor">Poor 🔴</option>
+                                    <option value="all">ANY QUALITY</option>
+                                    <option value="excellent">EXCELLENT</option>
+                                    <option value="fair">FAIR</option>
+                                    <option value="poor">POOR</option>
                                 </select>
                             </div>
 
                             <button
                                 onClick={resetLogs}
-                                className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 border border-red-500/30 rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-red-600 dark:text-red-400 hover:bg-red-600/10 border border-red-500/20 rounded-xl transition-all shadow-sm"
                             >
                                 <Trash2 size={12} />
-                                Reset
+                                Purge
                             </button>
                         </div>
-                        <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-card-hover">
+                        <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border">
                             <table className="w-full text-sm relative">
-                                <thead className="text-text-muted text-left border-b border-border sticky top-0 bg-card z-10 shadow-sm">
-                                    <tr className="text-[10px] font-extrabold uppercase tracking-widest text-text-muted">
+                                <thead className="text-text-muted text-left sticky top-0 bg-card z-10">
+                                    <tr className="border-b border-border">
                                         {[
-                                            { key: 'timestamp', label: 'Time' },
-                                            { key: 'event', label: 'Event' },
-                                            { key: 'target', label: 'Target' },
+                                            { key: 'timestamp', label: 'Timeline' },
+                                            { key: 'event', label: 'Disposition' },
+                                            { key: 'target', label: 'Endpoint' },
                                             { key: 'loss_pct', label: 'Loss / MOS' },
                                             { key: 'avg_rtt_ms', label: 'RTT / Jitter' }
                                         ].map(col => (
                                             <th
                                                 key={col.key}
                                                 onClick={() => handleSort(col.key)}
-                                                className={`pb-3 px-2 font-medium bg-card cursor-pointer hover:text-blue-400 transition-colors ${col.key === 'avg_rtt_ms' ? 'text-right' : ''}`}
+                                                className={`pb-4 px-3 text-[9px] font-black text-text-muted uppercase tracking-widest cursor-pointer hover:text-blue-500 transition-colors ${col.key === 'avg_rtt_ms' ? 'text-right' : ''}`}
                                             >
-                                                <div className={`flex items-center gap-1 ${col.key === 'avg_rtt_ms' ? 'justify-end' : ''}`}>
+                                                <div className={`flex items-center gap-2 ${col.key === 'avg_rtt_ms' ? 'justify-end' : ''}`}>
                                                     {col.label}
                                                     {sortConfig?.key === col.key && (
-                                                        <Activity size={10} className={`text-blue-400 transform transition-transform ${sortConfig.direction === 'desc' ? 'rotate-180' : ''}`} />
+                                                        <Activity size={10} className={cn("text-blue-500 transform transition-transform", sortConfig.direction === 'desc' ? 'rotate-180' : '')} />
                                                     )}
                                                 </div>
                                             </th>
                                         ))}
                                     </tr>
                                 </thead>
-                                <tbody className="text-text-secondary">
+                                <tbody className="text-text-secondary divide-y divide-border/50">
                                     {sortedHistory.map((call: VoiceCall, idx: number) => (
-                                        <tr key={idx} className="border-b border-border hover:bg-card-hover/10">
-                                            <td className="py-3 px-2 text-xs font-mono">{new Date(call.timestamp).toLocaleTimeString()}</td>
-                                            <td className="py-3 px-2">
+                                        <tr key={idx} className="hover:bg-card-secondary/30 transition-all group">
+                                            <td className="py-4 px-3 text-[10px] font-black font-mono text-text-muted">
+                                                {new Date(call.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                            </td>
+                                            <td className="py-4 px-3">
                                                 <div className="flex flex-col">
                                                     <span className={cn(
-                                                        "text-[10px] font-bold uppercase px-1.5 py-0.5 rounded w-fit",
-                                                        call.event === 'start' ? "bg-blue-500/10 text-blue-400" : "bg-card-secondary text-text-muted"
+                                                        "text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border shadow-sm w-fit",
+                                                        call.event === 'start' ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                                                            call.event === 'skipped' ? "bg-orange-600/10 text-orange-600 dark:text-orange-400 border-orange-500/20" :
+                                                                "bg-card-secondary text-text-muted border-border"
                                                     )}>
                                                         {call.event}
                                                     </span>
-                                                    <span className="text-[9px] text-text-muted mt-1">{call.call_id}</span>
+                                                    <span className="text-[10px] text-text-muted mt-1 font-mono tracking-tighter opacity-50 group-hover:opacity-100 transition-opacity">#{call.call_id.slice(0, 8)}</span>
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-2 text-xs font-mono">{call.target}</td>
-                                            <td className="py-3 px-2">
+                                            <td className="py-4 px-3 text-xs font-black text-text-primary tracking-tight">{call.target}</td>
+                                            <td className="py-4 px-3">
                                                 {call.event === 'end' && call.loss_pct !== undefined ? (
-                                                    <div className="flex flex-col gap-1">
-                                                        <div className="flex items-center gap-1.5">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <div className="flex items-center gap-2">
                                                             <div className={cn(
                                                                 "h-2 w-2 rounded-full",
                                                                 call.loss_pct < 1 ? "bg-green-500" :
-                                                                    call.loss_pct < 5 ? "bg-yellow-500" : "bg-red-500"
+                                                                    call.loss_pct < 5 ? "bg-orange-500" : "bg-red-500"
                                                             )} />
                                                             <span className={cn(
-                                                                "text-[10px] font-bold",
-                                                                call.loss_pct < 1 ? "text-green-400" :
-                                                                    call.loss_pct < 5 ? "text-yellow-400" : "text-red-400"
+                                                                "text-[10px] font-black",
+                                                                call.loss_pct < 1 ? "text-green-600 dark:text-green-400" :
+                                                                    call.loss_pct < 5 ? "text-orange-600 dark:text-orange-400" : "text-red-600 dark:text-red-400"
                                                             )}>
                                                                 {call.loss_pct}% loss
                                                             </span>
                                                         </div>
                                                         {call.mos_score !== undefined && (
-                                                            <div className="flex items-center gap-1.5">
+                                                            <div className="flex items-center">
                                                                 <span className={cn(
-                                                                    "text-[10px] font-black px-1 rounded",
-                                                                    call.mos_score >= 4.0 ? "bg-green-500/20 text-green-400" :
-                                                                        call.mos_score >= 3.0 ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"
+                                                                    "text-[10px] font-black px-2 py-0.5 rounded-lg border shadow-sm",
+                                                                    call.mos_score >= 4.0 ? "bg-green-600/10 text-green-600 dark:text-green-400 border-green-500/20" :
+                                                                        call.mos_score >= 3.0 ? "bg-orange-600/10 text-orange-600 dark:text-orange-400 border-orange-500/20" :
+                                                                            "bg-red-600/10 text-red-600 dark:text-red-400 border-red-500/20"
                                                                 )}>
                                                                     MOS: {call.mos_score}
                                                                 </span>
@@ -540,23 +574,23 @@ export default function Voice(props: VoiceProps) {
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-slate-600">—</span>
+                                                    <span className="text-text-muted opacity-30">—</span>
                                                 )}
                                             </td>
-                                            <td className="py-3 px-2 text-right">
+                                            <td className="py-4 px-3 text-right">
                                                 {call.event === 'end' && call.avg_rtt_ms !== undefined ? (
-                                                    <div className="flex flex-col items-end">
+                                                    <div className="flex flex-col items-end gap-1">
                                                         <span className={cn(
-                                                            "text-[11px] font-medium",
+                                                            "text-[11px] font-black tracking-tighter",
                                                             call.avg_rtt_ms < 100 ? "text-text-primary" :
-                                                                call.avg_rtt_ms < 200 ? "text-yellow-400" : "text-red-400"
+                                                                call.avg_rtt_ms < 200 ? "text-orange-500" : "text-red-500"
                                                         )}>
                                                             {call.avg_rtt_ms}ms
                                                         </span>
-                                                        <span className="text-[9px] text-text-muted">Jitter: {call.jitter_ms}ms</span>
+                                                        <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest opacity-50">Jitter: {call.jitter_ms}ms</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-text-muted">—</span>
+                                                    <span className="text-text-muted opacity-30">—</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -570,69 +604,85 @@ export default function Voice(props: VoiceProps) {
 
             {activeTab === 'config' && (
                 <div className="space-y-6">
-                    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
+                    <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                             <div>
-                                <h3 className="text-foreground font-bold flex items-center gap-2">
-                                    <Server size={18} className="text-blue-400" /> Target Configuration
+                                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight flex items-center gap-3">
+                                    <div className="p-2 bg-blue-600/10 rounded-lg text-blue-600 dark:text-blue-400">
+                                        <Server size={18} />
+                                    </div>
+                                    Simulation Parameters
                                 </h3>
-                                <p className="text-text-muted text-xs mt-1">Define voice endpoints and traffic distribution weights</p>
+                                <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">Configure RTP stream attributes and target endpoints</p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                                 {isDirty && (
                                     <button
                                         onClick={handleResetToCurrent}
-                                        className="text-text-muted hover:text-text-primary px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                        className="text-text-muted hover:text-text-primary px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                                     >
-                                        Cancel Edits
+                                        Revert Changes
                                     </button>
                                 )}
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
                                     className={cn(
-                                        "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50",
-                                        isDirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-card-secondary text-text-muted cursor-not-allowed"
+                                        "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg",
+                                        isDirty
+                                            ? "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20"
+                                            : "bg-card-secondary text-text-muted border border-border cursor-not-allowed"
                                     )}
                                 >
-                                    <Save size={16} /> {saving ? 'Saving...' : 'Save Configuration'}
+                                    <Save size={14} /> {saving ? 'Persisting...' : 'Commit Configuration'}
                                 </button>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div className="bg-card-secondary/30 p-4 rounded-lg border border-border space-y-4 shadow-sm">
-                                    <h4 className="text-text-secondary text-sm font-bold mb-2">Simulation Parameters</h4>
-
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] text-text-muted uppercase font-bold">Simultaneous Calls</label>
-                                        <input
-                                            type="number"
-                                            value={config?.max_simultaneous_calls}
-                                            onChange={(e) => {
-                                                setIsDirty(true);
-                                                setConfig(prev => prev ? { ...prev, max_simultaneous_calls: parseInt(e.target.value) } : null);
-                                            }}
-                                            className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-                                        />
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <div className="bg-card-secondary/30 p-6 rounded-2xl border border-border space-y-6 shadow-inner">
+                                    <div className="flex items-center gap-2 mb-2 border-b border-border pb-4">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                        <h4 className="text-[10px] font-black text-text-primary uppercase tracking-[0.2em]">Runtime Controls</h4>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] text-text-muted uppercase font-bold">Sleep between calls (sec)</label>
-                                        <input
-                                            type="number"
-                                            value={config?.sleep_between_calls}
-                                            onChange={(e) => {
-                                                setIsDirty(true);
-                                                setConfig(prev => prev ? { ...prev, sleep_between_calls: parseInt(e.target.value) } : null);
-                                            }}
-                                            className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-                                        />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] text-text-muted uppercase font-black tracking-widest flex items-center gap-2">
+                                                <Activity size={10} /> Max Concurrency
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={config?.max_simultaneous_calls}
+                                                onChange={(e) => {
+                                                    setIsDirty(true);
+                                                    setConfig(prev => prev ? { ...prev, max_simultaneous_calls: parseInt(e.target.value) } : null);
+                                                }}
+                                                className="w-full bg-card border border-border text-text-primary rounded-xl p-3 text-sm font-black focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] text-text-muted uppercase font-black tracking-widest flex items-center gap-2">
+                                                <Clock size={10} /> Inter-Call Delay (s)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={config?.sleep_between_calls}
+                                                onChange={(e) => {
+                                                    setIsDirty(true);
+                                                    setConfig(prev => prev ? { ...prev, sleep_between_calls: parseInt(e.target.value) } : null);
+                                                }}
+                                                className="w-full bg-card border border-border text-text-primary rounded-xl p-3 text-sm font-black focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
+                                            />
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] text-text-muted uppercase font-bold">Source Interface</label>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] text-text-muted uppercase font-black tracking-widest flex items-center gap-2">
+                                            <Wifi size={10} /> Egress Interface
+                                        </label>
                                         <input
                                             type="text"
                                             value={config?.interface}
@@ -640,55 +690,58 @@ export default function Voice(props: VoiceProps) {
                                                 setIsDirty(true);
                                                 setConfig(prev => prev ? { ...prev, interface: e.target.value } : null);
                                             }}
-                                            className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                                            className="w-full bg-card border border-border text-text-primary rounded-xl p-3 text-sm font-black focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
+                                            placeholder="eth0, bond0, etc."
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between mb-1">
-                                    <label className="text-[10px] text-slate-500 uppercase font-bold">Guided Probe Editor</label>
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between mb-1 px-1">
+                                    <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <Plus size={12} className="text-blue-500" /> Target Wizard
+                                    </label>
                                     <button
                                         onClick={() => setShowGuided(!showGuided)}
-                                        className="text-[10px] text-blue-400 hover:text-blue-300 font-bold"
+                                        className="text-[9px] text-blue-500 hover:text-blue-400 font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-blue-500/5 border border-blue-500/20"
                                     >
-                                        {showGuided ? 'Hide Form' : 'Show Form'}
+                                        {showGuided ? 'Collapse' : 'Expand Editor'}
                                     </button>
                                 </div>
 
                                 {showGuided && (
-                                    <div className="bg-card-secondary/40 border border-border p-4 rounded-xl space-y-4 animate-in slide-in-from-top-2 duration-300 shadow-sm">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] text-text-muted uppercase font-bold">Target IP / Host</label>
+                                    <div className="bg-card-secondary/40 border border-border p-6 rounded-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 shadow-sm relative overflow-hidden">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] text-text-muted uppercase font-black tracking-widest">Target Host/IP</label>
                                                 <input
                                                     type="text"
-                                                    placeholder="192.168.1.1"
+                                                    placeholder="10.0.0.50"
                                                     value={newProbe.host}
                                                     onChange={e => setNewProbe({ ...newProbe, host: e.target.value })}
-                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border border-border text-text-primary rounded-xl p-3 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
                                                 />
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] text-text-muted uppercase font-bold">Port</label>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] text-text-muted uppercase font-black tracking-widest">Network Port</label>
                                                 <input
                                                     type="text"
-                                                    placeholder="5060"
+                                                    placeholder="6100"
                                                     value={newProbe.port}
                                                     onChange={e => setNewProbe({ ...newProbe, port: e.target.value })}
-                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border border-border text-text-primary rounded-xl p-3 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
                                                 />
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-3 gap-3">
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] text-text-muted uppercase font-bold">Codec</label>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] text-text-muted uppercase font-black tracking-widest">Voice Codec</label>
                                                 <select
                                                     value={newProbe.codec}
                                                     onChange={e => setNewProbe({ ...newProbe, codec: e.target.value })}
-                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border border-border text-text-primary rounded-xl p-3 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
                                                 >
                                                     <option value="G.711-ulaw">G.711-ulaw</option>
                                                     <option value="G.711-alaw">G.711-alaw</option>
@@ -696,39 +749,39 @@ export default function Voice(props: VoiceProps) {
                                                     <option value="OPUS">OPUS</option>
                                                 </select>
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] text-text-muted uppercase font-bold">Weight (1-100)</label>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] text-text-muted uppercase font-black tracking-widest">Weight (%)</label>
                                                 <input
                                                     type="number"
                                                     value={newProbe.weight}
                                                     onChange={e => setNewProbe({ ...newProbe, weight: e.target.value })}
-                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border border-border text-text-primary rounded-xl p-3 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
                                                 />
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] text-text-muted uppercase font-bold">Duration (sec)</label>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] text-text-muted uppercase font-black tracking-widest">Length (s)</label>
                                                 <input
                                                     type="number"
                                                     value={newProbe.duration}
                                                     onChange={e => setNewProbe({ ...newProbe, duration: e.target.value })}
-                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border border-border text-text-primary rounded-xl p-3 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
                                                 />
                                             </div>
                                         </div>
 
                                         <button
                                             onClick={addProbeFromForm}
-                                            className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-900/20 flex items-center justify-center gap-2"
                                         >
-                                            <Plus size={14} /> Add Target to List
+                                            <Plus size={16} /> Inject Into Sequence
                                         </button>
                                     </div>
                                 )}
 
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-[10px] text-slate-500 uppercase font-bold">Raw Configuration (JSONL-like)</label>
-                                        <span className="text-[9px] text-text-muted italic">Advanced users only</span>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-1">
+                                        <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Sequence Manifest</label>
+                                        <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest opacity-40">JSONL-Compat</span>
                                     </div>
                                     <textarea
                                         value={rawServers}
@@ -736,33 +789,36 @@ export default function Voice(props: VoiceProps) {
                                             setIsDirty(true);
                                             setRawServers(e.target.value);
                                         }}
-                                        rows={8}
-                                        className="w-full bg-card border border-border text-text-primary rounded-lg p-3 text-[10px] font-mono focus:ring-1 focus:ring-blue-500 outline-none"
+                                        rows={6}
+                                        className="w-full bg-card border border-border text-text-primary rounded-2xl p-4 text-[11px] font-mono focus:ring-1 focus:ring-blue-500 outline-none shadow-inner resize-none scrollbar-thin scrollbar-thumb-border"
                                         placeholder="host:port|codec|weight|duration_sec"
                                     />
 
-                                    <div className="space-y-2 mt-4">
-                                        <label className="text-[10px] text-text-muted uppercase font-bold">Configured Probes ({parsedProbes.length})</label>
-                                        <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
+                                    <div className="space-y-3 mt-6">
+                                        <div className="flex items-center justify-between px-1">
+                                            <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Active Distribution ({parsedProbes.length})</label>
+                                        </div>
+                                        <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border">
                                             {parsedProbes.map((p, i) => (
-                                                <div key={i} className="flex items-center justify-between bg-card-secondary/30 border border-border px-3 py-1.5 rounded-lg group shadow-sm">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="text-[10px] font-mono text-text-primary">{p.target}</div>
-                                                        <div className="text-[9px] font-bold text-text-muted bg-card border border-border px-1 rounded">{p.codec}</div>
-                                                        <div className="text-[9px] text-text-secondary">Weight: {p.weight}</div>
-                                                        <div className="text-[9px] text-text-secondary">{p.duration}</div>
+                                                <div key={i} className="flex items-center justify-between bg-card-secondary/30 border border-border px-4 py-2.5 rounded-xl group shadow-sm hover:border-blue-500/20 transition-all">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-[11px] font-black font-mono text-text-primary">{p.target}</div>
+                                                        <div className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-600/10 border border-blue-500/10 px-1.5 py-0.5 rounded shadow-sm">{p.codec}</div>
+                                                        <div className="text-[9px] font-bold text-text-muted uppercase tracking-tighter italic">Weight: {p.weight}%</div>
+                                                        <div className="text-[9px] font-bold text-text-muted uppercase tracking-tighter italic">Time: {p.duration}</div>
                                                     </div>
                                                     <button
                                                         onClick={() => removeProbeAt(p.id)}
-                                                        className="p-1 text-text-muted hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                                        className="p-1.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                        title="Delete entry"
                                                     >
                                                         <Trash2 size={12} />
                                                     </button>
                                                 </div>
                                             ))}
                                             {parsedProbes.length === 0 && (
-                                                <div className="text-center py-4 text-[10px] text-slate-600 italic border border-dashed border-slate-800 rounded-lg">
-                                                    No targets defined
+                                                <div className="text-center py-10 text-[10px] font-black text-text-muted uppercase tracking-[0.2em] border border-dashed border-border rounded-xl opacity-50">
+                                                    Manifest Empty
                                                 </div>
                                             )}
                                         </div>

@@ -63,10 +63,10 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
     }, [timeRange]);
 
     const getScoreColor = (score: number) => {
-        if (score >= 80) return 'text-green-400 bg-green-400/10 border-green-400/20';
-        if (score >= 50) return 'text-orange-400 bg-orange-400/10 border-orange-400/20';
-        if (score > 0) return 'text-red-400 bg-red-400/10 border-red-400/20';
-        return 'text-slate-500 bg-slate-500/10 border-slate-500/20';
+        if (score >= 80) return 'text-green-600 dark:text-green-400 bg-green-500/10 border-green-500/20';
+        if (score >= 50) return 'text-orange-500 dark:text-orange-400 bg-orange-500/10 border-orange-500/20';
+        if (score > 0) return 'text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20';
+        return 'text-text-muted bg-card-secondary border-border';
     };
 
     const formatTimestamp = (ts: number) => {
@@ -157,48 +157,48 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header Analytics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center text-center">
-                    <div className="text-slate-400 text-sm font-medium mb-2 uppercase tracking-wider flex items-center gap-2">
+                <div className="bg-card border border-border p-6 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+                    <div className="text-text-muted text-xs font-bold mb-2 uppercase tracking-wider flex items-center gap-2">
                         <Gauge size={16} /> Global Experience
                     </div>
-                    <div className={cn("text-5xl font-bold mb-1", stats?.globalHealth >= 80 ? "text-green-400" : stats?.globalHealth >= 50 ? "text-orange-400" : "text-red-400")}>
-                        {stats?.globalHealth || 0}<span className="text-xl text-slate-500">/100</span>
+                    <div className={cn("text-5xl font-black mb-1 tracking-tighter", stats?.globalHealth >= 80 ? "text-green-600 dark:text-green-400" : stats?.globalHealth >= 50 ? "text-orange-500" : "text-red-500")}>
+                        {stats?.globalHealth || 0}<span className="text-xl text-text-muted">/100</span>
                     </div>
-                    <div className="text-xs text-slate-500 tracking-tight">Avg. Scoring across all probes</div>
+                    <div className="text-[10px] text-text-muted font-bold uppercase tracking-tight opacity-70">Avg. Scoring across all probes</div>
                 </div>
 
-                <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center text-center">
-                    <div className="text-slate-400 text-sm font-medium mb-2 uppercase tracking-wider flex items-center gap-2">
+                <div className="bg-card border border-border p-6 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+                    <div className="text-text-muted text-xs font-bold mb-2 uppercase tracking-wider flex items-center gap-2">
                         <Activity size={16} /> HTTP Coverage
                     </div>
-                    <div className="text-4xl font-bold text-blue-400 mb-1">
+                    <div className="text-4xl font-black text-blue-600 dark:text-blue-400 mb-1 tracking-tighter">
                         {stats?.httpEndpoints?.total || 0}
                     </div>
-                    <div className="text-xs text-slate-500 tracking-tight">Active Synthetic Endpoints</div>
+                    <div className="text-[10px] text-text-muted font-bold uppercase tracking-tight opacity-70">Active Synthetic Endpoints</div>
                 </div>
 
-                <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl flex flex-col">
-                    <div className="text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2">
+                <div className="bg-card border border-border p-6 rounded-2xl flex flex-col shadow-sm">
+                    <div className="text-text-muted text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2">
                         <Flame size={14} className="text-orange-500" /> Flaky Endpoints
                     </div>
                     <div className="space-y-2">
                         {stats?.flakyEndpoints?.length > 0 ? stats.flakyEndpoints.map((e: any) => (
                             <div key={e.id} className="flex items-center justify-between text-[11px] bg-red-500/5 border border-red-500/10 p-1.5 rounded">
-                                <span className="text-slate-200 font-medium truncate max-w-[80px]">{e.name}</span>
+                                <span className="text-text-primary font-bold truncate max-w-[80px]">{e.name}</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-red-400 font-bold">{e.reliability}%</span>
-                                    <div className="w-1 h-1 rounded-full bg-slate-700" />
-                                    <span className="text-slate-400">{e.avgScore}</span>
+                                    <span className="text-red-600 dark:text-red-400 font-bold font-mono">{e.reliability}%</span>
+                                    <div className="w-1 h-1 rounded-full bg-border" />
+                                    <span className="text-text-muted font-mono">{e.avgScore}</span>
                                 </div>
                             </div>
                         )) : (
-                            <div className="text-xs text-slate-500 italic py-2">All probes stable</div>
+                            <div className="text-xs text-text-muted italic py-2">All probes stable</div>
                         )}
                     </div>
                 </div>
 
-                <div className="md:col-span-2 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-                    <div className="text-slate-400 text-sm font-medium mb-4 uppercase tracking-wider flex items-center gap-2">
+                <div className="md:col-span-2 bg-card border border-border p-6 rounded-2xl shadow-sm">
+                    <div className="text-text-muted text-xs font-bold mb-4 uppercase tracking-wider flex items-center gap-2">
                         <BarChart3 size={16} /> Recent Performance Trends
                     </div>
                     <div className="h-[100px] w-full">
@@ -212,8 +212,9 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                                 </defs>
                                 <Area type="monotone" dataKey="score" stroke="#22c55e" fillOpacity={1} fill="url(#colorScore)" />
                                 <ReTooltip
-                                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                                    itemStyle={{ color: '#94a3b8' }}
+                                    contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                    itemStyle={{ color: 'var(--text-primary)' }}
+                                    labelStyle={{ color: 'var(--text-muted)', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -222,43 +223,43 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             </div>
 
             {/* Filters & Export */}
-            <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl flex items-start gap-3 mb-2">
-                <Info size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="bg-blue-600/5 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3 mb-2 shadow-sm">
+                <Info size={18} className="text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-blue-300 uppercase tracking-wider">How is the score calculated?</h4>
-                    <p className="text-[11px] text-slate-400 leading-relaxed italic">
+                    <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">How is the score calculated?</h4>
+                    <p className="text-[11px] text-text-muted leading-relaxed italic">
                         The performance score (0-100) is a weighted calculation for SD-WAN path quality:
-                        <span className="text-blue-400 font-semibold ml-1">Total Latency</span>,
-                        <span className="text-blue-400 font-semibold ml-1">Jitter/Loss (UDP)</span>, and
-                        <span className="text-blue-400 font-semibold ml-1">TTFB (HTTP)</span>.
-                        Errors/Timeouts result in a score of <span className="text-red-400 font-bold">0</span>.
-                        <span className="block mt-1 text-slate-500 font-bold flex items-center gap-1">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold ml-1">Total Latency</span>,
+                        <span className="text-blue-600 dark:text-blue-400 font-bold ml-1">Jitter/Loss (UDP)</span>, and
+                        <span className="text-blue-600 dark:text-blue-400 font-bold ml-1">TTFB (HTTP)</span>.
+                        Errors/Timeouts result in a score of <span className="text-red-500 font-black">0</span>.
+                        <span className="block mt-1 text-text-muted/60 font-bold flex items-center gap-1 uppercase tracking-tighter text-[9px]">
                             <Clock size={10} /> Probes run automatically every 5 minutes.
                         </span>
                     </p>
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-sm backdrop-blur-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card-secondary/50 p-4 rounded-xl border border-border shadow-sm backdrop-blur-sm">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                         <input
                             type="text"
                             placeholder="Search endpoint..."
-                            className="bg-slate-900 border-slate-700 text-slate-200 pl-10 pr-4 py-2 rounded-lg text-sm w-full md:w-64 focus:ring-1 focus:ring-blue-500 transition-all"
+                            className="bg-card-secondary border border-border text-text-primary pl-10 pr-4 py-2 rounded-lg text-sm w-full md:w-64 focus:ring-1 focus:ring-blue-500 transition-all outline-none"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className="flex p-1 bg-slate-900 rounded-lg border border-slate-700">
+                    <div className="flex p-1 bg-card-secondary rounded-lg border border-border">
                         {['ALL', 'HTTP', 'HTTPS', 'PING', 'TCP', 'UDP', 'DNS'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => setFilterType(t)}
                                 className={cn(
-                                    "px-3 py-1 rounded-md text-[11px] font-bold transition-all",
-                                    filterType === t ? "bg-slate-700 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
+                                    "px-3 py-1 rounded-md text-[11px] font-bold transition-all uppercase tracking-tighter",
+                                    filterType === t ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" : "text-text-muted hover:text-text-primary"
                                 )}
                             >
                                 {t}
@@ -268,33 +269,33 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     <button
                         onClick={() => setShowDeleted(!showDeleted)}
                         className={cn(
-                            "px-3 py-2 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-2",
+                            "px-3 py-2 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-2 uppercase tracking-tight",
                             showDeleted
-                                ? "bg-slate-800 text-slate-200 border-slate-700"
-                                : "bg-slate-900/40 text-slate-500 border-slate-800 hover:border-slate-700"
+                                ? "bg-card-secondary text-text-primary border-border"
+                                : "bg-card/40 text-text-muted border-border hover:border-text-muted/20"
                         )}
                     >
-                        <Clock size={14} className={showDeleted ? "text-blue-400" : ""} />
+                        <Clock size={14} className={showDeleted ? "text-blue-600 dark:text-blue-400" : ""} />
                         {showDeleted ? "HIDE DELETED" : "SHOW DELETED"}
                     </button>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 mr-4">
-                        <Clock size={14} className="text-slate-500" />
+                        <Clock size={14} className="text-text-muted" />
                         <select
                             value={timeRange}
                             onChange={(e) => setTimeRange(e.target.value)}
-                            className="bg-transparent border-none text-slate-400 text-xs font-semibold focus:ring-0 cursor-pointer hover:text-slate-200"
+                            className="bg-transparent border-none text-text-muted text-xs font-bold focus:ring-0 cursor-pointer hover:text-text-primary uppercase tracking-tight"
                         >
-                            <option value="15m">Last 15 Min</option>
-                            <option value="1h">Last Hour</option>
-                            <option value="6h">Last 6 Hours</option>
-                            <option value="24h">Last 24 Hours</option>
-                            <option value="7d">Last 7 Days</option>
+                            <option value="15m">15 Minutes</option>
+                            <option value="1h">1 Hour</option>
+                            <option value="6h">6 Hours</option>
+                            <option value="24h">24 Hours</option>
+                            <option value="7d">7 Days</option>
                         </select>
                     </div>
-                    <button className="flex items-center gap-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 px-4 py-2 rounded-lg text-xs font-bold transition-all">
+                    <button className="flex items-center gap-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase tracking-widest">
                         <Download size={14} /> EXPORT
                     </button>
                     {onManage && (
@@ -309,65 +310,65 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             </div>
 
             {/* Metrics Table */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl shadow-black/5">
                 <table className="w-full text-left">
-                    <thead className="bg-slate-800/50 border-b border-slate-700">
+                    <thead className="bg-card-secondary/50 border-b border-border">
                         <tr>
                             <th
-                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                                className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-primary transition-colors"
                                 onClick={() => handleSort('name')}
                             >
                                 <div className="flex items-center">Endpoint <SortIndicator field="name" /></div>
                             </th>
                             <th
-                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors"
+                                className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider text-center cursor-pointer hover:text-text-primary transition-colors"
                                 onClick={() => handleSort('type')}
                             >
                                 <div className="flex items-center justify-center">Type <SortIndicator field="type" /></div>
                             </th>
                             <th
-                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors"
+                                className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider text-center cursor-pointer hover:text-text-primary transition-colors"
                                 onClick={() => handleSort('score')}
                             >
                                 <div className="flex items-center justify-center">Last Score <SortIndicator field="score" /></div>
                             </th>
                             <th
-                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors"
+                                className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider text-center cursor-pointer hover:text-text-primary transition-colors"
                                 onClick={() => handleSort('latency')}
                             >
                                 <div className="flex items-center justify-center">Avg Latency <SortIndicator field="latency" /></div>
                             </th>
                             <th
-                                className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors"
+                                className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider text-center cursor-pointer hover:text-text-primary transition-colors"
                                 onClick={() => handleSort('reliability')}
                             >
                                 <div className="flex items-center justify-center">Reliability <SortIndicator field="reliability" /></div>
                             </th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="divide-y divide-border">
                         {endpoints.map(e => (
-                            <tr key={e.id} className="hover:bg-slate-800/40 transition-colors group">
+                            <tr key={e.id} className="hover:bg-card-secondary transition-colors group">
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">{e.name}</span>
-                                        <span className="text-[10px] text-slate-500 font-mono truncate max-w-[200px]">{e.lastResult.url}</span>
+                                        <span className="text-sm font-bold text-text-primary group-hover:text-blue-500 transition-colors uppercase tracking-tight">{e.name}</span>
+                                        <span className="text-[10px] text-text-muted font-mono truncate max-w-[200px]">{e.lastResult.url}</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <span className={cn(
-                                        "px-2 py-0.5 rounded text-[10px] font-bold border",
-                                        e.type === 'HTTPS' ? "text-purple-400 bg-purple-400/10 border-purple-400/20" :
-                                            e.type === 'HTTP' ? "text-blue-400 bg-blue-400/10 border-blue-400/20" :
-                                                "text-orange-400 bg-orange-400/10 border-orange-400/20"
+                                        "px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-tighter",
+                                        e.type === 'HTTPS' ? "text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20" :
+                                            e.type === 'HTTP' ? "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20" :
+                                                "text-orange-500 bg-orange-500/10 border-orange-500/20"
                                     )}>
                                         {e.type}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <div className={cn(
-                                        "inline-flex items-center justify-center w-12 h-8 rounded-lg border font-bold text-sm shadow-sm",
+                                        "inline-flex items-center justify-center w-12 h-8 rounded-lg border font-black text-sm shadow-sm",
                                         getScoreColor(e.lastScore)
                                     )}>
                                         {e.lastScore}
@@ -375,25 +376,25 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <div className="flex flex-col items-center">
-                                        <span className="text-sm font-mono text-slate-300">{formatMs(e.avgLatency)}ms</span>
-                                        <span className="text-[10px] text-slate-500">Max: {formatMs(e.maxLatency)}ms</span>
+                                        <span className="text-sm font-bold text-text-secondary font-mono">{formatMs(e.avgLatency)}ms</span>
+                                        <span className="text-[10px] text-text-muted font-bold opacity-60 uppercase">Max: {formatMs(e.maxLatency)}ms</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col items-center gap-1.5">
-                                        <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                                        <div className="w-24 h-1.5 bg-card-secondary rounded-full overflow-hidden border border-border">
                                             <div
-                                                className={cn("h-full transition-all duration-1000", e.successRate > 95 ? "bg-green-500" : e.successRate > 80 ? "bg-orange-500" : "bg-red-500")}
+                                                className={cn("h-full transition-all duration-1000", e.successRate > 95 ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : e.successRate > 80 ? "bg-orange-500" : "bg-red-500")}
                                                 style={{ width: `${e.successRate}%` }}
                                             />
                                         </div>
-                                        <span className="text-[10px] font-semibold text-slate-400">{e.successRate}% Uptime</span>
+                                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-tighter">{e.successRate}% Uptime</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-right px-8">
                                     <button
                                         onClick={() => { setSelectedEndpoint(e); setShowDetailModal(true); }}
-                                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-400 transition-all border border-transparent hover:border-slate-600"
+                                        className="p-2 hover:bg-card-hover rounded-lg text-text-muted hover:text-blue-500 transition-all border border-transparent hover:border-border"
                                     >
                                         <BarChart3 size={18} />
                                     </button>
@@ -403,10 +404,10 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     </tbody>
                 </table>
                 {endpoints.length === 0 && (
-                    <div className="p-12 text-center text-slate-500 flex flex-col items-center gap-3 bg-slate-900/40">
-                        <Activity size={48} className="text-slate-700 opacity-50" />
-                        <div className="text-sm font-medium">No performance data captured yet</div>
-                        <div className="text-xs max-w-xs leading-relaxed">Synthetic checks run every 5 minutes and store metrics for the historical reporting.</div>
+                    <div className="p-12 text-center text-text-muted flex flex-col items-center gap-3 bg-card/40">
+                        <Activity size={48} className="text-text-muted opacity-30" />
+                        <div className="text-sm font-bold uppercase tracking-widest">No performance data captured yet</div>
+                        <div className="text-[10px] max-w-xs leading-relaxed italic opacity-70">Synthetic checks run every 5 minutes and store metrics for the historical reporting.</div>
                     </div>
                 )}
             </div>
@@ -414,18 +415,18 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             {/* Detailed Modal */}
             {showDetailModal && selectedEndpoint && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300" onClick={() => setShowDetailModal(false)}>
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl shadow-blue-500/10" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900/90 backdrop-blur-md z-10">
+                    <div className="bg-card border border-border rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl shadow-blue-500/10" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-border flex items-center justify-between sticky top-0 bg-card/90 backdrop-blur-md z-10">
                             <div className="flex items-center gap-4">
                                 <div className={cn("p-3 rounded-xl", getScoreColor(selectedEndpoint.lastScore))}>
                                     <Gauge size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-white">{selectedEndpoint.name}</h3>
-                                    <p className="text-sm text-slate-400 font-mono">{selectedEndpoint.lastResult.url}</p>
+                                    <h3 className="text-xl font-black text-text-primary tracking-tight uppercase">{selectedEndpoint.name}</h3>
+                                    <p className="text-[10px] text-text-muted font-mono font-bold uppercase tracking-widest">{selectedEndpoint.lastResult.url}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
+                            <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-card-secondary rounded-lg text-text-muted hover:text-text-primary transition-colors">
                                 <XCircle size={24} />
                             </button>
                         </div>
@@ -435,17 +436,17 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                             {selectedEndpoint.type.includes('HTTP') && (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                            <Zap size={16} className="text-yellow-400" /> Timing Analysis (ms)
+                                        <h4 className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2">
+                                            <Zap size={16} className="text-yellow-500" /> Timing Analysis (ms)
                                         </h4>
                                         <div className="flex gap-4">
-                                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500" /> <span className="text-[10px] text-slate-400 font-bold">DNS</span></div>
-                                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-cyan-500" /> <span className="text-[10px] text-slate-400 font-bold">TCP</span></div>
-                                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500" /> <span className="text-[10px] text-slate-400 font-bold">TLS</span></div>
-                                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500" /> <span className="text-[10px] text-slate-400 font-bold">TTFB</span></div>
+                                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500" /> <span className="text-[10px] text-text-muted font-bold uppercase tracking-tighter">DNS</span></div>
+                                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-cyan-500" /> <span className="text-[10px] text-text-muted font-bold uppercase tracking-tighter">TCP</span></div>
+                                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500" /> <span className="text-[10px] text-text-muted font-bold uppercase tracking-tighter">TLS</span></div>
+                                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500" /> <span className="text-[10px] text-text-muted font-bold uppercase tracking-tighter">TTFB</span></div>
                                         </div>
                                     </div>
-                                    <div className="h-[250px] w-full bg-slate-950/40 p-4 rounded-xl border border-slate-800">
+                                    <div className="h-[250px] w-full bg-card-secondary/20 p-4 rounded-xl border border-border shadow-inner">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <AreaChart data={results.filter(r => r.endpointId === selectedEndpoint.id).slice(0, 30).reverse().map(r => ({
                                                 time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -454,20 +455,23 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                                                 TLS: Math.round(r.metrics.tls_ms || 0),
                                                 TTFB: Math.round(r.metrics.ttfb_ms || 0)
                                             }))}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                                                <XAxis dataKey="time" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                                                <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                                                <ReTooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
-                                                <Area type="monotone" dataKey="DNS" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
-                                                <Area type="monotone" dataKey="TCP" stackId="1" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.6} />
-                                                <Area type="monotone" dataKey="TLS" stackId="1" stroke="#a855f7" fill="#a855f7" fillOpacity={0.6} />
-                                                <Area type="monotone" dataKey="TTFB" stackId="1" stroke="#f97316" fill="#f97316" fillOpacity={0.6} />
+                                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                                                <XAxis dataKey="time" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                                                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                                                <ReTooltip
+                                                    contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                                />
+                                                <Area type="monotone" dataKey="DNS" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} />
+                                                <Area type="monotone" dataKey="TCP" stackId="1" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.4} />
+                                                <Area type="monotone" dataKey="TLS" stackId="1" stroke="#a855f7" fill="#a855f7" fillOpacity={0.4} />
+                                                <Area type="monotone" dataKey="TTFB" stackId="1" stroke="#f97316" fill="#f97316" fillOpacity={0.4} />
                                             </AreaChart>
                                         </ResponsiveContainer>
                                     </div>
-                                    <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl flex items-start gap-3">
-                                        <Info className="text-blue-400 flex-shrink-0" size={18} />
-                                        <p className="text-xs text-slate-400 leading-relaxed italic">
+                                    <div className="bg-blue-600/5 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3 shadow-sm">
+                                        <Info className="text-blue-500 dark:text-blue-400 flex-shrink-0" size={18} />
+                                        <p className="text-xs text-text-muted leading-relaxed italic">
                                             High **TLS** timing often indicates SASE inspection or poor network path quality. **TTFB** (Time to First Byte) reflects backend application responsiveness after the handshake.
                                         </p>
                                     </div>
@@ -476,35 +480,35 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
 
                             {/* Recent Checks Table */}
                             <div className="space-y-4">
-                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <h4 className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2">
                                     <Activity size={16} /> Recent Captures
                                 </h4>
-                                <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/20">
+                                <div className="border border-border rounded-xl overflow-hidden bg-card-secondary/20 shadow-sm">
                                     <table className="w-full text-left text-xs">
-                                        <thead className="bg-slate-800/40">
+                                        <thead className="bg-card-secondary/50 border-b border-border">
                                             <tr>
-                                                <th className="px-4 py-3 text-slate-500 font-bold uppercase tracking-tight">Time</th>
-                                                <th className="px-4 py-3 text-slate-500 font-bold uppercase tracking-tight text-center">Score</th>
-                                                <th className="px-4 py-3 text-slate-500 font-bold uppercase tracking-tight text-center">Total</th>
-                                                <th className="px-4 py-3 text-slate-500 font-bold uppercase tracking-tight text-center">IP Address</th>
-                                                <th className="px-4 py-3 text-slate-500 font-bold uppercase tracking-tight text-right">HTTP Code</th>
+                                                <th className="px-4 py-3 text-text-muted font-bold uppercase tracking-tight">Time</th>
+                                                <th className="px-4 py-3 text-text-muted font-bold uppercase tracking-tight text-center">Score</th>
+                                                <th className="px-4 py-3 text-text-muted font-bold uppercase tracking-tight text-center">Total</th>
+                                                <th className="px-4 py-3 text-text-muted font-bold uppercase tracking-tight text-center">IP Address</th>
+                                                <th className="px-4 py-3 text-text-muted font-bold uppercase tracking-tight text-right">HTTP Code</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-800">
+                                        <tbody className="divide-y divide-border">
                                             {results.filter(r => r.endpointId === selectedEndpoint.id).slice(0, 10).map((r, i) => (
-                                                <tr key={i} className="hover:bg-slate-800/20">
-                                                    <td className="px-4 py-3 text-slate-300 font-medium">{formatTimestamp(r.timestamp)}</td>
+                                                <tr key={i} className="hover:bg-card-secondary transition-colors">
+                                                    <td className="px-4 py-3 text-text-primary font-bold uppercase tracking-tighter">{formatTimestamp(r.timestamp)}</td>
                                                     <td className="px-4 py-3 text-center">
-                                                        <span className={cn("font-bold px-2 py-0.5 rounded", r.score >= 80 ? "text-green-400" : "text-red-400")}>
+                                                        <span className={cn("font-black px-2 py-0.5 rounded text-[11px]", r.score >= 80 ? "text-green-600 dark:text-green-400" : "text-red-500")}>
                                                             {r.score}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-center font-mono text-slate-400">{formatMs(r.metrics.total_ms)}ms</td>
-                                                    <td className="px-4 py-3 text-center text-slate-500 font-mono truncate max-w-[120px]">{r.remoteIp || '-'}</td>
+                                                    <td className="px-4 py-3 text-center font-mono text-text-secondary font-bold">{formatMs(r.metrics.total_ms)}ms</td>
+                                                    <td className="px-4 py-3 text-center text-text-muted font-mono truncate max-w-[120px]">{r.remoteIp || '-'}</td>
                                                     <td className="px-4 py-3 text-right">
                                                         <span className={cn(
-                                                            "px-2 py-0.5 rounded font-bold",
-                                                            r.httpCode === 200 ? "text-green-500 bg-green-500/10" : "text-orange-500 bg-orange-500/10"
+                                                            "px-2 py-0.5 rounded font-black",
+                                                            r.httpCode === 200 ? "text-green-600 dark:text-green-400 bg-green-500/10" : "text-orange-500 bg-orange-500/10"
                                                         )}>
                                                             {r.httpCode || 'N/A'}
                                                         </span>
