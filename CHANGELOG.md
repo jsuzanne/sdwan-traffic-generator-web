@@ -5,11 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.2-patch.33.75] - 2026-02-03
-### Added
-- **Premium Light/Dark Mode**: Finalized system-wide semantic theming. Borders in light mode now apply a soft 3:1 contrast ratio against white backgrounds (`#e2e8f0`) while dark mode remains unchanged at the optimal 3:1 ratio. 🌓🎨
+## [1.1.2-patch.33.76] - 2026-02-04
+### Fixed
+- **VyOS Control**: Fixed a bug in `vyos_sdwan_ctl.py` where clearing combined QoS policies could fail due to incorrect argument handling. 🛠️🐛
 ### Changed
-- **Tailwind v4 Modernization**: Migrated all remaining hardcoded slate classes to semantic CSS variables with full `@theme` support for visual consistency. 🚀🛠️
+- **Script Refactoring**: Refactored `vyos_sdwan_ctl.py` for better CLI ergonomics, streamlined argument descriptions, and improved auto-detection logic for router versions. 🚀📝
 
 ## [1.1.2-patch.33.56] - 2026-02-02
 ### Fixed

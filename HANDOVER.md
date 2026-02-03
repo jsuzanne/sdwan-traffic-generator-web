@@ -1,11 +1,13 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
-## 🎯 Current Status (as of 2026-02-03)
-We are currently at version **v1.1.2-patch.33.75**.
+## 🎯 Current Status (as of 2026-02-04)
+We are currently at version **v1.1.2-patch.33.76**.
 The system is now fully optimized with **VyOS Firewall Integration**, **Smart Logging**, and **Premium Light/Dark Mode** with system-wide semantic theming.
 
 ## ✅ Accomplishments & Solved Issues
-1.  **VyOS Firewall (v33.65)**: Implemented `block`, `unblock`, and `show-denied` commands with frontend validation and `--force` override.
+1.  **VyOS Firewall (v33.65-76)**: 
+    *   Implemented `block`, `unblock`, and `show-denied` commands with frontend validation.
+    *   Fixed a bug in `vyos_sdwan_ctl.py` related to combined QoS policy cleanup and refactored the CLI for better auto-detection.
 2.  **Log Optimization (v33.68-70)**: 
     - Standardized `[HH:MM:SS]` timestamps across all modules.
     - Caching for `/api/system/health` (5s).

@@ -360,7 +360,7 @@ export default function Voice(props: VoiceProps) {
                             enabled ? <Pause size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" /> : <Play size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
                         )}
                         <span className="relative z-10">
-                            {isStartingV ? 'Initializing...' : isStoppingV ? 'Terminating...' : (enabled ? 'Cease Traffic' : 'Execute Simulation')}
+                            {isStartingV ? 'Initializing...' : isStoppingV ? 'Terminating...' : (enabled ? 'Stop Voice Simulation' : 'Start Voice Simulation')}
                         </span>
                     </button>
                 </div>
