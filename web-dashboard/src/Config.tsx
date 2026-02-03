@@ -263,7 +263,7 @@ export default function Config({ token }: ConfigProps) {
     };
 
 
-    if (loading) return <div className="p-8 text-center text-slate-400">Loading configuration...</div>;
+    if (loading) return <div className="p-8 text-center text-text-muted">Loading configuration...</div>;
 
     return (
         <div className="space-y-8 max-w-5xl mx-auto relative">
@@ -276,15 +276,15 @@ export default function Config({ token }: ConfigProps) {
             )}
 
             {/* Interfaces Section */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-3 text-slate-200">
+                    <div className="flex items-center gap-3 text-text-primary">
                         <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400">
                             <Network size={20} />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold">Network Interfaces</h2>
-                            <p className="text-sm text-slate-400">Manually specify physical interfaces for traffic generation</p>
+                            <p className="text-sm text-text-muted">Manually specify physical interfaces for traffic generation</p>
                         </div>
                     </div>
                 </div>
@@ -295,26 +295,26 @@ export default function Config({ token }: ConfigProps) {
                         <Server size={16} />
                         How to find your network interface name:
                     </h3>
-                    <div className="text-sm text-slate-300 space-y-2">
+                    <div className="text-sm text-text-secondary space-y-2">
                         <div>
                             <span className="font-semibold text-blue-300">Linux:</span>
-                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">ip link show</code>
-                            <span className="ml-2 text-slate-400">or</span>
-                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">ifconfig</code>
+                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">ip link show</code>
+                            <span className="ml-2 text-text-muted">or</span>
+                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">ifconfig</code>
                         </div>
                         <div>
                             <span className="font-semibold text-blue-300">Windows:</span>
-                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">ipconfig</code>
-                            <span className="ml-2 text-slate-400">(look for "Ethernet adapter" or "Wi-Fi")</span>
+                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">ipconfig</code>
+                            <span className="ml-2 text-text-muted">(look for "Ethernet adapter" or "Wi-Fi")</span>
                         </div>
                         <div>
                             <span className="font-semibold text-blue-300">macOS:</span>
-                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">ifconfig</code>
-                            <span className="ml-2 text-slate-400">or</span>
-                            <code className="ml-2 bg-slate-950 px-2 py-1 rounded text-xs font-mono">networksetup -listallhardwareports</code>
+                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">ifconfig</code>
+                            <span className="ml-2 text-text-muted">or</span>
+                            <code className="ml-2 bg-card-secondary px-2 py-1 rounded text-xs font-mono border border-border">networksetup -listallhardwareports</code>
                         </div>
-                        <p className="text-xs text-slate-500 mt-2">
-                            Common names: <code className="bg-slate-950 px-1 rounded">eth0</code>, <code className="bg-slate-950 px-1 rounded">ens33</code>, <code className="bg-slate-950 px-1 rounded">en0</code>, <code className="bg-slate-950 px-1 rounded">wlan0</code>
+                        <p className="text-xs text-text-muted mt-2">
+                            Common names: <code className="bg-card-secondary px-1 rounded border border-border">eth0</code>, <code className="bg-card-secondary px-1 rounded border border-border">ens33</code>, <code className="bg-card-secondary px-1 rounded border border-border">en0</code>, <code className="bg-card-secondary px-1 rounded border border-border">wlan0</code>
                         </p>
                     </div>
                 </div>
@@ -325,7 +325,7 @@ export default function Config({ token }: ConfigProps) {
                         <input
                             type="text"
                             placeholder="Type interface name (e.g., eth0, ens33, en0)"
-                            className="flex-1 bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-4 py-2 outline-none focus:border-purple-500"
+                            className="flex-1 bg-card-secondary border border-border text-text-primary rounded-lg px-4 py-2 outline-none focus:border-purple-500"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     const input = e.currentTarget;
@@ -367,11 +367,11 @@ export default function Config({ token }: ConfigProps) {
                                     className={cn(
                                         "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-2",
                                         isSelected
-                                            ? "bg-purple-500/20 border-purple-500/50 text-purple-400"
-                                            : "bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600"
+                                            ? "bg-purple-500/20 border-purple-500/50 text-purple-400 shadow-sm"
+                                            : "bg-card-secondary border-border text-text-muted hover:border-text-muted/30"
                                     )}
                                 >
-                                    <div className={cn("w-2 h-2 rounded-full", isSelected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-slate-600")} />
+                                    <div className={cn("w-2 h-2 rounded-full", isSelected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-text-muted/30")} />
                                     {iface}
                                     {isSelected && <CheckCircle2 size={12} />}
                                 </button>
@@ -393,36 +393,36 @@ export default function Config({ token }: ConfigProps) {
             </div>
 
             {/* Connectivity Probes Section */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-3 text-slate-200">
+                    <div className="flex items-center gap-3 text-text-primary">
                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
                             <Network size={20} />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold">Connectivity Probes (DEM)</h2>
-                            <p className="text-sm text-slate-400">Add custom synthetic endpoints for real-time monitoring</p>
+                            <p className="text-sm text-text-muted">Add custom synthetic endpoints for real-time monitoring</p>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex flex-col gap-6">
                     {/* Form to add probe */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-card-secondary/50 p-4 rounded-xl border border-border shadow-sm">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Name</label>
+                            <label className="text-[10px] font-bold text-text-muted uppercase ml-1">Name</label>
                             <input
                                 type="text"
                                 placeholder="Branch-Office"
-                                className="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                className="w-full bg-card border border-border text-text-primary rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
                                 value={newProbe.name}
                                 onChange={e => setNewProbe({ ...newProbe, name: e.target.value })}
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Type</label>
+                            <label className="text-[10px] font-bold text-text-muted uppercase ml-1">Type</label>
                             <select
-                                className="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                className="w-full bg-card border border-border text-text-primary rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
                                 value={newProbe.type}
                                 onChange={e => setNewProbe({ ...newProbe, type: e.target.value as any, timeout: e.target.value === 'PING' ? 2000 : 5000 })}
                             >
@@ -435,15 +435,15 @@ export default function Config({ token }: ConfigProps) {
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Target</label>
+                            <label className="text-[10px] font-bold text-text-muted uppercase ml-1">Target</label>
                             <input
                                 type="text"
                                 placeholder={newProbe.type === 'TCP' || newProbe.type === 'UDP' ? '12.34.56.78:5201' : (newProbe.type === 'PING' ? '8.8.8.8' : (newProbe.type === 'DNS' ? '8.8.8.8' : 'google.com'))}
-                                className="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                                className="w-full bg-card border border-border text-text-primary rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-sm"
                                 value={newProbe.target}
                                 onChange={e => setNewProbe({ ...newProbe, target: e.target.value })}
                             />
-                            <p className="text-[9px] text-slate-500 ml-1 italic">
+                            <p className="text-[9px] text-text-muted ml-1 italic">
                                 {newProbe.type === 'HTTP' || newProbe.type === 'HTTPS' ?
                                     "Domain or IP (http:// added if missing)" :
                                     (newProbe.type === 'UDP' ? "IP:Port (Server must run iperf3 -s -u)" : "IP or Domain only")}
@@ -453,7 +453,7 @@ export default function Config({ token }: ConfigProps) {
                             <button
                                 onClick={addProbe}
                                 disabled={!newProbe.name || !newProbe.target}
-                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm"
+                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-card-secondary disabled:text-text-muted text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm shadow-md"
                             >
                                 <Plus size={18} />
                                 {editingIndex !== null ? 'Update Probe' : 'Add Probe'}
@@ -463,10 +463,10 @@ export default function Config({ token }: ConfigProps) {
 
                     {/* Probes List */}
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Active Custom Probes</label>
+                        <label className="text-[10px] font-bold text-text-muted uppercase ml-1">Active Custom Probes</label>
                         <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                             {customProbes.map((probe, idx) => (
-                                <div key={idx} className="group bg-slate-950 border border-slate-800 hover:border-blue-500/30 rounded-xl p-4 flex items-center justify-between transition-all">
+                                <div key={idx} className="group bg-card-secondary border border-border hover:border-blue-500/30 rounded-xl p-4 flex items-center justify-between transition-all shadow-sm">
                                     <div className="flex items-center gap-3">
                                         <div className={cn(
                                             "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold",
@@ -477,21 +477,21 @@ export default function Config({ token }: ConfigProps) {
                                             {probe.type.substring(0, 1)}
                                         </div>
                                         <div>
-                                            <div className="text-sm font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">{probe.name}</div>
-                                            <div className="text-[10px] text-slate-500 font-mono truncate max-w-[150px]">{probe.target}</div>
+                                            <div className="text-sm font-semibold text-text-primary group-hover:text-blue-400 transition-colors">{probe.name}</div>
+                                            <div className="text-[10px] text-text-muted font-mono truncate max-w-[150px]">{probe.target}</div>
                                         </div>
                                     </div>
                                     <div className="flex gap-1">
                                         <button
                                             onClick={() => editProbe(idx)}
-                                            className="p-2 text-slate-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all"
+                                            className="p-2 text-text-muted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all"
                                             title="Edit probe"
                                         >
                                             <Save size={14} />
                                         </button>
                                         <button
                                             onClick={() => deleteProbe(idx)}
-                                            className="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                            className="p-2 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                                             title="Delete probe"
                                         >
                                             <Trash2 size={16} />
@@ -500,8 +500,8 @@ export default function Config({ token }: ConfigProps) {
                                 </div>
                             ))}
                             {customProbes.length === 0 && (
-                                <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-800 rounded-xl">
-                                    <span className="text-slate-500 text-sm">No custom probes added yet. These will appear alongside endpoints from your environment files.</span>
+                                <div className="col-span-full py-8 text-center border-2 border-dashed border-border rounded-xl">
+                                    <span className="text-text-muted text-sm">No custom probes added yet. These will appear alongside endpoints from your environment files.</span>
                                 </div>
                             )}
                         </div>
@@ -512,13 +512,13 @@ export default function Config({ token }: ConfigProps) {
             {/* Applications Section */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3 text-slate-200">
+                    <div className="flex items-center gap-3 text-text-primary">
                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
                             <Sliders size={20} />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold">Traffic Distribution</h2>
-                            <p className="text-sm text-slate-400">Adjust weights by category or individual app</p>
+                            <p className="text-sm text-text-muted">Adjust weights by category or individual app</p>
                         </div>
                     </div>
 
@@ -544,7 +544,7 @@ export default function Config({ token }: ConfigProps) {
                                     console.error('Export failed', e);
                                 }
                             }}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2"
+                            className="bg-card-secondary hover:bg-card-secondary-hover text-text-primary px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -586,7 +586,7 @@ export default function Config({ token }: ConfigProps) {
                                 };
                                 input.click();
                             }}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2"
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2 shadow-md"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -601,12 +601,12 @@ export default function Config({ token }: ConfigProps) {
                     const categoryPercent = Math.round((categoryWeight / GLOBAL_TOTAL) * 100);
 
                     return (
-                        <div key={category.name} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div key={category.name} className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
                             {/* Category Header */}
-                            <div className="bg-slate-800/50 p-4 flex items-center justify-between">
+                            <div className="bg-card-secondary/50 p-4 flex items-center justify-between">
                                 <button
                                     onClick={() => toggleCategory(category.name)}
-                                    className="flex items-center gap-3 font-semibold text-slate-200 hover:text-white"
+                                    className="flex items-center gap-3 font-semibold text-text-primary hover:text-foreground transition-colors"
                                 >
                                     {category.expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                                     {category.name}
@@ -614,7 +614,7 @@ export default function Config({ token }: ConfigProps) {
 
                                 <div className="flex items-center gap-4">
                                     <div className="flex flex-col items-end mr-2">
-                                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Group Share</span>
+                                        <span className="text-[10px] uppercase text-text-muted font-bold tracking-wider">Group Share</span>
                                         <span className="text-sm font-mono text-blue-400">{categoryPercent}%</span>
                                     </div>
                                     <input
@@ -634,17 +634,17 @@ export default function Config({ token }: ConfigProps) {
                                         const appPercent = categoryWeight > 0 ? Math.round((app.weight / categoryWeight) * 100) : 0;
 
                                         return (
-                                            <div key={app.domain} className="bg-slate-950/50 border border-slate-800 rounded-lg p-3 flex flex-col gap-2">
+                                            <div key={app.domain} className="bg-card-secondary/50 border border-border rounded-lg p-3 flex flex-col gap-2 shadow-sm">
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <div className="font-medium text-slate-200">{app.domain}</div>
-                                                        <div className="text-xs text-slate-500 font-mono">{app.endpoint}</div>
+                                                        <div className="font-medium text-text-primary">{app.domain}</div>
+                                                        <div className="text-xs text-text-muted font-mono">{app.endpoint}</div>
                                                     </div>
                                                     <div className="flex flex-col items-end">
                                                         <span className="text-sm font-mono text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
                                                             {appPercent}%
                                                         </span>
-                                                        <span className="text-[9px] text-slate-600 mt-1">Weight: {app.weight}</span>
+                                                        <span className="text-[9px] text-text-muted mt-1">Weight: {app.weight}</span>
                                                     </div>
                                                 </div>
                                                 <input
@@ -652,7 +652,7 @@ export default function Config({ token }: ConfigProps) {
                                                     min="0" max="100"
                                                     value={appPercent}
                                                     onChange={(e) => handleAppPercentageChange(category.name, app.domain, parseInt(e.target.value))}
-                                                    className="w-full accent-blue-600 h-1 bg-slate-800 rounded-lg appearance-none"
+                                                    className="w-full accent-blue-600 h-1 bg-card border border-border rounded-lg appearance-none cursor-pointer"
                                                 />
                                             </div>
                                         );

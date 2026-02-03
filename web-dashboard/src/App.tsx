@@ -517,34 +517,34 @@ export default function App() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
             SD-WAN Traffic Generator
           </h1>
-          <p className="text-slate-400 mt-1">
-            Real-time Control Center {version && <span className="text-slate-500">• v{version}</span>}
+          <p className="text-text-muted mt-1">
+            Real-time Control Center {version && <span className="text-text-muted/60">• v{version}</span>}
           </p>
         </div>
 
 
 
         <div className="flex gap-4 items-center">
-          <span className="text-sm font-medium text-slate-300 dark:text-slate-300 light:text-slate-600">{username}</span>
+          <span className="text-sm font-medium text-text-secondary">{username}</span>
 
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Passer au mode clair' : 'Passer au mode sombre'}
-            className="p-2 hover:bg-slate-800 dark:hover:bg-slate-800 light:hover:bg-slate-200 rounded-lg text-slate-400 hover:text-yellow-400 transition-colors"
+            className="p-2 hover:bg-card-secondary rounded-lg text-text-muted hover:text-yellow-400 transition-colors"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           {username === 'admin' && (
-            <button onClick={() => setShowAddUserModal(true)} title="Add User" className="p-2 hover:bg-slate-800 dark:hover:bg-slate-800 light:hover:bg-slate-200 rounded-lg text-slate-400 hover:text-green-400 transition-colors">
+            <button onClick={() => setShowAddUserModal(true)} title="Add User" className="p-2 hover:bg-card-secondary rounded-lg text-text-muted hover:text-green-400 transition-colors">
               <UserPlus size={18} />
             </button>
           )}
 
-          <button onClick={() => setShowPwdModal(true)} title="Change Password" className="p-2 hover:bg-slate-800 dark:hover:bg-slate-800 light:hover:bg-slate-200 rounded-lg text-slate-400 hover:text-blue-400 transition-colors">
+          <button onClick={() => setShowPwdModal(true)} title="Change Password" className="p-2 hover:bg-card-secondary rounded-lg text-text-muted hover:text-blue-400 transition-colors">
             <Key size={18} />
           </button>
-          <button onClick={logout} title="Sign Out" className="p-2 hover:bg-slate-800 dark:hover:bg-slate-800 light:hover:bg-slate-200 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
+          <button onClick={logout} title="Sign Out" className="p-2 hover:bg-card-secondary rounded-lg text-text-muted hover:text-red-400 transition-colors">
             <LogOut size={18} />
           </button>
         </div>
@@ -553,25 +553,25 @@ export default function App() {
       {/* Add User Modal */}
       {showAddUserModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full max-w-sm shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-100 mb-4">Add New User</h3>
+          <div className="bg-card border border-border p-6 rounded-xl w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-text-primary mb-4">Add New User</h3>
             <input
               type="text"
               placeholder="Username"
               value={newUsername}
               onChange={e => setNewUsername(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 mb-2 focus:border-blue-500 outline-none"
+              className="w-full bg-card-secondary border border-border rounded-lg px-4 py-2 mb-2 focus:border-blue-500 outline-none text-text-primary"
             />
             <input
               type="password"
               placeholder="Password (min 5 chars)"
               value={newUserPassword}
               onChange={e => setNewUserPassword(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 mb-4 focus:border-blue-500 outline-none"
+              className="w-full bg-card-secondary border border-border rounded-lg px-4 py-2 mb-4 focus:border-blue-500 outline-none text-text-primary"
             />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowAddUserModal(false)} className="px-4 py-2 text-slate-400 hover:text-slate-200">Cancel</button>
-              <button onClick={addUser} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg">Create</button>
+              <button onClick={() => setShowAddUserModal(false)} className="px-4 py-2 text-text-muted hover:text-text-primary transition-colors">Cancel</button>
+              <button onClick={addUser} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg shadow-md transition-colors">Create</button>
             </div>
           </div>
         </div>
@@ -580,18 +580,18 @@ export default function App() {
       {/* Password Modal */}
       {showPwdModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full max-w-sm shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-100 mb-4">Change Password</h3>
+          <div className="bg-card border border-border p-6 rounded-xl w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-text-primary mb-4">Change Password</h3>
             <input
               type="password"
               placeholder="New Password"
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 mb-4 focus:border-blue-500 outline-none"
+              className="w-full bg-card-secondary border border-border rounded-lg px-4 py-2 mb-4 focus:border-blue-500 outline-none text-text-primary"
             />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowPwdModal(false)} className="px-4 py-2 text-slate-400 hover:text-slate-200">Cancel</button>
-              <button onClick={changePassword} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg">Save</button>
+              <button onClick={() => setShowPwdModal(false)} className="px-4 py-2 text-text-muted hover:text-text-primary transition-colors">Cancel</button>
+              <button onClick={changePassword} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-md transition-colors">Save</button>
             </div>
           </div>
         </div>
@@ -1006,36 +1006,36 @@ export default function App() {
 
             {/* Container Breakdown (Expanded) */}
             {networkExpanded && dockerStats?.containers && (
-              <div className="mt-4 pt-4 border-t border-slate-800 animate-in slide-in-from-top-4 duration-300">
+              <div className="mt-4 pt-4 border-t border-border animate-in slide-in-from-top-4 duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {dockerStats.containers.map((c: any) => (
-                    <div key={c.name} className="bg-slate-950/40 border border-slate-800/60 p-4 rounded-xl flex flex-col gap-3 group hover:border-blue-500/30 transition-all">
+                    <div key={c.name} className="bg-card-secondary/40 border border-border/60 p-4 rounded-xl flex flex-col gap-3 group hover:border-blue-500/30 transition-all shadow-sm">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className={cn("w-2 h-2 rounded-full", c.fallback ? "bg-orange-500" : "bg-green-500")} />
-                          <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">{c.name.replace('sdwan-', '')}</span>
+                          <span className="text-xs font-bold text-text-primary uppercase tracking-wider">{c.name.replace('sdwan-', '')}</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 font-mono">{c.id || 'LOCAL'}</span>
+                        <span className="text-[10px] text-text-muted font-mono">{c.id || 'LOCAL'}</span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold block">Bitrate</span>
+                          <span className="text-[10px] text-text-muted uppercase font-bold block">Bitrate</span>
                           <div className="flex flex-col text-[11px] font-mono whitespace-nowrap">
                             <span className="text-blue-400">↓ {formatBitrate(c.network.rx_mbps)}</span>
                             <span className="text-purple-400">↑ {formatBitrate(c.network.tx_mbps)}</span>
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold block">CPU / RAM</span>
-                          <div className="flex flex-col text-[11px] font-mono text-slate-300">
+                          <span className="text-[10px] text-text-muted uppercase font-bold block">CPU / RAM</span>
+                          <div className="flex flex-col text-[11px] font-mono text-text-secondary">
                             <span>{c.cpu.percent}% CPU</span>
                             <span>{c.memory.percent}% RAM</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-1 h-1 bg-slate-900 rounded-full overflow-hidden">
+                      <div className="mt-1 h-1 bg-card rounded-full overflow-hidden border border-border/30">
                         <div
                           className="h-full bg-blue-500/50 transition-all duration-500"
                           style={{ width: `${Math.min(100, (parseFloat(c.network.rx_mbps) + parseFloat(c.network.tx_mbps)) * 5)}%` }}
@@ -1049,7 +1049,7 @@ export default function App() {
 
             {/* Expanded Details */}
             {networkExpanded && connectivity?.results && (
-              <div className="mt-4 pt-4 border-t border-slate-800 space-y-1">
+              <div className="mt-4 pt-4 border-t border-border space-y-1">
                 {connectivity.results.map((result: any, idx: number) => (
                   <div key={idx} className="flex items-center gap-2 text-xs py-1">
                     {result.status === 'connected' ? (
@@ -1057,8 +1057,8 @@ export default function App() {
                     ) : (
                       <XCircle size={12} className="text-red-400 flex-shrink-0" />
                     )}
-                    <span className="text-slate-300 font-medium">{result.name}</span>
-                    <span className="text-slate-500 uppercase text-[10px] px-1.5 py-0.5 bg-slate-800 rounded">
+                    <span className="text-text-primary font-medium">{result.name}</span>
+                    <span className="text-text-muted uppercase text-[10px] px-1.5 py-0.5 bg-card-secondary border border-border rounded">
                       {result.type || 'http'}
                     </span>
                     {result.status === 'connected' && result.latency && (
@@ -1073,7 +1073,7 @@ export default function App() {
                             <Gauge size={10} /> {result.score}
                           </span>
                         )}
-                        <span className="text-slate-400 font-mono">{Math.round(result.latency)}ms</span>
+                        <span className="text-text-muted font-mono">{Math.round(result.latency)}ms</span>
                       </div>
                     )}
                     {result.status !== 'connected' && result.error && (
@@ -1098,25 +1098,25 @@ export default function App() {
           </div>
 
           {/* Main Chart */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-8 backdrop-blur-sm">
-            <h3 className="text-lg font-semibold mb-4 text-slate-200">Traffic Volume</h3>
+          <div className="bg-card border border-border rounded-xl p-6 mb-8 backdrop-blur-sm shadow-sm">
+            <h3 className="text-lg font-semibold mb-4 text-text-primary">Traffic Volume</h3>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={history}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="time" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="time" stroke="var(--text-muted)" />
+                  <YAxis stroke="var(--text-muted)" />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
+                    contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
                   />
-                  <Line type="monotone" dataKey="requests" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="requests" stroke="var(--accent)" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Logs Terminal */}
-          <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden font-mono text-sm leading-6">
+          <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden font-mono text-sm leading-6 shadow-md">
             <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-2 text-slate-400">
               <div className="w-3 h-3 rounded-full bg-red-500/50" />
               <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
@@ -1158,20 +1158,20 @@ export default function App() {
 
 function Card({ title, value, icon, subValue }: { title: string, value: string | number, icon: React.ReactNode, subValue?: string }) {
   return (
-    <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-xl relative overflow-hidden group">
+    <div className="bg-card border border-border p-6 rounded-xl relative overflow-hidden group shadow-sm hover:shadow-md transition-shadow">
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform scale-150">
         {/* @ts-ignore */}
         {React.cloneElement(icon as React.ReactElement, { size: 48 })}
       </div>
-      <div className="flex items-center gap-3 mb-2 text-slate-400">
+      <div className="flex items-center gap-3 mb-2 text-text-muted">
         {icon}
-        <span className="font-medium text-sm text-slate-400">{title}</span>
+        <span className="font-medium text-sm text-text-muted">{title}</span>
       </div>
-      <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+      <div className="text-3xl font-bold text-text-primary">
         {value}
       </div>
       {subValue && (
-        <div className="text-sm text-slate-500 mt-1">{subValue}</div>
+        <div className="text-sm text-text-muted mt-1">{subValue}</div>
       )}
     </div>
   );

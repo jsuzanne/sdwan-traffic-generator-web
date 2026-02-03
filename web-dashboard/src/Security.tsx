@@ -78,10 +78,10 @@ const SchedulerSettings = ({
 
     return (
         <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-4 bg-slate-800/30 p-2 rounded-lg border border-slate-700/50">
+            <div className="flex items-center gap-4 bg-card-secondary p-2 rounded-lg border border-border">
                 <div className="flex items-center gap-2">
-                    <Clock size={14} className={schedule.enabled ? "text-blue-400" : "text-slate-500"} />
-                    <span className="text-xs font-medium text-slate-400">{title} Schedule:</span>
+                    <Clock size={14} className={schedule.enabled ? "text-blue-400" : "text-text-muted"} />
+                    <span className="text-xs font-medium text-text-secondary">{title} Schedule:</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ const SchedulerSettings = ({
                         value={schedule.interval_minutes}
                         onChange={(e) => onUpdate(type, schedule.enabled, parseInt(e.target.value))}
                         disabled={!schedule.enabled}
-                        className="bg-slate-900 border-slate-700 text-slate-300 text-[10px] rounded p-0.5 focus:ring-blue-500 disabled:opacity-50"
+                        className="bg-card-secondary border-border text-text-primary text-[10px] rounded p-0.5 focus:ring-blue-500 disabled:opacity-50"
                     >
                         {[5, 10, 15, 30, 45, 60].map(m => (
                             <option key={m} value={m}>{m}m</option>
@@ -711,12 +711,12 @@ export default function Security({ token }: SecurityProps) {
         } else {
             // This should never happen - log it for debugging
             console.warn('Unknown test status:', status);
-            return <span className="flex items-center gap-1 text-slate-400 text-sm"><Clock size={14} /> Unknown</span>;
+            return <span className="flex items-center gap-1 text-text-muted text-sm"><Clock size={14} /> Unknown</span>;
         }
     };
 
     if (!config) {
-        return <div className="p-8 text-center text-slate-400">Loading security configuration...</div>;
+        return <div className="p-8 text-center text-text-secondary">Loading security configuration...</div>;
     }
 
     const basicDNSTests = DNS_TEST_DOMAINS.filter(t => t.category === 'basic');
@@ -738,12 +738,12 @@ export default function Security({ token }: SecurityProps) {
             )}
 
             {/* Header */}
-            <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-500/30 rounded-xl p-6">
+            <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-500/30 rounded-xl p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-2">
                     <Shield size={32} className="text-red-400" />
-                    <h2 className="text-2xl font-bold text-white">Security Testing</h2>
+                    <h2 className="text-2xl font-bold text-foreground">Security Testing</h2>
                 </div>
-                <p className="text-slate-300">
+                <p className="text-text-primary">
                     Test Palo Alto Networks firewall security policies: URL Filtering, DNS Security, and Threat Prevention
                 </p>
                 <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex items-start gap-2">
@@ -789,7 +789,7 @@ export default function Security({ token }: SecurityProps) {
             {config.statistics && (
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Test Statistics</h3>
+                        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">Test Statistics</h3>
                         <button
                             onClick={resetCounters}
                             className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 border border-red-500/30 rounded-lg transition-colors"
@@ -799,74 +799,74 @@ export default function Security({ token }: SecurityProps) {
                         </button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-slate-400 text-sm">Total Tests</span>
+                                <span className="text-text-secondary text-sm">Total Tests</span>
                                 <Shield size={16} className="text-blue-400" />
                             </div>
-                            <div className="text-2xl font-bold text-white">{config.statistics.total_tests_run}</div>
+                            <div className="text-2xl font-bold text-foreground">{config.statistics.total_tests_run}</div>
                             {config.statistics.last_test_time && (
-                                <div className="text-xs text-slate-500 mt-1">
+                                <div className="text-xs text-text-muted mt-1">
                                     Last: {new Date(config.statistics.last_test_time).toLocaleTimeString()}
                                 </div>
                             )}
                         </div>
 
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-slate-400 text-sm">URL Filtering</span>
+                                <span className="text-text-secondary text-sm">URL Filtering</span>
                                 <Shield size={16} className="text-blue-400" />
                             </div>
                             <div className="flex items-center gap-3">
                                 <div>
                                     <div className="text-lg font-bold text-red-400">{config.statistics.url_tests_blocked}</div>
-                                    <div className="text-xs text-slate-500">Blocked</div>
+                                    <div className="text-xs text-text-muted">Blocked</div>
                                 </div>
-                                <div className="text-slate-600">/</div>
+                                <div className="text-border">/</div>
                                 <div>
                                     <div className="text-lg font-bold text-green-400">{config.statistics.url_tests_allowed}</div>
-                                    <div className="text-xs text-slate-500">Allowed</div>
+                                    <div className="text-xs text-text-muted">Allowed</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-slate-400 text-sm">DNS Security</span>
+                                <span className="text-text-secondary text-sm">DNS Security</span>
                                 <Shield size={16} className="text-purple-400" />
                             </div>
                             <div className="flex items-center gap-2">
                                 <div>
                                     <div className="text-lg font-bold text-red-400">{config.statistics.dns_tests_blocked}</div>
-                                    <div className="text-xs text-slate-500">Blocked</div>
+                                    <div className="text-xs text-text-muted">Blocked</div>
                                 </div>
-                                <div className="text-slate-600">/</div>
+                                <div className="text-border">/</div>
                                 <div>
                                     <div className="text-lg font-bold text-yellow-400">{config.statistics.dns_tests_sinkholed || 0}</div>
-                                    <div className="text-xs text-slate-500">Sinkholed</div>
+                                    <div className="text-xs text-text-muted">Sinkholed</div>
                                 </div>
-                                <div className="text-slate-600">/</div>
+                                <div className="text-border">/</div>
                                 <div>
                                     <div className="text-lg font-bold text-green-400">{config.statistics.dns_tests_allowed}</div>
-                                    <div className="text-xs text-slate-500">Resolved</div>
+                                    <div className="text-xs text-text-muted">Resolved</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-slate-400 text-sm">Threat Prevention</span>
+                                <span className="text-text-secondary text-sm">Threat Prevention</span>
                                 <Shield size={16} className="text-red-400" />
                             </div>
                             <div className="flex items-center gap-3">
                                 <div>
                                     <div className="text-lg font-bold text-red-400">{config.statistics.threat_tests_blocked}</div>
-                                    <div className="text-xs text-slate-500">Blocked</div>
+                                    <div className="text-xs text-text-muted">Blocked</div>
                                 </div>
-                                <div className="text-slate-600">/</div>
+                                <div className="text-border">/</div>
                                 <div>
                                     <div className="text-lg font-bold text-green-400">{config.statistics.threat_tests_allowed}</div>
-                                    <div className="text-xs text-slate-500">Allowed</div>
+                                    <div className="text-xs text-text-muted">Allowed</div>
                                 </div>
                             </div>
                         </div>
@@ -875,19 +875,19 @@ export default function Security({ token }: SecurityProps) {
             )}
 
             {/* URL Filtering Tests */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
                 <button
                     onClick={() => setUrlExpanded(!urlExpanded)}
-                    className="w-full px-6 py-4 flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 transition-colors"
+                    className="w-full px-6 py-4 flex items-center justify-between bg-card-secondary hover:bg-card-hover transition-colors"
                 >
                     <div className="flex items-center gap-3">
                         <Shield size={20} className="text-blue-400" />
-                        <h3 className="text-lg font-semibold text-white">URL Filtering Tests</h3>
-                        <span className="text-sm text-slate-400">
+                        <h3 className="text-lg font-semibold text-foreground">URL Filtering Tests</h3>
+                        <span className="text-sm text-text-secondary">
                             ({config.url_filtering.enabled_categories.length} / {URL_CATEGORIES.length} enabled)
                         </span>
                     </div>
-                    {urlExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {urlExpanded ? <ChevronUp size={20} className="text-text-secondary" /> : <ChevronDown size={20} className="text-text-secondary" />}
                 </button>
 
                 {urlExpanded && (
@@ -899,21 +899,21 @@ export default function Security({ token }: SecurityProps) {
                                         type="checkbox"
                                         checked={config.url_filtering.enabled_categories.length === URL_CATEGORIES.length}
                                         onChange={toggleAllURLCategories}
-                                        className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                                        className="w-4 h-4 rounded border-border bg-card-secondary text-blue-600 focus:ring-blue-500"
                                     />
-                                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Select All</span>
+                                    <span className="text-sm font-medium text-text-secondary group-hover:text-foreground transition-colors">Select All</span>
                                 </label>
 
                                 <SchedulerSettings type="url" title="URL" config={config} onUpdate={updateSchedule} />
 
-                                <p className="text-slate-400 text-sm hidden lg:block">
+                                <p className="text-text-muted text-sm hidden lg:block">
                                     Test URL filtering policies using Palo Alto Networks test pages
                                 </p>
                             </div>
                             <button
                                 onClick={runURLBatchTest}
                                 disabled={loading || batchProcessingUrl || config.url_filtering.enabled_categories.length === 0 || (systemHealth && !systemHealth.ready)}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-card-secondary disabled:text-text-muted text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                                 title={systemHealth && !systemHealth.ready ? 'System not ready - missing required commands' : ''}
                             >
                                 {batchProcessingUrl ? (
@@ -940,22 +940,22 @@ export default function Security({ token }: SecurityProps) {
                                 return (
                                     <div
                                         key={category.id}
-                                        className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex items-center justify-between"
+                                        className="bg-card-secondary border border-border rounded-lg p-3 flex items-center justify-between"
                                     >
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
                                             <input
                                                 type="checkbox"
                                                 checked={isEnabled}
                                                 onChange={() => toggleURLCategory(category.id)}
-                                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900"
+                                                className="w-4 h-4 rounded border-border bg-card-secondary text-blue-600 focus:ring-blue-500"
                                             />
-                                            <span className="text-sm text-slate-200 truncate">{category.name}</span>
+                                            <span className="text-sm text-text-primary truncate">{category.name}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {lastResult && getStatusBadge(lastResult.result)}
                                             <button
                                                 onClick={() => copyToClipboard(`docker exec sdwan-web-ui sh -c "curl -fsS --max-time 10 -o /dev/null -w '%{http_code}' '${category.url}'"`)}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-blue-400 transition-colors"
+                                                className="p-1 hover:bg-card border border-transparent hover:border-border rounded text-text-muted hover:text-blue-400 transition-colors"
                                                 title="Copy CLI command"
                                             >
                                                 <Copy size={14} />
@@ -963,7 +963,7 @@ export default function Security({ token }: SecurityProps) {
                                             <button
                                                 onClick={() => runURLTest(category)}
                                                 disabled={isTesting}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
+                                                className="p-1 hover:bg-card border border-transparent hover:border-border rounded text-text-muted hover:text-purple-400 transition-colors disabled:opacity-50"
                                                 title="Run test"
                                             >
                                                 <Play size={14} />
@@ -978,19 +978,19 @@ export default function Security({ token }: SecurityProps) {
             </div>
 
             {/* DNS Security Tests */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
                 <button
                     onClick={() => setDnsExpanded(!dnsExpanded)}
-                    className="w-full px-6 py-4 flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 transition-colors"
+                    className="w-full px-6 py-4 flex items-center justify-between bg-card-secondary hover:bg-card-hover transition-colors"
                 >
                     <div className="flex items-center gap-3">
                         <Shield size={20} className="text-purple-400" />
-                        <h3 className="text-lg font-semibold text-white">DNS Security Tests</h3>
-                        <span className="text-sm text-slate-400">
+                        <h3 className="text-lg font-semibold text-foreground">DNS Security Tests</h3>
+                        <span className="text-sm text-text-secondary">
                             ({config.dns_security.enabled_tests.length} / {DNS_TEST_DOMAINS.length} enabled)
                         </span>
                     </div>
-                    {dnsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {dnsExpanded ? <ChevronUp size={20} className="text-text-secondary" /> : <ChevronDown size={20} className="text-text-secondary" />}
                 </button>
 
                 {dnsExpanded && (
@@ -1002,21 +1002,21 @@ export default function Security({ token }: SecurityProps) {
                                         type="checkbox"
                                         checked={config.dns_security.enabled_tests.length === DNS_TEST_DOMAINS.length}
                                         onChange={toggleAllDNSTests}
-                                        className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-purple-600 focus:ring-purple-500"
+                                        className="w-4 h-4 rounded border-border bg-card-secondary text-purple-600 focus:ring-purple-500"
                                     />
-                                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Select All</span>
+                                    <span className="text-sm font-medium text-text-secondary group-hover:text-foreground transition-colors">Select All</span>
                                 </label>
 
                                 <SchedulerSettings type="dns" title="DNS" config={config} onUpdate={updateSchedule} />
 
-                                <p className="text-slate-400 text-sm hidden lg:block">
+                                <p className="text-text-muted text-sm hidden lg:block">
                                     Test DNS Security policies using Palo Alto Networks test domains
                                 </p>
                             </div>
                             <button
                                 onClick={runDNSBatchTest}
                                 disabled={loading || batchProcessingDns || config.dns_security.enabled_tests.length === 0 || (systemHealth && !systemHealth.ready)}
-                                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-card-secondary disabled:text-text-muted text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                                 title={systemHealth && !systemHealth.ready ? 'System not ready - missing required commands' : ''}
                             >
                                 {batchProcessingDns ? (
@@ -1034,7 +1034,7 @@ export default function Security({ token }: SecurityProps) {
 
                         {/* Basic DNS Tests */}
                         <div>
-                            <h4 className="text-sm font-semibold text-slate-300 mb-2">Basic DNS Security</h4>
+                            <h4 className="text-sm font-semibold text-text-secondary mb-2">Basic DNS Security</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
                                 {basicDNSTests.map(test => {
                                     const isEnabled = config.dns_security.enabled_tests.includes(test.id);
@@ -1046,17 +1046,17 @@ export default function Security({ token }: SecurityProps) {
                                     return (
                                         <div
                                             key={test.id}
-                                            className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex items-center justify-between"
+                                            className="bg-card-secondary border border-border rounded-lg p-3 flex items-center justify-between shadow-sm"
                                         >
                                             <div className="flex items-center gap-2 flex-1 min-w-0">
                                                 <input
                                                     type="checkbox"
                                                     checked={isEnabled}
                                                     onChange={() => toggleDNSTest(test.id)}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-900"
+                                                    className="w-4 h-4 rounded border-border bg-card-secondary text-purple-600 focus:ring-purple-500"
                                                 />
                                                 <span
-                                                    className="text-sm text-slate-200 truncate cursor-help"
+                                                    className="text-sm text-text-primary truncate cursor-help"
                                                     title={`Domain: ${test.domain}\nCommand: getent ahosts ${test.domain}`}
                                                 >{test.name}</span>
                                             </div>
@@ -1064,7 +1064,7 @@ export default function Security({ token }: SecurityProps) {
                                                 {lastResult && getStatusBadge(lastResult.result)}
                                                 <button
                                                     onClick={() => copyToClipboard(`docker exec sdwan-web-ui sh -c "getent ahosts ${test.domain}"`)}
-                                                    className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-blue-400 transition-colors"
+                                                    className="p-1 hover:bg-card border border-transparent hover:border-border rounded text-text-muted hover:text-blue-400 transition-colors"
                                                     title="Copy CLI command"
                                                 >
                                                     <Copy size={14} />
@@ -1072,7 +1072,7 @@ export default function Security({ token }: SecurityProps) {
                                                 <button
                                                     onClick={() => runDNSTest(test)}
                                                     disabled={isTesting}
-                                                    className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
+                                                    className="p-1 hover:bg-card border border-transparent hover:border-border rounded text-text-muted hover:text-purple-400 transition-colors disabled:opacity-50"
                                                     title="Run test"
                                                 >
                                                     <Play size={14} />
@@ -1086,7 +1086,7 @@ export default function Security({ token }: SecurityProps) {
 
                         {/* Advanced DNS Tests */}
                         <div>
-                            <h4 className="text-sm font-semibold text-slate-300 mb-2">Advanced DNS Security</h4>
+                            <h4 className="text-sm font-semibold text-text-secondary mb-2">Advanced DNS Security</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
                                 {advancedDNSTests.map(test => {
                                     const isEnabled = config.dns_security.enabled_tests.includes(test.id);
@@ -1098,17 +1098,17 @@ export default function Security({ token }: SecurityProps) {
                                     return (
                                         <div
                                             key={test.id}
-                                            className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex items-center justify-between"
+                                            className="bg-card-secondary border border-border rounded-lg p-3 flex items-center justify-between shadow-sm"
                                         >
                                             <div className="flex items-center gap-2 flex-1 min-w-0">
                                                 <input
                                                     type="checkbox"
                                                     checked={isEnabled}
                                                     onChange={() => toggleDNSTest(test.id)}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-900"
+                                                    className="w-4 h-4 rounded border-border bg-card-secondary text-purple-600 focus:ring-purple-500"
                                                 />
                                                 <span
-                                                    className="text-sm text-slate-200 truncate cursor-help"
+                                                    className="text-sm text-text-primary truncate cursor-help"
                                                     title={`Domain: ${test.domain}\nCommand: getent ahosts ${test.domain}`}
                                                 >{test.name}</span>
                                             </div>
@@ -1116,7 +1116,7 @@ export default function Security({ token }: SecurityProps) {
                                                 {lastResult && getStatusBadge(lastResult.result)}
                                                 <button
                                                     onClick={() => copyToClipboard(`docker exec sdwan-web-ui sh -c "getent ahosts ${test.domain}"`)}
-                                                    className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-blue-400 transition-colors"
+                                                    className="p-1 hover:bg-card border border-transparent hover:border-border rounded text-text-muted hover:text-blue-400 transition-colors"
                                                     title="Copy CLI command"
                                                 >
                                                     <Copy size={14} />
@@ -1124,7 +1124,7 @@ export default function Security({ token }: SecurityProps) {
                                                 <button
                                                     onClick={() => runDNSTest(test)}
                                                     disabled={isTesting}
-                                                    className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
+                                                    className="p-1 hover:bg-card border border-transparent hover:border-border rounded text-text-muted hover:text-purple-400 transition-colors disabled:opacity-50"
                                                     title="Run test"
                                                 >
                                                     <Play size={14} />
@@ -1140,22 +1140,22 @@ export default function Security({ token }: SecurityProps) {
             </div>
 
             {/* Threat Prevention Tests */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
                 <button
                     onClick={() => setThreatExpanded(!threatExpanded)}
-                    className="w-full px-6 py-4 flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 transition-colors"
+                    className="w-full px-6 py-4 flex items-center justify-between bg-card-secondary hover:bg-card-hover transition-colors"
                 >
                     <div className="flex items-center gap-3">
                         <Shield size={20} className="text-red-400" />
-                        <h3 className="text-lg font-semibold text-white">Threat Prevention (EICAR)</h3>
+                        <h3 className="text-lg font-semibold text-foreground">Threat Prevention (EICAR)</h3>
                     </div>
-                    {threatExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {threatExpanded ? <ChevronUp size={20} className="text-text-secondary" /> : <ChevronDown size={20} className="text-text-secondary" />}
                 </button>
 
                 {threatExpanded && (
                     <div className="p-6 space-y-4">
                         <div className="flex flex-wrap items-center justify-between gap-4">
-                            <p className="text-slate-400 text-sm">
+                            <p className="text-text-muted text-sm">
                                 Test IPS/Threat Prevention by downloading EICAR test file
                             </p>
                             <SchedulerSettings type="threat" title="Threat" config={config} onUpdate={updateSchedule} />
@@ -1174,7 +1174,7 @@ export default function Security({ token }: SecurityProps) {
 
                             <div className="space-y-3">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">
                                         EICAR Endpoint URL
                                     </label>
                                     <input
@@ -1182,14 +1182,14 @@ export default function Security({ token }: SecurityProps) {
                                         value={eicarEndpoint}
                                         onChange={(e) => setEicarEndpoint(e.target.value)}
                                         placeholder="http://192.168.203.100/eicar.com.txt"
-                                        className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 focus:border-red-500 outline-none"
+                                        className="w-full bg-card-secondary border border-border text-text-primary rounded-lg px-4 py-2 focus:border-red-500 outline-none"
                                     />
                                 </div>
 
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => copyToClipboard(`docker exec sdwan-web-ui sh -c "curl -fsS --max-time 20 ${eicarEndpoint} -o /tmp/eicar.com.txt && rm -f /tmp/eicar.com.txt"`)}
-                                        className="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                        className="px-4 py-3 bg-card-hover hover:bg-card border border-border text-text-primary rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                                         title="Copy CLI command"
                                     >
                                         <Copy size={18} /> Copy Command
@@ -1197,7 +1197,7 @@ export default function Security({ token }: SecurityProps) {
                                     <button
                                         onClick={runThreatTest}
                                         disabled={loading || !eicarEndpoint || (systemHealth && !systemHealth.ready)}
-                                        className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                        className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 disabled:bg-card-secondary disabled:text-text-muted text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                                     >
                                         <Play size={18} /> Run EICAR Test
                                     </button>
@@ -1215,19 +1215,19 @@ export default function Security({ token }: SecurityProps) {
             </div>
 
             {/* EDL Lists (IP / URL / DNS) */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
                 <button
                     onClick={() => setEdlExpanded(!edlExpanded)}
-                    className="w-full px-6 py-4 flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 transition-colors"
+                    className="w-full px-6 py-4 flex items-center justify-between bg-card-secondary hover:bg-card-hover transition-colors"
                 >
                     <div className="flex items-center gap-3">
                         <Filter size={20} className="text-orange-400" />
-                        <h3 className="text-lg font-semibold text-white">EDL Lists (IP / URL / DNS)</h3>
-                        <span className="text-sm text-slate-400">
+                        <h3 className="text-lg font-semibold text-foreground">EDL Lists (IP / URL / DNS)</h3>
+                        <span className="text-sm text-text-secondary">
                             (Dynamic External Lists testing)
                         </span>
                     </div>
-                    {edlExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {edlExpanded ? <ChevronUp size={20} className="text-text-secondary" /> : <ChevronDown size={20} className="text-text-secondary" />}
                 </button>
 
                 {edlExpanded && (
@@ -1240,32 +1240,32 @@ export default function Security({ token }: SecurityProps) {
                                 const isSyncing = edlSyncing[type];
 
                                 return (
-                                    <div key={type} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 space-y-4">
+                                    <div key={type} className="bg-card-secondary border border-border rounded-xl p-5 space-y-4 shadow-sm">
                                         <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-bold text-white uppercase tracking-wider">{type.toUpperCase()} EDL</h4>
-                                            <span className="text-[10px] font-mono bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
+                                            <h4 className="text-sm font-bold text-text-primary uppercase tracking-wider">{type.toUpperCase()} EDL</h4>
+                                            <span className="text-[10px] font-mono bg-card border border-border text-text-secondary px-2 py-0.5 rounded">
                                                 {list.elementsCount || 0} Elements
                                             </span>
                                         </div>
 
                                         <div className="space-y-3">
                                             <div>
-                                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1 ml-1">Remote URL</label>
+                                                <label className="block text-[10px] uppercase font-bold text-text-muted mb-1 ml-1">Remote URL</label>
                                                 <div className="flex gap-2">
                                                     <div className="relative flex-1">
-                                                        <Link size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                        <Link size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                                                         <input
                                                             type="text"
                                                             value={list.remoteUrl || ''}
                                                             onChange={(e) => updateEdlConfig({ [listName]: { remoteUrl: e.target.value } })}
                                                             placeholder="https://..."
-                                                            className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg pl-9 pr-3 py-2 outline-none focus:border-orange-500"
+                                                            className="w-full bg-card border border-border text-text-primary text-xs rounded-lg pl-9 pr-3 py-2 outline-none focus:border-orange-500"
                                                         />
                                                     </div>
                                                     <button
                                                         onClick={() => syncEdl(type)}
                                                         disabled={isSyncing || !list.remoteUrl}
-                                                        className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-orange-400 rounded-lg transition-colors"
+                                                        className="p-2 bg-card border border-border hover:bg-card-hover disabled:opacity-50 text-orange-400 rounded-lg transition-colors"
                                                         title="Sync from URL"
                                                     >
                                                         <RefreshCcw size={16} className={isSyncing ? 'animate-spin' : ''} />
@@ -1274,11 +1274,11 @@ export default function Security({ token }: SecurityProps) {
                                             </div>
 
                                             <div className="pt-2">
-                                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1 ml-1">Manual Upload</label>
+                                                <label className="block text-[10px] uppercase font-bold text-text-muted mb-1 ml-1">Manual Upload</label>
                                                 <div className="flex items-center gap-2">
-                                                    <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-900 border border-dashed border-slate-700 hover:border-slate-500 rounded-lg cursor-pointer transition-colors group text-center">
-                                                        <Upload size={14} className="text-slate-500 group-hover:text-slate-300" />
-                                                        <span className="text-[10px] text-slate-400 font-medium truncate">Choose File</span>
+                                                    <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-card border border-dashed border-border hover:border-text-muted rounded-lg cursor-pointer transition-colors group text-center">
+                                                        <Upload size={14} className="text-text-muted group-hover:text-text-secondary" />
+                                                        <span className="text-[10px] text-text-secondary font-medium truncate">Choose File</span>
                                                         <input
                                                             type="file"
                                                             className="hidden"
@@ -1292,9 +1292,9 @@ export default function Security({ token }: SecurityProps) {
                                                 </div>
                                             </div>
 
-                                            <div className="pt-2 border-t border-slate-700/50 flex flex-col gap-1">
-                                                <div className="text-[10px] text-slate-500">
-                                                    Last Sync: <span className="text-slate-400">{list.lastSyncTime ? new Date(list.lastSyncTime).toLocaleString() : 'Never'}</span>
+                                            <div className="pt-2 border-t border-border flex flex-col gap-1">
+                                                <div className="text-[10px] text-text-muted">
+                                                    Last Sync: <span className="text-text-secondary">{list.lastSyncTime ? new Date(list.lastSyncTime).toLocaleString() : 'Never'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1304,8 +1304,8 @@ export default function Security({ token }: SecurityProps) {
                         </div>
 
                         {/* Parameter Controls */}
-                        <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-5">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <div className="bg-card-secondary border border-border rounded-xl p-5 shadow-sm">
+                            <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4 flex items-center gap-2">
                                 <Filter size={14} /> Global EDL Parameters
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -1374,41 +1374,41 @@ export default function Security({ token }: SecurityProps) {
                                             <button
                                                 onClick={() => runEdlTest(type)}
                                                 disabled={isTesting || !list.elementsCount}
-                                                className="w-full py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-xl font-bold uppercase text-[10px] transition-all flex items-center justify-center gap-2 group"
+                                                className="w-full py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-card-secondary disabled:text-text-muted text-white rounded-xl font-bold uppercase text-[10px] transition-all flex items-center justify-center gap-2 group shadow-md"
                                             >
                                                 {isTesting ? <RefreshCcw size={14} className="animate-spin" /> : <Play size={14} className="group-hover:scale-110 transition-transform" />}
                                                 Test {type.toUpperCase()} EDL
                                             </button>
 
                                             {summary && (
-                                                <div className="bg-slate-950/40 border border-slate-800/60 rounded-lg p-2 flex flex-col gap-1">
+                                                <div className="bg-card border border-border rounded-lg p-2 flex flex-col gap-1 shadow-sm">
                                                     <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
-                                                        <span className="text-slate-500">Last run summary</span>
+                                                        <span className="text-text-muted">Last run summary</span>
                                                         <span className={summary.successRate >= 0.8 ? "text-green-400" : summary.successRate >= 0.5 ? "text-orange-400" : "text-red-400"}>
                                                             {(summary.successRate * 100).toFixed(0)}% OK
                                                         </span>
                                                     </div>
                                                     <div className="flex gap-3 text-[10px] items-center">
-                                                        <span className="text-slate-400">Tested: <b className="text-slate-200">{summary.testedCount}</b></span>
-                                                        <span className="text-slate-400">Allowed: <b className="text-green-400">{summary.allowedCount}</b></span>
-                                                        <span className="text-slate-400">Blocked: <b className="text-red-400">{summary.blockedCount}</b></span>
+                                                        <span className="text-text-secondary">Tested: <b className="text-text-primary">{summary.testedCount}</b></span>
+                                                        <span className="text-text-secondary">Allowed: <b className="text-green-400">{summary.allowedCount}</b></span>
+                                                        <span className="text-text-secondary">Blocked: <b className="text-red-400">{summary.blockedCount}</b></span>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {results && results.length > 0 && (
-                                                <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+                                                <div className="bg-card-secondary border border-border rounded-lg overflow-hidden shadow-sm">
                                                     <table className="w-full text-[10px]">
-                                                        <thead className="bg-slate-850">
-                                                            <tr className="border-b border-slate-800">
-                                                                <th className="text-left py-2 px-3 text-slate-500 uppercase">Value</th>
-                                                                <th className="text-right py-2 px-3 text-slate-500 uppercase">Status</th>
+                                                        <thead className="bg-card">
+                                                            <tr className="border-b border-border">
+                                                                <th className="text-left py-2 px-3 text-text-muted uppercase">Value</th>
+                                                                <th className="text-right py-2 px-3 text-text-muted uppercase">Status</th>
                                                             </tr>
                                                         </thead>
-                                                        <tbody className="divide-y divide-slate-800/50">
+                                                        <tbody className="divide-y divide-border/50">
                                                             {results.slice(0, 5).map((r: any, i: number) => (
-                                                                <tr key={i} className="hover:bg-slate-800/30">
-                                                                    <td className="py-2 px-3 text-slate-300 font-mono truncate max-w-[120px]">{r.value}</td>
+                                                                <tr key={i} className="hover:bg-card-hover/30">
+                                                                    <td className="py-2 px-3 text-text-primary font-mono truncate max-w-[120px]">{r.value}</td>
                                                                     <td className="py-2 px-3 text-right">
                                                                         <span className={`px-1.5 py-0.5 rounded-md font-bold uppercase text-[9px] ${r.status === 'allowed' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
                                                                             }`}>
@@ -1419,7 +1419,7 @@ export default function Security({ token }: SecurityProps) {
                                                             ))}
                                                             {results.length > 5 && (
                                                                 <tr>
-                                                                    <td colSpan={2} className="py-2 px-3 text-center text-slate-500 font-medium italic border-t border-slate-800">
+                                                                    <td colSpan={2} className="py-2 px-3 text-center text-text-muted font-medium italic border-t border-border">
                                                                         + {results.length - 5} more results in global log
                                                                     </td>
                                                                 </tr>
@@ -1438,17 +1438,17 @@ export default function Security({ token }: SecurityProps) {
             </div>
 
             {/* Test Results */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
                 <button
                     onClick={() => setResultsExpanded(!resultsExpanded)}
-                    className="w-full px-6 py-4 flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 transition-colors"
+                    className="w-full px-6 py-4 flex items-center justify-between bg-card-secondary hover:bg-card-hover transition-colors"
                 >
                     <div className="flex items-center gap-3">
                         <Shield size={20} className="text-green-400" />
-                        <h3 className="text-lg font-semibold text-white">Test Results</h3>
-                        <span className="text-sm text-slate-400">({totalResults} total, showing {testResults.length})</span>
+                        <h3 className="text-lg font-semibold text-foreground">Test Results</h3>
+                        <span className="text-sm text-text-secondary">({totalResults} total, showing {testResults.length})</span>
                     </div>
-                    {resultsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {resultsExpanded ? <ChevronUp size={20} className="text-text-secondary" /> : <ChevronDown size={20} className="text-text-secondary" />}
                 </button>
 
                 {resultsExpanded && (
@@ -1461,14 +1461,14 @@ export default function Security({ token }: SecurityProps) {
                                     placeholder="Search by test #, name, or status..."
                                     value={searchQuery}
                                     onChange={(e) => handleSearch(e.target.value)}
-                                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
+                                    className="w-full px-4 py-2 bg-card-secondary border border-border text-text-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-text-muted"
                                 />
                             </div>
                             <div className="flex items-center gap-3 w-full sm:w-auto">
                                 <select
                                     value={testTypeFilter}
                                     onChange={(e) => setTestTypeFilter(e.target.value as any)}
-                                    className="px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="px-3 py-2 bg-card border border-border text-text-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="all">All Tests</option>
                                     <option value="url">URL Filtering</option>
@@ -1478,14 +1478,14 @@ export default function Security({ token }: SecurityProps) {
                                 <button
                                     onClick={exportResults}
                                     disabled={testResults.length === 0}
-                                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-slate-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                    className="px-3 py-2 bg-card border border-border hover:bg-card-hover disabled:bg-card-secondary disabled:text-text-muted text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                                 >
                                     <Download size={14} /> Export
                                 </button>
                                 <button
                                     onClick={clearHistory}
                                     disabled={testResults.length === 0}
-                                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-slate-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                    className="px-3 py-2 bg-card border border-border hover:bg-red-500/10 hover:text-red-500 disabled:bg-card-secondary disabled:text-text-muted text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                                 >
                                     <Trash2 size={14} /> Clear
                                 </button>
@@ -1506,26 +1506,26 @@ export default function Security({ token }: SecurityProps) {
                                     }
                                 }}>
                                     <table className="w-full">
-                                        <thead className="bg-slate-800/50 sticky top-0 z-10">
+                                        <thead className="bg-card-secondary sticky top-0 z-10 shadow-sm">
                                             <tr>
-                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test ID</th>
-                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Timestamp</th>
-                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test Type</th>
-                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Test Name</th>
-                                                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Result</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-text-secondary">Test ID</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-text-secondary">Timestamp</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-text-secondary">Test Type</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-text-secondary">Test Name</th>
+                                                <th className="text-left px-4 py-3 text-sm font-semibold text-text-secondary">Result</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-800">
+                                        <tbody className="divide-y divide-border">
                                             {testResults.map((result, index) => (
                                                 <tr
                                                     key={result.testId || index}
                                                     onClick={() => result.testId && viewTestDetails(result.testId)}
-                                                    className="hover:bg-slate-800/30 transition-colors cursor-pointer"
+                                                    className="hover:bg-card-hover/20 transition-colors cursor-pointer"
                                                 >
-                                                    <td className="px-4 py-3 text-sm text-slate-400 font-mono">
+                                                    <td className="px-4 py-3 text-sm text-text-muted font-mono">
                                                         #{result.testId || 'N/A'}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-slate-400">
+                                                    <td className="px-4 py-3 text-sm text-text-muted">
                                                         {new Date(result.timestamp).toLocaleString()}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm">
@@ -1538,7 +1538,7 @@ export default function Security({ token }: SecurityProps) {
                                                                     'Threat'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-slate-200 truncate max-w-xs">
+                                                    <td className="px-4 py-3 text-sm text-text-primary truncate max-w-xs">
                                                         {result.testName}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm">{getStatusBadge(result.result)}</td>
@@ -1570,33 +1570,33 @@ export default function Security({ token }: SecurityProps) {
 
             {/* Detailed Log Viewer Modal */}
             {showDetailModal && selectedTest && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-3xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={() => setShowDetailModal(false)}>
+                    <div className="bg-card border border-border rounded-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-card-secondary/50">
                             <div>
-                                <h3 className="text-lg font-semibold text-white">Test Details #{selectedTest.id}</h3>
-                                <p className="text-sm text-slate-400">{new Date(selectedTest.timestamp).toLocaleString()}</p>
+                                <h3 className="text-lg font-bold text-foreground">Test Details #{selectedTest.id}</h3>
+                                <p className="text-sm text-text-muted">{new Date(selectedTest.timestamp).toLocaleString()}</p>
                             </div>
                             <button
                                 onClick={() => setShowDetailModal(false)}
-                                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                                className="p-2 hover:bg-card-hover rounded-full transition-all hover:rotate-90"
                             >
-                                <XCircle size={20} className="text-slate-400" />
+                                <XCircle size={24} className="text-text-muted" />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)] space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                        <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)] space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <label className="text-sm font-medium text-slate-400">Test Type</label>
-                                    <p className="text-white mt-1">{selectedTest.type === 'url' ? 'URL Filtering' : selectedTest.type === 'dns' ? 'DNS Security' : 'Threat Prevention'}</p>
+                                    <label className="text-[10px] uppercase font-bold tracking-wider text-text-muted mb-1 block">Test Type</label>
+                                    <p className="text-text-primary font-medium">{selectedTest.type === 'url' ? 'URL Filtering' : selectedTest.type === 'dns' ? 'DNS Security' : 'Threat Prevention'}</p>
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium text-slate-400">Status</label>
+                                    <label className="text-[10px] uppercase font-bold tracking-wider text-text-muted mb-1 block">Status</label>
                                     <div className="mt-1">{getStatusBadge({ status: selectedTest.status })}</div>
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="text-sm font-medium text-slate-400">Test Name</label>
-                                    <p className="text-white mt-1">{selectedTest.name}</p>
+                                <div className="col-span-2 bg-card-secondary/30 p-4 rounded-xl border border-border/50">
+                                    <label className="text-[10px] uppercase font-bold tracking-wider text-text-muted mb-1 block">Test Name</label>
+                                    <p className="text-text-primary font-medium leading-relaxed">{selectedTest.name}</p>
                                 </div>
                             </div>
 

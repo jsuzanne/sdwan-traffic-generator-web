@@ -329,14 +329,14 @@ export default function Iot({ token }: IotProps) {
             </div>
 
             {/* Filters Bar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/40 p-4 rounded-2xl border border-slate-800 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card-secondary p-4 rounded-2xl border border-border shadow-sm">
                 <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                     <div className="relative w-full md:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                         <input
                             type="text"
                             placeholder="Filter devices (Name, Vendor, ID)..."
-                            className="bg-slate-910 border-slate-700 text-slate-200 pl-10 pr-4 py-2 rounded-xl text-sm w-full focus:ring-1 focus:ring-blue-500 transition-all border outline-none"
+                            className="bg-card border-border text-foreground pl-10 pr-4 py-2 rounded-xl text-sm w-full focus:ring-1 focus:ring-blue-500 transition-all border outline-none"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -344,7 +344,7 @@ export default function Iot({ token }: IotProps) {
                     <div className="flex items-center gap-2 w-full md:w-auto">
                         <button
                             onClick={handleSelectAll}
-                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700"
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-text-secondary hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700"
                         >
                             {selectedIds.length === filteredDevices.length && filteredDevices.length > 0 ? <CheckSquare size={16} className="text-blue-400" /> : <SquareIcon size={16} />}
                             SELECT ALL
@@ -370,11 +370,11 @@ export default function Iot({ token }: IotProps) {
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{devices.filter(d => d.running).length} RUNNING</span>
+                        <span className="text-[11px] font-bold text-text-muted uppercase tracking-widest">{devices.filter(d => d.running).length} RUNNING</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-slate-700" />
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{devices.filter(d => !d.running).length} STOPPED</span>
+                        <span className="text-[11px] font-bold text-text-muted uppercase tracking-widest">{devices.filter(d => !d.running).length} STOPPED</span>
                     </div>
                 </div>
             </div>
@@ -394,9 +394,9 @@ export default function Iot({ token }: IotProps) {
                         <div
                             key={device.id}
                             className={cn(
-                                "relative bg-slate-900 border transition-all duration-300 overflow-hidden group",
+                                "relative bg-card border transition-all duration-300 overflow-hidden group shadow-card",
                                 isCompact ? "rounded-2xl" : "rounded-3xl",
-                                device.running ? "border-blue-500/30 shadow-lg shadow-blue-500/5 ring-1 ring-blue-500/10" : "border-slate-800 hover:border-slate-700",
+                                device.running ? "border-blue-500/30 shadow-lg shadow-blue-500/5 ring-1 ring-blue-500/10" : "border-border hover:border-slate-500 dark:hover:border-slate-700",
                                 selectedIds.includes(device.id) ? "ring-2 ring-blue-600" : ""
                             )}
                         >
@@ -429,31 +429,31 @@ export default function Iot({ token }: IotProps) {
                                 {/* Stats & IP - Compact Alignment */}
                                 <div className={cn("flex items-center gap-8", isCompact ? "flex-1" : "mb-6")}>
                                     <div className={cn(
-                                        "grid gap-4 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60",
+                                        "grid gap-4 bg-card-secondary p-3 rounded-2xl border border-border shadow-sm",
                                         isCompact ? "grid-cols-3 flex-1" : "grid-cols-2 w-full"
                                     )}>
                                         <div className="space-y-0.5">
-                                            <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                                            <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5">
                                                 <Activity size={9} /> Packets
                                             </div>
-                                            <div className={cn("font-mono font-bold text-slate-200", isCompact ? "text-sm" : "text-lg")}>
+                                            <div className={cn("font-mono font-bold text-foreground", isCompact ? "text-sm" : "text-lg")}>
                                                 {device.status?.stats?.packets_sent?.toLocaleString() || '0'}
                                             </div>
                                         </div>
                                         <div className="space-y-0.5">
-                                            <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                                            <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5">
                                                 <Wifi size={9} /> IP
                                             </div>
-                                            <div className={cn("font-mono font-black", isCompact ? "text-xs" : "text-sm", device.status?.stats?.current_ip ? "text-blue-400" : "text-slate-600")}>
+                                            <div className={cn("font-mono font-black", isCompact ? "text-xs" : "text-sm", device.status?.stats?.current_ip ? "text-blue-400" : "text-text-muted")}>
                                                 {device.status?.stats?.current_ip || '---.---.---.---'}
                                             </div>
                                         </div>
                                         {isCompact && (
                                             <div className="space-y-0.5">
-                                                <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                                                <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5">
                                                     <Clock size={9} /> Uptime
                                                 </div>
-                                                <div className="text-xs font-mono font-bold text-slate-400">
+                                                <div className="text-xs font-mono font-bold text-text-secondary">
                                                     {device.status?.stats?.uptime_seconds ? `${Math.floor(device.status.stats.uptime_seconds / 60)}m` : '-'}
                                                 </div>
                                             </div>
@@ -476,16 +476,16 @@ export default function Iot({ token }: IotProps) {
                                 {!isCompact && (
                                     <div className="space-y-3 mb-6 px-1">
                                         <div className="flex items-center justify-between text-[11px]">
-                                            <span className="text-slate-500 flex items-center gap-1.5">
+                                            <span className="text-text-muted flex items-center gap-1.5">
                                                 <Shield size={12} /> MAC Address
                                             </span>
-                                            <span className="text-slate-300 font-mono font-bold">{device.mac}</span>
+                                            <span className="text-text-primary font-mono font-bold">{device.mac}</span>
                                         </div>
                                         <div className="flex items-center justify-between text-[11px]">
-                                            <span className="text-slate-500 flex items-center gap-1.5">
+                                            <span className="text-text-muted flex items-center gap-1.5">
                                                 <Clock size={12} /> Interval
                                             </span>
-                                            <span className="text-slate-300 font-bold">{device.traffic_interval}s</span>
+                                            <span className="text-text-primary font-bold">{device.traffic_interval}s</span>
                                         </div>
                                     </div>
                                 )}
@@ -493,12 +493,12 @@ export default function Iot({ token }: IotProps) {
                                 {/* Protocols Icons (Dense in compact) */}
                                 <div className={cn("flex flex-wrap gap-1.5", isCompact ? "w-1/5" : "mb-6")}>
                                     {device.protocols.slice(0, isCompact ? 4 : 10).map(p => (
-                                        <span key={p} className="bg-slate-800/40 text-[8px] font-black px-1.5 py-0.5 rounded border border-slate-700/50 text-slate-500 uppercase tracking-tight">
+                                        <span key={p} className="bg-card-secondary text-[8px] font-black px-1.5 py-0.5 rounded border border-border text-text-muted uppercase tracking-tight">
                                             {p}
                                         </span>
                                     ))}
                                     {isCompact && device.protocols.length > 4 && (
-                                        <span className="text-[8px] font-bold text-slate-600">+{device.protocols.length - 4}</span>
+                                        <span className="text-[8px] font-bold text-text-muted">+{device.protocols.length - 4}</span>
                                     )}
                                 </div>
 
@@ -559,10 +559,10 @@ export default function Iot({ token }: IotProps) {
                     ))}
 
                     {filteredDevices.length === 0 && (
-                        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl">
-                            <Cpu size={48} className="text-slate-800 mb-4" />
-                            <p className="text-slate-500 font-medium">No IoT devices found.</p>
-                            <p className="text-slate-600 text-sm mt-1">Try adjusting your filters or add a new device.</p>
+                        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-card-secondary border border-dashed border-border rounded-3xl">
+                            <Cpu size={48} className="text-text-muted mb-4 opacity-20" />
+                            <p className="text-text-secondary font-medium">No IoT devices found.</p>
+                            <p className="text-text-muted text-sm mt-1">Try adjusting your filters or add a new device.</p>
                         </div>
                     )}
                 </div>
@@ -571,13 +571,13 @@ export default function Iot({ token }: IotProps) {
             {/* Add/Edit Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-                    <div className="bg-slate-910 border border-slate-800 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl">
-                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <div className="bg-card border border-border rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-border flex items-center justify-between bg-card-secondary">
+                            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
                                 <Plus size={24} className="text-blue-400" />
                                 {editingDevice?.id ? 'Edit Device' : 'Add IoT Device'}
                             </h3>
-                            <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-white transition-colors">
+                            <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-foreground transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
@@ -585,24 +585,24 @@ export default function Iot({ token }: IotProps) {
                         <form onSubmit={handleSaveDevice} className="p-8 space-y-6">
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Device ID</label>
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Device ID</label>
                                     <input
                                         type="text"
                                         required
                                         disabled={!!editingDevice?.id}
                                         placeholder="e.g. cam_01"
-                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none disabled:opacity-50"
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:ring-1 focus:ring-blue-500 outline-none disabled:opacity-50"
                                         value={editingDevice?.id || ''}
                                         onChange={e => setEditingDevice(prev => ({ ...prev!, id: e.target.value }))}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Device Name</label>
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Device Name</label>
                                     <input
                                         type="text"
                                         required
                                         placeholder="e.g. Office Camera"
-                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:ring-1 focus:ring-blue-500 outline-none"
                                         value={editingDevice?.name || ''}
                                         onChange={e => setEditingDevice(prev => ({ ...prev!, name: e.target.value }))}
                                     />
@@ -611,9 +611,9 @@ export default function Iot({ token }: IotProps) {
 
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vendor</label>
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Vendor</label>
                                     <select
-                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none appearance-none"
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:ring-1 focus:ring-blue-500 outline-none appearance-none"
                                         value={editingDevice?.vendor || ''}
                                         onChange={e => setEditingDevice(prev => ({ ...prev!, vendor: e.target.value }))}
                                     >
@@ -628,12 +628,12 @@ export default function Iot({ token }: IotProps) {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">MAC Address</label>
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider">MAC Address</label>
                                     <input
                                         type="text"
                                         required
                                         placeholder="00:11:22:33:44:55"
-                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white font-mono focus:ring-1 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground font-mono focus:ring-1 focus:ring-blue-500 outline-none"
                                         value={editingDevice?.mac || ''}
                                         onChange={e => setEditingDevice(prev => ({ ...prev!, mac: e.target.value }))}
                                     />
@@ -641,7 +641,7 @@ export default function Iot({ token }: IotProps) {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Protocols</label>
+                                <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Protocols</label>
                                 <div className="flex flex-wrap gap-2 pt-1">
                                     {['dhcp', 'arp', 'lldp', 'snmp', 'http', 'mqtt', 'rtsp', 'cloud', 'dns', 'ntp'].map(p => (
                                         <label
@@ -650,7 +650,7 @@ export default function Iot({ token }: IotProps) {
                                                 "px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all uppercase",
                                                 editingDevice?.protocols?.includes(p)
                                                     ? "bg-blue-600 border-transparent text-white shadow-lg shadow-blue-900/20"
-                                                    : "bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700 hover:text-slate-400"
+                                                    : "bg-card-secondary border-border text-text-muted hover:border-slate-500 hover:text-foreground"
                                             )}
                                         >
                                             <input

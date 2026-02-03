@@ -10,9 +10,20 @@ export default {
                 background: "var(--background)",
                 foreground: "var(--foreground)",
                 border: "var(--border)",
-                card: "var(--card)",
-                "card-hover": "var(--card-hover)",
+                card: {
+                    DEFAULT: "var(--card)",
+                    secondary: "var(--card-secondary)",
+                    hover: "var(--card-hover)",
+                },
+                text: {
+                    primary: "var(--text-primary)",
+                    secondary: "var(--text-secondary)",
+                    muted: "var(--text-muted)",
+                },
                 accent: "var(--accent)",
+            },
+            boxShadow: {
+                'card': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
             }
         },
     },

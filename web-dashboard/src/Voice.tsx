@@ -313,19 +313,19 @@ export default function Voice(props: VoiceProps) {
     return (
         <div className="space-y-6">
             {/* Header Control */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
                         <div className={cn(
                             "p-3 rounded-lg shadow-lg transition-all",
-                            enabled ? "bg-blue-500/20 text-blue-400" : "bg-slate-800 text-slate-500"
+                            enabled ? "bg-blue-500/20 text-blue-400" : "bg-card-secondary text-text-muted"
                         )}>
                             <Phone size={24} className={enabled ? "animate-pulse" : ""} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Voice Simulation (RTP)</h2>
-                            <p className="text-slate-400 text-sm">
-                                Status: <span className={enabled ? "text-blue-400 font-semibold" : "text-slate-500 font-medium"}>
+                            <h2 className="text-xl font-bold text-foreground">Voice Simulation (RTP)</h2>
+                            <p className="text-text-secondary text-sm">
+                                Status: <span className={enabled ? "text-blue-400 font-semibold" : "text-text-muted font-medium"}>
                                     {enabled ? 'Simulating' : 'Stopped'}
                                 </span>
                                 {enabled && ` • ${activeCalls.length} active calls`}
@@ -352,28 +352,28 @@ export default function Voice(props: VoiceProps) {
                 {/* QoS Summary Widget */}
                 {qosSummary && (
                     <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
-                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Total Calls</div>
-                            <div className="text-lg font-bold text-white">{qosSummary.totalCalls}</div>
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
+                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Total Calls</div>
+                            <div className="text-lg font-bold text-foreground">{qosSummary.totalCalls}</div>
                         </div>
-                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
-                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Avg Loss</div>
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
+                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Avg Loss</div>
                             <div className={cn("text-lg font-bold", parseFloat(qosSummary.avgLoss) < 1 ? "text-green-400" : "text-yellow-400")}>
                                 {qosSummary.avgLoss}%
                             </div>
                         </div>
-                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
-                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Avg RTT</div>
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
+                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Avg RTT</div>
                             <div className="text-lg font-bold text-blue-400">{qosSummary.avgRtt}ms</div>
                         </div>
-                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
-                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Min / Max RTT</div>
-                            <div className="text-sm font-bold text-slate-300">
-                                {qosSummary.minRtt} <span className="text-slate-600">/</span> {qosSummary.maxRtt}ms
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
+                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Min / Max RTT</div>
+                            <div className="text-sm font-bold text-text-secondary">
+                                {qosSummary.minRtt} <span className="text-text-muted">/</span> {qosSummary.maxRtt}ms
                             </div>
                         </div>
-                        <div className="bg-slate-950/40 border border-slate-800/50 rounded-lg p-3">
-                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Avg Jitter</div>
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
+                            <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Avg Jitter</div>
                             <div className="text-lg font-bold text-purple-400">{qosSummary.avgJitter}ms</div>
                         </div>
                     </div>
@@ -381,18 +381,18 @@ export default function Voice(props: VoiceProps) {
             </div>
 
             {/* Main Tabs */}
-            <div className="flex border-b border-slate-800">
+            <div className="flex border-b border-border">
                 <button
                     onClick={() => setActiveTab('status')}
                     className={cn("px-6 py-3 font-medium transition-all border-b-2",
-                        activeTab === 'status' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-500")}
+                        activeTab === 'status' ? "border-blue-500 text-blue-400" : "border-transparent text-text-muted")}
                 >
                     Monitoring
                 </button>
                 <button
                     onClick={() => setActiveTab('config')}
                     className={cn("px-6 py-3 font-medium transition-all border-b-2",
-                        activeTab === 'config' ? "border-blue-500 text-blue-400" : "border-transparent text-slate-500")}
+                        activeTab === 'config' ? "border-blue-500 text-blue-400" : "border-transparent text-text-muted")}
                 >
                     Servers & Config
                 </button>
@@ -401,24 +401,24 @@ export default function Voice(props: VoiceProps) {
             {activeTab === 'status' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Active Calls Widget */}
-                    <div className="lg:col-span-1 bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-                        <h3 className="text-slate-200 font-bold mb-4 flex items-center gap-2">
+                    <div className="lg:col-span-1 bg-card border border-border rounded-xl p-6 shadow-sm">
+                        <h3 className="text-foreground font-bold mb-4 flex items-center gap-2">
                             <Activity size={18} className="text-blue-400" /> Active Calls
                         </h3>
                         <div className="space-y-3">
                             {activeCalls.length === 0 ? (
-                                <div className="text-slate-500 text-sm py-8 text-center bg-slate-800/20 rounded-lg">
+                                <div className="text-text-muted text-sm py-8 text-center bg-card-secondary rounded-lg">
                                     No active voice calls
                                 </div>
                             ) : (
                                 activeCalls.map((call, idx) => (
-                                    <div key={idx} className="bg-slate-800/40 p-3 rounded-lg border border-slate-700/30 flex items-center justify-between">
+                                    <div key={idx} className="bg-card-secondary p-3 rounded-lg border border-border flex items-center justify-between shadow-sm">
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-1 rounded">{call.call_id}</span>
-                                                <div className="text-xs font-mono text-slate-200">{call.target}</div>
+                                                <div className="text-xs font-mono text-text-primary">{call.target}</div>
                                             </div>
-                                            <div className="text-[10px] text-slate-500 mt-1">{call.codec} • {call.duration}s</div>
+                                            <div className="text-[10px] text-text-muted mt-1">{call.codec} • {call.duration}s</div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-ping" />
@@ -431,27 +431,27 @@ export default function Voice(props: VoiceProps) {
                     </div>
 
                     {/* Stats Summary */}
-                    <div className="lg:col-span-2 bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+                    <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6 shadow-sm">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                            <h3 className="text-slate-200 font-bold flex items-center gap-2">
+                            <h3 className="text-foreground font-bold flex items-center gap-2">
                                 <BarChart2 size={18} className="text-blue-400" /> Recent History
                             </h3>
 
                             <div className="flex flex-1 max-w-md gap-2">
                                 <div className="relative flex-1">
-                                    <Clock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <Clock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
                                     <input
                                         type="text"
                                         placeholder="Search calls..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-lg pl-8 pr-3 py-1.5 outline-none focus:border-blue-500"
+                                        className="w-full bg-card-secondary border border-border text-xs text-text-primary rounded-lg pl-8 pr-3 py-1.5 outline-none focus:border-blue-500"
                                     />
                                 </div>
                                 <select
                                     value={qualityFilter}
                                     onChange={(e) => setQualityFilter(e.target.value as any)}
-                                    className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 outline-none focus:border-blue-500"
+                                    className="bg-card-secondary border border-border text-xs text-text-primary rounded-lg px-2 py-1.5 outline-none focus:border-blue-500"
                                 >
                                     <option value="all">All Qualities</option>
                                     <option value="excellent">Excellent 🟢</option>
@@ -468,10 +468,10 @@ export default function Voice(props: VoiceProps) {
                                 Reset
                             </button>
                         </div>
-                        <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                        <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-card-hover">
                             <table className="w-full text-sm relative">
-                                <thead className="text-slate-500 text-left border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
-                                    <tr className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
+                                <thead className="text-text-muted text-left border-b border-border sticky top-0 bg-card z-10 shadow-sm">
+                                    <tr className="text-[10px] font-extrabold uppercase tracking-widest text-text-muted">
                                         {[
                                             { key: 'timestamp', label: 'Time' },
                                             { key: 'event', label: 'Event' },
@@ -482,7 +482,7 @@ export default function Voice(props: VoiceProps) {
                                             <th
                                                 key={col.key}
                                                 onClick={() => handleSort(col.key)}
-                                                className={`pb-3 px-2 font-medium bg-slate-900 cursor-pointer hover:text-blue-400 transition-colors ${col.key === 'avg_rtt_ms' ? 'text-right' : ''}`}
+                                                className={`pb-3 px-2 font-medium bg-card cursor-pointer hover:text-blue-400 transition-colors ${col.key === 'avg_rtt_ms' ? 'text-right' : ''}`}
                                             >
                                                 <div className={`flex items-center gap-1 ${col.key === 'avg_rtt_ms' ? 'justify-end' : ''}`}>
                                                     {col.label}
@@ -494,19 +494,19 @@ export default function Voice(props: VoiceProps) {
                                         ))}
                                     </tr>
                                 </thead>
-                                <tbody className="text-slate-400">
+                                <tbody className="text-text-secondary">
                                     {sortedHistory.map((call: VoiceCall, idx: number) => (
-                                        <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/10">
+                                        <tr key={idx} className="border-b border-border hover:bg-card-hover/10">
                                             <td className="py-3 px-2 text-xs font-mono">{new Date(call.timestamp).toLocaleTimeString()}</td>
                                             <td className="py-3 px-2">
                                                 <div className="flex flex-col">
                                                     <span className={cn(
                                                         "text-[10px] font-bold uppercase px-1.5 py-0.5 rounded w-fit",
-                                                        call.event === 'start' ? "bg-blue-500/10 text-blue-400" : "bg-slate-800 text-slate-500"
+                                                        call.event === 'start' ? "bg-blue-500/10 text-blue-400" : "bg-card-secondary text-text-muted"
                                                     )}>
                                                         {call.event}
                                                     </span>
-                                                    <span className="text-[9px] text-slate-600 mt-1">{call.call_id}</span>
+                                                    <span className="text-[9px] text-text-muted mt-1">{call.call_id}</span>
                                                 </div>
                                             </td>
                                             <td className="py-3 px-2 text-xs font-mono">{call.target}</td>
@@ -548,15 +548,15 @@ export default function Voice(props: VoiceProps) {
                                                     <div className="flex flex-col items-end">
                                                         <span className={cn(
                                                             "text-[11px] font-medium",
-                                                            call.avg_rtt_ms < 100 ? "text-slate-200" :
+                                                            call.avg_rtt_ms < 100 ? "text-text-primary" :
                                                                 call.avg_rtt_ms < 200 ? "text-yellow-400" : "text-red-400"
                                                         )}>
                                                             {call.avg_rtt_ms}ms
                                                         </span>
-                                                        <span className="text-[9px] text-slate-500">Jitter: {call.jitter_ms}ms</span>
+                                                        <span className="text-[9px] text-text-muted">Jitter: {call.jitter_ms}ms</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-slate-600">—</span>
+                                                    <span className="text-text-muted">—</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -570,19 +570,19 @@ export default function Voice(props: VoiceProps) {
 
             {activeTab === 'config' && (
                 <div className="space-y-6">
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+                    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <h3 className="text-slate-200 font-bold flex items-center gap-2">
+                                <h3 className="text-foreground font-bold flex items-center gap-2">
                                     <Server size={18} className="text-blue-400" /> Target Configuration
                                 </h3>
-                                <p className="text-slate-500 text-xs mt-1">Define voice endpoints and traffic distribution weights</p>
+                                <p className="text-text-muted text-xs mt-1">Define voice endpoints and traffic distribution weights</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 {isDirty && (
                                     <button
                                         onClick={handleResetToCurrent}
-                                        className="text-slate-500 hover:text-slate-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                        className="text-text-muted hover:text-text-primary px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                                     >
                                         Cancel Edits
                                     </button>
@@ -592,7 +592,7 @@ export default function Voice(props: VoiceProps) {
                                     disabled={saving}
                                     className={cn(
                                         "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50",
-                                        isDirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                        isDirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-card-secondary text-text-muted cursor-not-allowed"
                                     )}
                                 >
                                     <Save size={16} /> {saving ? 'Saving...' : 'Save Configuration'}
@@ -602,11 +602,11 @@ export default function Voice(props: VoiceProps) {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
-                                <div className="bg-slate-800/30 p-4 rounded-lg border border-slate-700/50 space-y-4">
-                                    <h4 className="text-slate-300 text-sm font-bold mb-2">Simulation Parameters</h4>
+                                <div className="bg-card-secondary/30 p-4 rounded-lg border border-border space-y-4 shadow-sm">
+                                    <h4 className="text-text-secondary text-sm font-bold mb-2">Simulation Parameters</h4>
 
                                     <div className="space-y-1">
-                                        <label className="text-[10px] text-slate-500 uppercase font-bold">Simultaneous Calls</label>
+                                        <label className="text-[10px] text-text-muted uppercase font-bold">Simultaneous Calls</label>
                                         <input
                                             type="number"
                                             value={config?.max_simultaneous_calls}
@@ -614,12 +614,12 @@ export default function Voice(props: VoiceProps) {
                                                 setIsDirty(true);
                                                 setConfig(prev => prev ? { ...prev, max_simultaneous_calls: parseInt(e.target.value) } : null);
                                             }}
-                                            className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-sm"
+                                            className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
                                         />
                                     </div>
 
                                     <div className="space-y-1">
-                                        <label className="text-[10px] text-slate-500 uppercase font-bold">Sleep between calls (sec)</label>
+                                        <label className="text-[10px] text-text-muted uppercase font-bold">Sleep between calls (sec)</label>
                                         <input
                                             type="number"
                                             value={config?.sleep_between_calls}
@@ -627,12 +627,12 @@ export default function Voice(props: VoiceProps) {
                                                 setIsDirty(true);
                                                 setConfig(prev => prev ? { ...prev, sleep_between_calls: parseInt(e.target.value) } : null);
                                             }}
-                                            className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-sm"
+                                            className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
                                         />
                                     </div>
 
                                     <div className="space-y-1">
-                                        <label className="text-[10px] text-slate-500 uppercase font-bold">Source Interface</label>
+                                        <label className="text-[10px] text-text-muted uppercase font-bold">Source Interface</label>
                                         <input
                                             type="text"
                                             value={config?.interface}
@@ -640,7 +640,7 @@ export default function Voice(props: VoiceProps) {
                                                 setIsDirty(true);
                                                 setConfig(prev => prev ? { ...prev, interface: e.target.value } : null);
                                             }}
-                                            className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-sm"
+                                            className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
                                         />
                                     </div>
                                 </div>
@@ -658,37 +658,37 @@ export default function Voice(props: VoiceProps) {
                                 </div>
 
                                 {showGuided && (
-                                    <div className="bg-slate-950/40 border border-slate-800/50 p-4 rounded-xl space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                    <div className="bg-card-secondary/40 border border-border p-4 rounded-xl space-y-4 animate-in slide-in-from-top-2 duration-300 shadow-sm">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Target IP / Host</label>
+                                                <label className="text-[9px] text-text-muted uppercase font-bold">Target IP / Host</label>
                                                 <input
                                                     type="text"
                                                     placeholder="192.168.1.1"
                                                     value={newProbe.host}
                                                     onChange={e => setNewProbe({ ...newProbe, host: e.target.value })}
-                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Port</label>
+                                                <label className="text-[9px] text-text-muted uppercase font-bold">Port</label>
                                                 <input
                                                     type="text"
                                                     placeholder="5060"
                                                     value={newProbe.port}
                                                     onChange={e => setNewProbe({ ...newProbe, port: e.target.value })}
-                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                                                 />
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Codec</label>
+                                                <label className="text-[9px] text-text-muted uppercase font-bold">Codec</label>
                                                 <select
                                                     value={newProbe.codec}
                                                     onChange={e => setNewProbe({ ...newProbe, codec: e.target.value })}
-                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                                                 >
                                                     <option value="G.711-ulaw">G.711-ulaw</option>
                                                     <option value="G.711-alaw">G.711-alaw</option>
@@ -697,21 +697,21 @@ export default function Voice(props: VoiceProps) {
                                                 </select>
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Weight (1-100)</label>
+                                                <label className="text-[9px] text-text-muted uppercase font-bold">Weight (1-100)</label>
                                                 <input
                                                     type="number"
                                                     value={newProbe.weight}
                                                     onChange={e => setNewProbe({ ...newProbe, weight: e.target.value })}
-                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[9px] text-slate-500 uppercase font-bold">Duration (sec)</label>
+                                                <label className="text-[9px] text-text-muted uppercase font-bold">Duration (sec)</label>
                                                 <input
                                                     type="number"
                                                     value={newProbe.duration}
                                                     onChange={e => setNewProbe({ ...newProbe, duration: e.target.value })}
-                                                    className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="w-full bg-card border-border text-text-primary rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                                                 />
                                             </div>
                                         </div>
@@ -728,7 +728,7 @@ export default function Voice(props: VoiceProps) {
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <label className="text-[10px] text-slate-500 uppercase font-bold">Raw Configuration (JSONL-like)</label>
-                                        <span className="text-[9px] text-slate-600 italic">Advanced users only</span>
+                                        <span className="text-[9px] text-text-muted italic">Advanced users only</span>
                                     </div>
                                     <textarea
                                         value={rawServers}
@@ -737,24 +737,24 @@ export default function Voice(props: VoiceProps) {
                                             setRawServers(e.target.value);
                                         }}
                                         rows={8}
-                                        className="w-full bg-slate-900 border-slate-700 text-slate-300 rounded-lg p-3 text-[10px] font-mono focus:ring-1 focus:ring-blue-500 outline-none"
+                                        className="w-full bg-card border border-border text-text-primary rounded-lg p-3 text-[10px] font-mono focus:ring-1 focus:ring-blue-500 outline-none"
                                         placeholder="host:port|codec|weight|duration_sec"
                                     />
 
                                     <div className="space-y-2 mt-4">
-                                        <label className="text-[10px] text-slate-500 uppercase font-bold">Configured Probes ({parsedProbes.length})</label>
+                                        <label className="text-[10px] text-text-muted uppercase font-bold">Configured Probes ({parsedProbes.length})</label>
                                         <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
                                             {parsedProbes.map((p, i) => (
-                                                <div key={i} className="flex items-center justify-between bg-slate-800/30 border border-slate-700/30 px-3 py-1.5 rounded-lg group">
+                                                <div key={i} className="flex items-center justify-between bg-card-secondary/30 border border-border px-3 py-1.5 rounded-lg group shadow-sm">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="text-[10px] font-mono text-slate-300">{p.target}</div>
-                                                        <div className="text-[9px] font-bold text-slate-500 bg-slate-800 px-1 rounded">{p.codec}</div>
-                                                        <div className="text-[9px] text-slate-600">Weight: {p.weight}</div>
-                                                        <div className="text-[9px] text-slate-600">{p.duration}</div>
+                                                        <div className="text-[10px] font-mono text-text-primary">{p.target}</div>
+                                                        <div className="text-[9px] font-bold text-text-muted bg-card border border-border px-1 rounded">{p.codec}</div>
+                                                        <div className="text-[9px] text-text-secondary">Weight: {p.weight}</div>
+                                                        <div className="text-[9px] text-text-secondary">{p.duration}</div>
                                                     </div>
                                                     <button
                                                         onClick={() => removeProbeAt(p.id)}
-                                                        className="p-1 text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                                        className="p-1 text-text-muted hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                                                     >
                                                         <Trash2 size={12} />
                                                     </button>

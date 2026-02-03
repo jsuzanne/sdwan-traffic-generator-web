@@ -1,8 +1,8 @@
 # 📋 Project Handover - SD-WAN Traffic Generator
 
 ## 🎯 Current Status (as of 2026-02-03)
-We are currently at version **v1.1.2-patch.33.72**.
-The system is now fully optimized with **VyOS Firewall Integration**, **Smart Logging**, and **Light/Dark Mode**.
+We are currently at version **v1.1.2-patch.33.73**.
+The system is now fully optimized with **VyOS Firewall Integration**, **Smart Logging**, and **Premium Light/Dark Mode** with system-wide semantic theming.
 
 ## ✅ Accomplishments & Solved Issues
 1.  **VyOS Firewall (v33.65)**: Implemented `block`, `unblock`, and `show-denied` commands with frontend validation and `--force` override.
@@ -11,7 +11,10 @@ The system is now fully optimized with **VyOS Firewall Integration**, **Smart Lo
     - Caching for `/api/system/health` (5s).
     - Deduplication of Maintenance, Internet, and GitHub fetch logs.
     - IoT protocol warning filtering and debug-mode stats.
-3.  **UI/UX (v33.71)**: Added a premium **Light/Dark Mode** switch with persistence and smooth transitions.
+3.  **UI/UX (v33.71-73)**: 
+    - Added a premium **Light/Dark Mode** switch with persistence.
+    - Migrated `Security`, `Voice`, and `Config` components to semantic theme tokens for better accessibility and visual appeal.
+    - Applied consistent card shadows and refined contrast across all modes.
 4.  **Critical Fixes (v33.69)**: Resolved `TypeError: log2 is not a function` and fixed Docker module resolution errors.
 5.  **Cleanup**: Removed obsolete `voip/convergence_orchestrator.py` and redundant `voip/` directory.
 

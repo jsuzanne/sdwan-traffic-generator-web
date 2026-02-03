@@ -416,20 +416,20 @@ export default function Vyos(props: VyosProps) {
             )}
 
             {/* Header / Nav */}
-            <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-purple-600/20 rounded-xl">
-                            <Shield size={24} className="text-purple-400" />
+                        <div className="p-3 bg-purple-600/10 rounded-xl">
+                            <Shield size={24} className="text-purple-500" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">VyOS Control</h2>
+                            <h2 className="text-2xl font-black text-text-primary uppercase tracking-tight">VyOS Control</h2>
                             <div className="flex items-center gap-4 mt-1">
-                                <button onClick={() => setView('routers')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'routers' ? 'text-blue-400 border-b-2 border-blue-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>Routers</button>
-                                <button onClick={() => setView('sequences')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'sequences' ? 'text-purple-400 border-b-2 border-purple-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>Sequences</button>
-                                <button onClick={() => setView('history')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'history' ? 'text-green-400 border-b-2 border-green-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>History</button>
-                                <button onClick={() => setView('timeline')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'timeline' ? 'text-purple-400 border-b-2 border-purple-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>Timeline</button>
-                                <button onClick={() => setView('metrics')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'metrics' ? 'text-orange-400 border-b-2 border-orange-400 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>Metrics</button>
+                                <button onClick={() => setView('routers')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'routers' ? 'text-blue-500 border-b-2 border-blue-500 pb-1' : 'text-text-muted hover:text-text-secondary'}`}>Routers</button>
+                                <button onClick={() => setView('sequences')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'sequences' ? 'text-purple-500 border-b-2 border-purple-500 pb-1' : 'text-text-muted hover:text-text-secondary'}`}>Sequences</button>
+                                <button onClick={() => setView('history')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'history' ? 'text-green-500 border-b-2 border-green-500 pb-1' : 'text-text-muted hover:text-text-secondary'}`}>History</button>
+                                <button onClick={() => setView('timeline')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'timeline' ? 'text-purple-500 border-b-2 border-purple-500 pb-1' : 'text-text-muted hover:text-text-secondary'}`}>Timeline</button>
+                                <button onClick={() => setView('metrics')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'metrics' ? 'text-orange-500 border-b-2 border-orange-500 pb-1' : 'text-text-muted hover:text-text-secondary'}`}>Metrics</button>
                             </div>
                         </div>
                     </div>
@@ -459,18 +459,18 @@ export default function Vyos(props: VyosProps) {
             {view === 'routers' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-300">
                     {routers.map((router) => (
-                        <div key={router.id} className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden group hover:border-blue-500/30 transition-all flex flex-col shadow-lg">
-                            <div className="p-6 border-b border-slate-800/50 flex items-start justify-between">
+                        <div key={router.id} className="bg-card border border-border rounded-2xl overflow-hidden group hover:border-blue-500/30 transition-all flex flex-col shadow-sm hover:shadow-md">
+                            <div className="p-6 border-b border-border/50 flex items-start justify-between bg-card-secondary/30">
                                 <div className="flex items-center gap-4">
-                                    <div className={`p-3 rounded-xl ${router.status === 'online' ? 'bg-green-500/10' : 'bg-red-500/10'} shadow-sm`}>
-                                        <Server size={22} className={router.status === 'online' ? 'text-green-400' : 'text-red-400'} />
+                                    <div className={`p-3 rounded-xl ${router.status === 'online' ? 'bg-green-500/5' : 'bg-red-500/5'} border border-transparent group-hover:border-border transition-colors`}>
+                                        <Server size={22} className={router.status === 'online' ? 'text-green-500' : 'text-red-500'} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-100 uppercase tracking-tight text-lg">{router.name}</h4>
+                                        <h4 className="font-bold text-text-primary uppercase tracking-tight text-lg">{router.name}</h4>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[10px] text-slate-500 font-mono bg-slate-950 px-1.5 py-0.5 rounded">{router.host}</span>
+                                            <span className="text-[10px] text-text-muted font-mono bg-card-secondary px-1.5 py-0.5 rounded border border-border/50">{router.host}</span>
                                             {router.location && (
-                                                <span className="text-[9px] text-slate-400 font-bold uppercase flex items-center gap-1">
+                                                <span className="text-[9px] text-text-secondary font-bold uppercase flex items-center gap-1">
                                                     <MapPin size={8} /> {router.location}
                                                 </span>
                                             )}
@@ -478,12 +478,12 @@ export default function Vyos(props: VyosProps) {
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
-                                    <div className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${router.status === 'online' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                                    <div className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${router.status === 'online' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'}`}>
                                         {router.status}
                                     </div>
                                     {/* Last Seen Indicator */}
                                     {router.lastSeen && (
-                                        <div className="flex items-center gap-1.5 text-[9px] text-slate-600">
+                                        <div className="flex items-center gap-1.5 text-[9px] text-text-muted">
                                             <Clock size={10} />
                                             <span>
                                                 Checked {Math.floor((Date.now() - router.lastSeen) / 60000)}m ago
@@ -493,34 +493,34 @@ export default function Vyos(props: VyosProps) {
 
                                     {/* Offline Warning */}
                                     {router.status === 'offline' && router.lastSeen && (Date.now() - router.lastSeen) > 300000 && (
-                                        <div className="text-[9px] text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 animate-pulse">
+                                        <div className="text-[9px] text-red-500 dark:text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 animate-pulse">
                                             ⚠️ Offline for {Math.floor((Date.now() - router.lastSeen) / 60000)}m
                                         </div>
                                     )}
-                                    <div className="text-[10px] text-slate-600 font-mono font-bold uppercase transition-opacity">ID: {router.id}</div>
+                                    <div className="text-[10px] text-text-muted font-mono font-bold uppercase">ID: {router.id}</div>
                                 </div>
                             </div>
 
                             <div className="p-6 flex-1 space-y-5">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest pl-1">VyOS Node Info</span>
-                                    <span className="text-[10px] text-slate-300 font-mono bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">v{router.version}</span>
+                                    <span className="text-[10px] text-text-muted uppercase font-black tracking-widest pl-1">VyOS Node Info</span>
+                                    <span className="text-[10px] text-text-secondary font-mono bg-card-secondary px-2 py-0.5 rounded border border-border/50">v{router.version}</span>
                                 </div>
 
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between text-[10px] mb-1">
-                                        <span className="text-slate-500 uppercase font-black tracking-widest pl-1">Network Interfaces</span>
-                                        <span className="text-blue-400 font-black">{router.interfaces.length} DETECTED</span>
+                                        <span className="text-text-muted uppercase font-black tracking-widest pl-1">Network Interfaces</span>
+                                        <span className="text-blue-500 font-black">{router.interfaces.length} DETECTED</span>
                                     </div>
                                     <div className="space-y-2 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar group/list">
                                         {router.interfaces.map((iface) => (
-                                            <div key={iface.name} className="flex flex-col p-3 bg-slate-950/40 border border-slate-800/50 rounded-xl hover:border-blue-500/30 transition-all group/iface">
+                                            <div key={iface.name} className="flex flex-col p-3 bg-card-secondary/50 border border-border/50 rounded-xl hover:border-blue-500/30 transition-all group/iface">
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-[11px] text-slate-100 font-extrabold uppercase tracking-tight">{iface.name}</span>
-                                                    <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">{iface.address?.[0] || 'no-ip'}</span>
+                                                    <span className="text-[11px] text-text-primary font-extrabold uppercase tracking-tight">{iface.name}</span>
+                                                    <span className="text-[10px] text-text-muted font-mono bg-card px-1.5 py-0.5 rounded border border-border/50">{iface.address?.[0] || 'no-ip'}</span>
                                                 </div>
                                                 {iface.description && (
-                                                    <div className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter filter drop-shadow-[0_0_8px_rgba(96,165,250,0.2)]">
+                                                    <div className="text-[10px] text-blue-500 font-bold uppercase tracking-tighter">
                                                         {iface.description}
                                                     </div>
                                                 )}
@@ -530,25 +530,25 @@ export default function Vyos(props: VyosProps) {
                                 </div>
                             </div>
 
-                            <div className="px-6 py-4 bg-slate-950/50 border-t border-slate-800 flex items-center justify-between">
+                            <div className="px-6 py-4 bg-card-secondary/30 border-t border-border/50 flex items-center justify-between">
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => testRouter(router.id)}
-                                        className="p-2 bg-slate-800 hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all border border-slate-700/50"
+                                        className="p-2 bg-card-secondary hover:bg-blue-600/10 text-text-muted hover:text-blue-500 rounded-lg transition-all border border-border/50"
                                         title="Test Connectivity"
                                     >
                                         <Zap size={16} />
                                     </button>
                                     <button
-                                        className="p-2 bg-slate-800 hover:bg-purple-600/20 text-slate-400 hover:text-purple-400 rounded-lg transition-all border border-slate-700/50"
+                                        className="p-2 bg-card-secondary hover:bg-purple-600/10 text-text-muted hover:text-purple-500 rounded-lg transition-all border border-border/50"
                                         title="Refresh Info"
-                                        onClick={() => testRouter(router.id)} // Re-using test for now as it discovery
+                                        onClick={() => testRouter(router.id)}
                                     >
                                         <RefreshCw size={16} />
                                     </button>
                                     <button
                                         onClick={() => editRouter(router)}
-                                        className="p-2 bg-slate-800 hover:bg-orange-600/20 text-slate-400 hover:text-orange-400 rounded-lg transition-all border border-slate-700/50"
+                                        className="p-2 bg-card-secondary hover:bg-orange-600/10 text-text-muted hover:text-orange-500 rounded-lg transition-all border border-border/50"
                                         title="Node Settings"
                                     >
                                         <Settings size={16} />
@@ -556,7 +556,7 @@ export default function Vyos(props: VyosProps) {
                                 </div>
                                 <button
                                     onClick={() => deleteRouter(router.id)}
-                                    className="p-2 text-slate-600 hover:text-red-400 transition-colors"
+                                    className="p-2 text-text-muted/40 hover:text-red-500 transition-colors"
                                     title="Revoke Router"
                                 >
                                     <Trash2 size={16} />
@@ -565,8 +565,8 @@ export default function Vyos(props: VyosProps) {
                         </div>
                     ))}
                     {routers.length === 0 && (
-                        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl text-slate-500">
-                            <Monitor size={64} className="mb-6 opacity-20" />
+                        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-card border border-dashed border-border rounded-3xl text-text-muted shadow-inner">
+                            <Monitor size={64} className="mb-6 opacity-10" />
                             <p className="text-lg font-bold uppercase tracking-[0.2em] opacity-40">Tactical Node Map Empty</p>
                             <p className="text-sm mt-2 opacity-30">Initiate router discovery to begin impairment testing.</p>
                         </div>
@@ -577,18 +577,18 @@ export default function Vyos(props: VyosProps) {
             {view === 'sequences' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-300">
                     {sequences.map((seq) => (
-                        <div key={seq.id} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 hover:border-purple-500/30 transition-all flex flex-col justify-between group shadow-md">
+                        <div key={seq.id} className="bg-card border border-border rounded-xl p-4 hover:border-purple-500/30 transition-all flex flex-col justify-between group shadow-sm hover:shadow-md">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-all shadow-sm">
-                                        <RefreshCw size={24} className="text-purple-400" />
+                                    <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-all">
+                                        <RefreshCw size={24} className="text-purple-500 dark:text-purple-400" />
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-slate-100 uppercase tracking-tighter text-lg">{seq.name}</h4>
+                                        <h4 className="font-black text-text-primary uppercase tracking-tighter text-lg">{seq.name}</h4>
                                         <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{seq.actions.length} ACTIONS</span>
-                                            <div className="w-1 h-1 bg-slate-700 rounded-full" />
-                                            <span className="text-[10px] text-purple-400/70 font-black uppercase tracking-widest flex items-center gap-1">
+                                            <span className="text-[10px] text-text-muted font-black uppercase tracking-widest">{seq.actions.length} ACTIONS</span>
+                                            <div className="w-1 h-1 bg-border rounded-full" />
+                                            <span className="text-[10px] text-purple-600 dark:text-purple-400/70 font-black uppercase tracking-widest flex items-center gap-1">
                                                 <Clock size={10} /> {seq.cycle_duration === 0 ? 'MANUAL' : `${seq.cycle_duration}M CYCLE`}
                                             </span>
                                         </div>
@@ -597,26 +597,26 @@ export default function Vyos(props: VyosProps) {
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => openSeqModal(seq)}
-                                        className="p-2 text-slate-500 hover:text-blue-400 transition-colors bg-slate-800/50 rounded-lg border border-slate-700/50"
+                                        className="p-2 text-text-muted hover:text-blue-500 transition-colors bg-card-secondary rounded-lg border border-border/50"
                                     >
                                         <Layout size={18} />
                                     </button>
                                     <button
                                         onClick={() => deleteSequence(seq.id)}
-                                        className="p-2 text-slate-500 hover:text-red-400 transition-colors bg-slate-800/50 rounded-lg border border-slate-700/50"
+                                        className="p-2 text-text-muted hover:text-red-500 transition-colors bg-card-secondary rounded-lg border border-border/50"
                                     >
                                         <Trash2 size={18} />
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="space-y-2 mb-6 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent pr-1">
+                            <div className="space-y-2 mb-6 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                                 {seq.actions.map((action, i) => (
-                                    <div key={i} className="flex gap-4 items-center text-[10px] bg-slate-950/40 p-2 rounded-lg border border-slate-800/30">
+                                    <div key={i} className="flex gap-4 items-center text-[10px] bg-card-secondary/50 p-2 rounded-lg border border-border/30">
                                         <span className="text-purple-500 font-black w-6 text-center">T+{action.offset_minutes}</span>
-                                        <span className="text-slate-100 font-black uppercase w-28 truncate tracking-tighter">{action.command}</span>
-                                        <span className="text-slate-600"><ChevronRight size={12} /></span>
-                                        <span className="text-slate-400 font-mono text-[9px] truncate">
+                                        <span className="text-text-primary font-black uppercase w-28 truncate tracking-tighter">{action.command}</span>
+                                        <span className="text-text-muted/50"><ChevronRight size={12} /></span>
+                                        <span className="text-text-muted font-mono text-[9px] truncate">
                                             {routers.find(r => r.id === action.router_id)?.name || 'Unknown'} : {action.interface}
                                             {(() => {
                                                 const r = routers.find(r => r.id === action.router_id);
@@ -626,7 +626,7 @@ export default function Vyos(props: VyosProps) {
                                         </span>
                                         {/* Show impairment/firewall parameters */}
                                         {action.parameters && Object.keys(action.parameters).length > 0 && (
-                                            <span className="text-[9px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 ml-auto group-hover:bg-blue-500/20 transition-colors">
+                                            <span className="text-[9px] text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 ml-auto group-hover:bg-blue-500/20 transition-colors">
                                                 {action.command === 'set-qos' && (
                                                     <>
                                                         {action.parameters.latency && `${action.parameters.latency}ms`}
@@ -643,24 +643,24 @@ export default function Vyos(props: VyosProps) {
                                 ))}
                             </div>
 
-                            <div className="flex items-center gap-4 pt-6 border-t border-slate-800/50">
+                            <div className="flex items-center gap-4 pt-6 border-t border-border/50">
                                 <button
                                     onClick={() => runSequence(seq.id)}
                                     disabled={activeExecution !== null}
-                                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black transition-all shadow-lg shadow-purple-900/40 uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
+                                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 shadow-purple-900/40 uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
                                 >
                                     {activeExecution?.sequenceId === seq.id ? 'RUNNING...' : 'EXECUTE...'}
                                 </button>
-                                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${seq.enabled ? 'bg-green-500/5 border-green-500/20' : 'bg-slate-800/10 border-slate-700/20'}`}>
-                                    <div className={`w-2 h-2 rounded-full ${seq.enabled ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`} />
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${seq.enabled ? 'text-green-400' : 'text-slate-500'}`}>{seq.enabled ? 'ACTIVE' : 'IDLE'}</span>
+                                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${seq.enabled ? 'bg-green-500/5 border-green-500/20' : 'bg-card-secondary border-border/50'}`}>
+                                    <div className={`w-2 h-2 rounded-full ${seq.enabled ? 'bg-green-500 animate-pulse' : 'bg-text-muted/30'}`} />
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${seq.enabled ? 'text-green-600 dark:text-green-400' : 'text-text-muted'}`}>{seq.enabled ? 'ACTIVE' : 'IDLE'}</span>
                                 </div>
                             </div>
                         </div>
                     ))}
                     {sequences.length === 0 && (
-                        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl text-slate-500 text-center">
-                            <Terminal size={64} className="mb-6 opacity-20" />
+                        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-card border border-dashed border-border rounded-3xl text-text-muted text-center shadow-inner">
+                            <Terminal size={64} className="mb-6 opacity-10" />
                             <p className="text-lg font-bold uppercase tracking-[0.2em] opacity-40">Impairment Engine Standby</p>
                             <p className="text-sm mt-2 opacity-30 max-w-sm">No action loops programmed. Design a sequence to automate network failure testing.</p>
                         </div>
@@ -671,21 +671,21 @@ export default function Vyos(props: VyosProps) {
             {view === 'history' && (
                 <div className="space-y-4">
                     {/* Tactical Filter Bar */}
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-slate-900/50 border border-slate-800 p-4 rounded-2xl backdrop-blur-md">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-card border border-border p-4 rounded-2xl shadow-sm">
                         <div className="md:col-span-2 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                             <input
                                 type="text"
                                 placeholder="Search Mission, Node, or Command..."
                                 value={historySearch}
                                 onChange={(e) => setHistorySearch(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-green-500/50 font-bold placeholder:text-slate-600 uppercase tracking-tight"
+                                className="w-full bg-card-secondary border border-border rounded-xl pl-9 pr-4 py-2.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-green-500/50 font-bold placeholder:text-text-muted/50 uppercase tracking-tight transition-all"
                             />
                         </div>
                         <select
                             value={historyMissionFilter}
                             onChange={(e) => setHistoryMissionFilter(e.target.value)}
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-300 focus:outline-none font-bold uppercase cursor-pointer"
+                            className="bg-card-secondary border border-border rounded-xl px-4 py-2.5 text-xs text-text-secondary focus:outline-none font-bold uppercase cursor-pointer transition-all hover:border-text-muted/30"
                         >
                             <option value="all">ANY MISSION</option>
                             {[...new Set(history.map(h => h.sequence_name))].map(name => (
@@ -695,7 +695,7 @@ export default function Vyos(props: VyosProps) {
                         <select
                             value={historyNodeFilter}
                             onChange={(e) => setHistoryNodeFilter(e.target.value)}
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-300 focus:outline-none font-bold uppercase cursor-pointer"
+                            className="bg-card-secondary border border-border rounded-xl px-4 py-2.5 text-xs text-text-secondary focus:outline-none font-bold uppercase cursor-pointer transition-all hover:border-text-muted/30"
                         >
                             <option value="all">ANY NODE</option>
                             {[...new Set(history.map(h => h.router_id))].map(id => (
@@ -705,25 +705,25 @@ export default function Vyos(props: VyosProps) {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setIsGrouped(!isGrouped)}
-                                className={`flex-1 px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${isGrouped ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-slate-950 text-slate-500 border-slate-800 hover:border-slate-700'}`}
+                                className={`flex-1 px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${isGrouped ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20' : 'bg-card-secondary text-text-muted border-border hover:border-text-muted/30'}`}
                             >
                                 Group Runs
                             </button>
                         </div>
                     </div>
 
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 shadow-2xl">
+                    <div className="bg-card border border-border rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 shadow-sm">
                         <table className="w-full text-left text-xs border-collapse">
-                            <thead className="bg-slate-950/80 border-b border-slate-800 sticky top-0">
+                            <thead className="bg-card-secondary/80 border-b border-border sticky top-0">
                                 <tr>
-                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Execution Time</th>
-                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Mission Type</th>
-                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Target Node</th>
-                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em]">Objective</th>
-                                    <th className="px-6 py-5 font-black text-slate-500 uppercase tracking-[0.2em] text-center">Verdict</th>
+                                    <th className="px-6 py-5 font-black text-text-muted uppercase tracking-[0.2em]">Execution Time</th>
+                                    <th className="px-6 py-5 font-black text-text-muted uppercase tracking-[0.2em]">Mission Type</th>
+                                    <th className="px-6 py-5 font-black text-text-muted uppercase tracking-[0.2em]">Target Node</th>
+                                    <th className="px-6 py-5 font-black text-text-muted uppercase tracking-[0.2em]">Objective</th>
+                                    <th className="px-6 py-5 font-black text-text-muted uppercase tracking-[0.2em] text-center">Verdict</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800/50">
+                            <tbody className="divide-y divide-border/50">
                                 {(() => {
                                     let filtered = history.filter(log => {
                                         const matchesSearch = !historySearch ||
@@ -752,42 +752,42 @@ export default function Vyos(props: VyosProps) {
 
                                         return groups.map((group, gIdx) => (
                                             <React.Fragment key={gIdx}>
-                                                <tr className="bg-slate-950/40">
-                                                    <td colSpan={5} className="px-6 py-2 border-b border-slate-800/30">
+                                                <tr className="bg-background/40">
+                                                    <td colSpan={5} className="px-6 py-2 border-b border-border/30">
                                                         <div className="flex items-center gap-3">
-                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Run Sequence: {group[0].sequence_name}</span>
-                                                            <div className="h-px flex-1 bg-slate-800/20" />
-                                                            <span className="text-[9px] font-mono text-slate-600">{new Date(group[0].timestamp).toLocaleString()}</span>
+                                                            <span className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em]">Run Sequence: {group[0].sequence_name}</span>
+                                                            <div className="h-px flex-1 bg-border/20" />
+                                                            <span className="text-[9px] font-mono text-text-muted/60">{new Date(group[0].timestamp).toLocaleString()}</span>
                                                         </div>
                                                     </td>
                                                 </tr>
                                                 {group.map((log, idx) => (
-                                                    <tr key={`${gIdx}-${idx}`} className="hover:bg-slate-800/30 transition-colors group">
-                                                        <td className="px-6 py-4 pl-12 border-l-2 border-slate-800/50">
-                                                            <div className="text-slate-400 font-mono font-bold text-xs tracking-tight">{new Date(log.timestamp).toLocaleTimeString()}</div>
+                                                    <tr key={`${gIdx}-${idx}`} className="hover:bg-card-secondary/30 transition-colors group">
+                                                        <td className="px-6 py-4 pl-12 border-l-2 border-border/50">
+                                                            <div className="text-text-muted font-mono font-bold text-xs tracking-tight">{new Date(log.timestamp).toLocaleTimeString()}</div>
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center gap-3 opacity-60">
-                                                                <div className="p-1 px-2 bg-slate-800 rounded font-black text-[9px] uppercase tracking-tighter text-slate-400">Step {idx + 1}</div>
+                                                                <div className="p-1 px-2 bg-card-secondary rounded font-black text-[9px] uppercase tracking-tighter text-text-muted">Step {idx + 1}</div>
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <div className="flex flex-col">
-                                                                <span className="text-slate-300 font-bold uppercase text-[10px]">{log.router_id}</span>
-                                                                <span className="text-[9px] text-slate-600 font-mono">{log.interface || 'global'}</span>
+                                                                <span className="text-text-secondary font-bold uppercase text-[10px]">{log.router_id}</span>
+                                                                <span className="text-[9px] text-text-muted/60 font-mono">{log.interface || 'global'}</span>
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-300 font-black uppercase text-[9px] tracking-widest">{log.command}</span>
+                                                                <span className="px-2 py-0.5 bg-card-secondary rounded text-text-secondary font-black uppercase text-[9px] tracking-widest border border-border/50">{log.command}</span>
                                                                 {log.parameters && Object.keys(log.parameters).length > 0 && (
-                                                                    <span className="text-[9px] text-slate-500 font-mono italic">({JSON.stringify(log.parameters)})</span>
+                                                                    <span className="text-[9px] text-text-muted font-mono italic">({JSON.stringify(log.parameters)})</span>
                                                                 )}
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             <div className="flex justify-center">
-                                                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${log.status === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${log.status === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'}`}>
                                                                     {log.status === 'success' ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
                                                                     {log.status}
                                                                 </div>
@@ -800,36 +800,36 @@ export default function Vyos(props: VyosProps) {
                                     }
 
                                     return filtered.map((log, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-800/30 transition-colors group">
+                                        <tr key={idx} className="hover:bg-card-secondary transition-colors group">
                                             <td className="px-6 py-5">
-                                                <div className="text-slate-100 font-mono font-bold text-sm tracking-tight">{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
-                                                <div className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mt-1">{new Date(log.timestamp).toLocaleDateString()}</div>
+                                                <div className="text-text-primary font-mono font-bold text-sm tracking-tight">{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                                                <div className="text-[9px] text-text-muted font-black uppercase tracking-tighter mt-1">{new Date(log.timestamp).toLocaleDateString()}</div>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-3">
                                                     <div className="p-1.5 bg-purple-500/10 rounded-lg">
-                                                        <Zap size={14} className="text-purple-400" />
+                                                        <Zap size={14} className="text-purple-500" />
                                                     </div>
-                                                    <span className="text-slate-200 font-black uppercase tracking-tight">{log.sequence_name}</span>
+                                                    <span className="text-text-primary font-black uppercase tracking-tight">{log.sequence_name}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-col">
-                                                    <span className="text-slate-300 font-bold uppercase text-[10px]">{log.router_id}</span>
-                                                    <span className="text-[9px] text-slate-600 font-mono">{log.interface || 'global'}</span>
+                                                    <span className="text-text-secondary font-bold uppercase text-[10px]">{log.router_id}</span>
+                                                    <span className="text-[9px] text-text-muted/60 font-mono">{log.interface || 'global'}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-300 font-black uppercase text-[9px] tracking-widest">{log.command}</span>
+                                                    <span className="px-2 py-0.5 bg-card-secondary rounded text-text-secondary font-black uppercase text-[9px] tracking-widest border border-border/50">{log.command}</span>
                                                     {log.parameters && Object.keys(log.parameters).length > 0 && (
-                                                        <span className="text-[9px] text-slate-500 font-mono italic">({JSON.stringify(log.parameters)})</span>
+                                                        <span className="text-[9px] text-text-muted font-mono italic">({JSON.stringify(log.parameters)})</span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5 text-center">
                                                 <div className="flex justify-center">
-                                                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${log.status === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${log.status === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'}`}>
                                                         {log.status === 'success' ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
                                                         {log.status}
                                                     </div>
@@ -842,8 +842,8 @@ export default function Vyos(props: VyosProps) {
                                     <tr>
                                         <td colSpan={5} className="px-6 py-28 text-center">
                                             <div className="flex flex-col items-center gap-4 opacity-10">
-                                                <Clock size={64} className="text-slate-400" />
-                                                <span className="text-lg font-black uppercase tracking-[0.4em] text-slate-400">Chronicle Database Empty</span>
+                                                <Clock size={64} className="text-text-muted" />
+                                                <span className="text-lg font-black uppercase tracking-[0.4em] text-text-muted">Chronicle Database Empty</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -866,8 +866,8 @@ export default function Vyos(props: VyosProps) {
                         ))}
 
                         {sequences.filter(s => s.enabled).length === 0 && (
-                            <div className="py-20 flex flex-col items-center justify-center bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl text-slate-500">
-                                <Activity size={64} className="mb-6 opacity-20" />
+                            <div className="py-20 flex flex-col items-center justify-center bg-card border border-dashed border-border rounded-3xl text-text-muted shadow-inner">
+                                <Activity size={64} className="mb-6 opacity-10" />
                                 <p className="text-lg font-bold uppercase tracking-wider opacity-40">No Active Sequences</p>
                                 <p className="text-sm mt-2 opacity-30">Enable a sequence to see its execution timeline.</p>
                             </div>
@@ -881,24 +881,24 @@ export default function Vyos(props: VyosProps) {
 
             {view === 'metrics' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in zoom-in-95 duration-300">
-                    <MetricCard title="Total Executions" value={metrics.total} icon={<Activity className="text-blue-400" />} />
-                    <MetricCard title="Success Rate" value={`${metrics.successRate}%`} icon={<CheckCircle className="text-green-400" />} />
-                    <MetricCard title="Last 24 Hours" value={metrics.last24h} icon={<Clock className="text-purple-400" />} />
-                    <MetricCard title="Active Sequences" value={metrics.activeSequences} icon={<Zap className="text-yellow-400" />} />
-                    <MetricCard title="Failed (1h)" value={metrics.failedLastHour} icon={<XCircle className="text-red-400" />} />
-                    <MetricCard title="Top Router" value={metrics.mostUsedRouter} icon={<Server className="text-orange-400" />} />
+                    <MetricCard title="Total Executions" value={metrics.total} icon={<Activity size={24} className="text-blue-500" />} />
+                    <MetricCard title="Success Rate" value={`${metrics.successRate}%`} icon={<CheckCircle size={24} className="text-green-500" />} />
+                    <MetricCard title="Last 24 Hours" value={metrics.last24h} icon={<Clock size={24} className="text-purple-500" />} />
+                    <MetricCard title="Active Sequences" value={metrics.activeSequences} icon={<Zap size={24} className="text-yellow-500" />} />
+                    <MetricCard title="Failed (1h)" value={metrics.failedLastHour} icon={<XCircle size={24} className="text-red-500" />} />
+                    <MetricCard title="Top Router" value={metrics.mostUsedRouter} icon={<Server size={24} className="text-orange-500" />} />
                 </div>
             )}
 
             {/* Router Discovery Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 sticky top-0 z-10">
-                            <h3 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
-                                <Globe size={28} className="text-blue-400" /> Tactical Node Discovery
+                    <div className="bg-card border border-border w-full max-w-xl rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-8 border-b border-border flex items-center justify-between bg-card/80 sticky top-0 z-10">
+                            <h3 className="text-2xl font-black text-text-primary flex items-center gap-3 uppercase tracking-tighter">
+                                <Globe size={28} className="text-blue-500" /> Tactical Node Discovery
                             </h3>
-                            <button onClick={() => { setShowAddModal(false); resetDiscovery(); }} className="text-slate-500 hover:text-white transition-all bg-slate-800/50 p-2 rounded-full">
+                            <button onClick={() => { setShowAddModal(false); resetDiscovery(); }} className="text-text-muted hover:text-text-primary transition-all bg-card-secondary p-2 rounded-full border border-border/50">
                                 <XCircle size={24} />
                             </button>
                         </div>
@@ -908,7 +908,7 @@ export default function Vyos(props: VyosProps) {
                                 <>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                                            <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
                                                 <ExternalLink size={10} /> Node IPv4 Address
                                             </label>
                                             <input
@@ -916,11 +916,11 @@ export default function Vyos(props: VyosProps) {
                                                 placeholder="e.g. 192.168.122.64"
                                                 value={discoveryHost}
                                                 onChange={(e) => setDiscoveryHost(e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono text-sm shadow-inner transition-all"
+                                                className="w-full bg-card-secondary border border-border rounded-xl px-5 py-4 text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono text-sm shadow-inner transition-all"
                                             />
                                         </div>
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                                            <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
                                                 <Zap size={10} /> HTTPS API Key
                                             </label>
                                             <input
@@ -928,13 +928,13 @@ export default function Vyos(props: VyosProps) {
                                                 placeholder="VyOS Secret Radius"
                                                 value={discoveryKey}
                                                 onChange={(e) => setDiscoveryKey(e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono text-sm shadow-inner transition-all"
+                                                className="w-full bg-card-secondary border border-border rounded-xl px-5 py-4 text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono text-sm shadow-inner transition-all"
                                             />
                                         </div>
                                     </div>
 
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                                        <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
                                             <MapPin size={10} /> Physical Location (Optional)
                                         </label>
                                         <input
@@ -942,12 +942,12 @@ export default function Vyos(props: VyosProps) {
                                             placeholder="e.g. Paris Edge-Point A"
                                             value={discoveryLocation}
                                             onChange={(e) => setDiscoveryLocation(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 uppercase tracking-tight font-black text-xs"
+                                            className="w-full bg-card-secondary border border-border rounded-xl px-5 py-4 text-text-primary focus:outline-none focus:ring-1 focus:ring-blue-500/50 uppercase tracking-tight font-black text-xs transition-all"
                                         />
                                     </div>
 
                                     {error && (
-                                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4 text-red-400 text-xs font-black uppercase tracking-tight animate-pulse shadow-sm">
+                                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-tight animate-pulse shadow-sm">
                                             <AlertCircle size={20} />
                                             {error}
                                         </div>
@@ -955,8 +955,8 @@ export default function Vyos(props: VyosProps) {
 
                                     <div className="p-6 bg-blue-600/5 border border-blue-500/20 rounded-2xl">
                                         <div className="flex items-start gap-4">
-                                            <Info size={20} className="text-blue-400 shrink-0 mt-0.5" />
-                                            <p className="text-[10px] leading-relaxed text-slate-400 font-medium"> Discovery will execute <code className="text-blue-300 bg-blue-900/30 px-1 py-0.5 rounded">get-info</code> via the VyOS controller script to extract hardware, software, and interface metadata. Ensure the HTTPS API is enabled on the target router.</p>
+                                            <Info size={20} className="text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] leading-relaxed text-text-muted font-medium"> Discovery will execute <code className="text-blue-600 dark:text-blue-300 bg-blue-500/10 dark:bg-blue-900/30 px-1 py-0.5 rounded">get-info</code> via the VyOS controller script to extract hardware, software, and interface metadata. Ensure the HTTPS API is enabled on the target router.</p>
                                         </div>
                                     </div>
                                 </>
@@ -968,45 +968,45 @@ export default function Vyos(props: VyosProps) {
                                         </div>
                                         <div className="flex items-center gap-4 mb-8">
                                             <div className="p-3 bg-green-500/20 rounded-2xl border border-green-500/30">
-                                                <Server size={32} className="text-green-400" />
+                                                <Server size={32} className="text-green-600 dark:text-green-400" />
                                             </div>
                                             <div>
-                                                <h4 className="text-2xl font-black text-white uppercase tracking-tighter">{discoveryResult.name}</h4>
+                                                <h4 className="text-2xl font-black text-text-primary uppercase tracking-tighter">{discoveryResult.name}</h4>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-xs text-green-400 font-black tracking-widest uppercase">Verified Connection</span>
-                                                    <div className="w-1 h-1 bg-green-900 rounded-full" />
-                                                    <span className="text-xs text-slate-500 font-mono bg-slate-950/50 px-2 py-0.5 rounded">ID: {discoveryResult.id}</span>
+                                                    <span className="text-xs text-green-600 dark:text-green-400 font-black tracking-widest uppercase">Verified Connection</span>
+                                                    <div className="w-1 h-1 bg-green-900 dark:bg-green-700 rounded-full" />
+                                                    <span className="text-xs text-text-secondary font-mono bg-card-secondary px-2 py-0.5 rounded border border-border/50">ID: {discoveryResult.id}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-8 relative z-10">
-                                            <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50">
-                                                <span className="text-[10px] text-slate-500 block uppercase font-black tracking-[0.2em] mb-2">Hardware Node</span>
-                                                <span className="text-slate-100 font-black uppercase text-sm tracking-tight">{discoveryResult.host}</span>
+                                            <div className="bg-card-secondary/50 p-5 rounded-2xl border border-border/50">
+                                                <span className="text-[10px] text-text-muted block uppercase font-black tracking-[0.2em] mb-2">Hardware Node</span>
+                                                <span className="text-text-primary font-black uppercase text-sm tracking-tight">{discoveryResult.host}</span>
                                             </div>
-                                            <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50">
-                                                <span className="text-[10px] text-slate-500 block uppercase font-black tracking-[0.2em] mb-2">VyOS Kernel</span>
-                                                <span className="text-slate-100 font-black uppercase text-sm tracking-tight">Version {discoveryResult.version}</span>
+                                            <div className="bg-card-secondary/50 p-5 rounded-2xl border border-border/50">
+                                                <span className="text-[10px] text-text-muted block uppercase font-black tracking-[0.2em] mb-2">VyOS Kernel</span>
+                                                <span className="text-text-primary font-black uppercase text-sm tracking-tight">Version {discoveryResult.version}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between px-1">
-                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Extracted Interfaces</span>
-                                            <span className="text-[11px] font-black text-blue-400">{discoveryResult.interfaces?.length} PATHS FOUND</span>
+                                            <span className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em]">Extracted Interfaces</span>
+                                            <span className="text-[11px] font-black text-blue-500">{discoveryResult.interfaces?.length} PATHS FOUND</span>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {discoveryResult.interfaces?.map(iface => (
-                                                <div key={iface.name} className="flex flex-col p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-blue-500/20 transition-all">
+                                                <div key={iface.name} className="flex flex-col p-4 bg-card-secondary/50 rounded-2xl border border-border/50 hover:border-blue-500/20 transition-all">
                                                     <div className="flex items-center justify-between mb-2">
-                                                        <span className="font-black text-slate-200 uppercase tracking-tighter text-sm">{iface.name}</span>
-                                                        <Wifi size={14} className="text-slate-700" />
+                                                        <span className="font-black text-text-primary uppercase tracking-tighter text-sm">{iface.name}</span>
+                                                        <Wifi size={14} className="text-text-muted/30" />
                                                     </div>
-                                                    <div className="text-[10px] text-slate-500 font-mono bg-slate-900/50 px-2 py-1 rounded inline-block w-fit mb-2">{iface.address?.[0] || 'DHCP/NO-IP'}</div>
+                                                    <div className="text-[10px] text-text-muted font-mono bg-card px-2 py-1 rounded inline-block w-fit mb-2 border border-border/50">{iface.address?.[0] || 'DHCP/NO-IP'}</div>
                                                     {iface.description && (
-                                                        <div className="text-[9px] text-slate-500 font-medium bg-blue-500/5 p-2 rounded-lg italic">"{iface.description}"</div>
+                                                        <div className="text-[9px] text-blue-600 dark:text-blue-400 font-medium bg-blue-500/5 p-2 rounded-lg italic">"{iface.description}"</div>
                                                     )}
                                                 </div>
                                             ))}
@@ -1016,10 +1016,10 @@ export default function Vyos(props: VyosProps) {
                             )}
                         </div>
 
-                        <div className="p-8 border-t border-slate-800 bg-slate-900/80 backdrop-blur-md flex gap-4 sticky bottom-0">
+                        <div className="p-8 border-t border-border bg-card/80 backdrop-blur-md flex gap-4 sticky bottom-0">
                             <button
                                 onClick={() => { setShowAddModal(false); resetDiscovery(); }}
-                                className="flex-1 px-6 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-black transition-all text-xs uppercase tracking-[0.3em] border border-slate-700/50 shadow-inner"
+                                className="flex-1 px-6 py-4 rounded-2xl bg-card-secondary hover:bg-card-hover text-text-muted font-black transition-all text-xs uppercase tracking-[0.3em] border border-border/50 shadow-inner"
                             >
                                 ABORT
                             </button>
@@ -1047,13 +1047,13 @@ export default function Vyos(props: VyosProps) {
             {/* Sequence Builder Modal */}
             {showSeqModal && editingSeq && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-                        <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 backdrop-blur-md sticky top-0 z-10">
-                            <h3 className="text-2xl font-black text-white flex items-center gap-4 uppercase tracking-tighter">
-                                <Activity size={28} className="text-purple-400" />
+                    <div className="bg-card border border-border w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+                        <div className="p-8 border-b border-border flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-10">
+                            <h3 className="text-2xl font-black text-text-primary flex items-center gap-4 uppercase tracking-tighter">
+                                <Activity size={28} className="text-purple-500" />
                                 {editingSeq.id ? 'Mission Parameters' : 'Blueprint Mission'}
                             </h3>
-                            <button onClick={() => setShowSeqModal(false)} className="text-slate-500 hover:text-white transition-all bg-slate-800/50 p-2 rounded-full">
+                            <button onClick={() => setShowSeqModal(false)} className="text-text-muted hover:text-text-primary transition-all bg-card-secondary p-2 rounded-full border border-border/50">
                                 <XCircle size={24} />
                             </button>
                         </div>
@@ -1061,17 +1061,17 @@ export default function Vyos(props: VyosProps) {
                         <div className="p-8 overflow-y-auto flex-1 space-y-8 custom-scrollbar">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] pl-1">Mission Identifier</label>
+                                    <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] pl-1">Mission Identifier</label>
                                     <input
                                         type="text"
                                         value={editingSeq.name}
                                         onChange={(e) => setEditingSeq({ ...editingSeq, name: e.target.value })}
                                         placeholder="e.g. AWS-CONVERGENCE-STRESS"
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-black uppercase tracking-tight text-sm shadow-inner transition-all"
+                                        className="w-full bg-card-secondary border border-border rounded-2xl px-5 py-4 text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-black uppercase tracking-tight text-sm shadow-inner transition-all"
                                     />
                                 </div>
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] pl-1">Cycle duration (Min)</label>
+                                    <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] pl-1">Cycle duration (Min)</label>
                                     <select
                                         value={editingSeq.cycle_duration}
                                         onChange={(e) => {
@@ -1083,7 +1083,7 @@ export default function Vyos(props: VyosProps) {
                                             }));
                                             setEditingSeq({ ...editingSeq, cycle_duration: val, actions: updatedActions });
                                         }}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-black uppercase tracking-tight text-sm appearance-none cursor-pointer shadow-inner"
+                                        className="w-full bg-card-secondary border border-border rounded-2xl px-5 py-4 text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-black uppercase tracking-tight text-sm appearance-none cursor-pointer shadow-inner transition-all"
                                     >
                                         <option value={0}>Manual Trigger Only</option>
                                         <option value={10}>10 Minute Cycle</option>
@@ -1096,10 +1096,10 @@ export default function Vyos(props: VyosProps) {
                             </div>
 
                             <div className="space-y-6">
-                                <div className="flex items-center justify-between bg-purple-600/5 p-4 rounded-2xl border border-purple-500/10">
+                                <div className="flex items-center justify-between bg-purple-600/5 p-4 rounded-2xl border border-purple-500/20 shadow-sm">
                                     <div className="flex flex-col">
-                                        <h4 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.3em]">Operational Flow</h4>
-                                        <span className="text-[10px] text-slate-600 font-bold">ACTIONS WILL TRIGGER AT DEFINED OFFSETS WITHIN THE CYCLE</span>
+                                        <h4 className="text-[11px] font-black text-text-primary uppercase tracking-[0.3em]">Operational Flow</h4>
+                                        <span className="text-[10px] text-text-muted font-bold uppercase">ACTIONS WILL TRIGGER AT DEFINED OFFSETS WITHIN THE CYCLE</span>
                                     </div>
                                     <button
                                         onClick={() => {
@@ -1118,13 +1118,13 @@ export default function Vyos(props: VyosProps) {
 
                                 <div className="space-y-6">
                                     {editingSeq.actions.map((action, idx) => (
-                                        <div key={idx} className="bg-slate-950/80 border border-slate-800 rounded-2xl p-6 space-y-6 group relative overflow-hidden animate-in slide-in-from-left-6 duration-300">
-                                            <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-500/20 group-hover:bg-purple-500/60 transition-all" />
+                                        <div key={idx} className="bg-card-secondary/50 border border-border rounded-2xl p-6 space-y-6 group relative overflow-hidden animate-in slide-in-from-left-6 duration-300 shadow-sm">
+                                            <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-500/20 group-hover:bg-purple-500/40 transition-all" />
 
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-6">
-                                                    <div className="flex flex-col items-center justify-center p-3 bg-slate-900 rounded-xl border border-slate-800 shadow-sm">
-                                                        <span className="text-[8px] text-slate-500 font-black uppercase tracking-tighter mb-0.5">T+ (Min)</span>
+                                                    <div className="flex flex-col items-center justify-center p-3 bg-card rounded-xl border border-border shadow-sm">
+                                                        <span className="text-[8px] text-text-muted font-black uppercase tracking-tighter mb-0.5">T+ (Min)</span>
                                                         <input
                                                             type="number"
                                                             value={action.offset_minutes}
@@ -1143,7 +1143,7 @@ export default function Vyos(props: VyosProps) {
                                                             newActions[idx].command = e.target.value;
                                                             setEditingSeq({ ...editingSeq, actions: newActions });
                                                         }}
-                                                        className="bg-transparent border-none text-slate-100 font-black uppercase text-base focus:ring-0 cursor-pointer hover:text-purple-400 transition-colors shadow-none outline-none appearance-none tracking-tighter"
+                                                        className="bg-transparent border-none text-text-primary font-black uppercase text-base focus:ring-0 cursor-pointer hover:text-purple-500 transition-colors shadow-none outline-none appearance-none tracking-tighter"
                                                     >
                                                         <option value="interface-down">Shut</option>
                                                         <option value="interface-up">No Shut</option>
@@ -1161,7 +1161,7 @@ export default function Vyos(props: VyosProps) {
                                                         const newActions = editingSeq.actions.filter((_, i) => i !== idx);
                                                         setEditingSeq({ ...editingSeq, actions: newActions });
                                                     }}
-                                                    className="p-2.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
+                                                    className="p-2.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20"
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
@@ -1169,7 +1169,7 @@ export default function Vyos(props: VyosProps) {
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                                 <div className="space-y-1.5">
-                                                    <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Server size={8} /> Target Node</label>
+                                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest pl-1 flex items-center gap-1.5"><Server size={8} /> Target Node</label>
                                                     <select
                                                         value={action.router_id}
                                                         onChange={(e) => {
@@ -1181,7 +1181,7 @@ export default function Vyos(props: VyosProps) {
                                                             }
                                                             setEditingSeq({ ...editingSeq, actions: newActions });
                                                         }}
-                                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black uppercase appearance-none cursor-pointer"
+                                                        className="w-full bg-card border border-border rounded-xl px-4 py-3 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black uppercase appearance-none cursor-pointer transition-all"
                                                     >
                                                         {routers.map(r => <option key={r.id} value={r.id}>{r.name} ({r.host})</option>)}
                                                     </select>
@@ -1189,7 +1189,7 @@ export default function Vyos(props: VyosProps) {
 
                                                 {true && (
                                                     <div className="space-y-1.5">
-                                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Wifi size={8} /> Interface Path</label>
+                                                        <label className="text-[9px] font-black text-text-muted uppercase tracking-widest pl-1 flex items-center gap-1.5"><Wifi size={8} /> Interface Path</label>
                                                         <select
                                                             value={action.interface}
                                                             onChange={(e) => {
@@ -1197,7 +1197,7 @@ export default function Vyos(props: VyosProps) {
                                                                 newActions[idx].interface = e.target.value;
                                                                 setEditingSeq({ ...editingSeq, actions: newActions });
                                                             }}
-                                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black uppercase appearance-none cursor-pointer"
+                                                            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black uppercase appearance-none cursor-pointer transition-all"
                                                         >
                                                             {(routers.find(r => r.id === action.router_id)?.interfaces || []).map(iface => (
                                                                 <option key={iface.name} value={iface.name} title={iface.description || undefined}>{iface.name} {iface.description ? `- ${iface.description}` : ''}</option>
@@ -1209,7 +1209,7 @@ export default function Vyos(props: VyosProps) {
                                                 {action.command === 'set-qos' && (
                                                     <>
                                                         <div className="space-y-1.5">
-                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Latency (ms)</label>
+                                                            <label className="text-[9px] font-black text-text-muted uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Latency (ms)</label>
                                                             <input
                                                                 type="number"
                                                                 value={action.parameters?.latency || 0}
@@ -1218,11 +1218,11 @@ export default function Vyos(props: VyosProps) {
                                                                     newActions[idx].parameters = { ...newActions[idx].parameters, latency: parseInt(e.target.value) };
                                                                     setEditingSeq({ ...editingSeq, actions: newActions });
                                                                 }}
-                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                                className="w-full bg-card border border-border rounded-xl px-4 py-3 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner transition-all"
                                                             />
                                                         </div>
                                                         <div className="space-y-1.5">
-                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Loss (%)</label>
+                                                            <label className="text-[9px] font-black text-text-muted uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Loss (%)</label>
                                                             <input
                                                                 type="number"
                                                                 value={action.parameters?.loss || 0}
@@ -1231,11 +1231,11 @@ export default function Vyos(props: VyosProps) {
                                                                     newActions[idx].parameters = { ...newActions[idx].parameters, loss: parseInt(e.target.value) };
                                                                     setEditingSeq({ ...editingSeq, actions: newActions });
                                                                 }}
-                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                                className="w-full bg-card border border-border rounded-xl px-4 py-3 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner transition-all"
                                                             />
                                                         </div>
                                                         <div className="space-y-1.5">
-                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Rate (e.g. 10mbit)</label>
+                                                            <label className="text-[9px] font-black text-text-muted uppercase tracking-widest pl-1 flex items-center gap-1.5"><Activity size={8} /> Rate (e.g. 10mbit)</label>
                                                             <input
                                                                 type="text"
                                                                 value={action.parameters?.rate || ''}
@@ -1244,7 +1244,7 @@ export default function Vyos(props: VyosProps) {
                                                                     newActions[idx].parameters = { ...newActions[idx].parameters, rate: e.target.value };
                                                                     setEditingSeq({ ...editingSeq, actions: newActions });
                                                                 }}
-                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                                className="w-full bg-card border border-border rounded-xl px-4 py-3 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner transition-all"
                                                             />
                                                         </div>
                                                     </>
@@ -1254,8 +1254,8 @@ export default function Vyos(props: VyosProps) {
                                                 {action.command === 'deny-traffic' && (
                                                     <div className="space-y-3">
                                                         <div>
-                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5">
-                                                                IP Address or Subnet (CIDR) <span className="text-red-400">*</span>
+                                                            <label className="text-[9px] font-black text-text-muted uppercase tracking-widest pl-1 flex items-center gap-1.5">
+                                                                IP Address or Subnet (CIDR) <span className="text-red-500">*</span>
                                                             </label>
                                                             <input
                                                                 type="text"
@@ -1266,9 +1266,9 @@ export default function Vyos(props: VyosProps) {
                                                                     newActions[idx].parameters = { ...newActions[idx].parameters, ip: e.target.value };
                                                                     setEditingSeq({ ...editingSeq, actions: newActions });
                                                                 }}
-                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                                className="w-full bg-card border border-border rounded-xl px-4 py-3 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner transition-all"
                                                             />
-                                                            <p className="text-[8px] text-slate-500 mt-1 uppercase font-bold">
+                                                            <p className="text-[8px] text-text-muted mt-1 uppercase font-bold">
                                                                 Use /32 for single IP, /24 for subnet
                                                             </p>
                                                         </div>
@@ -1283,9 +1283,9 @@ export default function Vyos(props: VyosProps) {
                                                                     newActions[idx].parameters = { ...newActions[idx].parameters, force: e.target.checked };
                                                                     setEditingSeq({ ...editingSeq, actions: newActions });
                                                                 }}
-                                                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500/20"
+                                                                className="w-4 h-4 rounded border-border bg-card-secondary text-amber-500 focus:ring-amber-500/20"
                                                             />
-                                                            <label htmlFor={`force-${idx}`} className="text-[10px] text-amber-400 font-bold uppercase">
+                                                            <label htmlFor={`force-${idx}`} className="text-[10px] text-amber-500 dark:text-amber-400 font-bold uppercase">
                                                                 ⚠️ Override existing rules
                                                             </label>
                                                         </div>
@@ -1296,8 +1296,8 @@ export default function Vyos(props: VyosProps) {
                                                 {action.command === 'allow-traffic' && (
                                                     <div className="space-y-3">
                                                         <div>
-                                                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest pl-1 flex items-center gap-1.5">
-                                                                IP Address or Subnet to Allow <span className="text-red-400">*</span>
+                                                            <label className="text-[9px] font-black text-text-muted uppercase tracking-widest pl-1 flex items-center gap-1.5">
+                                                                IP Address or Subnet to Allow <span className="text-red-500">*</span>
                                                             </label>
                                                             <input
                                                                 type="text"
@@ -1308,7 +1308,7 @@ export default function Vyos(props: VyosProps) {
                                                                     newActions[idx].parameters = { ...newActions[idx].parameters, ip: e.target.value };
                                                                     setEditingSeq({ ...editingSeq, actions: newActions });
                                                                 }}
-                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner"
+                                                                className="w-full bg-card border border-border rounded-xl px-4 py-3 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner transition-all"
                                                             />
                                                         </div>
                                                     </div>
@@ -1326,21 +1326,21 @@ export default function Vyos(props: VyosProps) {
                                         </div>
                                     ))}
                                     {editingSeq.actions.length === 0 && (
-                                        <div className="py-20 text-center bg-slate-950/40 border border-dashed border-slate-800 rounded-[2.5rem] flex flex-col items-center gap-4">
-                                            <div className="p-4 bg-slate-900 rounded-full border border-slate-800/50">
-                                                <Cpu size={40} className="text-slate-800" />
+                                        <div className="py-20 text-center bg-card-secondary/30 border border-dashed border-border rounded-[2.5rem] flex flex-col items-center gap-4 shadow-inner">
+                                            <div className="p-4 bg-card rounded-full border border-border/50">
+                                                <Cpu size={40} className="text-text-muted/20" />
                                             </div>
-                                            <span className="text-[11px] font-black text-slate-600 uppercase tracking-[0.4em]">Engine Logic Empty</span>
+                                            <span className="text-[11px] font-black text-text-muted uppercase tracking-[0.4em]">Engine Logic Empty</span>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-8 border-t border-slate-800 bg-slate-950/80 backdrop-blur-md rounded-b-3xl flex gap-4 sticky bottom-0 z-10">
+                        <div className="p-8 border-t border-border bg-card/80 backdrop-blur-md rounded-b-3xl flex gap-4 sticky bottom-0 z-10">
                             <button
                                 onClick={() => setShowSeqModal(false)}
-                                className="flex-1 px-6 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-black transition-all text-xs uppercase tracking-[0.3em] border border-slate-700/50 shadow-inner"
+                                className="flex-1 px-6 py-4 rounded-2xl bg-card-secondary hover:bg-card-hover text-text-muted font-black transition-all text-xs uppercase tracking-[0.3em] border border-border/50 shadow-inner"
                             >
                                 DISCARD
                             </button>
@@ -1349,7 +1349,7 @@ export default function Vyos(props: VyosProps) {
                                 disabled={!editingSeq.name || editingSeq.actions.length === 0}
                                 className="flex-2 px-10 py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black transition-all shadow-xl shadow-purple-900/40 text-xs uppercase tracking-[0.3em] disabled:opacity-20 flex items-center justify-center gap-3 active:scale-95"
                             >
-                                <CheckCircle size={20} /> AUTHORIZE BLUEPRINT
+                                <CheckCircle size={20} /> SASE
                             </button>
                         </div>
                     </div>
@@ -1358,12 +1358,12 @@ export default function Vyos(props: VyosProps) {
             {/* Router Edit Modal */}
             {showEditRouterModal && editingRouter && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
-                        <div className="p-8 border-b border-slate-800 flex items-center justify-between">
-                            <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
-                                <Settings size={24} className="text-orange-400" /> Node Parameters: {editingRouter.name}
+                    <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
+                        <div className="p-8 border-b border-border flex items-center justify-between">
+                            <h3 className="text-xl font-black text-text-primary flex items-center gap-3 uppercase tracking-tighter">
+                                <Settings size={24} className="text-orange-500" /> Node Parameters: {editingRouter.name}
                             </h3>
-                            <button onClick={() => setShowEditRouterModal(false)} className="text-slate-500 hover:text-white transition-all bg-slate-800/50 p-1.5 rounded-full">
+                            <button onClick={() => setShowEditRouterModal(false)} className="text-text-muted hover:text-text-primary transition-all bg-card-secondary p-1.5 rounded-full border border-border/50">
                                 <XCircle size={20} />
                             </button>
                         </div>
@@ -1371,41 +1371,41 @@ export default function Vyos(props: VyosProps) {
                         <div className="p-8 space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5 opacity-50">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Router ID</label>
-                                    <input value={editingRouter.id} disabled className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-mono" />
+                                    <label className="text-[10px] font-black text-text-muted uppercase tracking-widest pl-1">Router ID</label>
+                                    <input value={editingRouter.id} disabled className="w-full bg-card-secondary/50 border border-border rounded-xl px-4 py-3 text-xs font-mono text-text-primary" />
                                 </div>
                                 <div className="space-y-1.5 opacity-50">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">IP Address</label>
-                                    <input value={editingRouter.host} disabled className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-mono" />
+                                    <label className="text-[10px] font-black text-text-muted uppercase tracking-widest pl-1">IP Address</label>
+                                    <input value={editingRouter.host} disabled className="w-full bg-card-secondary/50 border border-border rounded-xl px-4 py-3 text-xs font-mono text-text-primary" />
                                 </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Tactical Location</label>
+                                <label className="text-[10px] font-black text-text-muted uppercase tracking-widest pl-1">Tactical Location</label>
                                 <input
                                     type="text"
                                     value={editingRouter.location || ''}
                                     onChange={(e) => setEditingRouter({ ...editingRouter, location: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm font-black text-slate-100 uppercase tracking-tight focus:ring-1 focus:ring-orange-500/50 outline-none"
+                                    className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-sm font-black text-text-primary uppercase tracking-tight focus:ring-1 focus:ring-orange-500/50 outline-none transition-all shadow-inner"
                                 />
                             </div>
 
-                            <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-xl border border-slate-800">
+                            <div className="flex items-center justify-between p-4 bg-card-secondary/50 rounded-xl border border-border">
                                 <div>
-                                    <h4 className="text-xs font-black text-slate-200 uppercase tracking-widest">Node Power State</h4>
-                                    <p className="text-[10px] text-slate-600 uppercase font-bold">ENABLE/DISABLE AUTOMATED IMPAIRMENT TARGETING</p>
+                                    <h4 className="text-xs font-black text-text-primary uppercase tracking-widest">Node Power State</h4>
+                                    <p className="text-[10px] text-text-muted uppercase font-bold">ENABLE/DISABLE AUTOMATED IMPAIRMENT TARGETING</p>
                                 </div>
                                 <button
                                     onClick={() => setEditingRouter({ ...editingRouter, enabled: !editingRouter.enabled })}
-                                    className={`w-12 h-6 rounded-full transition-all relative ${editingRouter.enabled ? 'bg-orange-600' : 'bg-slate-800 border border-slate-700'}`}
+                                    className={`w-12 h-6 rounded-full transition-all relative ${editingRouter.enabled ? 'bg-orange-600' : 'bg-card-secondary border border-border'}`}
                                 >
                                     <div className={`absolute top-1 w-4 h-4 rounded-full transition-all bg-white ${editingRouter.enabled ? 'right-1' : 'left-1'}`} />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="p-8 border-t border-slate-800 bg-slate-900/50 flex gap-4">
-                            <button onClick={() => setShowEditRouterModal(false)} className="flex-1 px-6 py-3 rounded-xl bg-slate-800 border border-slate-700/50 text-slate-400 font-black text-xs uppercase tracking-widest">ABORT</button>
+                        <div className="p-8 border-t border-border bg-card/50 flex gap-4">
+                            <button onClick={() => setShowEditRouterModal(false)} className="flex-1 px-6 py-3 rounded-xl bg-card-secondary border border-border/50 text-text-muted font-black text-xs uppercase tracking-widest shadow-inner transition-all hover:bg-card-hover">ABORT</button>
                             <button onClick={saveRouterChanges} className="flex-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-900/20 transition-all active:scale-95">SYNC Node</button>
                         </div>
                     </div>
@@ -1475,15 +1475,15 @@ function ExecutionTimeline({
 
     const getDotStyles = (state: 'past' | 'current' | 'future', lastExec: any) => {
         if (state === 'current') {
-            return 'bg-blue-500 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse scale-125';
+            return 'bg-blue-500 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse scale-125 dark:border-blue-300';
         }
         if (state === 'future') {
-            return 'bg-slate-800 border-slate-700 opacity-30';
+            return 'bg-card-secondary border-border opacity-30';
         }
         // Past state depends on history
-        if (!lastExec) return 'bg-slate-800 border-slate-700';
-        if (lastExec.status === 'success') return 'bg-green-500 border-green-400';
-        return 'bg-red-500 border-red-400';
+        if (!lastExec) return 'bg-card-secondary border-border';
+        if (lastExec.status === 'success') return 'bg-green-500 border-green-400 dark:border-green-300';
+        return 'bg-red-500 border-red-400 dark:border-red-300';
     };
 
     // Update countdown and current offset every second
@@ -1507,19 +1507,19 @@ function ExecutionTimeline({
     }, [sequence]);
 
     return (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             {/* Header with sequence name and status */}
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
                 <div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">
+                    <h3 className="text-xl font-black text-text-primary uppercase tracking-tighter">
                         {sequence.name}
                     </h3>
                     <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-500 uppercase tracking-widest">
+                        <span className="text-xs text-text-muted uppercase tracking-widest">
                             Cycle: {sequence.cycle_duration}min
                         </span>
                         {currentOffset !== -1 && (
-                            <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono border border-slate-700">
+                            <span className="text-[10px] bg-card-secondary text-text-secondary px-2 py-0.5 rounded font-mono border border-border">
                                 POSITION: T+{currentOffset.toFixed(1)}m
                             </span>
                         )}
@@ -1544,8 +1544,8 @@ function ExecutionTimeline({
                         <div key={idx} className={`flex items-start gap-4 transition-all duration-500 ${state === 'future' ? 'opacity-40 grayscale-[0.5]' : ''}`}>
                             {/* T+ Offset Label */}
                             <div className="flex flex-col items-center justify-center w-16">
-                                <span className="text-[8px] text-slate-600 uppercase font-black tracking-tighter">T+MIN</span>
-                                <span className={`font-black text-lg transition-colors ${state === 'current' ? 'text-blue-400' : 'text-purple-400'}`}>
+                                <span className="text-[8px] text-text-muted font-black uppercase tracking-tighter">T+MIN</span>
+                                <span className={`font-black text-lg transition-colors ${state === 'current' ? 'text-blue-500' : 'text-purple-500'}`}>
                                     {action.offset_minutes}
                                 </span>
                             </div>
@@ -1555,20 +1555,20 @@ function ExecutionTimeline({
 
                             {/* Vertical Connecting Line (except for last item) */}
                             {idx < sequence.actions.length - 1 && (
-                                <div className={`absolute left-[87.5px] w-px h-16 translate-y-8 ${state === 'future' ? 'bg-slate-800' : 'bg-slate-700'}`} />
+                                <div className={`absolute left-[87.5px] w-px h-16 translate-y-8 ${state === 'future' ? 'bg-border/30' : 'bg-border'}`} />
                             )}
 
                             {/* Action Details Card */}
-                            <div className={`flex-1 bg-slate-950/50 border rounded-xl p-4 transition-all duration-500 
-                                ${state === 'current' ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-slate-800'}
-                                ${state === 'past' ? 'border-slate-800/50' : ''}
+                            <div className={`flex-1 bg-card-secondary/30 border rounded-xl p-4 transition-all duration-500 
+                                ${state === 'current' ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-border'}
+                                ${state === 'past' ? 'border-border/50' : ''}
                             `}>
                                 <div className="flex items-center justify-between">
                                     {/* Command + Target */}
                                     <div className="flex items-center gap-3">
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
-                                                <span className={`text-sm font-black uppercase tracking-tight ${state === 'current' ? 'text-blue-400' : 'text-slate-100'}`}>
+                                                <span className={`text-sm font-black uppercase tracking-tight ${state === 'current' ? 'text-blue-500' : 'text-text-primary'}`}>
                                                     {(() => {
                                                         switch (action.command) {
                                                             case 'interface-down': return 'Shut';
@@ -1586,7 +1586,7 @@ function ExecutionTimeline({
                                                     <span className="text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black animate-pulse">RUNNING</span>
                                                 )}
                                             </div>
-                                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                                            <span className="text-[10px] text-text-muted flex items-center gap-1">
                                                 {router?.name || 'Unknown'} <ChevronRight size={8} /> {action.interface}
                                                 {(() => {
                                                     const iface = router?.interfaces?.find(i => i.name === action.interface);
@@ -1601,7 +1601,7 @@ function ExecutionTimeline({
                                         {state === 'current' ? (
                                             <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded-md">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
-                                                <span className="text-[9px] font-black text-blue-400 uppercase">Active Now</span>
+                                                <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase">Active Now</span>
                                             </div>
                                         ) : lastExec && (
                                             <div className="flex items-center gap-2 opacity-60">
@@ -1610,7 +1610,7 @@ function ExecutionTimeline({
                                                 ) : (
                                                     <XCircle size={14} className="text-red-500" />
                                                 )}
-                                                <span className="text-[9px] text-slate-500 font-mono">
+                                                <span className="text-[9px] text-text-muted font-mono">
                                                     {new Date(lastExec.timestamp).toLocaleTimeString()}
                                                 </span>
                                             </div>
@@ -1641,7 +1641,7 @@ function ExecutionTimeline({
 
                                 {/* Error Message (if failed) */}
                                 {lastExec?.error && (
-                                    <div className="mt-2 text-[9px] text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
+                                    <div className="mt-2 text-[9px] text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
                                         ⚠️ {lastExec.error}
                                     </div>
                                 )}
@@ -1653,16 +1653,16 @@ function ExecutionTimeline({
 
             {/* Next Cycle Countdown */}
             {sequence.enabled && sequence.cycle_duration > 0 && (
-                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-center gap-3">
-                    <Clock size={14} className="text-blue-400" />
-                    <span className="text-xs text-slate-400 uppercase tracking-wider">Next Cycle In:</span>
-                    <span className="text-sm font-black text-blue-400 font-mono">{countdown}</span>
+                <div className="mt-6 pt-4 border-t border-border flex items-center justify-center gap-3">
+                    <Clock size={14} className="text-blue-500" />
+                    <span className="text-xs text-text-muted uppercase tracking-wider">Next Cycle In:</span>
+                    <span className="text-sm font-black text-blue-500 font-mono">{countdown}</span>
                 </div>
             )}
 
             {/* Manual Mode Notice */}
             {sequence.cycle_duration === 0 && (
-                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-center gap-2 text-xs text-slate-500">
+                <div className="mt-6 pt-4 border-t border-border flex items-center justify-center gap-2 text-xs text-text-muted">
                     <AlertCircle size={12} />
                     <span>Manual trigger mode (no automatic cycling)</span>
                 </div>
@@ -1685,25 +1685,25 @@ function ConfirmModal({
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[120] flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 max-w-md w-full rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="bg-card border border-border max-w-md w-full rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="p-6 border-b border-slate-800">
-                    <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                        {danger && <AlertCircle size={24} className="text-red-400" />}
+                <div className="p-6 border-b border-border">
+                    <h3 className="text-xl font-black text-text-primary uppercase tracking-tighter flex items-center gap-3">
+                        {danger && <AlertCircle size={24} className="text-red-500 dark:text-red-400" />}
                         {title}
                     </h3>
                 </div>
 
                 {/* Body */}
                 <div className="p-6">
-                    <p className="text-sm text-slate-400 leading-relaxed">{message}</p>
+                    <p className="text-sm text-text-secondary leading-relaxed">{message}</p>
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-800 flex gap-4">
+                <div className="p-6 border-t border-border flex gap-4">
                     <button
                         onClick={onCancel}
-                        className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-black transition-all text-xs uppercase tracking-widest"
+                        className="flex-1 px-6 py-3 rounded-xl bg-card-secondary hover:bg-card-hover text-text-muted font-black transition-all text-xs uppercase tracking-widest border border-border/50"
                     >
                         {cancelText}
                     </button>
@@ -1724,18 +1724,18 @@ function ConfirmModal({
 
 function MetricCard({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) {
     return (
-        <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl hover:border-slate-700 transition-all group">
+        <div className="bg-card border border-border p-6 rounded-2xl hover:border-blue-500/30 transition-all group shadow-sm hover:shadow-md">
             <div className="flex items-center justify-between mb-4">
-                <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 group-hover:border-slate-700 transition-colors">
+                <div className="p-2.5 bg-card-secondary rounded-xl border border-border group-hover:border-border transition-colors">
                     {icon}
                 </div>
                 <div className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[8px] text-slate-600 font-black uppercase tracking-widest">Live</span>
+                    <span className="text-[8px] text-text-muted font-black uppercase tracking-widest">Live</span>
                 </div>
             </div>
-            <div className="text-2xl font-black text-white tracking-tight mb-1">{value}</div>
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{title}</div>
+            <div className="text-2xl font-black text-text-primary tracking-tight mb-1">{value}</div>
+            <div className="text-[10px] text-text-muted font-black uppercase tracking-widest">{title}</div>
         </div>
     );
 }
@@ -1757,15 +1757,15 @@ function LiveFeed() {
     }, []);
 
     return (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 h-full flex flex-col min-h-[500px]">
-            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+        <div className="bg-card border border-border rounded-2xl p-6 h-full flex flex-col min-h-[500px] shadow-sm">
+            <h3 className="text-sm font-black text-text-muted uppercase tracking-widest mb-6 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                 Live Activity Feed
             </h3>
             <div className="space-y-4 overflow-y-auto custom-scrollbar flex-1 pr-2">
                 {feed.map(item => (
-                    <div key={item.id} className="flex items-start gap-4 text-[11px] animate-in fade-in slide-in-from-top-2 duration-300 border-b border-slate-800/50 pb-3">
-                        <div className="text-slate-600 font-mono text-[9px] mt-0.5 whitespace-nowrap">
+                    <div key={item.id} className="flex items-start gap-4 text-[11px] animate-in fade-in slide-in-from-top-2 duration-300 border-b border-border/50 pb-3">
+                        <div className="text-text-muted/60 font-mono text-[9px] mt-0.5 whitespace-nowrap">
                             {new Date(item.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1774,14 +1774,14 @@ function LiveFeed() {
                                     item.status === 'success' ? 'bg-green-500' :
                                         'bg-red-500'
                                     }`} />
-                                <span className="text-slate-100 font-black uppercase tracking-tight truncate">
+                                <span className="text-text-primary font-black uppercase tracking-tight truncate">
                                     {item.sequenceId}
                                 </span>
-                                <ChevronRight size={10} className="text-slate-700" />
-                                <span className="text-slate-400 font-bold uppercase tracking-tighter truncate">{item.step}</span>
+                                <ChevronRight size={10} className="text-text-muted/30" />
+                                <span className="text-text-muted font-bold uppercase tracking-tighter truncate">{item.step}</span>
                             </div>
                             {item.error && (
-                                <div className="text-red-400 text-[10px] bg-red-500/10 px-2 py-1 rounded border border-red-500/20 mt-1">
+                                <div className="text-red-600 dark:text-red-400 text-[10px] bg-red-500/10 px-2 py-1 rounded border border-red-500/20 mt-1">
                                     ⚠️ {item.error}
                                 </div>
                             )}
@@ -1789,7 +1789,7 @@ function LiveFeed() {
                     </div>
                 ))}
                 {feed.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-20 text-slate-600">
+                    <div className="flex flex-col items-center justify-center py-20 text-text-muted">
                         <Activity size={48} className="mb-4 opacity-10 animate-pulse" />
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30">Awaiting Signal</p>
                         <p className="text-[9px] mt-1 opacity-20 uppercase">Real-time telemetry will appear here</p>

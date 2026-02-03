@@ -2,22 +2,55 @@
 
 :root {
   /* Default Dark Mode (Legacy Aesthetics) */
-  --background: #0f172a;
+  --background: #020617;
+  /* Slate 950 */
   --foreground: #f8fafc;
+  /* Slate 50 */
   --border: #1e293b;
-  --card: #1e293b;
+  /* Slate 800 */
+
+  /* Cards */
+  --card: #0f172a;
+  /* Slate 900 */
+  --card-secondary: #1e293b;
+  /* Slate 800 */
   --card-hover: #334155;
+  /* Slate 700 */
+
+  /* Text */
+  --text-primary: #f8fafc;
+  /* Slate 50 */
+  --text-secondary: #cbd5e1;
+  /* Slate 300 */
+  --text-muted: #64748b;
+  /* Slate 500 */
+
+  /* Surfaces */
+  --surface-dark: #0f172a;
+
   --accent: #3b82f6;
 
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
-[data-theme='light'] {
-  --background: #ffffff;
+:root[data-theme='light'] {
+  --background: #f8fafc;
   --foreground: #0f172a;
-  --border: #e2e8f0;
-  --card: #f8fafc;
+  --border: #cbd5e1;
+
+  /* Cartes */
+  --card: #ffffff;
+  --card-secondary: #f1f5f9;
   --card-hover: #e2e8f0;
+
+  /* Text */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+
+  /* Surfaces */
+  --surface-dark: #ffffff;
+
   --accent: #2563eb;
 }
 
