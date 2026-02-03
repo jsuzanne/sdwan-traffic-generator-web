@@ -417,7 +417,7 @@ export default function Failover(props: FailoverProps) {
                                                 <td className="px-6 py-4">
                                                     <div className="font-medium text-slate-200 flex items-center gap-2">
                                                         <span className="bg-blue-500/10 text-blue-400 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">
-                                                            {test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || 'CONV-??'}
+							    {test.test_id?.match(/CONV-\d+/)?.[0] || 'CONV-??'}
                                                         </span>
                                                         <span>{test.label || test.test_id?.split(' (')[0]}</span>
                                                         <ChevronRight size={14} className={`text-slate-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />

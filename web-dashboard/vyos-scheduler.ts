@@ -2,6 +2,7 @@ import { VyosManager, VyosRouter } from './vyos-manager.js';
 import fs from 'fs';
 import path from 'path';
 import { EventEmitter } from 'events';
+import { log } from './utils/logger.js';
 
 export interface VyosAction {
     id: string;                    // Unique action ID
@@ -83,8 +84,8 @@ export class VyosScheduler extends EventEmitter {
                     });
                 }
                 if (data.runCounter) this.runCounter = data.runCounter;
-            } catch (e) {
-                console.error('[VYOS-SCHED] Failed to load sequences:', e);
+            } catch (e: any) {
+                log('VYOS-SCHED', `Failed to load sequences: ${e.message}`, 'error');
             }
         }
     }
@@ -96,8 +97,8 @@ export class VyosScheduler extends EventEmitter {
                 runCounter: this.runCounter
             };
             fs.writeFileSync(this.sequencesFile, JSON.stringify(data, null, 2));
-        } catch (e) {
-            console.error('[VYOS-SCHED] Failed to save sequences:', e);
+        } catch (e: any) {
+            log('VYOS-SCHED', `Failed to save sequences: ${e.message}`, 'error');
         }
     }
 
@@ -141,7 +142,7 @@ export class VyosScheduler extends EventEmitter {
         const cycleDurationMs = seq.cycle_duration * 60 * 1000;
         const timers: NodeJS.Timeout[] = [];
 
-        console.log(`[VYOS-SCHED] Starting cyclic sequence "${seq.name}" (${seq.cycle_duration}min cycle)`);
+        log('VYOS-SCHED', `Starting cyclic sequence "${seq.name}" (${seq.cycle_duration}min cycle)`);
 
         // Master cycle timer to update lastRun every cycle reboot
         const masterTimer = setInterval(() => {
@@ -207,7 +208,7 @@ export class VyosScheduler extends EventEmitter {
                 clearInterval(timer);
             });
             this.activeTimers.delete(id);
-            console.log(`[VYOS-SCHED] Stopped timers for sequence ${id}`);
+            log('VYOS-SCHED', `Stopped timers for sequence ${id}`, 'debug');
         }
     }
 
@@ -260,12 +261,12 @@ export class VyosScheduler extends EventEmitter {
         const durStr = durationMs !== undefined ? `(${durationMs}ms)` : '';
         const errorMessage = error ? ` ERROR: ${error}` : '';
 
-        console.log(`[${timeStr}] ${runTag} ${action.id} ${action.command.toUpperCase()} ${action.router_id}:${action.interface} | ${paramsStr} | ${statusLabel} ${durStr}${errorMessage}`);
+        log(runTag.replace('[', '').replace(']', ''), `${action.id} ${action.command.toUpperCase()} ${action.router_id}:${action.interface} | ${paramsStr} | ${statusLabel} ${durStr}${errorMessage}`);
 
         try {
             fs.appendFileSync(this.logFile, JSON.stringify(log) + '\n');
-        } catch (e) {
-            console.error('[VYOS-SCHED] Failed to log action:', e);
+        } catch (e: any) {
+            log('VYOS-SCHED', `Failed to log action: ${e.message}`, 'error');
         }
     }
 
@@ -273,7 +274,7 @@ export class VyosScheduler extends EventEmitter {
         const seq = this.sequences.get(id);
         if (!seq) throw new Error('Sequence not found');
 
-        console.log(`[VYOS-SCHED] Manual execution: ${seq.name}`);
+        log('VYOS-SCHED', `Manual execution: ${seq.name}`);
 
         const runId = `MAN-${(++this.runCounter).toString().padStart(4, '0')}`;
         this.saveSequences();
@@ -306,8 +307,8 @@ export class VyosScheduler extends EventEmitter {
         try {
             const lines = fs.readFileSync(this.logFile, 'utf8').split('\n').filter(Boolean);
             return lines.slice(-limit).map(l => JSON.parse(l)).reverse();
-        } catch (e) {
-            console.error('[VYOS-SCHED] Failed to read history:', e);
+        } catch (e: any) {
+            log('VYOS-SCHED', `Failed to read history: ${e.message}`, 'error');
             return [];
         }
     }

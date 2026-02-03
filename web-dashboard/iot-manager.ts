@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { log } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,17 +38,17 @@ export class IoTManager extends EventEmitter {
             scriptPath = path.resolve(path.join(__dirname, './iot/iot_emulator.py'));
         }
         this.pythonScriptPath = scriptPath;
-        console.log(`[IOT] Manager initialized on interface: ${this.interface}`);
-        console.log(`[IOT] Python script path: ${this.pythonScriptPath}`);
+        log('IOT', `Manager initialized on interface: ${this.interface}`);
+        log('IOT', `Python script path: ${this.pythonScriptPath}`, 'debug');
     }
 
     async startDevice(deviceConfig: IoTDeviceConfig): Promise<void> {
         if (this.devices.has(deviceConfig.id)) {
-            console.log(`[IOT] Device ${deviceConfig.id} already running, skipping start`);
+            log('IOT', `Device ${deviceConfig.id} already running, skipping start`, 'debug');
             return;
         }
 
-        console.log(`[IOT] Starting device: ${deviceConfig.id} (${deviceConfig.name})`);
+        log('IOT', `Starting device: ${deviceConfig.id} (${deviceConfig.name})`);
 
         const args = [
             '--device-id', deviceConfig.id,
@@ -98,7 +99,13 @@ export class IoTManager extends EventEmitter {
 
             pythonProcess.stderr?.on('data', (data: Buffer) => {
                 const errorOutput = data.toString();
-                console.error(`[IOT-PY-ERR] [${deviceConfig.id}]:`, errorOutput);
+
+                // Filter out "Unknown protocol" warnings (expected behavior)
+                if (errorOutput.includes('WARNING - Unknown protocol')) {
+                    return; // Silently ignore
+                }
+
+                log('IOT-PY-ERR', `[${deviceConfig.id}]: ${errorOutput}`, 'error');
                 this.emit('device:error', {
                     device_id: deviceConfig.id,
                     error: errorOutput,
@@ -107,13 +114,13 @@ export class IoTManager extends EventEmitter {
             });
 
             pythonProcess.on('exit', (code) => {
-                console.log(`[IOT] Device ${deviceConfig.id} exited with code ${code}`);
+                log('IOT', `Device ${deviceConfig.id} exited with code ${code}`);
                 this.devices.delete(deviceConfig.id);
                 this.emit('device:stopped', { device_id: deviceConfig.id, code });
             });
 
             pythonProcess.on('error', (err) => {
-                console.error(`[IOT] Failed to start Python process for ${deviceConfig.id}:`, err);
+                log('IOT', `Failed to start Python process for ${deviceConfig.id}: ${err.message}`, 'error');
                 this.emit('device:error', {
                     device_id: deviceConfig.id,
                     error: err.message,
@@ -123,7 +130,7 @@ export class IoTManager extends EventEmitter {
 
             this.devices.set(deviceConfig.id, pythonProcess);
         } catch (err: any) {
-            console.error(`[IOT] Error spawning process for ${deviceConfig.id}:`, err);
+            log('IOT', `Error spawning process for ${deviceConfig.id}: ${err.message}`, 'error');
             throw err;
         }
     }
@@ -145,7 +152,7 @@ export class IoTManager extends EventEmitter {
     }
 
     async stopAll(): Promise<void> {
-        console.log(`[IOT] Stopping all ${this.devices.size} devices...`);
+        log('IOT', `Stopping all ${this.devices.size} devices...`);
         const deviceIds = Array.from(this.devices.keys());
         for (const id of deviceIds) {
             await this.stopDevice(id);
@@ -211,7 +218,7 @@ export class IoTManager extends EventEmitter {
 
     setInterface(newInterface: string): void {
         if (this.interface !== newInterface) {
-            console.log(`[IOT] Updating interface from ${this.interface} to ${newInterface}`);
+            log('IOT', `Updating interface from ${this.interface} to ${newInterface}`);
             this.interface = newInterface;
         }
     }

@@ -256,6 +256,14 @@ const lastConnectivityLogTimeMap = new Map<string, number>();
 let lastLoggedVersion: string | null = null;
 let lastVersionLogTime: number = 0;
 
+// Health check cache
+let lastHealthCheckTime = 0;
+let cachedHealthResult: any = null;
+const HEALTH_CHECK_CACHE_MS = 5000;
+
+// GitHub fetch deduplication
+let githubFetchErrorLogged = false;
+
 // Test Logger - Dedicated log file for test execution with rotation
 const TEST_LOG_FILE = path.join(APP_CONFIG.logDir, 'test-execution.log');
 const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
@@ -671,8 +679,8 @@ docusign.com|50|/`;
         console.log(`✅ [INIT] Auto-configured interface: ${defaultIface}`);
     } else {
         const content = fs.readFileSync(interfacesFile, 'utf8').trim();
-        const firstLine = content.split('\n').find(l => l.trim() && !l.startsWith('#')) || 'none';
-        console.log(`📡 [INIT] Found existing interfaces.txt: ${firstLine}`);
+        const firstLine = fs.readFileSync(interfacesFile, 'utf8').split('\n')[0].trim(); // Changed ifacePath to interfacesFile
+        log('INIT', `Found existing interfaces.txt: ${firstLine}`);
     }
 
     // Initialize traffic control file (default: stopped)
@@ -719,13 +727,15 @@ initializeDefaultConfigs();
 
 // --- IoT Helpers ---
 const getIoTConfig = (): { devices: IoTDeviceConfig[] } => {
-    if (!fs.existsSync(IOT_DEVICES_FILE)) {
-        console.warn(`[IOT-DEBUG] Config file NOT found: ${IOT_DEVICES_FILE}`);
-        return { devices: [] };
-    }
     try {
+        if (!fs.existsSync(IOT_DEVICES_FILE)) {
+            log('IOT', `Config file NOT found: ${IOT_DEVICES_FILE}`, 'warn');
+            return { devices: [] }; // Ensure consistent return type
+        }
         const content = fs.readFileSync(IOT_DEVICES_FILE, 'utf8');
-        console.log(`[IOT-DEBUG] Read ${content.length} bytes from ${IOT_DEVICES_FILE}`);
+        if (process.env.DEBUG_IOT === 'true') {
+            log('IOT', `Read ${content.length} bytes from ${IOT_DEVICES_FILE}`, 'debug');
+        }
         const data = JSON.parse(content);
 
         // Handle legacy format (either flat array or object with network block)
@@ -735,7 +745,7 @@ const getIoTConfig = (): { devices: IoTDeviceConfig[] } => {
 
         return { devices: data.devices || [] };
     } catch (e: any) {
-        console.error(`[IOT-DEBUG] Failed to parse ${IOT_DEVICES_FILE}:`, e.message);
+        log('IOT', `Failed to parse ${IOT_DEVICES_FILE}: ${e.message}`, 'error');
         return { devices: [] };
     }
 };
@@ -2123,14 +2133,22 @@ app.get('/api/connectivity/docker-stats', authenticateToken, async (req, res) =>
 
 // API: System Health Check
 app.get('/api/system/health', authenticateToken, async (req, res) => {
-    console.log('[SYSTEM] Running health check...');
+    const now = Date.now();
+
+    // Return cached result if fresh
+    if (now - lastHealthCheckTime < HEALTH_CHECK_CACHE_MS && cachedHealthResult) {
+        return res.json(cachedHealthResult);
+    }
+
+    log('SYSTEM', 'Running health check...');
+    lastHealthCheckTime = now;
 
     const execPromise = promisify(exec);
-
-    // Get selected DNS command for a test domain
     const dnsCmd = getDnsCommand('test.example.com');
 
-    const health = {
+    const health: any = {
+        status: 'READY',
+        timestamp: new Date().toISOString(),
         platform: PLATFORM,
         ready: true,
         commands: {
@@ -2145,51 +2163,43 @@ app.get('/api/system/health', authenticateToken, async (req, res) => {
                         ? ['getent', 'dig', 'nslookup']
                         : ['nslookup']
             }
-        } as any,
-        system: {
-            memory: {
-                total: 0,
-                used: 0,
-                free: 0,
-                usedPercent: 0
-            },
-            disk: {
-                total: 0,
-                used: 0,
-                free: 0,
-                usedPercent: 0,
-                logDirUsage: 0
-            }
         },
-        timestamp: Date.now()
+        system: {
+            memory: { total: 0, used: 0, free: 0, usedPercent: 0 },
+            disk: { total: 0, used: 0, free: 0, usedPercent: 0, logDirUsage: 0 }
+        },
+        checks: []
     };
 
-    // Check curl (for URL/Threat tests)
+    // 1. Check if curl is available
     try {
-        await execPromise('which curl');
+        const { stdout: curlCheck } = await execPromise('which curl');
         health.commands.curl = {
             available: true,
             command: 'curl',
             purpose: 'URL Filtering & Threat Prevention Tests'
         };
-        console.log('[SYSTEM] ✓ curl available');
+        health.checks.push({ name: 'curl', status: 'PASS', detail: curlCheck.trim() });
     } catch (error) {
-        health.commands.curl = {
-            available: false,
-            command: 'curl',
-            purpose: 'URL Filtering & Threat Prevention Tests',
-            error: 'Command not found'
-        };
+        health.status = 'DEGRADED';
         health.ready = false;
-        console.log('[SYSTEM] ✗ curl not available');
+        health.checks.push({ name: 'curl', status: 'FAIL', detail: 'curl not found' });
     }
 
-    // Get memory stats
+    // 2. Check if scapy/python is ready
+    try {
+        const { stdout: pyCheck } = await execPromise('python3 -c "import scapy; print(scapy.__version__)"');
+        health.checks.push({ name: 'python-scapy', status: 'PASS', detail: pyCheck.trim() });
+    } catch (e) {
+        health.status = 'DEGRADED';
+        health.checks.push({ name: 'python-scapy', status: 'FAIL', detail: 'scapy not installed' });
+    }
+
+    // 3. Get memory stats
     try {
         const totalMem = os.totalmem();
         const freeMem = os.freemem();
         const usedMem = totalMem - freeMem;
-
         health.system.memory = {
             total: totalMem,
             used: usedMem,
@@ -2197,35 +2207,34 @@ app.get('/api/system/health', authenticateToken, async (req, res) => {
             usedPercent: Math.round((usedMem / totalMem) * 100)
         };
     } catch (error) {
-        console.error('[SYSTEM] Failed to get memory stats:', error);
+        log('SYSTEM', `Failed to get memory stats: ${error}`, 'error');
     }
 
-    // Get disk stats (log directory)
+    // 4. Get disk stats
     try {
         const dfCommand = PLATFORM === 'darwin'
             ? `df -k ${APP_CONFIG.logDir} | tail -1 | awk '{print $2,$3,$4}'`
             : `df -k ${APP_CONFIG.logDir} | tail -1 | awk '{print $2,$3,$4}'`;
 
         const { stdout } = await execPromise(dfCommand);
-        const [total, used, free] = stdout.trim().split(/\s+/).map(s => parseInt(s) * 1024); // Convert KB to bytes
+        const [total, used, free] = stdout.trim().split(/\s+/).map(s => parseInt(s) * 1024);
 
         health.system.disk = {
             total,
             used,
             free,
             usedPercent: Math.round((used / total) * 100),
-            logDirUsage: 0 // Will be filled below
+            logDirUsage: 0
         };
 
-        // Get log directory usage from TestLogger stats
         const logStats = await testLogger.getStats();
         health.system.disk.logDirUsage = logStats.diskUsageBytes;
     } catch (error) {
-        console.error('[SYSTEM] Failed to get disk stats:', error);
+        log('SYSTEM', `Failed to get disk stats: ${error}`, 'error');
     }
 
-    console.log(`[SYSTEM] Health check complete: ${health.ready ? 'READY' : 'NOT READY'}`);
-
+    cachedHealthResult = health;
+    log('SYSTEM', `Health check complete: ${health.status}`);
     res.json(health);
 });
 
@@ -4217,7 +4226,10 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
                 updateAvailable = (latestVersion !== currentVersion);
             }
         } catch (e) {
-            console.warn('[MAINTENANCE] ⚠️ Failed to fetch latest version from GitHub tags');
+            if (!githubFetchErrorLogged) {
+                log('MAINTENANCE', '⚠️ Failed to fetch latest version from GitHub tags', 'warn');
+                githubFetchErrorLogged = true;
+            }
         }
 
         let dockerReady = true;
