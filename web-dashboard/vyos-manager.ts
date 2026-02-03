@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
+import { log } from './utils/logger.js';
 
 const execPromise = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
@@ -57,7 +58,7 @@ export class VyosManager extends EventEmitter {
         }
 
         this.loadRouters();
-        console.log(`[VYOS] Manager initialized. Script: ${this.pythonScriptPath}`);
+        log('VYOS', `Manager initialized. Script: ${this.pythonScriptPath}`);
     }
 
     private loadRouters() {
@@ -67,8 +68,8 @@ export class VyosManager extends EventEmitter {
                 if (data.routers && Array.isArray(data.routers)) {
                     data.routers.forEach((r: VyosRouter) => this.routers.set(r.id, r));
                 }
-            } catch (e) {
-                console.error('[VYOS] Failed to load routers:', e);
+            } catch (e: any) {
+                log('VYOS', `Failed to load routers: ${e.message}`, 'error');
             }
         } else {
             // Initialize empty config if missing
@@ -80,8 +81,8 @@ export class VyosManager extends EventEmitter {
         try {
             const data = { routers: Array.from(this.routers.values()) };
             fs.writeFileSync(this.routersFile, JSON.stringify(data, null, 2));
-        } catch (e) {
-            console.error('[VYOS] Failed to save routers:', e);
+        } catch (e: any) {
+            log('VYOS', `Failed to save routers: ${e.message}`, 'error');
         }
     }
 
@@ -92,9 +93,9 @@ export class VyosManager extends EventEmitter {
     async discoverRouter(host: string, apiKey: string): Promise<{
         hostname: string;
         version: string;
-        interfaces: VyosRouterInterface[];
+        location?: string;
     }> {
-        console.log(`[VYOS] Discovering router at ${host}...`);
+        log('VYOS', `Discovering router at ${host}...`);
 
         return new Promise((resolve, reject) => {
             // Set 5s timeout as requested
@@ -105,7 +106,7 @@ export class VyosManager extends EventEmitter {
 
             // Scrub API key for logging
             const scrubbedArgs = [this.pythonScriptPath, '--host', host, '--key', apiKey.substring(0, 4) + '***', 'get-info'];
-            console.log(`[VYOS] Discover CLI: python3 ${scrubbedArgs.join(' ')}`);
+            log('VYOS', `Discover CLI: python3 ${scrubbedArgs.join(' ')}`, 'debug');
             const proc = spawn('python3', [this.pythonScriptPath, '--host', host, '--key', apiKey, 'get-info']);
 
             let output = '';
@@ -149,10 +150,10 @@ export class VyosManager extends EventEmitter {
             // if the incoming payload is partial (e.g. from the location edit modal)
             const updated = { ...existing, ...router };
             this.routers.set(router.id, updated);
-            console.log(`[VYOS] Router ${router.id} updated (Location: ${updated.location || 'none'})`);
+            log('VYOS', `Router ${router.id} updated (Location: ${updated.location || 'none'})`);
         } else {
             this.routers.set(router.id, router);
-            console.log(`[VYOS] Router ${router.id} created`);
+            log('VYOS', `Router ${router.id} created`);
         }
         this.saveRouters();
         this.emit('router:updated', this.routers.get(router.id)!);
@@ -182,7 +183,7 @@ export class VyosManager extends EventEmitter {
      * Enhanced Health Check: Detects changes in version, hostname, and interfaces.
      */
     async checkHealth() {
-        console.log('[VYOS] Starting background health check...');
+        log('VYOS', 'Starting background health check...', 'debug');
         for (const router of this.routers.values()) {
             if (!router.enabled) continue;
 
@@ -193,21 +194,21 @@ export class VyosManager extends EventEmitter {
 
                 // Version change detection
                 if (info.version !== router.version) {
-                    console.log(`[VYOS] Router ${router.name}: Version updated ${router.version} -> ${info.version}`);
+                    log('VYOS', `Router ${router.name}: Version updated ${router.version} -> ${info.version}`);
                     router.version = info.version;
                     changed = true;
                 }
 
                 // Hostname change detection
                 if (info.hostname !== router.name) {
-                    console.warn(`[VYOS] Router ${router.name}: Hostname changed to ${info.hostname}`);
+                    log('VYOS', `Router ${router.name}: Hostname changed to ${info.hostname}`, 'warn');
                     router.name = info.hostname;
                     changed = true;
                 }
 
                 // Interface changes detection (shallow comparison of count/names)
                 if (JSON.stringify(info.interfaces) !== JSON.stringify(router.interfaces)) {
-                    console.log(`[VYOS] Router ${router.name}: Interface configuration changed`);
+                    log('VYOS', `Router ${router.name}: Interface configuration changed`);
                     router.interfaces = info.interfaces;
                     changed = true;
                 }
@@ -219,7 +220,7 @@ export class VyosManager extends EventEmitter {
                     this.saveRouter(router);
                 }
             } catch (error: any) {
-                console.error(`[VYOS] Router ${router.name} (${router.host}) is offline: ${error.message}`);
+                log('VYOS', `Router ${router.name} (${router.host}) is offline: ${error.message}`, 'error');
                 if (router.status !== 'offline') {
                     router.status = 'offline';
                     this.saveRouter(router);
@@ -304,7 +305,7 @@ export class VyosManager extends EventEmitter {
 
         // Scrub secrets for logging
         const scrubbedArgs = args.map(arg => (arg === router.apiKey ? '***' : arg));
-        console.log(`[VYOS] Executing CLI: python3 ${scrubbedArgs.join(' ')}`);
+        log('VYOS', `Executing CLI: python3 ${scrubbedArgs.join(' ')}`, 'debug');
 
         return new Promise((resolve, reject) => {
             const proc = spawn('python3', args);
@@ -363,7 +364,7 @@ export class VyosManager extends EventEmitter {
         ];
 
         const scrubbedArgs = args.map(arg => (arg === router.apiKey ? '***' : arg));
-        console.log(`[VYOS] Get blocks CLI: python3 ${scrubbedArgs.join(' ')}`);
+        log('VYOS', `Get blocks CLI: python3 ${scrubbedArgs.join(' ')}`, 'debug');
 
         return new Promise((resolve, reject) => {
             const proc = spawn('python3', args);

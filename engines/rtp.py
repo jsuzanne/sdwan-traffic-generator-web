@@ -12,6 +12,7 @@ import os
 # Disable all warnings for clean container logs
 warnings.filterwarnings("ignore")
 logging.getLogger("scapy").setLevel(logging.ERROR)
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 from scapy.layers.inet import IP, UDP
 from scapy.layers.rtp import RTP

@@ -8,6 +8,7 @@ import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import jwt from 'jsonwebtoken';
+import { log } from './utils/logger.js';
 import bcrypt from 'bcryptjs';
 import { TestLogger, TestResult } from './test-logger.js';
 import { ConnectivityLogger, ConnectivityResult } from './connectivity-logger.js';
@@ -40,8 +41,8 @@ const APP_CONFIG = {
 const DEBUG = process.env.DEBUG === 'true';
 
 if (DEBUG) {
-    console.log('[SYSTEM] 📂 Configuration Directory:', APP_CONFIG.configDir);
-    console.log('[SYSTEM] 📝 Log Directory:', APP_CONFIG.logDir);
+    log('SYSTEM', `📂 Configuration Directory: ${APP_CONFIG.configDir}`);
+    log('SYSTEM', `📝 Log Directory: ${APP_CONFIG.logDir}`);
 }
 
 // Initialize Test Logger with configurable retention
@@ -249,6 +250,11 @@ monitoredContainers.forEach(name => {
 
 // State tracking for logs reduction
 const lastConnectivityStatusMap = new Map<string, string>();
+const lastConnectivityScoreMap = new Map<string, number>();
+const lastConnectivityLogTimeMap = new Map<string, number>();
+
+let lastLoggedVersion: string | null = null;
+let lastVersionLogTime: number = 0;
 
 // Test Logger - Dedicated log file for test execution with rotation
 const TEST_LOG_FILE = path.join(APP_CONFIG.logDir, 'test-execution.log');
@@ -1670,9 +1676,21 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
         await connectivityLogger.logResult(checkResult);
 
         const key = `${legacyFormat.type}:${legacyFormat.name}`;
-        if (lastConnectivityStatusMap.get(key) !== legacyFormat.status) {
-            console.log(`[CONNECTIVITY] ${legacyFormat.name} status: ${legacyFormat.status} (${legacyFormat.score}/100)`);
+        const lastStatus = lastConnectivityStatusMap.get(key);
+        const lastScore = lastConnectivityScoreMap.get(key) || 0;
+        const lastLogTime = lastConnectivityLogTimeMap.get(key) || 0;
+        const now = Date.now();
+
+        const shouldLog = !lastStatus ||
+            lastStatus !== legacyFormat.status ||
+            Math.abs(lastScore - legacyFormat.score) >= 20 ||
+            (now - lastLogTime) > 60000;
+
+        if (shouldLog) {
+            log('CONNECTIVITY', `${legacyFormat.name} status: ${legacyFormat.status} (${legacyFormat.score}/100)`);
             lastConnectivityStatusMap.set(key, legacyFormat.status);
+            lastConnectivityScoreMap.set(key, legacyFormat.score);
+            lastConnectivityLogTimeMap.set(key, now);
         }
     }
 
@@ -1818,7 +1836,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         });
     }
 
-    const displayId = label ? `${label} (${testId})` : testId;
+    const displayId = label ? `${testId} (${label})` : testId;
     const statsFile = `/tmp/convergence_stats_${testId}.json`;
 
     // Dynamic path resolution
@@ -4179,7 +4197,13 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
             }
         }
 
-        console.log(`[MAINTENANCE] Detected Version: ${currentVersion} (from ${foundPath})`);
+        const now = Date.now();
+        const timeSinceLastLog = now - lastVersionLogTime;
+        if (currentVersion !== lastLoggedVersion || timeSinceLastLog > 300000) {
+            log('MAINTENANCE', `Detected Version: ${currentVersion} (from ${foundPath})`);
+            lastLoggedVersion = currentVersion;
+            lastVersionLogTime = now;
+        }
 
         const execPromise = promisify(exec);
         let latestVersion = currentVersion;

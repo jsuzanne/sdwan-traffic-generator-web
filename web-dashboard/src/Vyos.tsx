@@ -172,7 +172,7 @@ export default function Vyos(props: VyosProps) {
             fetchData();
         });
 
-        const interval = setInterval(fetchData, 10000);
+        const interval = setInterval(fetchData, 60000); // Optimized: 60s instead of 10s
         return () => {
             socket.off('vyos:sequence_step');
             socket.off('vyos:sequence_completed');
