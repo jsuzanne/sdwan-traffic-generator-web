@@ -179,18 +179,18 @@ export default function Failover(props: FailoverProps) {
     const selectedCount = endpoints.filter(e => selectedEndpoints.includes(e.id)).length;
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-500 pb-12">
             {/* Header Controls */}
-            <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+            <div className="bg-card/50 backdrop-blur-sm border border-border p-6 rounded-2xl shadow-sm">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${activeTests.length > 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-800'}`}>
-                            <Zap size={24} className={activeTests.length > 0 ? 'text-white' : 'text-slate-400'} />
+                        <div className={`p-3 rounded-xl transition-all ${activeTests.length > 0 ? 'bg-blue-600 animate-pulse shadow-lg shadow-blue-500/20' : 'bg-card-secondary border border-border'}`}>
+                            <Zap size={24} className={activeTests.length > 0 ? 'text-white' : 'text-text-muted'} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Convergence Lab</h2>
+                            <h2 className="text-xl font-bold text-text-primary uppercase tracking-tight">Convergence Lab</h2>
                             <div className="flex items-center gap-2 mt-1">
-                                <p className="text-sm text-slate-400">Manage multiple failover targets for specialized test plans</p>
+                                <p className="text-sm text-text-muted">Manage multiple failover targets for specialized test plans</p>
                                 {activeInterfaces.length > 0 && (
                                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
                                         <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -205,12 +205,12 @@ export default function Failover(props: FailoverProps) {
 
                     <div className="flex items-center gap-4">
                         <div className="flex flex-col gap-1">
-                            <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">Global Precision (Rate)</label>
+                            <label className="text-[10px] text-text-muted font-bold uppercase tracking-widest pl-1">Global Precision (Rate)</label>
                             <select
                                 value={rate}
                                 onChange={(e) => setRate(parseInt(e.target.value))}
                                 disabled={activeTests.length > 0}
-                                className="bg-slate-950 border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+                                className="bg-card-secondary border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 appearance-none"
                             >
                                 <option value="1">1 pps (1s)</option>
                                 <option value="5">5 pps (200ms)</option>
@@ -244,7 +244,7 @@ export default function Failover(props: FailoverProps) {
                             <button
                                 onClick={() => setShowAddModal(true)}
                                 disabled={activeTests.length > 0}
-                                className="mt-5 flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-bold transition-all border border-slate-700 disabled:opacity-50"
+                                className="mt-5 flex items-center gap-2 px-4 py-2 bg-card-secondary hover:bg-card-hover text-text-primary rounded-lg text-sm font-bold transition-all border border-border disabled:opacity-50 shadow-sm"
                             >
                                 <Plus size={18} /> ADD TARGET
                             </button>
@@ -263,33 +263,33 @@ export default function Failover(props: FailoverProps) {
                                 if (isSelected) setSelectedEndpoints(selectedEndpoints.filter(id => id !== e.id));
                                 else setSelectedEndpoints([...selectedEndpoints, e.id]);
                             }}
-                            className={`bg-slate-900/40 border p-4 rounded-xl group cursor-pointer transition-all flex flex-col justify-between ${isSelected ? 'border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10' : 'border-slate-800 hover:border-slate-700'}`}
+                            className={`bg-card border p-4 rounded-xl group cursor-pointer transition-all flex flex-col justify-between shadow-sm hover:shadow-md ${isSelected ? 'border-blue-500 bg-blue-600/5 shadow-blue-500/10' : 'border-border'}`}
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500 border-blue-400' : 'bg-slate-950 border-slate-700'}`}>
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-blue-600 border-blue-500' : 'bg-card-secondary border-border'}`}>
                                         {isSelected && <Zap size={12} className="text-white" fill="currentColor" />}
                                     </div>
                                     <div>
-                                        <h4 className={`font-bold transition-colors uppercase tracking-tight ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>{e.label}</h4>
-                                        <p className="text-[10px] text-slate-500 font-mono mt-0.5">{e.target}:{e.port}</p>
+                                        <h4 className={`font-bold transition-colors uppercase tracking-tight ${isSelected ? 'text-blue-500' : 'text-text-primary'}`}>{e.label}</h4>
+                                        <p className="text-[10px] text-text-muted font-mono mt-0.5">{e.target}:{e.port}</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={(e_stop) => { e_stop.stopPropagation(); deleteEndpoint(e.id); }}
-                                    className="text-slate-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="text-text-muted hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <Trash2 size={14} />
                                 </button>
                             </div>
-                            <div className="w-full flex items-center justify-center gap-2 py-2 bg-slate-950/50 text-slate-400 border border-slate-800 rounded-lg font-bold text-[10px] uppercase tracking-wider">
+                            <div className="w-full flex items-center justify-center gap-2 py-2 bg-card-secondary text-text-muted border border-border rounded-lg font-bold text-[10px] uppercase tracking-wider">
                                 {isSelected ? 'READY TO START' : 'SELECT TARGET'}
                             </div>
                         </div>
                     );
                 })}
                 {endpoints.length === 0 && (
-                    <div className="col-span-full py-8 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl text-slate-500 text-sm">
+                    <div className="col-span-full py-12 text-center bg-card-secondary/20 border border-dashed border-border rounded-2xl text-text-muted text-sm">
                         No targets defined. Click "Add Target" to set up your test plan.
                     </div>
                 )}
@@ -298,20 +298,20 @@ export default function Failover(props: FailoverProps) {
             {/* Active Tests Section */}
             <div className="space-y-4">
                 {activeTests.map((test) => (
-                    <div key={test.testId} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-800">
+                    <div key={test.testId} className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-border">
                         {/* Outage Stats */}
-                        <div className="bg-slate-950/50 p-6 md:w-1/3 flex flex-col justify-center items-center text-center space-y-4">
+                        <div className="bg-card-secondary/30 p-6 md:w-1/3 flex flex-col justify-center items-center text-center space-y-4">
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2 justify-center mb-1">
                                     <Activity size={14} className="text-blue-500" />
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Current Outage</span>
+                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Current Outage</span>
                                 </div>
-                                <div className="text-4xl font-black text-slate-200 font-mono tracking-tighter">
+                                <div className="text-4xl font-black text-text-primary font-mono tracking-tighter">
                                     {formatMs(test.current_blackout_ms || 0)}
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Max Blackout</div>
+                                <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Max Blackout</div>
                                 <div className="text-xl font-bold text-orange-500 font-mono">
                                     {formatMs(test.max_blackout_ms || 0)}
                                 </div>
@@ -323,33 +323,33 @@ export default function Failover(props: FailoverProps) {
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-3">
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500 text-white uppercase tracking-tighter shadow-lg shadow-blue-500/20">
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white uppercase tracking-tighter shadow-lg shadow-blue-500/20">
                                             {test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || test.testId}
                                         </span>
-                                        <span className="text-sm font-bold text-slate-200 uppercase tracking-tight">
+                                        <span className="text-sm font-bold text-text-primary uppercase tracking-tight">
                                             {test.test_id?.split(' (')[0] || 'Loading...'}
                                         </span>
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
-                                            <Clock size={10} className="text-blue-400" />
-                                            <span className="text-[10px] font-mono text-blue-400 font-bold">
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-card-secondary border border-border">
+                                            <Clock size={10} className="text-blue-500 dark:text-blue-400" />
+                                            <span className="text-[10px] font-mono text-blue-500 dark:text-blue-400 font-bold">
                                                 {formatChrono(test.start_time)}
                                             </span>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] text-slate-500 font-mono mt-1.5 flex items-center gap-1">
+                                    <span className="text-[10px] text-text-muted font-mono mt-1.5 flex items-center gap-1">
                                         <Server size={10} /> Source Port: {test.source_port} | {test.rate_pps} pps
                                     </span>
                                 </div>
                                 <div className="flex flex-col items-end gap-1.5">
                                     <div className="flex gap-2">
                                         <div className="flex flex-col items-end">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Packets Sent</span>
-                                            <span className="text-sm font-bold text-green-400 font-mono">{test.sent}</span>
+                                            <span className="text-[9px] font-bold text-text-muted uppercase tracking-tighter">Packets Sent</span>
+                                            <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">{test.sent}</span>
                                         </div>
-                                        <div className="w-[1px] h-6 bg-slate-800 self-center mx-1" />
+                                        <div className="w-[1px] h-6 bg-border self-center mx-1" />
                                         <div className="flex flex-col items-end">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Received</span>
-                                            <span className="text-sm font-bold text-blue-400 font-mono">{test.received}</span>
+                                            <span className="text-[9px] font-bold text-text-muted uppercase tracking-tighter">Received</span>
+                                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">{test.received}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -365,7 +365,7 @@ export default function Failover(props: FailoverProps) {
                             </div>
 
                             <div className="flex justify-between items-center">
-                                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                                <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest flex items-center gap-2">
                                     <Activity size={10} /> Live Sequence Monitoring
                                 </span>
                                 <button
@@ -384,57 +384,57 @@ export default function Failover(props: FailoverProps) {
 
             {/* Verdict Legend & Historical View */}
             <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 ${activeTests.length > 0 ? 'opacity-50 grayscale transition-all' : ''}`}>
-                <div className="md:col-span-3 bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-xl order-2 md:order-1">
-                    <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                <div className="md:col-span-3 bg-card border border-border rounded-2xl overflow-hidden shadow-sm order-2 md:order-1">
+                    <div className="p-4 border-b border-border bg-card-secondary/50 flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
                             <Clock size={16} /> Test History
                         </h3>
                         {history.length > 0 && (
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{history.length} TESTS RECORDED</span>
+                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{history.length} TESTS RECORDED</span>
                         )}
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
-                            <thead className="bg-slate-900/70 border-b border-slate-800">
+                            <thead className="bg-card-secondary/70 border-b border-border text-text-muted">
                                 <tr>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight">Date / ID / Label</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Verdict</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Outcome / Duration</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-center">Packet Details</th>
-                                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-tight text-right">Config</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight">Date / ID / Label</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Verdict</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Outcome / Duration</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Packet Details</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-right">Config</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800">
+                            <tbody className="divide-y divide-border">
                                 {sortedHistory.map((test, idx) => {
                                     const verdict = getVerdict(test.max_blackout_ms);
                                     const isExpanded = expandedHistory === (test.test_id + test.timestamp);
                                     return (
                                         <React.Fragment key={idx}>
                                             <tr
-                                                className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-500/5' : ''}`}
+                                                className={`hover:bg-card-secondary transition-colors cursor-pointer ${isExpanded ? 'bg-blue-600/5' : ''}`}
                                                 onClick={() => setExpandedHistory(isExpanded ? null : (test.test_id + test.timestamp))}
                                             >
                                                 <td className="px-6 py-4">
-                                                    <div className="font-medium text-slate-200 flex items-center gap-2">
-                                                        <span className="bg-blue-500/10 text-blue-400 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">
-							    {test.test_id?.match(/CONV-\d+/)?.[0] || 'CONV-??'}
+                                                    <div className="font-medium text-text-primary flex items-center gap-2">
+                                                        <span className="bg-blue-600/10 text-blue-500 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">
+                                                            {test.test_id?.match(/CONV-\d+/)?.[0] || 'CONV-??'}
                                                         </span>
                                                         <span>{test.label || test.test_id?.split(' (')[0]}</span>
-                                                        <ChevronRight size={14} className={`text-slate-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                                        <ChevronRight size={14} className={`text-text-muted/50 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                                                     </div>
-                                                    <div className="text-[10px] text-slate-500 mt-1">{new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                                                    <div className="text-[10px] text-text-muted mt-1">{new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <span className={`inline-flex items-center px-3 py-1 rounded font-bold text-[9px] border ${verdict.bg.replace('/10', '/30')} ${verdict.color} tracking-widest`}>
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded font-bold text-[9px] border ${verdict.bg.replace('400/10', '600/20')} ${verdict.color.replace('text-green-400', 'text-green-600 dark:text-green-400')} tracking-widest`}>
                                                         {verdict.label}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex flex-col">
-                                                        <span className={`font-mono text-sm font-bold ${test.max_blackout_ms > 0 ? 'text-orange-400' : 'text-slate-400'}`}>
+                                                        <span className={`font-mono text-sm font-bold ${test.max_blackout_ms > 0 ? 'text-orange-500' : 'text-text-muted'}`}>
                                                             {formatMs(test.max_blackout_ms || 0)}
                                                         </span>
-                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">
+                                                        <span className="text-[9px] font-bold text-text-muted uppercase">
                                                             Max Blackout {test.duration_s ? `(${test.duration_s}s)` : ''}
                                                         </span>
                                                     </div>
@@ -442,56 +442,56 @@ export default function Failover(props: FailoverProps) {
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex flex-col items-center">
                                                         <div className="flex gap-2 text-[10px] font-mono font-bold">
-                                                            <span className="text-green-500">S: {test.sent}</span>
-                                                            <span className="text-blue-500 text-opacity-80">R: {test.received}</span>
+                                                            <span className="text-green-600 dark:text-green-500">S: {test.sent}</span>
+                                                            <span className="text-blue-600 dark:text-blue-500 text-opacity-80">R: {test.received}</span>
                                                         </div>
                                                         <div className="flex gap-2 text-[9px] mt-1 font-mono uppercase font-bold">
-                                                            <span className={test.loss_pct > 0 ? 'text-red-400' : 'text-slate-600'}>Loss: {test.loss_pct}%</span>
+                                                            <span className={test.loss_pct > 0 ? 'text-red-500' : 'text-text-muted/60'}>Loss: {test.loss_pct}%</span>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <div className="text-[10px] font-mono text-slate-400">{test.rate_pps || test.rate || '--'} pps</div>
-                                                    <div className="text-[9px] font-mono text-slate-600 uppercase">Port: {test.source_port}</div>
+                                                    <div className="text-[10px] font-mono text-text-secondary">{test.rate_pps || test.rate || '--'} pps</div>
+                                                    <div className="text-[9px] font-mono text-text-muted uppercase">Port: {test.source_port}</div>
                                                 </td>
                                             </tr>
                                             {isExpanded && (
-                                                <tr className="bg-slate-950/80">
+                                                <tr className="bg-background/80">
                                                     <td colSpan={5} className="px-6 py-4 border-l-2 border-blue-500">
                                                         <div className="space-y-3">
                                                             <div className="flex items-center justify-between">
-                                                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                                <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
                                                                     <BarChart3 size={12} /> Historical Failover Timeline
                                                                 </h4>
                                                                 <div className="flex gap-3 text-[9px] font-bold">
-                                                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-blue-500" /> <span className="text-slate-400 uppercase">Success</span></div>
-                                                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-red-500" /> <span className="text-slate-400 uppercase">Drop / Outage</span></div>
+                                                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-blue-600" /> <span className="text-text-muted uppercase">Success</span></div>
+                                                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-red-500" /> <span className="text-text-muted uppercase">Drop / Outage</span></div>
                                                                 </div>
                                                             </div>
                                                             <div className="h-4 w-full flex gap-0.5 rounded overflow-hidden">
                                                                 {(test.history || Array(100).fill(1)).map((val: number, i: number) => (
                                                                     <div
                                                                         key={i}
-                                                                        className={`flex-1 min-w-[1px] ${val === 1 ? 'bg-blue-500/40' : 'bg-red-500 shadow-lg shadow-red-500/50'}`}
+                                                                        className={`flex-1 min-w-[1px] ${val === 1 ? 'bg-blue-600/40' : 'bg-red-500 shadow-lg shadow-red-500/50'}`}
                                                                     />
                                                                 ))}
                                                             </div>
                                                             <div className="grid grid-cols-4 gap-4 pt-2">
-                                                                <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
-                                                                    <div className="text-[8px] text-slate-500 font-bold uppercase">Uplink Loss</div>
-                                                                    <div className="text-xs font-mono font-bold text-red-400">↑ {test.tx_loss_pct || 0}%</div>
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase">Uplink Loss</div>
+                                                                    <div className="text-xs font-mono font-bold text-red-500">↑ {test.tx_loss_pct || 0}%</div>
                                                                 </div>
-                                                                <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
-                                                                    <div className="text-[8px] text-slate-500 font-bold uppercase">Downlink Loss</div>
-                                                                    <div className="text-xs font-mono font-bold text-blue-400">↓ {test.rx_loss_pct || 0}%</div>
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase">Downlink Loss</div>
+                                                                    <div className="text-xs font-mono font-bold text-blue-500">↓ {test.rx_loss_pct || 0}%</div>
                                                                 </div>
-                                                                <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
-                                                                    <div className="text-[8px] text-slate-500 font-bold uppercase">Avg Latency</div>
-                                                                    <div className="text-xs font-mono font-bold text-slate-300">{test.avg_rtt_ms || 0}ms</div>
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase">Avg Latency</div>
+                                                                    <div className="text-xs font-mono font-bold text-text-secondary">{test.avg_rtt_ms || 0}ms</div>
                                                                 </div>
-                                                                <div className="bg-slate-900/50 p-2 rounded border border-slate-800">
-                                                                    <div className="text-[8px] text-slate-500 font-bold uppercase">Jitter (ms)</div>
-                                                                    <div className="text-xs font-mono font-bold text-slate-300">{test.jitter_ms || 0}ms</div>
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase">Jitter (ms)</div>
+                                                                    <div className="text-xs font-mono font-bold text-text-secondary">{test.jitter_ms || 0}ms</div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -503,7 +503,7 @@ export default function Failover(props: FailoverProps) {
                                 })}
                                 {history.length === 0 && !loadingHistory && (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-text-muted italic border-t border-border bg-card/50">
                                             No failover tests recorded yet.
                                         </td>
                                     </tr>
@@ -514,30 +514,30 @@ export default function Failover(props: FailoverProps) {
                 </div>
 
                 <div className="md:col-span-1 space-y-4 order-1 md:order-2">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
                         Failover Thresholds
                     </h3>
                     <div className="grid grid-cols-1 gap-3">
                         {[
-                            { color: 'text-green-400', label: 'GOOD', range: '< 1s', desc: 'Typical SD-WAN sub-second or near-second convergence.' },
-                            { color: 'text-orange-400', label: 'DEGRADED', range: '1s - 5s', desc: 'Noticeable outage. Video freeze and voice drops expected.' },
-                            { color: 'text-red-400', label: 'CRITICAL', range: '> 5s', desc: 'Major network blackout. Application session risk.' }
+                            { color: 'text-green-600 dark:text-green-400', label: 'GOOD', range: '< 1s', desc: 'Typical SD-WAN sub-second or near-second convergence.' },
+                            { color: 'text-orange-500', label: 'DEGRADED', range: '1s - 5s', desc: 'Noticeable outage. Video freeze and voice drops expected.' },
+                            { color: 'text-red-500', label: 'CRITICAL', range: '> 5s', desc: 'Major network blackout. Application session risk.' }
                         ].map(v => (
-                            <div key={v.label} className="bg-slate-900/30 border border-slate-800 p-3 rounded-xl flex gap-3 shadow-sm">
+                            <div key={v.label} className="bg-card-secondary border border-border p-3 rounded-xl flex gap-3 shadow-sm">
                                 <div className={`font-bold text-[10px] min-w-[60px] ${v.color}`}>{v.label}</div>
                                 <div>
-                                    <div className="text-[10px] font-bold text-slate-200">{v.range}</div>
-                                    <div className="text-[9px] text-slate-500 leading-tight mt-1">{v.desc}</div>
+                                    <div className="text-[10px] font-bold text-text-primary">{v.range}</div>
+                                    <div className="text-[9px] text-text-muted leading-tight mt-1">{v.desc}</div>
                                 </div>
                             </div>
                         ))}
                     </div>
-                    <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl space-y-2">
-                        <div className="flex items-center gap-2 text-blue-400">
+                    <div className="p-4 bg-blue-600/5 border border-blue-500/20 rounded-xl space-y-2">
+                        <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400">
                             <Info size={14} />
                             <span className="text-[10px] font-bold uppercase tracking-tight">Pro Tip</span>
                         </div>
-                        <p className="text-[10px] text-slate-400 leading-relaxed">
+                        <p className="text-[10px] text-text-muted leading-relaxed">
                             Click on any historical test row to view the detailed **Failover Timeline** chart and directional loss metrics.
                         </p>
                     </div>
@@ -545,68 +545,68 @@ export default function Failover(props: FailoverProps) {
             </div>
 
             {/* Info Footer */}
-            <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl flex items-start gap-3">
-                <Info size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="bg-blue-600/5 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3">
+                <Info size={18} className="text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-blue-300 uppercase tracking-wider">Under the hood</h4>
-                    <p className="text-[11px] text-slate-400 leading-relaxed italic">
+                    <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Under the hood</h4>
+                    <p className="text-[11px] text-text-muted leading-relaxed italic">
                         This test sends high-frequency UDP packets (millisecond timestamps) to the target server.
                         It calculates failover duration based on <strong>packet sequence gaps</strong>.
                         Use this to validate SD-WAN steering policies and tunnel convergence times during circuit failover events.
-                        <span className="block mt-1 font-bold text-slate-500">Correlation tip: Use the TEST ID and Source Port displayed while the test is running to search for logs in your SD-WAN Orchestrator or firewall.</span>
+                        <span className="block mt-1 font-bold text-text-muted/60">Correlation tip: Use the TEST ID and Source Port displayed while the test is running to search for logs in your SD-WAN Orchestrator or firewall.</span>
                     </p>
                 </div>
             </div>
 
             {/* Add Target Modal */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Target size={20} className="text-blue-400" /> Add Failover Target
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <div className="p-6 border-b border-border flex items-center justify-between bg-card-secondary/50">
+                            <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                                <Target size={20} className="text-blue-500" /> Add Failover Target
                             </h3>
-                            <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-white">
+                            <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Target Label</label>
+                                <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Target Label</label>
                                 <input
                                     type="text"
                                     placeholder="e.g. DC1 - Primary"
                                     value={newTarget.label}
                                     onChange={(e) => setNewTarget({ ...newTarget, label: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all"
                                 />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="col-span-2 space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">IP / Hostname</label>
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">IP / Hostname</label>
                                     <input
                                         type="text"
                                         placeholder="192.168.1.10"
                                         value={newTarget.target}
                                         onChange={(e) => setNewTarget({ ...newTarget, target: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Port</label>
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Port</label>
                                     <input
                                         type="number"
                                         value={newTarget.port}
                                         onChange={(e) => setNewTarget({ ...newTarget, port: parseInt(e.target.value) })}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
                                     />
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6 border-t border-slate-800 bg-slate-900/50 rounded-b-2xl flex gap-3">
+                        <div className="p-6 border-t border-border bg-card-secondary/50 rounded-b-2xl flex gap-3">
                             <button
                                 onClick={() => setShowAddModal(false)}
-                                className="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all text-sm"
+                                className="flex-1 px-4 py-3 rounded-xl bg-card-secondary hover:bg-card-hover text-text-muted font-bold transition-all text-sm border border-border"
                             >
                                 CANCEL
                             </button>
