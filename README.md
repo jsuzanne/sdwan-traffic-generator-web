@@ -265,6 +265,9 @@ open http://localhost:8080
 ## 📊 Verify Installation
 
 ```bash
+# go to directory
+cd sdwan-traffic-gen/
+
 # Check containers status
 docker compose ps
 
