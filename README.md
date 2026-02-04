@@ -246,22 +246,6 @@ docker compose up -d
 
 ---
 
-### Option 3: Build from Source (For Developers)
-
-```bash
-# Clone the repository
-git clone https://github.com/jsuzanne/sdwan-traffic-generator-web.git
-cd sdwan-traffic-generator-web
-
-# Build and start
-docker compose up -d --build
-
-# Access dashboard
-open http://localhost:8080
-```
-
----
-
 ## 📊 Verify Installation
 
 ```bash
