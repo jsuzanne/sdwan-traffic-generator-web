@@ -518,7 +518,7 @@ export default function App() {
             SD-WAN Traffic Generator
           </h1>
           <p className="text-text-muted mt-1">
-            Real-time Control Center {version && <span className="text-text-muted/60">• v{version}</span>}
+            Real-time Control Center {version && <span className="text-text-muted/60">• {version}</span>}
           </p>
         </div>
 

@@ -4638,7 +4638,7 @@ httpServer.listen(PORT, async () => {
         const versionFile = path.join(__dirname, 'VERSION');
         if (fs.existsSync(versionFile)) {
             const version = fs.readFileSync(versionFile, 'utf8').trim();
-            console.log(`🚀 SD-WAN Traffic Generator v${version}`);
+            console.log(`🚀 SD-WAN Traffic Generator ${version}`);
         }
     } catch (e) { }
 

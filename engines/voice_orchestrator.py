@@ -49,7 +49,7 @@ def get_next_call_id():
 def print_banner():
     version = get_version()
     print("="*60)
-    print(f"🚀 SD-WAN VOICE ORCHESTRATOR v{version}")
+    print(f"🚀 SD-WAN VOICE ORCHESTRATOR {version}")
     print(f"📂 Config: {CONFIG_DIR}")
     print(f"📝 Logs: {STATS_FILE}")
     print("="*60)

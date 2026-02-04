@@ -38,7 +38,7 @@ B5=10800    # 3h - site persistemment injoignable
 declare -A APP_COUNTERS
 
 echo "============================================================================"
-echo "🚀 SD-WAN TRAFFIC GENERATOR v${VERSION}"
+echo "🚀 SD-WAN TRAFFIC GENERATOR ${VERSION}"
 echo "📝 Logs: ${LOGFILE}"
 echo "📱 Client ID: ${CLIENTID}"
 echo "============================================================================"

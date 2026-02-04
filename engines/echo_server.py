@@ -123,7 +123,7 @@ if __name__ == "__main__":
     lock = threading.Lock()
 
     print("="*60)
-    print(f"🚀 SD-WAN VOICE ECHO SERVER v{version}")
+    print(f"🚀 SD-WAN VOICE ECHO SERVER {version}")
     print(f"📡 Multi-port mode: {port_list}")
     print("="*60)
 
