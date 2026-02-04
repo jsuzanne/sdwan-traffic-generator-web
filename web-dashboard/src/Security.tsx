@@ -904,7 +904,7 @@ export default function Security({ token }: SecurityProps) {
                             <Link size={18} />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">URL Filtering Policies</h3>
+                            <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">URL Filtering</h3>
                             <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest opacity-70">
                                 {config.url_filtering.enabled_categories.length} / {URL_CATEGORIES.length} Categories Active
                             </p>
@@ -1311,7 +1311,7 @@ export default function Security({ token }: SecurityProps) {
                                                 <div className="p-1.5 bg-orange-600/10 rounded-lg text-orange-600 dark:text-orange-400 border border-orange-500/20">
                                                     {type === 'ip' ? <Globe size={14} /> : type === 'url' ? <Link size={14} /> : <Shield size={14} />}
                                                 </div>
-                                                <h4 className="text-[11px] font-black text-text-primary uppercase tracking-[0.1em]">{type} Vectors</h4>
+                                                <h4 className="text-[11px] font-black text-text-primary uppercase tracking-[0.1em]">{type} Lists</h4>
                                             </div>
                                             <span className="text-[9px] font-black font-mono bg-card-secondary border border-border text-orange-600 dark:text-orange-400 px-2.5 py-1 rounded-full uppercase tracking-widest">
                                                 {list.elementsCount || 0} Elements
@@ -1428,7 +1428,7 @@ export default function Security({ token }: SecurityProps) {
                         {/* Test Execution & Mini Results */}
                         <div className="space-y-6">
                             <h4 className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2 border-l-2 border-orange-500 pl-2">
-                                <Play size={14} fill="currentColor" /> Vector Execution
+                                <Play size={14} fill="currentColor" /> List Execution
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {(['ip', 'url', 'dns'] as const).map(type => {
@@ -1568,10 +1568,10 @@ export default function Security({ token }: SecurityProps) {
                                         onChange={(e) => setTestTypeFilter(e.target.value as any)}
                                         className="pl-9 pr-8 py-3 bg-card-secondary border border-border text-text-primary rounded-xl text-xs font-bold uppercase tracking-widest outline-none focus:ring-1 focus:ring-blue-500 transition-all appearance-none"
                                     >
-                                        <option value="all">All Vectors</option>
-                                        <option value="url">URL Vectors</option>
-                                        <option value="dns">DNS Vectors</option>
-                                        <option value="threat">Threat Vectors</option>
+                                        <option value="all">All Lists</option>
+                                        <option value="url">URL Lists</option>
+                                        <option value="dns">DNS Lists</option>
+                                        <option value="threat">Threat Lists</option>
                                     </select>
                                     <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                                 </div>
@@ -1610,7 +1610,7 @@ export default function Security({ token }: SecurityProps) {
                                             <tr className="border-b border-border">
                                                 <th className="text-left px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-widest">Descriptor</th>
                                                 <th className="text-left px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-widest">Timeline</th>
-                                                <th className="text-left px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-widest">Vector</th>
+                                                <th className="text-left px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-widest">List</th>
                                                 <th className="text-left px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-widest">Identity</th>
                                                 <th className="text-right px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-widest">Disposition</th>
                                             </tr>
@@ -1719,7 +1719,7 @@ export default function Security({ token }: SecurityProps) {
                             {/* Top Stats Row */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="bg-card-secondary/50 border border-border rounded-2xl p-4 shadow-sm">
-                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] mb-2 block opacity-60">Vector Class</label>
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] mb-2 block opacity-60">List Class</label>
                                     <p className="text-sm font-black text-text-primary uppercase">
                                         {selectedTest.type === 'url' ? 'URL Filtering' : selectedTest.type === 'dns' ? 'DNS Security' : 'Threat Prevention'}
                                     </p>

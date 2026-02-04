@@ -52,9 +52,9 @@ export default function Login({ onLogin }: LoginProps) {
                 </div>
 
                 <div className="text-center mb-10">
-                    <h1 className="text-3xl font-black text-text-primary uppercase tracking-tighter mb-2">Access Control</h1>
+                    <h1 className="text-3xl font-black text-text-primary uppercase tracking-tighter mb-2">Console Access</h1>
                     <div className="h-1 w-12 bg-blue-600 mx-auto rounded-full mb-4" />
-                    <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] opacity-60">Unified Traffic Generator Console</p>
+                    <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] opacity-60">Network Traffic Generator</p>
                 </div>
 
                 {error && (
@@ -66,7 +66,7 @@ export default function Login({ onLogin }: LoginProps) {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Operator ID</label>
+                        <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Username</label>
                         <input
                             type="text"
                             value={username}
@@ -77,7 +77,7 @@ export default function Login({ onLogin }: LoginProps) {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Access Token</label>
+                        <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Password</label>
                         <input
                             type="password"
                             value={password}
@@ -98,12 +98,12 @@ export default function Login({ onLogin }: LoginProps) {
                                 <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Authenticating...
                             </>
-                        ) : 'Establish Session'}
+                        ) : 'Sign In'}
                     </button>
                 </form>
 
                 <div className="mt-10 pt-8 border-t border-border/50 text-center">
-                    <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest opacity-40">Secured with SD-WAN Traffic Gen v1.1.2</p>
+                    <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest opacity-40">Version 1.1.2</p>
                 </div>
             </div>
         </div>
