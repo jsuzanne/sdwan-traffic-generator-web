@@ -39,3 +39,6 @@ logs/
 *.20260121
 *.20260120*
 *.new
+
+# Docker Compose
+docker-compose.yml

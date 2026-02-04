@@ -529,7 +529,7 @@ export default function App() {
 
           <button
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Passer au mode clair' : 'Passer au mode sombre'}
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             className="p-2 hover:bg-card-secondary rounded-lg text-text-muted hover:text-yellow-400 transition-colors"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}

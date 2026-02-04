@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2 } from 'lucide-react';
+import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2, Play } from 'lucide-react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { twMerge } from 'tailwind-merge';
+import { clsx, type ClassValue } from 'clsx';
+
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
 
 const socket = io();
 
@@ -575,86 +581,99 @@ export default function Vyos(props: VyosProps) {
             )}
 
             {view === 'sequences' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 animate-in slide-in-from-bottom-4 duration-300">
                     {sequences.map((seq) => (
-                        <div key={seq.id} className="bg-card border border-border rounded-xl p-4 hover:border-purple-500/30 transition-all flex flex-col justify-between group shadow-sm hover:shadow-md">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-all">
-                                        <RefreshCw size={24} className="text-purple-500 dark:text-purple-400" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-black text-text-primary uppercase tracking-tighter text-lg">{seq.name}</h4>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-[10px] text-text-muted font-black uppercase tracking-widest">{seq.actions.length} ACTIONS</span>
-                                            <div className="w-1 h-1 bg-border rounded-full" />
-                                            <span className="text-[10px] text-purple-600 dark:text-purple-400/70 font-black uppercase tracking-widest flex items-center gap-1">
-                                                <Clock size={10} /> {seq.cycle_duration === 0 ? 'MANUAL' : `${seq.cycle_duration}M CYCLE`}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => openSeqModal(seq)}
-                                        className="p-2 text-text-muted hover:text-blue-500 transition-colors bg-card-secondary rounded-lg border border-border/50"
-                                    >
-                                        <Layout size={18} />
-                                    </button>
-                                    <button
-                                        onClick={() => deleteSequence(seq.id)}
-                                        className="p-2 text-text-muted hover:text-red-500 transition-colors bg-card-secondary rounded-lg border border-border/50"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2 mb-6 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                                {seq.actions.map((action, i) => (
-                                    <div key={i} className="flex gap-4 items-center text-[10px] bg-card-secondary/50 p-2 rounded-lg border border-border/30">
-                                        <span className="text-purple-500 font-black w-6 text-center">T+{action.offset_minutes}</span>
-                                        <span className="text-text-primary font-black uppercase w-28 truncate tracking-tighter">{action.command}</span>
-                                        <span className="text-text-muted/50"><ChevronRight size={12} /></span>
-                                        <span className="text-text-muted font-mono text-[9px] truncate">
-                                            {routers.find(r => r.id === action.router_id)?.name || 'Unknown'} : {action.interface}
-                                            {(() => {
-                                                const r = routers.find(r => r.id === action.router_id);
-                                                const iface = r?.interfaces?.find(i => i.name === action.interface);
-                                                return iface?.description ? ` (${iface.description})` : '';
-                                            })()}
+                        <div key={seq.id} className="bg-card border border-border rounded-xl p-4 hover:border-purple-500/40 transition-all flex flex-col gap-3 shadow-sm hover:shadow-md group">
+                            {/* Header: Title and Tools */}
+                            <div className="flex justify-between items-start">
+                                <div className="flex flex-col min-w-0">
+                                    <h3 className="text-sm font-black text-text-primary uppercase tracking-tight truncate pr-2">
+                                        {seq.name}
+                                    </h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className={cn(
+                                            "flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md border transition-colors",
+                                            seq.cycle_duration > 0
+                                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                                                : "bg-card-secondary text-text-muted border-border"
+                                        )}>
+                                            <Clock size={10} />
+                                            {seq.cycle_duration > 0 ? `${seq.cycle_duration}M CRON` : 'MANUAL'}
                                         </span>
-                                        {/* Show impairment/firewall parameters */}
-                                        {action.parameters && Object.keys(action.parameters).length > 0 && (
-                                            <span className="text-[9px] text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 ml-auto group-hover:bg-blue-500/20 transition-colors">
-                                                {action.command === 'set-qos' && (
-                                                    <>
-                                                        {action.parameters.latency && `${action.parameters.latency}ms`}
-                                                        {action.parameters.loss && ` ${action.parameters.loss}% loss`}
-                                                        {action.parameters.rate && ` ${action.parameters.rate}`}
-                                                    </>
-                                                )}
-                                                {action.command === 'deny-traffic' && `${action.parameters.ip || 'N/A'}${action.parameters.force ? ' (forced)' : ''}`}
-                                                {action.command === 'allow-traffic' && `IP: ${action.parameters.ip || 'N/A'}`}
-                                                {action.command === 'show-denied' && 'Query denied traffic'}
-                                            </span>
-                                        )}
+                                        <span className="text-[10px] text-text-muted font-mono opacity-50">#{seq.id.split('-').pop()?.substring(0, 4)}</span>
                                     </div>
-                                ))}
+                                </div>
+                                <div className="flex gap-1">
+                                    <button onClick={() => openSeqModal(seq)} className="p-1.5 text-text-muted hover:text-blue-500 hover:bg-blue-500/5 rounded-md transition-all">
+                                        <Edit2 size={14} />
+                                    </button>
+                                    <button onClick={() => deleteSequence(seq.id)} className="p-1.5 text-text-muted hover:text-red-500 hover:bg-red-500/5 rounded-md transition-all">
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="flex items-center gap-4 pt-6 border-t border-border/50">
+                            {/* Dense Stats Row */}
+                            <div className="grid grid-cols-2 gap-2 py-2 border-y border-border/50">
+                                <div className="flex flex-col">
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-60">Operations</label>
+                                    <span className="text-xs font-bold text-text-primary uppercase tracking-tighter">{seq.actions.length} Commands</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-60">Deployment</label>
+                                    <span className="text-xs font-bold text-text-primary uppercase tracking-tighter">{seq.enabled ? 'Enabled' : 'Staged'}</span>
+                                </div>
+                            </div>
+
+                            {/* Target Preview - Compact */}
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <Server size={12} className="text-text-muted flex-shrink-0 opacity-50" />
+                                <div className="flex gap-1.5 truncate">
+                                    {seq.actions.slice(0, 2).map((a, i) => (
+                                        <span key={i} className="text-[10px] bg-card-secondary/80 text-text-secondary px-2 py-0.5 rounded border border-border/50 whitespace-nowrap font-mono tracking-tighter">
+                                            {routers.find(r => r.id === a.router_id)?.name || '?'}:{a.interface}
+                                        </span>
+                                    ))}
+                                    {seq.actions.length > 2 && (
+                                        <span className="text-[9px] text-text-muted font-black uppercase tracking-tighter self-center">+{seq.actions.length - 2}</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Footer: Status & Execution */}
+                            <div className="flex items-center justify-between mt-auto pt-2">
+                                <div className="flex items-center gap-2.5">
+                                    <div className={cn(
+                                        "w-2 h-2 rounded-full ring-2 ring-offset-2 ring-offset-card transition-all duration-500",
+                                        activeExecution?.sequenceId === seq.id
+                                            ? "bg-green-500 ring-green-500/30 animate-pulse"
+                                            : seq.enabled ? "bg-blue-500 ring-blue-500/20" : "bg-zinc-700 ring-transparent"
+                                    )} />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-text-primary uppercase tracking-tighter leading-none">
+                                            {seq.lastRun ? new Date(seq.lastRun).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never'}
+                                        </span>
+                                        <span className="text-[8px] text-text-muted font-bold uppercase tracking-widest mt-0.5 opacity-60">Last Pulse</span>
+                                    </div>
+                                </div>
+
                                 <button
                                     onClick={() => runSequence(seq.id)}
                                     disabled={activeExecution !== null}
-                                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 shadow-purple-900/40 uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
+                                    className={cn(
+                                        "flex items-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 disabled:opacity-30 disabled:grayscale",
+                                        activeExecution?.sequenceId === seq.id
+                                            ? "bg-card-secondary text-text-muted cursor-not-allowed"
+                                            : "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/30"
+                                    )}
                                 >
-                                    {activeExecution?.sequenceId === seq.id ? 'RUNNING...' : 'EXECUTE...'}
+                                    {activeExecution?.sequenceId === seq.id ? (
+                                        <Activity size={14} className="animate-spin text-purple-400" />
+                                    ) : (
+                                        <Play size={14} fill="currentColor" />
+                                    )}
+                                    Run
                                 </button>
-                                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${seq.enabled ? 'bg-green-500/5 border-green-500/20' : 'bg-card-secondary border-border/50'}`}>
-                                    <div className={`w-2 h-2 rounded-full ${seq.enabled ? 'bg-green-500 animate-pulse' : 'bg-text-muted/30'}`} />
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${seq.enabled ? 'text-green-600 dark:text-green-400' : 'text-text-muted'}`}>{seq.enabled ? 'ACTIVE' : 'IDLE'}</span>
-                                </div>
                             </div>
                         </div>
                     ))}
