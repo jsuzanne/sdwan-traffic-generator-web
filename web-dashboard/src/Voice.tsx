@@ -530,7 +530,7 @@ export default function Voice(props: VoiceProps) {
                                                 {new Date(call.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                             </td>
                                             <td className="py-4 px-3">
-                                                <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
                                                     <span className={cn(
                                                         "text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border shadow-sm w-fit",
                                                         call.event === 'start' ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 border-blue-500/20" :
@@ -539,13 +539,15 @@ export default function Voice(props: VoiceProps) {
                                                     )}>
                                                         {call.event}
                                                     </span>
-                                                    <span className="text-[10px] text-text-muted mt-1 font-mono tracking-tighter opacity-50 group-hover:opacity-100 transition-opacity">#{call.call_id}</span>
+                                                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic">
+                                                        #{call.call_id}
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-3 text-xs font-black text-text-primary tracking-tight">{call.target}</td>
                                             <td className="py-4 px-3">
                                                 {call.event === 'end' && call.loss_pct !== undefined ? (
-                                                    <div className="flex flex-col gap-1.5">
+                                                    <div className="flex items-center gap-4">
                                                         <div className="flex items-center gap-2">
                                                             <div className={cn(
                                                                 "h-2 w-2 rounded-full",
