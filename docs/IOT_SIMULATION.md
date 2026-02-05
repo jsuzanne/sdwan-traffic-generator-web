@@ -71,6 +71,62 @@ Each device in the JSON array follows this structure:
 }
 ```
 
+### 🤖 Generate Devices with AI (LLM Prompt)
+
+You can use any LLM (ChatGPT, Claude, Gemini, etc.) to generate realistic IoT device configurations for your specific customer or industry. Simply use this prompt:
+
+---
+
+**Copy and paste this prompt into your LLM:**
+
+```
+Act as a Palo Alto IoT Security Specialist.
+
+Task: Create a JSON file for a traffic generator using a specific format. The goal is to simulate realistic IoT/OT devices for a customer named [INSERT CUSTOMER NAME HERE].
+
+Requirements:
+
+Count: Generate exactly 16 devices.
+
+Context: Use devices relevant to the customer's industry (e.g., Water, Healthcare, Manufacturing).
+
+Format: Use the exact JSON structure provided below:
+
+{
+  "id": "unique_string_id",
+  "name": "Full Device Model Name",
+  "vendor": "Real Vendor Name",
+  "type": "Specific Device Category",
+  "mac": "XX:XX:XX:00:00:00 (Use real vendor OUI)",
+  "ip_start": "192.168.207.X",
+  "protocols": ["dhcp", "arp", "lldp", "snmp", "http", "dns", "cloud", "specific_industrial_proto"],
+  "enabled": true,
+  "traffic_interval": integer_between_30_and_600,
+  "description": "Short description of the device's role in the site"
+}
+
+Fidelity: Use real-world MAC OUI prefixes for the vendors. For Industrial (OT) devices, include protocols like modbus, s7comm, bacnet, or profinet to help the Palo Alto IoT engine fingerprint them.
+
+Customer Context: [INSERT DETAILS OR LEAVE BLANK FOR GENERIC]
+```
+
+---
+
+**Example Usage:**
+
+> "Act as a Palo Alto IoT Security Specialist. Create a JSON file for a traffic generator... for a customer named **Suez Water Treatment Plant**."
+
+The LLM will generate 16 realistic water industry devices (PLCs, SCADA sensors, flow meters, etc.) with proper MAC OUIs and industrial protocols.
+
+**Then:**
+1. Copy the generated JSON
+2. Go to the **IoT Tab** in the dashboard
+3. Click **Import**
+4. Paste the JSON
+5. Start simulating!
+
+
+
 ### Protocol Support Details
 - **`dhcp`**: Triggers a Scapy-based DHCP state machine (Discover -> Offer -> Request -> Ack).
 - **`arp`**: Listens for ARP Who-Has requests and responds with the spoofed MAC.
