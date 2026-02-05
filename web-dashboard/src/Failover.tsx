@@ -178,9 +178,16 @@ export default function Failover(props: FailoverProps) {
 
     const selectedCount = endpoints.filter(e => selectedEndpoints.includes(e.id)).length;
 
-    const getSourcePort = (id: string) => {
-        const match = id?.match(/CONV-(\d+)/);
-        return match ? `30${match[1]}` : '-----';
+    const getSourcePort = (testId: string): string => {
+        try {
+            const match = testId?.match(/CONV-(\d+)/);
+            if (match && match[1]) {
+                return (30000 + parseInt(match[1])).toString();
+            }
+        } catch (e) {
+            return '????';
+        }
+        return '????';
     };
 
     return (
@@ -327,302 +334,306 @@ export default function Failover(props: FailoverProps) {
                         <div className="flex-1 p-6 relative flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex flex-col">
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white uppercase tracking-tighter shadow-lg shadow-blue-500/20">
-                                        {test.test_id?.match(/CONV-\d+/)?.[0] || test.testId}
-                                    </span>
-                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-card-secondary border border-border">
-                                        <Clock size={10} className="text-blue-500 dark:text-blue-400" />
-                                        <span className="text-[10px] font-mono text-blue-500 dark:text-blue-400 font-bold">
-                                            {formatChrono(test.start_time)}
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white uppercase tracking-tighter shadow-lg shadow-blue-500/20">
+                                            {test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || test.testId}
                                         </span>
+                                        <span className="text-sm font-bold text-text-primary uppercase tracking-tight">
+                                            {test.test_id?.split(' (')[0] || 'Loading...'}
+                                        </span>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-card-secondary border border-border">
+                                            <Clock size={10} className="text-blue-500 dark:text-blue-400" />
+                                            <span className="text-[10px] font-mono text-blue-500 dark:text-blue-400 font-bold">
+                                                {formatChrono(test.start_time)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] text-text-muted font-mono mt-1.5 flex items-center gap-1">
+                                        <Server size={10} /> Target : {test.label || '--'} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate} pps
+                                    </span>
+                                </div>
+                                <div className="flex flex-col items-end gap-1.5">
+                                    <div className="flex gap-2">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-bold text-text-muted uppercase tracking-tighter">Packets Sent</span>
+                                            <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">{test.sent}</span>
+                                        </div>
+                                        <div className="w-[1px] h-6 bg-border self-center mx-1" />
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-bold text-text-muted uppercase tracking-tighter">Received</span>
+                                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">{test.received}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <span className="text-[10px] text-text-muted font-mono mt-1.5 flex items-center gap-1">
-                                    <Server size={10} /> Target : {test.label || '--'} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate} pps
+                            </div>
+
+                            <div className="h-[40px] w-full flex items-end gap-0.5 mb-6">
+                                {(test.history || Array(100).fill(1)).map((val: number, i: number) => (
+                                    <div
+                                        key={i}
+                                        className={`flex-1 min-w-[1px] rounded-t-sm transition-all duration-300 ${val === 1 ? 'bg-blue-500/80 h-full' : 'bg-red-500 h-[30%] animate-pulse'}`}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <Activity size={10} /> Live Sequence Monitoring
                                 </span>
+                                <button
+                                    onClick={() => stopTest(test.testId)}
+                                    disabled={isStopping}
+                                    className="px-4 py-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded border border-red-500/20 text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg shadow-red-900/10 disabled:opacity-50"
+                                >
+                                    {isStopping ? <Activity size={10} className="animate-spin" /> : <Square size={10} fill="currentColor" />}
+                                    {isStopping ? 'STOPPING...' : 'STOP PROBE'}
+                                </button>
                             </div>
-                            <div className="flex flex-col items-end gap-1.5">
-                                <div className="flex gap-2">
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[9px] font-bold text-text-muted uppercase tracking-tighter">Packets Sent</span>
-                                        <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">{test.sent}</span>
-                                    </div>
-                                    <div className="w-[1px] h-6 bg-border self-center mx-1" />
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[9px] font-bold text-text-muted uppercase tracking-tighter">Received</span>
-                                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">{test.received}</span>
-                                    </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Verdict Legend & Historical View */}
+            <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 ${activeTests.length > 0 ? 'opacity-50 grayscale transition-all' : ''}`}>
+                <div className="md:col-span-3 bg-card border border-border rounded-2xl overflow-hidden shadow-sm order-2 md:order-1">
+                    <div className="p-4 border-b border-border bg-card-secondary/50 flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                            <Clock size={16} /> Test History
+                        </h3>
+                        {history.length > 0 && (
+                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{history.length} TESTS RECORDED</span>
+                        )}
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                            <thead className="bg-card-secondary/70 border-b border-border text-text-muted">
+                                <tr>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight">Date / ID / Label</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Verdict</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Outcome / Duration</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Packet Details</th>
+                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-right">Config</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {sortedHistory.map((test, idx) => {
+                                    const verdict = getVerdict(test.max_blackout_ms);
+                                    const isExpanded = expandedHistory === (test.test_id + test.timestamp);
+                                    return (
+                                        <React.Fragment key={idx}>
+                                            <tr
+                                                className={`hover:bg-card-secondary transition-colors cursor-pointer ${isExpanded ? 'bg-blue-600/5' : ''}`}
+                                                onClick={() => setExpandedHistory(isExpanded ? null : (test.test_id + test.timestamp))}
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <div className="font-medium text-text-primary flex items-center gap-2">
+                                                        <span className="bg-blue-600/10 text-blue-500 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">
+                                                            {test.test_id?.match(/CONV-\d+/)?.[0] || 'CONV-??'}
+                                                        </span>
+                                                        <span>{test.label || test.test_id?.split(' (')[0]}</span>
+                                                        <ChevronRight size={14} className={`text-text-muted/50 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                                    </div>
+                                                    <div className="text-[10px] text-text-muted mt-1">
+                                                        {new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })} : Target : {test.label || '--'} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate || '--'} pps
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded font-bold text-[9px] border ${verdict.bg.replace('400/10', '600/20')} ${verdict.color.replace('text-green-400', 'text-green-600 dark:text-green-400')} tracking-widest`}>
+                                                        {verdict.label}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex flex-col">
+                                                        <span className={`font-mono text-sm font-bold ${test.max_blackout_ms > 0 ? 'text-orange-500' : 'text-text-muted'}`}>
+                                                            {formatMs(test.max_blackout_ms || 0)}
+                                                        </span>
+                                                        <span className="text-[9px] font-bold text-text-muted uppercase">
+                                                            Max Blackout {test.duration_s ? `(${test.duration_s}s)` : ''}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="flex gap-2 text-[10px] font-mono font-bold">
+                                                            <span className="text-green-600 dark:text-green-500">S: {test.sent}</span>
+                                                            <span className="text-blue-600 dark:text-blue-500 text-opacity-80">R: {test.received}</span>
+                                                        </div>
+                                                        <div className="flex gap-2 text-[9px] mt-1 font-mono uppercase font-bold">
+                                                            <span className={test.loss_pct > 0 ? 'text-red-500' : 'text-text-muted/60'}>Loss: {test.loss_pct}%</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="text-[10px] font-mono text-text-secondary">{test.rate_pps || test.rate || '--'} pps</div>
+                                                    <div className="text-[9px] font-mono text-text-muted uppercase">Port: {test.source_port}</div>
+                                                </td>
+                                            </tr>
+                                            {isExpanded && (
+                                                <tr className="bg-background/80">
+                                                    <td colSpan={5} className="px-6 py-4 border-l-2 border-blue-500">
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
+                                                                    <BarChart3 size={12} /> Historical Failover Timeline
+                                                                </h4>
+                                                                <div className="flex gap-3 text-[9px] font-bold">
+                                                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-blue-600" /> <span className="text-text-muted uppercase">Success</span></div>
+                                                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-red-500" /> <span className="text-text-muted uppercase">Drop / Outage</span></div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="h-4 w-full flex gap-0.5 rounded overflow-hidden">
+                                                                {(test.history || Array(100).fill(1)).map((val: number, i: number) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        className={`flex-1 min-w-[1px] ${val === 1 ? 'bg-blue-600/40' : 'bg-red-500 shadow-lg shadow-red-500/50'}`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <div className="grid grid-cols-4 gap-4 pt-2">
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase">Uplink Loss</div>
+                                                                    <div className="text-xs font-mono font-bold text-red-500">↑ {test.tx_loss_pct || 0}%</div>
+                                                                </div>
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase">Downlink Loss</div>
+                                                                    <div className="text-xs font-mono font-bold text-blue-500">↓ {test.rx_loss_pct || 0}%</div>
+                                                                </div>
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase">Avg Latency</div>
+                                                                    <div className="text-xs font-mono font-bold text-text-secondary">{test.avg_rtt_ms || 0}ms</div>
+                                                                </div>
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase">Jitter (ms)</div>
+                                                                    <div className="text-xs font-mono font-bold text-text-secondary">{test.jitter_ms || 0}ms</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                                {history.length === 0 && !loadingHistory && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-text-muted italic border-t border-border bg-card/50">
+                                            No failover tests recorded yet.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="md:col-span-1 space-y-4 order-1 md:order-2">
+                    <h3 className="text-sm font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
+                        Failover Thresholds
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3">
+                        {[
+                            { color: 'text-green-600 dark:text-green-400', label: 'GOOD', range: '< 1s', desc: 'Typical SD-WAN sub-second or near-second convergence.' },
+                            { color: 'text-orange-500', label: 'DEGRADED', range: '1s - 5s', desc: 'Noticeable outage. Video freeze and voice drops expected.' },
+                            { color: 'text-red-500', label: 'CRITICAL', range: '> 5s', desc: 'Major network blackout. Application session risk.' }
+                        ].map(v => (
+                            <div key={v.label} className="bg-card-secondary border border-border p-3 rounded-xl flex gap-3 shadow-sm">
+                                <div className={`font-bold text-[10px] min-w-[60px] ${v.color}`}>{v.label}</div>
+                                <div>
+                                    <div className="text-[10px] font-bold text-text-primary">{v.range}</div>
+                                    <div className="text-[9px] text-text-muted leading-tight mt-1">{v.desc}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="p-4 bg-blue-600/5 border border-blue-500/20 rounded-xl space-y-2">
+                        <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400">
+                            <Info size={14} />
+                            <span className="text-[10px] font-bold uppercase tracking-tight">Pro Tip</span>
+                        </div>
+                        <p className="text-[10px] text-text-muted leading-relaxed">
+                            Click on any historical test row to view the detailed **Failover Timeline** chart and directional loss metrics.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Info Footer */}
+            <div className="bg-blue-600/5 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3">
+                <Info size={18} className="text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Under the hood</h4>
+                    <p className="text-[11px] text-text-muted leading-relaxed italic">
+                        This test sends high-frequency UDP packets (millisecond timestamps) to the target server.
+                        It calculates failover duration based on <strong>packet sequence gaps</strong>.
+                        Use this to validate SD-WAN steering policies and tunnel convergence times during circuit failover events.
+                        <span className="block mt-1 font-bold text-text-muted/60">Correlation tip: Use the TEST ID and Source Port displayed while the test is running to search for logs in your SD-WAN Orchestrator or firewall.</span>
+                    </p>
+                </div>
+            </div>
+
+            {/* Add Target Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <div className="p-6 border-b border-border flex items-center justify-between bg-card-secondary/50">
+                            <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                                <Target size={20} className="text-blue-500" /> Add Failover Target
+                            </h3>
+                            <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Target Label</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. DC1 - Primary"
+                                    value={newTarget.label}
+                                    onChange={(e) => setNewTarget({ ...newTarget, label: e.target.value })}
+                                    className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 space-y-1.5">
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">IP / Hostname</label>
+                                    <input
+                                        type="text"
+                                        placeholder="192.168.1.10"
+                                        value={newTarget.target}
+                                        onChange={(e) => setNewTarget({ ...newTarget, target: e.target.value })}
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Port</label>
+                                    <input
+                                        type="number"
+                                        value={newTarget.port}
+                                        onChange={(e) => setNewTarget({ ...newTarget, port: parseInt(e.target.value) })}
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                                    />
                                 </div>
                             </div>
                         </div>
-
-                        <div className="h-[40px] w-full flex items-end gap-0.5 mb-6">
-                            {(test.history || Array(100).fill(1)).map((val: number, i: number) => (
-                                <div
-                                    key={i}
-                                    className={`flex-1 min-w-[1px] rounded-t-sm transition-all duration-300 ${val === 1 ? 'bg-blue-500/80 h-full' : 'bg-red-500 h-[30%] animate-pulse'}`}
-                                />
-                            ))}
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                            <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest flex items-center gap-2">
-                                <Activity size={10} /> Live Sequence Monitoring
-                            </span>
+                        <div className="p-6 border-t border-border bg-card-secondary/50 rounded-b-2xl flex gap-3">
                             <button
-                                onClick={() => stopTest(test.testId)}
-                                disabled={isStopping}
-                                className="px-4 py-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded border border-red-500/20 text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg shadow-red-900/10 disabled:opacity-50"
+                                onClick={() => setShowAddModal(false)}
+                                className="flex-1 px-4 py-3 rounded-xl bg-card-secondary hover:bg-card-hover text-text-muted font-bold transition-all text-sm border border-border"
                             >
-                                {isStopping ? <Activity size={10} className="animate-spin" /> : <Square size={10} fill="currentColor" />}
-                                {isStopping ? 'STOPPING...' : 'STOP PROBE'}
+                                CANCEL
+                            </button>
+                            <button
+                                onClick={addEndpoint}
+                                className="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-900/20 text-sm"
+                            >
+                                SAVE TARGET
                             </button>
                         </div>
                     </div>
-                ))}
-        </div>
-
-            {/* Verdict Legend & Historical View */ }
-    <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 ${activeTests.length > 0 ? 'opacity-50 grayscale transition-all' : ''}`}>
-        <div className="md:col-span-3 bg-card border border-border rounded-2xl overflow-hidden shadow-sm order-2 md:order-1">
-            <div className="p-4 border-b border-border bg-card-secondary/50 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
-                    <Clock size={16} /> Test History
-                </h3>
-                {history.length > 0 && (
-                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{history.length} TESTS RECORDED</span>
-                )}
-            </div>
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                    <thead className="bg-card-secondary/70 border-b border-border text-text-muted">
-                        <tr>
-                            <th className="px-6 py-3 font-bold uppercase tracking-tight">Date / ID / Label</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Verdict</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Outcome / Duration</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Packet Details</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-tight text-right">Config</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                        {sortedHistory.map((test, idx) => {
-                            const verdict = getVerdict(test.max_blackout_ms);
-                            const isExpanded = expandedHistory === (test.test_id + test.timestamp);
-                            return (
-                                <React.Fragment key={idx}>
-                                    <tr
-                                        className={`hover:bg-card-secondary transition-colors cursor-pointer ${isExpanded ? 'bg-blue-600/5' : ''}`}
-                                        onClick={() => setExpandedHistory(isExpanded ? null : (test.test_id + test.timestamp))}
-                                    >
-                                        <td className="px-6 py-4">
-                                            <div className="font-medium text-text-primary flex items-center gap-2">
-                                                <span className="bg-blue-600/10 text-blue-500 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">
-                                                    {test.test_id?.match(/CONV-\d+/)?.[0] || 'CONV-??'}
-                                                </span>
-                                                <ChevronRight size={14} className={`text-text-muted/50 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                                            </div>
-                                            <div className="text-[10px] text-text-muted mt-1">
-                                                {new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })} : Target : {test.label || '--'} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate || '--'} pps
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex items-center px-3 py-1 rounded font-bold text-[9px] border ${verdict.bg.replace('400/10', '600/20')} ${verdict.color.replace('text-green-400', 'text-green-600 dark:text-green-400')} tracking-widest`}>
-                                                {verdict.label}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex flex-col">
-                                                <span className={`font-mono text-sm font-bold ${test.max_blackout_ms > 0 ? 'text-orange-500' : 'text-text-muted'}`}>
-                                                    {formatMs(test.max_blackout_ms || 0)}
-                                                </span>
-                                                <span className="text-[9px] font-bold text-text-muted uppercase">
-                                                    Max Blackout {test.duration_s ? `(${test.duration_s}s)` : ''}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex flex-col items-center">
-                                                <div className="flex gap-2 text-[10px] font-mono font-bold">
-                                                    <span className="text-green-600 dark:text-green-500">S: {test.sent}</span>
-                                                    <span className="text-blue-600 dark:text-blue-500 text-opacity-80">R: {test.received}</span>
-                                                </div>
-                                                <div className="flex gap-2 text-[9px] mt-1 font-mono uppercase font-bold">
-                                                    <span className={test.loss_pct > 0 ? 'text-red-500' : 'text-text-muted/60'}>Loss: {test.loss_pct}%</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="text-[10px] font-mono text-text-secondary">{test.rate_pps || test.rate || '--'} pps</div>
-                                            <div className="text-[9px] font-mono text-text-muted uppercase">Port: {test.source_port}</div>
-                                        </td>
-                                    </tr>
-                                    {isExpanded && (
-                                        <tr className="bg-background/80">
-                                            <td colSpan={5} className="px-6 py-4 border-l-2 border-blue-500">
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center justify-between">
-                                                        <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
-                                                            <BarChart3 size={12} /> Historical Failover Timeline
-                                                        </h4>
-                                                        <div className="flex gap-3 text-[9px] font-bold">
-                                                            <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-blue-600" /> <span className="text-text-muted uppercase">Success</span></div>
-                                                            <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-red-500" /> <span className="text-text-muted uppercase">Drop / Outage</span></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="h-4 w-full flex gap-0.5 rounded overflow-hidden">
-                                                        {(test.history || Array(100).fill(1)).map((val: number, i: number) => (
-                                                            <div
-                                                                key={i}
-                                                                className={`flex-1 min-w-[1px] ${val === 1 ? 'bg-blue-600/40' : 'bg-red-500 shadow-lg shadow-red-500/50'}`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <div className="grid grid-cols-4 gap-4 pt-2">
-                                                        <div className="bg-card-secondary p-2 rounded border border-border">
-                                                            <div className="text-[8px] text-text-muted font-bold uppercase">Uplink Loss</div>
-                                                            <div className="text-xs font-mono font-bold text-red-500">↑ {test.tx_loss_pct || 0}%</div>
-                                                        </div>
-                                                        <div className="bg-card-secondary p-2 rounded border border-border">
-                                                            <div className="text-[8px] text-text-muted font-bold uppercase">Downlink Loss</div>
-                                                            <div className="text-xs font-mono font-bold text-blue-500">↓ {test.rx_loss_pct || 0}%</div>
-                                                        </div>
-                                                        <div className="bg-card-secondary p-2 rounded border border-border">
-                                                            <div className="text-[8px] text-text-muted font-bold uppercase">Avg Latency</div>
-                                                            <div className="text-xs font-mono font-bold text-text-secondary">{test.avg_rtt_ms || 0}ms</div>
-                                                        </div>
-                                                        <div className="bg-card-secondary p-2 rounded border border-border">
-                                                            <div className="text-[8px] text-text-muted font-bold uppercase">Jitter (ms)</div>
-                                                            <div className="text-xs font-mono font-bold text-text-secondary">{test.jitter_ms || 0}ms</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </React.Fragment>
-                            );
-                        })}
-                        {history.length === 0 && !loadingHistory && (
-                            <tr>
-                                <td colSpan={5} className="px-6 py-12 text-center text-text-muted italic border-t border-border bg-card/50">
-                                    No failover tests recorded yet.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div className="md:col-span-1 space-y-4 order-1 md:order-2">
-            <h3 className="text-sm font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
-                Failover Thresholds
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-                {[
-                    { color: 'text-green-600 dark:text-green-400', label: 'GOOD', range: '< 1s', desc: 'Typical SD-WAN sub-second or near-second convergence.' },
-                    { color: 'text-orange-500', label: 'DEGRADED', range: '1s - 5s', desc: 'Noticeable outage. Video freeze and voice drops expected.' },
-                    { color: 'text-red-500', label: 'CRITICAL', range: '> 5s', desc: 'Major network blackout. Application session risk.' }
-                ].map(v => (
-                    <div key={v.label} className="bg-card-secondary border border-border p-3 rounded-xl flex gap-3 shadow-sm">
-                        <div className={`font-bold text-[10px] min-w-[60px] ${v.color}`}>{v.label}</div>
-                        <div>
-                            <div className="text-[10px] font-bold text-text-primary">{v.range}</div>
-                            <div className="text-[9px] text-text-muted leading-tight mt-1">{v.desc}</div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-            <div className="p-4 bg-blue-600/5 border border-blue-500/20 rounded-xl space-y-2">
-                <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400">
-                    <Info size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-tight">Pro Tip</span>
                 </div>
-                <p className="text-[10px] text-text-muted leading-relaxed">
-                    Click on any historical test row to view the detailed **Failover Timeline** chart and directional loss metrics.
-                </p>
-            </div>
+            )}
         </div>
-    </div>
-
-    {/* Info Footer */ }
-    <div className="bg-blue-600/5 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3">
-        <Info size={18} className="text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-        <div className="space-y-1">
-            <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Under the hood</h4>
-            <p className="text-[11px] text-text-muted leading-relaxed italic">
-                This test sends high-frequency UDP packets (millisecond timestamps) to the target server.
-                It calculates failover duration based on <strong>packet sequence gaps</strong>.
-                Use this to validate SD-WAN steering policies and tunnel convergence times during circuit failover events.
-                <span className="block mt-1 font-bold text-text-muted/60">Correlation tip: Use the TEST ID and Source Port displayed while the test is running to search for logs in your SD-WAN Orchestrator or firewall.</span>
-            </p>
-        </div>
-    </div>
-
-    {/* Add Target Modal */ }
-    {
-        showAddModal && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-                    <div className="p-6 border-b border-border flex items-center justify-between bg-card-secondary/50">
-                        <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                            <Target size={20} className="text-blue-500" /> Add Failover Target
-                        </h3>
-                        <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
-                            <X size={20} />
-                        </button>
-                    </div>
-                    <div className="p-6 space-y-4">
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Target Label</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. DC1 - Primary"
-                                value={newTarget.label}
-                                onChange={(e) => setNewTarget({ ...newTarget, label: e.target.value })}
-                                className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all"
-                            />
-                        </div>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="col-span-2 space-y-1.5">
-                                <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">IP / Hostname</label>
-                                <input
-                                    type="text"
-                                    placeholder="192.168.1.10"
-                                    value={newTarget.target}
-                                    onChange={(e) => setNewTarget({ ...newTarget, target: e.target.value })}
-                                    className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Port</label>
-                                <input
-                                    type="number"
-                                    value={newTarget.port}
-                                    onChange={(e) => setNewTarget({ ...newTarget, port: parseInt(e.target.value) })}
-                                    className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="p-6 border-t border-border bg-card-secondary/50 rounded-b-2xl flex gap-3">
-                        <button
-                            onClick={() => setShowAddModal(false)}
-                            className="flex-1 px-4 py-3 rounded-xl bg-card-secondary hover:bg-card-hover text-text-muted font-bold transition-all text-sm border border-border"
-                        >
-                            CANCEL
-                        </button>
-                        <button
-                            onClick={addEndpoint}
-                            className="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-900/20 text-sm"
-                        >
-                            SAVE TARGET
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-        </div >
     );
 }
