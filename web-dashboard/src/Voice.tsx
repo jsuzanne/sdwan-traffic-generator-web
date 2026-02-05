@@ -532,14 +532,14 @@ export default function Voice(props: VoiceProps) {
                                             <td className="py-4 px-3">
                                                 <div className="flex items-center gap-2">
                                                     <span className={cn(
-                                                        "text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border shadow-sm w-fit",
+                                                        "text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border shadow-sm w-[60px] text-center",
                                                         call.event === 'start' ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 border-blue-500/20" :
                                                             call.event === 'skipped' ? "bg-orange-600/10 text-orange-600 dark:text-orange-400 border-orange-500/20" :
                                                                 "bg-card-secondary text-text-muted border-border"
                                                     )}>
                                                         {call.event}
                                                     </span>
-                                                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic">
+                                                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic min-w-[80px] text-center">
                                                         #{call.call_id}
                                                     </span>
                                                 </div>
@@ -565,7 +565,7 @@ export default function Voice(props: VoiceProps) {
                                                         {call.mos_score !== undefined && (
                                                             <div className="flex items-center">
                                                                 <span className={cn(
-                                                                    "text-[10px] font-black px-2 py-0.5 rounded-lg border shadow-sm",
+                                                                    "text-[10px] font-black px-2 py-0.5 rounded-lg border shadow-sm whitespace-nowrap",
                                                                     call.mos_score >= 4.0 ? "bg-green-600/10 text-green-600 dark:text-green-400 border-green-500/20" :
                                                                         call.mos_score >= 3.0 ? "bg-orange-600/10 text-orange-600 dark:text-orange-400 border-orange-500/20" :
                                                                             "bg-red-600/10 text-red-600 dark:text-red-400 border-red-500/20"
