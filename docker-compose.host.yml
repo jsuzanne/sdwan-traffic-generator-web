@@ -13,6 +13,8 @@ services:
       - NET_RAW
     environment:
       - JWT_SECRET=your-super-secret-jwt-key-change-me-in-production
+      - AUTO_START_TRAFFIC=true
+      - SLEEP_BETWEEN_REQUESTS=1
       - CONFIG_DIR=/app/config
       - LOG_DIR=/var/log/sdwan-traffic-gen
       - PORT=8080

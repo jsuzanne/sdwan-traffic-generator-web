@@ -683,11 +683,16 @@ docusign.com|50|/`;
         log('INIT', `Found existing interfaces.txt: ${firstLine}`);
     }
 
-    // Initialize traffic control file (default: stopped)
+    // Initialize traffic control file (default: auto-start if enabled via env var)
     const controlFile = path.join(configDir, 'traffic-control.json');
     if (!fs.existsSync(controlFile)) {
-        fs.writeFileSync(controlFile, JSON.stringify({ enabled: false }, null, 2), 'utf8');
-        console.log('Created traffic-control.json (default: stopped)');
+        const autoStart = process.env.AUTO_START_TRAFFIC === 'true';
+        const sleepInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1');
+        fs.writeFileSync(controlFile, JSON.stringify({
+            enabled: autoStart,
+            sleep_interval: sleepInterval
+        }, null, 2), 'utf8');
+        console.log(`Created traffic-control.json (default: ${autoStart ? 'running' : 'stopped'}, interval: ${sleepInterval}s)`);
     }
 
     // Initialize IoT devices from default template if it exists

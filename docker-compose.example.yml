@@ -24,6 +24,10 @@ services:
       # JWT Secret - CHANGE THIS IN PRODUCTION!
       - JWT_SECRET=your-super-secret-jwt-key-change-me-in-production
 
+      # Auto-start Traffic Generation (set to 'false' to require manual start)
+      - AUTO_START_TRAFFIC=true
+      - SLEEP_BETWEEN_REQUESTS=1
+
       # Configuration paths
       - CONFIG_DIR=/app/config
       - LOG_DIR=/var/log/sdwan-traffic-gen

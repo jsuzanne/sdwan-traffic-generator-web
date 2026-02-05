@@ -152,6 +152,13 @@ fi
 # Create config directory
 mkdir -p ./config
 
+# Create .env file with auto-start enabled (if not exists)
+if [ ! -f .env ]; then
+    echo "AUTO_START_TRAFFIC=true" > .env
+    echo "SLEEP_BETWEEN_REQUESTS=1" >> .env
+    echo "✅ Created .env with auto-start traffic enabled"
+fi
+
 # Start services
 echo "🔧 Starting services..."
 docker compose up -d
