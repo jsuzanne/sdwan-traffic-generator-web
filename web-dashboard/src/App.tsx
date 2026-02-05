@@ -1126,7 +1126,7 @@ export default function App() {
               </div>
               <span className="ml-2 text-[10px] font-black uppercase tracking-widest opacity-70">Live Streaming Logs</span>
             </div>
-            <div className="p-4 h-[300px] overflow-y-auto text-text-primary dark:text-slate-300 bg-slate-950 dark:bg-black/20 font-bold scrollbar-thin scrollbar-thumb-border">
+            <div className="p-4 h-[300px] overflow-y-auto text-text-primary font-bold scrollbar-thin scrollbar-thumb-border bg-card-secondary/50 dark:bg-black/20">
               {logs.map((log, i) => (
                 <div key={i} className="border-b border-border/10 dark:border-white/5 py-1.5 flex gap-3 text-[11px]">
                   <span className="text-text-muted opacity-40 select-none">{(i + 1).toString().padStart(3, '0')}</span>
