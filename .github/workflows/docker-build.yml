@@ -23,6 +23,7 @@ env:
   TRAFFIC_GEN_IMAGE: jsuzanne/sdwan-traffic-gen
   VOICE_GEN_IMAGE: jsuzanne/sdwan-voice-gen
   VOICE_ECHO_IMAGE: jsuzanne/sdwan-voice-echo
+  MCP_SERVER_IMAGE: jsuzanne/sdwan-mcp-server
 
 jobs:
   promote-to-stable:
@@ -93,6 +94,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push MCP Server (Stable)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./mcp-server
+          file: ./mcp-server/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.MCP_SERVER_IMAGE }}:stable,${{ env.MCP_SERVER_IMAGE }}:${{ github.event.inputs.version_to_stable }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   build:
     name: Build and Push
     runs-on: ubuntu-latest
@@ -123,6 +135,7 @@ jobs:
             echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest,${{ env.TRAFFIC_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:latest,${{ env.VOICE_GEN_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:latest,${{ env.VOICE_ECHO_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
+            echo "mcp_tags=${{ env.MCP_SERVER_IMAGE }}:latest,${{ env.MCP_SERVER_IMAGE }}:$VERSION" >> $GITHUB_OUTPUT
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           elif [[ $GITHUB_REF == refs/heads/main ]]; then
             # Main branch gets :latest
@@ -130,6 +143,7 @@ jobs:
             echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:latest" >> $GITHUB_OUTPUT
+            echo "mcp_tags=${{ env.MCP_SERVER_IMAGE }}:latest" >> $GITHUB_OUTPUT
             echo "version=latest" >> $GITHUB_OUTPUT
           else
             # Other branches get their branch name as tag (avoids latest collision)
@@ -138,6 +152,7 @@ jobs:
             echo "gen_tags=${{ env.TRAFFIC_GEN_IMAGE }}:$BRANCH_NAME" >> $GITHUB_OUTPUT
             echo "voice_tags=${{ env.VOICE_GEN_IMAGE }}:$BRANCH_NAME" >> $GITHUB_OUTPUT
             echo "echo_tags=${{ env.VOICE_ECHO_IMAGE }}:$BRANCH_NAME" >> $GITHUB_OUTPUT
+            echo "mcp_tags=${{ env.MCP_SERVER_IMAGE }}:$BRANCH_NAME" >> $GITHUB_OUTPUT
             echo "version=$BRANCH_NAME" >> $GITHUB_OUTPUT
           fi
 
@@ -198,6 +213,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push MCP Server
+        uses: docker/build-push-action@v5
+        with:
+          context: ./mcp-server
+          file: ./mcp-server/Dockerfile
+          platforms: ${{ steps.plat.outputs.platforms }}
+          push: true
+          tags: ${{ steps.tags.outputs.mcp_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -226,6 +252,7 @@ jobs:
             docker pull jsuzanne/sdwan-traffic-gen:${{ steps.version.outputs.version }}
             docker pull jsuzanne/sdwan-voice-gen:${{ steps.version.outputs.version }}
             docker pull jsuzanne/sdwan-voice-echo:${{ steps.version.outputs.version }}
+            docker pull jsuzanne/sdwan-mcp-server:${{ steps.version.outputs.version }}
             ```
             
             ### What's Changed

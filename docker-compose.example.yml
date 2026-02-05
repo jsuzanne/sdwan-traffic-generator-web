@@ -183,7 +183,7 @@ services:
   # MCP Server - Multi-Agent Orchestration via Claude Desktop
   # (Optional: only starts with --profile demo)
   mcp-server:
-    build: ./mcp-server
+    image: jsuzanne/sdwan-mcp-server:stable
     container_name: sdwan-mcp
     restart: unless-stopped
     volumes:
