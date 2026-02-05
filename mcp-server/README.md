@@ -69,9 +69,28 @@ docker compose --profile demo up -d mcp-server
 docker compose up -d
 ```
 
-## Claude Desktop Configuration
+## Transport Modes
 
-Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+The MCP server supports two transport modes:
+
+1. **SSE (Server-Sent Events) - Default**
+   - Runs as a web server on port 3100
+   - Best for remote access (SSH tunnels, Cloudflare Tunnel)
+   - Supports health checks (`/health`)
+   - Logs to stderr, traffic on HTTP
+
+2. **STDIO (Standard Input/Output)**
+   - Communicates via stdin/stdout
+   - Best for local Claude Desktop (via `docker exec`)
+   - Configured by setting `MCP_TRANSPORT=stdio`
+
+---
+
+## Claude Desktop Setup
+
+### Option A: Local Setup (STDIO via Docker)
+
+Use this if Claude Desktop is running on the **same machine** as Docker.
 
 ```json
 {
@@ -81,6 +100,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
       "args": [
         "exec",
         "-i",
+        "-e", "MCP_TRANSPORT=stdio",
         "sdwan-mcp",
         "python",
         "-m",
@@ -91,7 +111,81 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 }
 ```
 
-Restart Claude Desktop to load the MCP server.
+### Option B: Remote Setup (SSE via SSH Tunnel)
+
+Use this if Claude Desktop is on your Mac/PC and the server is on a remote Linux machine (e.g., `192.168.123.102`).
+
+1. **Start the SSH Tunnel:**
+
+   ```bash
+   ssh -N -L 3100:localhost:3100 user@192.168.123.102
+   ```
+
+2. **Configure Claude Desktop:**
+
+   ```json
+   {
+     "mcpServers": {
+       "sdwan-traffic-gen": {
+         "command": "npx",
+         "args": [
+           "-y",
+           "@modelcontextprotocol/inspector",
+           "http://localhost:3100/sse"
+         ]
+       }
+     }
+   }
+   ```
+
+**Note**: This requires `node` and `npx` installed on your machine. Alternatively, you can use the MCP Inspector directly or any SSE-compatible MCP client.
+
+---
+
+## Testing
+
+### Testing SSE Transport
+
+1. **Start MCP server (SSE mode)**
+   ```bash
+   docker compose up -d mcp-server
+   ```
+
+2. **Check health endpoint**
+   ```bash
+   curl http://localhost:3100/health
+   # Expected: {"status": "ok"}
+   ```
+
+3. **Check SSE endpoint**
+   ```bash
+   curl -N http://localhost:3100/sse
+   # Expected: Connection stays open
+   ```
+
+4. **Remote Test (from Mac)**
+   ```bash
+   ssh -N -L 3100:localhost:3100 user@remote-host &
+   curl http://localhost:3100/health
+   ```
+
+### Troubleshooting
+
+**SSE Connection Refused**
+- Check `MCP_TRANSPORT=sse` environment variable
+- Verify port 3100 is exposed in `docker-compose.yml`
+- Check container logs: `docker logs sdwan-mcp`
+
+**Claude Desktop "Connection Failed"**
+- Verify SSH tunnel is active
+- Test endpoint manually with `curl`
+- Check Claude logs: `~/Library/Logs/Claude/mcp*.log`
+
+**JSON Parsing Errors with STDIO**
+- Ensure you are passing `-e MCP_TRANSPORT=stdio` to `docker exec`
+- Check logs (logs should go to stderr, not stdout)
+
+---
 
 ## Usage Examples
 

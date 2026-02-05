@@ -18,9 +18,17 @@ EXPOSE 3100
 
 # Environment
 ENV PYTHONUNBUFFERED=1
+ENV MCP_TRANSPORT=sse
 ENV MCP_PORT=3100
-ENV LOG_LEVEL=INFO
+ENV MCP_HOST=0.0.0.0
 
-# Keep container running for docker exec -i usage
-# The MCP server will be started via: docker exec -i sdwan-mcp python -m src.server
-CMD ["tail", "-f", "/dev/null"]
+# Healthcheck for SSE endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s \
+    CMD python -c "import httpx; httpx.get('http://localhost:3100/health', timeout=2)" || exit 1
+
+# Expose SSE port
+EXPOSE 3100
+
+# Run server (default transport is SSE based on ENV above)
+# For STDIO usage via docker exec, override ENV: docker exec -e MCP_TRANSPORT=stdio ...
+CMD ["python", "-m", "src.server"]

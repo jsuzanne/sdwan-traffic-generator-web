@@ -98,6 +98,8 @@ services:
       - ./logs:/app/logs:ro # Read-only: existing logs
     environment:
       - PYTHONUNBUFFERED=1
-      - MCP_PORT=3100
       - LOG_LEVEL=INFO
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=3100
+      - MCP_HOST=0.0.0.0
     profiles: [ "demo" ] # Optional: only starts with --profile demo
