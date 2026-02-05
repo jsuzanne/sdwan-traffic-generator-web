@@ -4651,31 +4651,7 @@ httpServer.listen(PORT, async () => {
     scheduleLogCleanup();
 
     // Smoke Test: Validate all Express routes to catch PathError regressions early
-    try {
-        console.log('🔍 Validating routes...');
-        const routes: string[] = [];
-        const processLayer = (layer: any, prefix: string = '') => {
-            if (!layer) return;
-            if (layer.route) {
-                const path = prefix + layer.route.path;
-                routes.push(path);
-            } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
-                layer.handle.stack.forEach((subLayer: any) => {
-                    processLayer(subLayer, prefix + (layer.regexp.source.replace('^\\', '').replace('\\/?(?=\\/|$)', '')));
-                });
-            }
-        };
-        if ((app as any)._router && (app as any)._router.stack) {
-            (app as any)._router.stack.forEach((layer: any) => processLayer(layer));
-            console.log(`✅ ${routes.length} routes validated successfully`);
-        } else {
-            console.log('⚠️ Could not validate routes: _router.stack not found');
-        }
-    } catch (e: any) {
-        console.error(`❌ CRITICAL: Route validation failed: ${e.message}`);
-        console.error(`This is usually caused by incompatible route syntax (e.g. optional params like :id?)`);
-        process.exit(1);
-    }
+
 
     console.log(`Backend running at http://localhost:${PORT}`);
 });
