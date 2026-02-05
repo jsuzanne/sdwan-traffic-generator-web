@@ -632,7 +632,7 @@ export default function Vyos(props: VyosProps) {
                                     <label className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-60">Operations</label>
                                     <span className="text-xs font-bold text-text-primary uppercase tracking-tighter">
                                         {seq.actions.length === 1
-                                            ? `1 command: ${getCommandDisplayName(seq.actions[0].command).toLowerCase()}`
+                                            ? getCommandDisplayName(seq.actions[0].command)
                                             : `${seq.actions.length} commands`
                                         }
                                     </span>
