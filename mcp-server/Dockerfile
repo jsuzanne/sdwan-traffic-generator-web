@@ -21,5 +21,6 @@ ENV PYTHONUNBUFFERED=1
 ENV MCP_PORT=3100
 ENV LOG_LEVEL=INFO
 
-# Run server
-CMD ["python", "-m", "src.server"]
+# Keep container running for docker exec -i usage
+# The MCP server will be started via: docker exec -i sdwan-mcp python -m src.server
+CMD ["tail", "-f", "/dev/null"]
