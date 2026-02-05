@@ -9,6 +9,19 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
+function getCommandDisplayName(command: string): string {
+    switch (command) {
+        case 'interface-down': return 'Shut';
+        case 'interface-up': return 'No Shut';
+        case 'set-qos': return 'Latency/Loss';
+        case 'clear-qos': return 'Clear Qos';
+        case 'deny-traffic': return 'Deny Traffic';
+        case 'allow-traffic': return 'Allow Traffic';
+        case 'show-denied': return 'Show Denied';
+        default: return command;
+    }
+}
+
 const socket = io();
 
 export interface VyosRouterInterface {
@@ -617,7 +630,12 @@ export default function Vyos(props: VyosProps) {
                             <div className="grid grid-cols-2 gap-2 py-2 border-y border-border/50">
                                 <div className="flex flex-col">
                                     <label className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-60">Operations</label>
-                                    <span className="text-xs font-bold text-text-primary uppercase tracking-tighter">{seq.actions.length} Commands</span>
+                                    <span className="text-xs font-bold text-text-primary uppercase tracking-tighter">
+                                        {seq.actions.length === 1
+                                            ? `1 command: ${getCommandDisplayName(seq.actions[0].command).toLowerCase()}`
+                                            : `${seq.actions.length} commands`
+                                        }
+                                    </span>
                                 </div>
                                 <div className="flex flex-col">
                                     <label className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-60">Deployment</label>
@@ -875,7 +893,7 @@ export default function Vyos(props: VyosProps) {
             {view === 'timeline' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-300">
                     <div className="lg:col-span-2 space-y-6">
-                        {sequences.filter(s => s.enabled).map(seq => (
+                        {sequences.filter(s => s.enabled && s.cycle_duration > 0).map(seq => (
                             <ExecutionTimeline
                                 key={seq.id}
                                 sequence={seq}
@@ -884,11 +902,11 @@ export default function Vyos(props: VyosProps) {
                             />
                         ))}
 
-                        {sequences.filter(s => s.enabled).length === 0 && (
+                        {sequences.filter(s => s.enabled && s.cycle_duration > 0).length === 0 && (
                             <div className="py-20 flex flex-col items-center justify-center bg-card border border-dashed border-border rounded-3xl text-text-muted shadow-inner">
                                 <Activity size={64} className="mb-6 opacity-10" />
-                                <p className="text-lg font-bold uppercase tracking-wider opacity-40">No Active Sequences</p>
-                                <p className="text-sm mt-2 opacity-30">Enable a sequence to see its execution timeline.</p>
+                                <p className="text-lg font-bold uppercase tracking-wider opacity-40">No Active Scheduled Sequences</p>
+                                <p className="text-sm mt-2 opacity-30">Enable a sequence with cycling to see its execution timeline.</p>
                             </div>
                         )}
                     </div>
