@@ -1,0 +1,6 @@
+# Voice/UC Traffic Profile
+# Format: domain|weight|endpoint
+teams.microsoft.com|95|/api/v1/users
+zoom.us|90|/
+meet.google.com|85|/
+webex.com|80|/

@@ -1,0 +1,7 @@
+# Enterprise SaaS Traffic Profile
+# Format: domain|weight|endpoint
+outlook.office365.com|100|/
+mail.google.com|90|/mail
+slack.com|85|/api/api.test
+salesforce.com|70|/
+github.com|65|/

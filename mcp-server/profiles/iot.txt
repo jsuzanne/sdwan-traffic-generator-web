@@ -1,0 +1,4 @@
+# IoT Traffic Profile
+# Format: domain|weight|endpoint
+iot.example.com|50|/sensors
+mqtt.example.com|40|/telemetry

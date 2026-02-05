@@ -1,0 +1,81 @@
+"""
+Pydantic models for SD-WAN MCP Server.
+
+This module defines all data models used throughout the MCP server,
+including agents, test runs, statistics, and API responses.
+"""
+
+from datetime import datetime
+from typing import Dict, List, Optional
+from pydantic import BaseModel, Field, HttpUrl
+
+
+class Agent(BaseModel):
+    """Configuration for a single SD-WAN traffic generator agent."""
+    
+    id: str = Field(..., description="Unique identifier for the agent")
+    name: str = Field(..., description="Human-readable name")
+    url: HttpUrl = Field(..., description="Base URL of the agent's web-ui API")
+    jwt_secret: str = Field(..., description="JWT secret for authentication")
+
+
+class AgentConfig(BaseModel):
+    """Root configuration containing all agents."""
+    
+    agents: List[Agent] = Field(default_factory=list, description="List of configured agents")
+
+
+class AgentStats(BaseModel):
+    """Statistics from a single agent."""
+    
+    total_requests: int = Field(0, description="Total number of requests made")
+    success_rate: float = Field(0.0, description="Success rate percentage (0-100)")
+    top_app: Optional[str] = Field(None, description="Most requested application")
+    errors: int = Field(0, description="Total number of errors")
+    requests_by_app: Dict[str, int] = Field(default_factory=dict, description="Requests per application")
+    errors_by_app: Dict[str, int] = Field(default_factory=dict, description="Errors per application")
+
+
+class AgentStatus(BaseModel):
+    """Status information for a single agent."""
+    
+    id: str = Field(..., description="Agent ID")
+    name: str = Field(..., description="Agent name")
+    status: str = Field(..., description="Current status: running, stopped, error")
+    url: str = Field(..., description="Agent URL")
+    stats: Optional[AgentStats] = Field(None, description="Current statistics")
+
+
+class TestRun(BaseModel):
+    """A traffic generation test run across multiple agents."""
+    
+    id: str = Field(..., description="Unique test ID (e.g., test-20260205-1015)")
+    start_time: datetime = Field(..., description="Test start timestamp")
+    end_time: Optional[datetime] = Field(None, description="Test end timestamp")
+    agents: List[str] = Field(..., description="List of agent IDs participating")
+    profile: str = Field(..., description="Traffic profile name (voice, iot, enterprise)")
+    duration_minutes: int = Field(..., description="Planned test duration in minutes")
+    label: Optional[str] = Field(None, description="Optional user-defined label")
+    status: str = Field("running", description="Test status: running, completed, failed")
+    final_stats: Optional[Dict[str, AgentStats]] = Field(None, description="Final statistics per agent")
+
+
+class TestStatus(BaseModel):
+    """Current status of a running or completed test."""
+    
+    id: str = Field(..., description="Test ID")
+    status: str = Field(..., description="Test status")
+    elapsed_seconds: int = Field(..., description="Elapsed time since start")
+    agents: List[AgentStatus] = Field(..., description="Status of each agent")
+
+
+class TestSummary(BaseModel):
+    """Summary information for a test run."""
+    
+    id: str = Field(..., description="Test ID")
+    label: Optional[str] = Field(None, description="Test label")
+    start_time: datetime = Field(..., description="Start timestamp")
+    duration_minutes: int = Field(..., description="Test duration")
+    status: str = Field(..., description="Test status")
+    agent_count: int = Field(..., description="Number of agents")
+    profile: str = Field(..., description="Traffic profile used")
