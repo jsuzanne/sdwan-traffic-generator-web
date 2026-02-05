@@ -438,7 +438,7 @@ export default function Voice(props: VoiceProps) {
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic">
-                                                    #{call.call_id.slice(0, 8)}
+                                                    #{call.call_id}
                                                 </span>
                                                 <div className="text-xs font-black text-text-primary tracking-tight uppercase">{call.target}</div>
                                             </div>
@@ -539,7 +539,7 @@ export default function Voice(props: VoiceProps) {
                                                     )}>
                                                         {call.event}
                                                     </span>
-                                                    <span className="text-[10px] text-text-muted mt-1 font-mono tracking-tighter opacity-50 group-hover:opacity-100 transition-opacity">#{call.call_id.slice(0, 8)}</span>
+                                                    <span className="text-[10px] text-text-muted mt-1 font-mono tracking-tighter opacity-50 group-hover:opacity-100 transition-opacity">#{call.call_id}</span>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-3 text-xs font-black text-text-primary tracking-tight">{call.target}</td>
