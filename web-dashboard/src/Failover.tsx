@@ -339,7 +339,7 @@ export default function Failover(props: FailoverProps) {
                                             {test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || test.testId}
                                         </span>
                                         <span className="text-sm font-bold text-text-primary uppercase tracking-tight">
-                                            {test.test_id?.split(' (')[0] || 'Loading...'}
+                                            {test.label || test.test_id?.split(' (')[0] || 'Unknown Target'}
                                         </span>
                                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-card-secondary border border-border">
                                             <Clock size={10} className="text-blue-500 dark:text-blue-400" />
@@ -349,7 +349,7 @@ export default function Failover(props: FailoverProps) {
                                         </div>
                                     </div>
                                     <span className="text-[10px] text-text-muted font-mono mt-1.5 flex items-center gap-1">
-                                        <Server size={10} /> Target : {test.label || '--'} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate} pps
+                                        <Server size={10} /> {new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate} pps
                                     </span>
                                 </div>
                                 <div className="flex flex-col items-end gap-1.5">
@@ -435,7 +435,7 @@ export default function Failover(props: FailoverProps) {
                                                         <ChevronRight size={14} className={`text-text-muted/50 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                                                     </div>
                                                     <div className="text-[10px] text-text-muted mt-1">
-                                                        {new Date(test.timestamp).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })} : Target : {test.label || '--'} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate || '--'} pps
+                                                        {new Date(test.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate || '--'} pps
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
@@ -612,7 +612,8 @@ export default function Failover(props: FailoverProps) {
                                         type="number"
                                         value={newTarget.port}
                                         onChange={(e) => setNewTarget({ ...newTarget, port: parseInt(e.target.value) })}
-                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                                        disabled={true}
+                                        className="w-full bg-card-secondary/50 border border-border rounded-xl px-4 py-3 text-text-muted outline-none cursor-not-allowed font-mono opacity-70"
                                     />
                                 </div>
                             </div>
