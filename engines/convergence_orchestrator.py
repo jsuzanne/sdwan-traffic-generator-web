@@ -17,7 +17,7 @@ DEBUG_MODE = os.getenv('DEBUG', 'false').lower() == 'true'
 warnings.filterwarnings("ignore")
 
 class ConvergenceMetrics:
-    def __init__(self, rate, test_id, start_time):
+    def __init__(self, rate, test_id, start_time, target, port, label, source_port):
         self.test_id = test_id
         self.sent_count = 0
         self.sent_times = {} # seq -> sent_time
@@ -33,6 +33,10 @@ class ConvergenceMetrics:
         self.interval = 1.0 / rate
         self.start_time = start_time
         self.rate = rate
+        self.target = target
+        self.port = port
+        self.label = label
+        self.source_port = source_port
 
     def record_send(self, seq, timestamp):
         with self.lock:
@@ -133,7 +137,11 @@ class ConvergenceMetrics:
                 "rate_pps": self.rate,
                 "duration_s": duration,
                 "history": history,
-                "start_time": self.start_time
+                "start_time": self.start_time,
+                "target": self.target,
+                "port": self.port,
+                "label": self.label,
+                "source_port": self.source_port
             }
 
 def receiver_thread(sock, metrics, stop_event):
@@ -177,9 +185,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     start_time = time.time()
-    metrics = ConvergenceMetrics(args.rate, args.id, start_time)
-    stop_event = threading.Event()
-
+    
     # Derive deterministic source port from CONV-ID
     # Example: CONV-001 -> 30001, CONV-042 -> 30042
     test_num = 0
@@ -189,6 +195,51 @@ if __name__ == "__main__":
     source_port = 30000 + test_num
     if source_port > 65535:
         source_port = 65535  # Safety cap
+
+    # Extract Label
+    label = "Unknown"
+    log_id = args.id
+    if " (" in log_id:
+        label = log_id.split(" (")[0]
+        # Clean ID only for logging, keep full ID for metrics if needed or split it
+        # Actually metrics.test_id usually expects the full string or short? 
+        # based on existing code: log_id = log_id.split(" (")[-1].replace(")", "")
+        # Let's keep existing logic structure but move it up.
+    
+    # Fix: Re-implement label logic cleanly
+    display_id = args.id
+    if " (" in display_id:
+        label = display_id.split(" (")[-1].replace(")", "")
+        # Wait, args.id passed from server.ts is: `label ? "${testId} (${label})" : testId`
+        # So "CONV-123 (MyLabel)" -> label is MyLabel.
+        # existing code: 
+        #   if " (" in log_id:
+        #       label = log_id.split(" (")[0]  <-- THIS LOOKS WRONG in existing code if format is "ID (Label)"
+        #       log_id = log_id.split(" (")[-1].replace(")", "")
+        # Use server.ts logic as truth: `${testId} (${label})`
+        # So split(' (') -> [0] is ID, [1] is Label).
+    
+    # Let's look at server.ts: const displayId = label ? `${testId} (${label})` : testId;
+    # So "CONV-123 (MyTarget)"
+    
+    if " (" in args.id:
+        real_id = args.id.split(" (")[0]
+        label = args.id.split(" (")[1].replace(")", "")
+    else:
+        real_id = args.id
+        # Label is passed as argument too? 
+        # parser has no --label argument! 
+        # Wait, Step 1547 shows server.ts:
+        # const cmdStr = `python3 convergence_orchestrator.py ... --label "${label || ''}"`;
+        # BUT args array on line 1867-1874 DOES NOT INCLUDE --label!
+        # const args = [ orchestratorPath, '--target', ..., '--id', displayId, '--stats-file', statsFile ];
+        # It does NOT pass --label separately in the spawn args!
+        # It relies on --id string parsing!
+        
+    metrics = ConvergenceMetrics(args.rate, args.id, start_time, args.target, args.port, label, source_port)
+    stop_event = threading.Event()
+
+    # Source port logic moved up
 
     # Create single UDP socket for both TX and RX
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -209,11 +260,8 @@ if __name__ == "__main__":
     t_stats.daemon = True
     t_stats.start()
 
-    log_id = args.id
-    label = "Unknown"
-    if " (" in log_id:
-        label = log_id.split(" (")[0]
-        log_id = log_id.split(" (")[-1].replace(")", "")
+    # Logic moved up
+    log_id = real_id
     
     timestamp = time.strftime('%H:%M:%S')
     print(f"[{log_id}] [{timestamp}] 🚀 {label} - CONVERGENCE STARTED: {args.target}:{args.port} | Rate: {args.rate}pps", flush=True)
