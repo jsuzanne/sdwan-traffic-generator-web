@@ -290,40 +290,6 @@ export default function Config({ token }: ConfigProps) {
                 </div>
 
                 {/* Help Text */}
-                <div className="mb-8 bg-blue-600/5 border border-blue-500/20 rounded-2xl p-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                        <Server size={80} />
-                    </div>
-                    <h3 className="text-blue-600 dark:text-blue-400 font-black text-[10px] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                        <Server size={14} />
-                        Environment Discovery
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[
-                            { os: 'Linux', cmd: 'ip link show', sub: 'or ifconfig' },
-                            { os: 'Windows', cmd: 'ipconfig', sub: 'look for Eth/Wi-Fi' },
-                            { os: 'macOS', cmd: 'ifconfig', sub: 'or networksetup' }
-                        ].map(item => (
-                            <div key={item.os} className="space-y-2">
-                                <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">{item.os}</span>
-                                <div className="flex items-center gap-2">
-                                    <code className="bg-card-secondary/50 border border-border px-3 py-1.5 rounded-xl text-[10px] font-black font-mono text-text-primary shadow-inner">
-                                        {item.cmd}
-                                    </code>
-                                </div>
-                                <p className="text-[9px] text-text-muted font-bold tracking-tight opacity-50">{item.sub}</p>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="mt-6 pt-4 border-t border-blue-500/10 flex items-center gap-3">
-                        <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">Common handles:</span>
-                        <div className="flex gap-2">
-                            {['eth0', 'ens33', 'en0', 'wlan0'].map(h => (
-                                <code key={h} className="bg-card-secondary/30 px-2 py-0.5 rounded-lg border border-border text-[9px] font-black text-blue-500/70">{h}</code>
-                            ))}
-                        </div>
-                    </div>
-                </div>
 
                 <div className="flex flex-col gap-6">
                     {/* Manual Entry Input */}
