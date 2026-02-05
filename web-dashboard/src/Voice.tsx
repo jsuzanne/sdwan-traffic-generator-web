@@ -530,18 +530,13 @@ export default function Voice(props: VoiceProps) {
                                                 {new Date(call.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                             </td>
                                             <td className="py-4 px-3">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={cn(
-                                                        "text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border shadow-sm w-[60px] text-center",
-                                                        call.event === 'start' ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 border-blue-500/20" :
-                                                            call.event === 'skipped' ? "bg-orange-600/10 text-orange-600 dark:text-orange-400 border-orange-500/20" :
-                                                                "bg-card-secondary text-text-muted border-border"
-                                                    )}>
-                                                        {call.event}
-                                                    </span>
-                                                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic min-w-[80px] text-center">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic min-w-[80px] text-center">
                                                         #{call.call_id}
                                                     </span>
+                                                    {call.event === 'start' && <Phone className="text-blue-500 animate-pulse" size={14} fill="currentColor" />}
+                                                    {call.event === 'end' && <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-green-500/20"><CheckSquare className="text-green-500" size={10} /></div>}
+                                                    {call.event === 'skipped' && <AlertCircle className="text-orange-500" size={14} />}
                                                 </div>
                                             </td>
                                             <td className="py-4 px-3 text-xs font-black text-text-primary tracking-tight">{call.target}</td>

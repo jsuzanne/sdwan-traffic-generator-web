@@ -172,7 +172,7 @@ export default function LogViewer({ deviceId, deviceName, onClose }: LogViewerPr
             {/* Log Display */}
             <div
                 ref={logContainerRef}
-                className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent bg-slate-950 dark:bg-black/20 font-bold"
+                className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent bg-[#1e1e1e] text-gray-300 font-bold"
                 onWheel={() => setAutoScroll(false)}
             >
                 {filteredLogs.length === 0 ? (
@@ -185,7 +185,7 @@ export default function LogViewer({ deviceId, deviceName, onClose }: LogViewerPr
                         <div key={i} className="flex gap-3 py-0.5 group">
                             <span className="text-text-muted dark:text-slate-600 shrink-0 select-none opacity-60">[{formatTimestamp(log.timestamp)}]</span>
                             <span className={`font-black shrink-0 uppercase w-10 select-none ${getLevelColor(log.level)}`}>{log.level.substring(0, 4)}</span>
-                            <span className="text-text-primary dark:text-slate-300 break-all">{log.message}</span>
+                            <span className="font-mono text-gray-300 break-all">{log.message}</span>
                         </div>
                     ))
                 )}
