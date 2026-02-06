@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi, Search } from 'lucide-react';
+import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi, Search, CheckSquare, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
