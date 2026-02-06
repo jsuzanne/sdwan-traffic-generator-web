@@ -821,7 +821,7 @@ export default function Vyos(props: VyosProps) {
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="px-2 py-0.5 bg-card-secondary rounded text-text-secondary font-black uppercase text-[9px] tracking-widest border border-border/50">{log.command}</span>
-                                                                {log.parameters && Object.keys(log.parameters).length > 0 && (
+                                                                {log.parameters && Object.keys(log.parameters).length > 0 && !['clear-blocks', 'get-blocks'].includes(log.command) && (
                                                                     <span className="text-[9px] text-text-muted font-mono italic">({JSON.stringify(log.parameters)})</span>
                                                                 )}
                                                             </div>
@@ -865,7 +865,7 @@ export default function Vyos(props: VyosProps) {
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-2">
                                                     <span className="px-2 py-0.5 bg-card-secondary rounded text-text-secondary font-black uppercase text-[9px] tracking-widest border border-border/50">{log.command}</span>
-                                                    {log.parameters && Object.keys(log.parameters).length > 0 && (
+                                                    {log.parameters && Object.keys(log.parameters).length > 0 && !['clear-blocks', 'get-blocks'].includes(log.command) && (
                                                         <span className="text-[9px] text-text-muted font-mono italic">({JSON.stringify(log.parameters)})</span>
                                                     )}
                                                 </div>
