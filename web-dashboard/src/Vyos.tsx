@@ -1378,7 +1378,12 @@ export default function Vyos(props: VyosProps) {
                             <button
                                 onClick={saveSequence}
                                 disabled={!editingSeq.name || editingSeq.actions.length === 0}
-                                className="flex-2 px-10 py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black transition-all shadow-xl shadow-purple-900/40 text-xs uppercase tracking-[0.3em] disabled:opacity-20 flex items-center justify-center gap-3 active:scale-95"
+                                title={
+                                    !editingSeq.name ? "⚠️ Mission Identifier is required" :
+                                        editingSeq.actions.length === 0 ? "⚠️ Add at least one action" :
+                                            "Save this mission"
+                                }
+                                className="flex-2 px-10 py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black transition-all shadow-xl shadow-purple-900/40 text-xs uppercase tracking-[0.3em] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-purple-600 flex items-center justify-center gap-3 active:scale-95"
                             >
                                 <CheckCircle size={20} /> SAVE
                             </button>
