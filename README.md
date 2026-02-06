@@ -209,7 +209,7 @@ docker compose up -d
 open http://localhost:8080
 ```
 
-### Option 2a: Manual Install (Windows,Mac in docker bridge mode)
+### Option 2b: Manual Install (Mac in docker bridge mode)
 ```bash
 # Download docker-compose.yml
 curl -sSL -o docker-compose.yml https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/docker-compose.example.yml
