@@ -1842,7 +1842,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     // Safety Scaling: Enforce a Global PPS limit of 500
     const currentTotalPPS = Array.from(convergencePPS.values()).reduce((a, b) => a + b, 0);
     const requestedPPS = parseInt(rate) || 50;
-    const GLOBAL_PPS_LIMIT = 500;
+    const GLOBAL_PPS_LIMIT = 1000;
 
     if (currentTotalPPS + requestedPPS > GLOBAL_PPS_LIMIT) {
         return res.status(422).json({
