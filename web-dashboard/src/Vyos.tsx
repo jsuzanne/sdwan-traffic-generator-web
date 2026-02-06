@@ -1226,7 +1226,8 @@ export default function Vyos(props: VyosProps) {
                                                     </select>
                                                 </div>
 
-                                                {true && (
+                                                {/* Interface Path - Hidden for block/unblock/clear actions */}
+                                                {!['deny-traffic', 'allow-traffic', 'clear-all-blocks'].includes(action.command) && (
                                                     <div className="space-y-1.5">
                                                         <label className="text-[9px] font-black text-text-muted uppercase tracking-widest pl-1 flex items-center gap-1.5"><Wifi size={8} /> Interface Path</label>
                                                         <select

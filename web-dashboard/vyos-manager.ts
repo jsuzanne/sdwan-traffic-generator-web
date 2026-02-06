@@ -309,6 +309,10 @@ export class VyosManager extends EventEmitter {
         const scrubbedArgs = args.map(arg => (arg === router.apiKey ? '***' : arg));
         log('VYOS', `Executing CLI: python3 ${scrubbedArgs.join(' ')}`, 'debug');
 
+        // NEW: Log full command for debugging (with real values for troubleshooting)
+        const fullCommand = `vyos_sdwan_ctl.py --host ${router.host} --key ${router.apiKey.substring(0, 8)}... ${args.slice(7).join(' ')}`;
+        log('VYOS', `Full command: ${fullCommand}`, 'info');
+
         return new Promise((resolve, reject) => {
             const proc = spawn('python3', args);
             let output = '';
