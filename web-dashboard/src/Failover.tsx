@@ -230,6 +230,9 @@ export default function Failover(props: FailoverProps) {
                                 <option value="20">20 pps (50ms)</option>
                                 <option value="50">50 pps (20ms)</option>
                                 <option value="100">100 pps (10ms)</option>
+				<option value="200">200 pps (5ms)</option>
+				<option value="500">500 pps (2ms)</option>
+				<option value="1000">1000 pps (1ms)</option>
                             </select>
                         </div>
                         <div className="flex items-center gap-4">

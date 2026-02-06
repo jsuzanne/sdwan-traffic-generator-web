@@ -650,7 +650,8 @@ export default function Vyos(props: VyosProps) {
                                 <div className="flex gap-1.5 truncate">
                                     {seq.actions.slice(0, 2).map((a, i) => (
                                         <span key={i} className="text-[10px] bg-card-secondary/80 text-text-secondary px-2 py-0.5 rounded border border-border/50 whitespace-nowrap font-mono tracking-tighter">
-                                            {routers.find(r => r.id === a.router_id)?.name || '?'}:{a.interface}
+                                            {routers.find(r => r.id === a.router_id)?.name || '?'}
+                                            {!['deny-traffic', 'allow-traffic', 'clear-all-blocks', 'show-denied'].includes(a.command) && `:${a.interface}`}
                                         </span>
                                     ))}
                                     {seq.actions.length > 2 && (
@@ -812,7 +813,9 @@ export default function Vyos(props: VyosProps) {
                                                         <td className="px-6 py-4">
                                                             <div className="flex flex-col">
                                                                 <span className="text-text-secondary font-bold uppercase text-[10px]">{log.router_id}</span>
-                                                                <span className="text-[9px] text-text-muted/60 font-mono">{log.interface || 'global'}</span>
+                                                                {!['simple-block', 'simple-unblock', 'clear-blocks', 'get-blocks'].includes(log.command) && (
+                                                                    <span className="text-[9px] text-text-muted/60 font-mono">{log.interface || 'global'}</span>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4">
@@ -854,7 +857,9 @@ export default function Vyos(props: VyosProps) {
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-col">
                                                     <span className="text-text-secondary font-bold uppercase text-[10px]">{log.router_id}</span>
-                                                    <span className="text-[9px] text-text-muted/60 font-mono">{log.interface || 'global'}</span>
+                                                    {!['simple-block', 'simple-unblock', 'clear-blocks', 'get-blocks'].includes(log.command) && (
+                                                        <span className="text-[9px] text-text-muted/60 font-mono">{log.interface || 'global'}</span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
