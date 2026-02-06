@@ -1143,9 +1143,17 @@ export default function Vyos(props: VyosProps) {
                                         onClick={() => {
                                             const lastAction = editingSeq.actions[editingSeq.actions.length - 1];
                                             const nextOffset = lastAction ? lastAction.offset_minutes + 10 : 0;
+                                            const defaultInterface = routers[0]?.interfaces?.[0]?.name || 'eth0';
                                             setEditingSeq({
                                                 ...editingSeq,
-                                                actions: [...editingSeq.actions, { id: `act-${Date.now()}`, offset_minutes: nextOffset, router_id: routers[0]?.id || '', interface: routers[0]?.interfaces?.[0]?.name || '', command: 'interface-down', parameters: {} }]
+                                                actions: [...editingSeq.actions, {
+                                                    id: `act-${Date.now()}`,
+                                                    offset_minutes: nextOffset,
+                                                    router_id: routers[0]?.id || '',
+                                                    interface: defaultInterface, // Will be ignored for block/unblock/clear actions
+                                                    command: 'interface-down',
+                                                    parameters: {}
+                                                }]
                                             });
                                         }}
                                         className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-purple-900/20 active:scale-95"
