@@ -281,18 +281,23 @@ export class VyosManager extends EventEmitter {
                     const isSetCorruption = command === 'set-corruption' && flag === 'corruption';
                     const isSetRate = command === 'set-rate' && flag === 'rate';
 
-                    // Interface is needed for most commands EXCEPT block/unblock/clear
-                    const isIface = flag === 'iface' && !['simple-block', 'simple-unblock', 'clear-blocks'].includes(command);
+                    // Interface is needed for most commands EXCEPT block/unblock/clear/get-blocks
+                    const isIface = flag === 'iface' && !['simple-block', 'simple-unblock', 'clear-blocks', 'get-blocks'].includes(command);
                     const isQoS = command === 'set-qos';
 
-                    // NEW: Firewall filters (updated: no interface needed for global blackhole routes)
+                    // Firewall filters: block/unblock need --ip, clear-blocks and get-blocks need NOTHING
                     const isDenyTraffic = command === 'simple-block' && flag === 'ip';
                     const isAllowTraffic = command === 'simple-unblock' && flag === 'ip';
-                    const isShowDenied = command === 'get-blocks' && flag === 'iface';
-                    const isClearBlocks = command === 'clear-blocks'; // No parameters needed
+                    // clear-blocks and get-blocks should NOT accept ANY parameters
+                    const skipParameter = ['clear-blocks', 'get-blocks'].includes(command);
+
+                    if (skipParameter) {
+                        // Skip all parameters for clear-blocks and get-blocks
+                        return;
+                    }
 
                     if (isQoS || isIface || isSetLatency || isSetLoss || isSetCorruption || isSetRate ||
-                        isDenyTraffic || isAllowTraffic || isShowDenied || isClearBlocks) {
+                        isDenyTraffic || isAllowTraffic) {
 
                         // Handle boolean flags (e.g., --force)
                         if (typeof val === 'boolean') {

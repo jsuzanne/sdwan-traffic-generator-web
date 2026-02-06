@@ -398,11 +398,11 @@ export default function Config({ token }: ConfigProps) {
                                 value={newProbe.type}
                                 onChange={e => setNewProbe({ ...newProbe, type: e.target.value as any, timeout: e.target.value === 'PING' ? 2000 : 5000 })}
                             >
-                                <option value="HTTP">HTTP/S (MOS)</option>
-                                <option value="HTTPS">SSL (RTT)</option>
-                                <option value="PING">ICMP (LOSS)</option>
-                                <option value="TCP">TCP (HANDSHAKE)</option>
-                                <option value="DNS">DNS (RESOLVE)</option>
+                                <option value="HTTP">HTTP</option>
+                                <option value="HTTPS">HTTPS</option>
+                                <option value="PING">ICMP</option>
+                                <option value="TCP">TCP</option>
+                                <option value="DNS">DNS</option>
                                 <option value="UDP">UDP (IPERF3)</option>
                             </select>
                         </div>
