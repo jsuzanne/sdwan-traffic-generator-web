@@ -280,7 +280,9 @@ export class VyosManager extends EventEmitter {
                     const isSetLoss = command === 'set-loss' && flag === 'percent';
                     const isSetCorruption = command === 'set-corruption' && flag === 'corruption';
                     const isSetRate = command === 'set-rate' && flag === 'rate';
-                    const isIface = flag === 'iface';
+
+                    // Interface is needed for most commands EXCEPT block/unblock/clear
+                    const isIface = flag === 'iface' && !['simple-block', 'simple-unblock', 'clear-blocks'].includes(command);
                     const isQoS = command === 'set-qos';
 
                     // NEW: Firewall filters (updated: no interface needed for global blackhole routes)
