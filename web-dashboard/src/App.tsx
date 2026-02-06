@@ -762,7 +762,7 @@ export default function App() {
               view === 'system' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
             )}
           >
-            <Monitor size={18} /> System <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 ml-1">Beta</span>
+            <Monitor size={18} /> System <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-600/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 ml-1">Beta</span>
             {maintenance?.updateAvailable && (
               <span className="absolute top-2 right-1 w-2 h-2 bg-blue-600 rounded-full animate-pulse border border-background" />
             )}
