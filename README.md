@@ -195,9 +195,21 @@ This will:
 
 ---
 
-### Option 2: Manual Install (All Platforms)
+### Option 2a: Manual Install (Linux)
 
 **Full Dashboard (Interactive):**
+```bash
+# Download docker-compose.yml
+curl -sSL -o docker-compose.yml https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/docker-compose.host.yml
+
+# Start services
+docker compose up -d
+
+# Access dashboard
+open http://localhost:8080
+```
+
+### Option 2a: Manual Install (Windows,Mac in docker bridge mode)
 ```bash
 # Download docker-compose.yml
 curl -sSL -o docker-compose.yml https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/docker-compose.example.yml
