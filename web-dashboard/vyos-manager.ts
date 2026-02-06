@@ -248,6 +248,7 @@ export class VyosManager extends EventEmitter {
         if (command === 'deny-traffic') command = 'simple-block';
         if (command === 'allow-traffic') command = 'simple-unblock';
         if (command === 'show-denied') command = 'get-blocks';
+        if (command === 'clear-all-blocks') command = 'clear-blocks';
 
         // Action syntax: vyos_sdwan_ctl.py --host ... --key ... --version ... <subcommand> [params...]
         const args = [
@@ -282,13 +283,14 @@ export class VyosManager extends EventEmitter {
                     const isIface = flag === 'iface';
                     const isQoS = command === 'set-qos';
 
-                    // NEW: Firewall filters
-                    const isDenyTraffic = command === 'simple-block' && (flag === 'iface' || flag === 'ip' || flag === 'force');
-                    const isAllowTraffic = command === 'simple-unblock' && (flag === 'iface' || flag === 'ip');
+                    // NEW: Firewall filters (updated: no interface needed for global blackhole routes)
+                    const isDenyTraffic = command === 'simple-block' && flag === 'ip';
+                    const isAllowTraffic = command === 'simple-unblock' && flag === 'ip';
                     const isShowDenied = command === 'get-blocks' && flag === 'iface';
+                    const isClearBlocks = command === 'clear-blocks'; // No parameters needed
 
                     if (isQoS || isIface || isSetLatency || isSetLoss || isSetCorruption || isSetRate ||
-                        isDenyTraffic || isAllowTraffic || isShowDenied) {
+                        isDenyTraffic || isAllowTraffic || isShowDenied || isClearBlocks) {
 
                         // Handle boolean flags (e.g., --force)
                         if (typeof val === 'boolean') {

@@ -18,6 +18,7 @@ function getCommandDisplayName(command: string): string {
         case 'deny-traffic': return 'Deny Traffic';
         case 'allow-traffic': return 'Allow Traffic';
         case 'show-denied': return 'Show Denied';
+        case 'clear-all-blocks': return 'Clear All Blocks';
         default: return command;
     }
 }
@@ -1189,6 +1190,7 @@ export default function Vyos(props: VyosProps) {
                                                         <optgroup label="Traffic Control">
                                                             <option value="deny-traffic">🚫 Deny Traffic From IP/Subnet</option>
                                                             <option value="allow-traffic">✅ Allow Traffic From IP/Subnet</option>
+                                                            <option value="clear-all-blocks">🧹 Clear All Blocks</option>
                                                             <option value="show-denied">📋 Show Denied Traffic</option>
                                                         </optgroup>
                                                     </select>
@@ -1287,7 +1289,7 @@ export default function Vyos(props: VyosProps) {
                                                     </>
                                                 )}
 
-                                                {/* NEW: Deny Traffic From IP/Subnet */}
+                                                {/* Deny Traffic From IP/Subnet (Updated: No interface needed) */}
                                                 {action.command === 'deny-traffic' && (
                                                     <div className="space-y-3">
                                                         <div>
@@ -1306,25 +1308,8 @@ export default function Vyos(props: VyosProps) {
                                                                 className="w-full bg-card border border-border rounded-xl px-4 py-3 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-black shadow-inner transition-all"
                                                             />
                                                             <p className="text-[8px] text-text-muted mt-1 uppercase font-bold">
-                                                                Use /32 for single IP, /24 for subnet
+                                                                Uses global blackhole route (no interface needed)
                                                             </p>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-2 p-3 bg-amber-900/10 border border-amber-600/20 rounded-xl">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`force-${idx}`}
-                                                                checked={action.parameters?.force || false}
-                                                                onChange={(e) => {
-                                                                    const newActions = [...editingSeq.actions];
-                                                                    newActions[idx].parameters = { ...newActions[idx].parameters, force: e.target.checked };
-                                                                    setEditingSeq({ ...editingSeq, actions: newActions });
-                                                                }}
-                                                                className="w-4 h-4 rounded border-border bg-card-secondary text-amber-500 focus:ring-amber-500/20"
-                                                            />
-                                                            <label htmlFor={`force-${idx}`} className="text-[10px] text-amber-500 dark:text-amber-400 font-bold uppercase">
-                                                                ⚠️ Override existing rules
-                                                            </label>
                                                         </div>
                                                     </div>
                                                 )}
@@ -1615,6 +1600,7 @@ function ExecutionTimeline({
                                                             case 'deny-traffic': return 'Deny Traffic From';
                                                             case 'allow-traffic': return 'Allow Traffic From';
                                                             case 'show-denied': return 'Show Denied Traffic';
+                                                            case 'clear-all-blocks': return 'Clear All Blocks';
                                                             default: return action.command;
                                                         }
                                                     })()}
