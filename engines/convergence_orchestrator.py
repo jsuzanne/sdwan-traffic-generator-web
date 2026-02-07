@@ -13,7 +13,7 @@ import signal
 # ========================================
 # CONFIGURATION TEST/DEBUG
 # ========================================
-DEBUG_MODE = True   # ← ACTIVÉ pour logs détaillés
+DEBUG_MODE = False   # ← ACTIVÉ pour logs détaillés
 LOG_FILE = "/tmp/convergence_debug.log"
 # ========================================
 
