@@ -1423,8 +1423,124 @@ app.get('/api/config/apps', extractUserMiddleware, (req, res) => { // Use token 
     });
     pushCategory(); // Push last
 
-    res.json(categories);
 });
+
+// ========================================
+// PROBE HISTORY TRACKING SYSTEM
+// ========================================
+
+interface ProbeHistory {
+    endpointId: string;
+    currentScore: number;
+    lastValidScore: number;
+    lastValidTimestamp: number;
+    recentScores: number[];      // Last 10 scores (including zeros)
+    nonZeroScores: number[];     // Last 10 non-zero scores only
+    consecutiveFailures: number;
+}
+
+interface DisplayScore {
+    current: number;
+    lastValid: number;
+    average: number;
+    status: 'UP' | 'FLAKY' | 'DOWN';
+    lastValidAge: number;
+    consecutiveFailures: number;
+}
+
+// In-memory probe history storage
+const probeHistoryMap = new Map<string, ProbeHistory>();
+
+/**
+ * Record a probe score and update history
+ */
+function recordProbeScore(endpointId: string, newScore: number): void {
+    let history = probeHistoryMap.get(endpointId);
+
+    // Initialize if first time
+    if (!history) {
+        history = {
+            endpointId,
+            currentScore: 0,
+            lastValidScore: 0,
+            lastValidTimestamp: 0,
+            recentScores: [],
+            nonZeroScores: [],
+            consecutiveFailures: 0
+        };
+        probeHistoryMap.set(endpointId, history);
+    }
+
+    // Always update current score
+    history.currentScore = newScore;
+
+    // Add to recent scores ring buffer (max 10)
+    history.recentScores.push(newScore);
+    if (history.recentScores.length > 10) {
+        history.recentScores.shift();
+    }
+
+    // Track valid scores separately
+    if (newScore > 0) {
+        history.lastValidScore = newScore;
+        history.lastValidTimestamp = Date.now();
+        history.consecutiveFailures = 0;
+
+        // Add to non-zero scores ring buffer (max 10)
+        history.nonZeroScores.push(newScore);
+        if (history.nonZeroScores.length > 10) {
+            history.nonZeroScores.shift();
+        }
+    } else {
+        history.consecutiveFailures++;
+    }
+}
+
+/**
+ * Get display score with status determination
+ */
+function getDisplayScore(endpointId: string): DisplayScore {
+    const history = probeHistoryMap.get(endpointId);
+
+    // No history yet
+    if (!history) {
+        return {
+            current: 0,
+            lastValid: 0,
+            average: 0,
+            status: 'DOWN',
+            lastValidAge: 0,
+            consecutiveFailures: 0
+        };
+    }
+
+    // Calculate average of non-zero scores
+    const avgScore = history.nonZeroScores.length > 0
+        ? Math.round(history.nonZeroScores.reduce((a, b) => a + b, 0) / history.nonZeroScores.length)
+        : 0;
+
+    // Determine status
+    let status: 'UP' | 'FLAKY' | 'DOWN' = 'UP';
+    if (history.currentScore === 0) {
+        if (history.consecutiveFailures >= 3) {
+            status = 'DOWN';  // Truly down: 3+ consecutive failures
+        } else if (history.lastValidScore > 0) {
+            status = 'FLAKY'; // Intermittent: recent success + current failure
+        } else {
+            status = 'DOWN';  // No valid history
+        }
+    }
+
+    return {
+        current: history.currentScore,
+        lastValid: history.lastValidScore || 0,
+        average: avgScore,
+        status,
+        lastValidAge: history.lastValidTimestamp > 0 ? Date.now() - history.lastValidTimestamp : 0,
+        consecutiveFailures: history.consecutiveFailures
+    };
+}
+
 // Helper for DEM scoring
 const calculateDEMScore = (type: string, reachable: boolean, httpCode: number | undefined, metrics: any): number => {
     if (!reachable || (httpCode && httpCode >= 500)) return 0;
@@ -1463,17 +1579,42 @@ const calculateDEMScore = (type: string, reachable: boolean, httpCode: number | 
     }
 
     if (type === 'UDP') {
-        // UDP Quality scoring: Jitter < 30ms, Loss < 1%
-        const jitter = metrics.jitter_ms || 0;
-        const loss = metrics.loss_pct || 0;
+        // UDP Quality scoring: Jitter < 30ms, Loss < 1%, Out-of-order packets penalized
+
+        // Extract metrics from iperf3 structure: sum_received → sum → metrics
+        const stats = metrics.sum_received || metrics.sum || metrics;
+
+        // Use iperf3's actual field names
+        const jitter = stats.jitter_ms || 0;
+        const loss = stats.lost_percent || 0;  // iperf3 uses 'lost_percent', not 'loss_pct'
+        const outOfOrder = stats.out_of_order || 0;
+        const packets = stats.packets || 0;
 
         let score = 100;
+
         // Deduct for loss: 0% = -0, 5% = -50, 10% = -100
         score -= (loss * 10);
+
         // Deduct for jitter: < 30ms = -0, 100ms = -50
         if (jitter > 30) {
             score -= Math.min(50, (jitter - 30) * 0.7);
         }
+
+        // Deduct for out-of-order packets (up to 15 points)
+        if (outOfOrder > 0 && packets > 0) {
+            const outOfOrderPct = (outOfOrder / packets) * 100;
+            const penalty = Math.min(15, outOfOrderPct * 5);
+            score -= penalty;
+        }
+
+        // Statistical validity warning for low packet counts
+        if (packets > 0 && packets < 50) {
+            metrics.warning = `Only ${packets} packets - extend test for accuracy`;
+            // Optional: deduct 1 point per 10 packets below 50 for low confidence
+            const confidencePenalty = Math.floor((50 - packets) / 10);
+            score -= confidencePenalty;
+        }
+
         return Math.max(0, Math.min(100, Math.round(score)));
     }
 
@@ -1586,6 +1727,14 @@ const performConnectivityCheck = async (endpoint: any): Promise<ConnectivityResu
             } catch (e) { }
         }
     } catch (e) { }
+
+    // Record probe score in history for FLAKY/DOWN detection
+    recordProbeScore(result.endpointId, result.score);
+
+    // Enrich result with history data
+    const displayScore = getDisplayScore(result.endpointId);
+    (result as any).history = displayScore;
+
     return result;
 };
 
@@ -1749,7 +1898,52 @@ app.get('/api/connectivity/results', authenticateToken, async (req, res) => {
 app.get('/api/connectivity/stats', authenticateToken, async (req, res) => {
     const { range } = req.query;
     const stats = await connectivityLogger.getStats({ timeRange: range as string });
-    res.json(stats || { globalHealth: 0 });
+
+    // Add FLAKY endpoints to stats
+    const flakyEndpoints: any[] = [];
+    for (const [endpointId, history] of probeHistoryMap.entries()) {
+        const display = getDisplayScore(endpointId);
+        if (display.status === 'FLAKY') {
+            flakyEndpoints.push({
+                id: endpointId,
+                name: endpointId,
+                currentScore: display.current,
+                lastValidScore: display.lastValid,
+                averageScore: display.average,
+                consecutiveFailures: display.consecutiveFailures,
+                lastValidAge: display.lastValidAge
+            });
+        }
+    }
+
+    // Merge FLAKY endpoints with existing flaky detection
+    if (stats && stats.flakyEndpoints) {
+        // Combine with history-based FLAKY detection
+        const existingIds = new Set(stats.flakyEndpoints.map((e: any) => e.id));
+        for (const flaky of flakyEndpoints) {
+            if (!existingIds.has(flaky.id)) {
+                stats.flakyEndpoints.push(flaky);
+            }
+        }
+    } else if (stats) {
+        stats.flakyEndpoints = flakyEndpoints;
+    }
+
+    res.json(stats || { globalHealth: 0, flakyEndpoints });
+});
+
+// Get probe history for a specific endpoint
+app.get('/api/connectivity/history/:endpointId', authenticateToken, (req, res) => {
+    const { endpointId } = req.params;
+    const displayScore = getDisplayScore(endpointId);
+    const history = probeHistoryMap.get(endpointId);
+
+    res.json({
+        success: true,
+        endpointId,
+        displayScore,
+        history: history || null
+    });
 });
 
 // Background connectivity monitoring
