@@ -8,15 +8,30 @@ import json
 import socket
 import warnings
 import os
+import signal
 
 # ========================================
-# CONFIGURATION PRODUCTION
+# CONFIGURATION TEST/DEBUG
 # ========================================
-DEBUG_MODE = False  # ← Mettre True pour activer les logs debug
+DEBUG_MODE = True   # ← ACTIVÉ pour logs détaillés
 LOG_FILE = "/tmp/convergence_debug.log"
 # ========================================
 
 warnings.filterwarnings("ignore")
+
+# Variable globale pour shutdown gracieux
+graceful_shutdown = threading.Event()
+
+def signal_handler(sig, frame):
+    """Gestion propre de tous les signaux d'arrêt"""
+    sig_name = signal.Signals(sig).name
+    print(f"\n[SIGNAL] Received {sig_name}, initiating graceful shutdown...", flush=True)
+    graceful_shutdown.set()
+
+# Enregistrer les signal handlers
+signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+signal.signal(signal.SIGTERM, signal_handler)  # kill/stop normal
+signal.signal(signal.SIGHUP, signal_handler)   # Terminal fermé
 
 
 def debug_log(msg: str) -> None:
@@ -304,8 +319,8 @@ if __name__ == "__main__":
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.bind(("0.0.0.0", source_port))
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4194304)  # 4MB RX buffer
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 4194304)  # 4MB TX buffer
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4194304)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 4194304)
     except OSError:
         print(f"Warning: Port {source_port} in use, falling back to random port", flush=True)
         debug_log(f"{real_id} WARN port_in_use src_port={source_port}")
@@ -348,9 +363,15 @@ if __name__ == "__main__":
         test_end_time = ramp_start + ramp_duration_s + test_duration_s
 
     try:
-        while not stop_event.is_set():
+        while not stop_event.is_set() and not graceful_shutdown.is_set():
             now = time.time()
             elapsed = now - ramp_start
+
+            # Check graceful shutdown AVANT timeout
+            if graceful_shutdown.is_set():
+                print(f"[{log_id}] Graceful shutdown requested via signal", flush=True)
+                debug_log(f"{log_id} GRACEFUL_SHUTDOWN_SIGNAL")
+                break
 
             # Check timeout uniquement si duration > 0
             if test_end_time is not None and now >= test_end_time:
@@ -391,35 +412,29 @@ if __name__ == "__main__":
                 next_send = time.time()
 
     except KeyboardInterrupt:
+        print(f"\n[{log_id}] KeyboardInterrupt received", flush=True)
         debug_log(f"{log_id} KEYBOARD_INTERRUPT")
         pass
     finally:
         # ===== GRACE PERIOD CRITIQUE =====
-        # Les threads receiver/stats CONTINUENT pendant la grace period
-        # pour capturer les derniers paquets en transit
-        
         running_stats = metrics.get_stats(is_running=True)
         avg_rtt_ms = running_stats.get("avg_rtt_ms", 0) or 20.0
         
-        # Grace adaptative selon le rate
         if args.rate >= 1000:
-            grace_ms = max(3000.0, min(7000.0, avg_rtt_ms * 20.0))  # 3-7s pour haute cadence
+            grace_ms = max(3000.0, min(7000.0, avg_rtt_ms * 20.0))
         else:
-            grace_ms = max(2000.0, min(5000.0, avg_rtt_ms * 15.0))  # 2-5s pour cadence normale
+            grace_ms = max(2000.0, min(5000.0, avg_rtt_ms * 15.0))
         
         print(f"[{log_id}] ⏳ Grace period: {grace_ms:.0f}ms (RTT={avg_rtt_ms:.1f}ms)...", flush=True)
         debug_log(f"{log_id} GRACE_START avg_rtt_ms={avg_rtt_ms} grace_ms={grace_ms} threads_active=True")
         
-        # Sleep SANS arrêter les threads - le receiver continue de capturer !
         time.sleep(grace_ms / 1000.0)
         
-        # MAINTENANT on arrête les threads
         print(f"[{log_id}] 🛑 Stopping receiver threads...", flush=True)
         debug_log(f"{log_id} STOPPING_THREADS")
         stop_event.set()
         time.sleep(0.3)
 
-        # Stabilisation RX finale
         print(f"[{log_id}] ⏳ Final RX check...", flush=True)
         last_rcvd = running_stats["received"]
         stable_count = 0
@@ -489,4 +504,5 @@ if __name__ == "__main__":
         t_recv.join(0.5)
         t_stats.join(0.5)
         t_debug.join(0.5)
+
 
