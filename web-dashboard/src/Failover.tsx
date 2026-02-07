@@ -230,9 +230,9 @@ export default function Failover(props: FailoverProps) {
                                 <option value="20">20 pps (50ms)</option>
                                 <option value="50">50 pps (20ms)</option>
                                 <option value="100">100 pps (10ms)</option>
-				<option value="200">200 pps (5ms)</option>
-				<option value="500">500 pps (2ms)</option>
-				<option value="1000">1000 pps (1ms)</option>
+                                <option value="200">200 pps (5ms)</option>
+                                <option value="500">500 pps (2ms)</option>
+                                <option value="1000">1000 pps (1ms)</option>
                             </select>
                         </div>
                         <div className="flex items-center gap-4">
@@ -352,7 +352,7 @@ export default function Failover(props: FailoverProps) {
                                         </div>
                                     </div>
                                     <span className="text-[10px] text-text-muted font-mono mt-1.5 flex items-center gap-1">
-                                        <Server size={10} /> {new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate} pps
+                                        <Server size={10} /> {new Date().toLocaleDateString('en-CA')} {new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} | Duration: {formatChrono(test.start_time)} | {test.target || '--'} | Source Port: {getSourcePort(test.test_id)} | {test.rate_pps || test.rate} pps
                                     </span>
                                 </div>
                                 <div className="flex flex-col items-end gap-1.5">
@@ -438,7 +438,7 @@ export default function Failover(props: FailoverProps) {
                                                         <ChevronRight size={14} className={`text-text-muted/50 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                                                     </div>
                                                     <div className="text-[10px] text-text-muted mt-1">
-                                                        {new Date(test.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} : {test.target || '--'} | Source Port : {getSourcePort(test.test_id)} | {test.rate_pps || test.rate || '--'} pps
+                                                        {new Date(test.timestamp).toLocaleDateString('en-CA')} {new Date(test.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} | Duration: {test.duration_s ? `${test.duration_s}s` : '--'} | {test.target || '--'} | Source Port: {getSourcePort(test.test_id)} | {test.rate_pps || test.rate || '--'} pps
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">

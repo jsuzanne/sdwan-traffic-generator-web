@@ -183,9 +183,9 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     </div>
                     <div className="space-y-2">
                         {stats?.flakyEndpoints?.length > 0 ? stats.flakyEndpoints.map((e: any) => (
-                            <div key={e.id} className="flex items-center justify-between text-[11px] bg-red-500/5 border border-red-500/10 p-1.5 rounded">
-                                <span className="text-text-primary font-bold truncate max-w-[80px]">{e.name}</span>
-                                <div className="flex items-center gap-2">
+                            <div key={e.id} className="flex items-center justify-between gap-2 text-[11px] bg-red-500/5 border border-red-500/10 p-1.5 rounded">
+                                <span className="text-text-primary font-bold min-w-0 flex-1">{e.name}</span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
                                     <span className="text-red-600 dark:text-red-400 font-bold font-mono">{e.reliability}%</span>
                                     <div className="w-1 h-1 rounded-full bg-border" />
                                     <span className="text-text-muted font-mono">{e.avgScore}</span>
