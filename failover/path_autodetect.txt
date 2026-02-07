@@ -1,0 +1,407 @@
+Prisma SD-WAN Path Display Integration - Implementation Specification
+1. OVERVIEW
+Integrate real-time egress path detection into the existing SD-WAN Traffic Generator React/Node.js application. The system will automatically detect which branch site it's running on, then display the active egress path for each convergence test without requiring users to check the Prisma SD-WAN console.
+
+2. CURRENT APPLICATION CONTEXT
+Existing Components:
+Frontend: React + TypeScript with failover.tsx component
+
+Backend: Node.js + Express + TypeScript
+
+Deployment: Docker container (deployed at branch sites)
+
+Test Flow: User starts convergence test → generates UDP traffic with unique port (30000 + testId)
+
+Current failover.tsx Component:
+Displays test ID, status, traffic metrics
+
+NEW REQUIREMENT: Add dynamic egress path display
+
+3. TECHNICAL REQUIREMENTS
+3.1 Python Script Integration
+File: getflow.py (provided, working, tested)
+Dependencies Required in Docker:
+
+text
+RUN apt-get update && apt-get install -y python3 python3-pip
+RUN pip3 install prisma-sase requests urllib3
+Key Features:
+
+--auto-detect --json: Auto-detects branch site by matching local IP with ION LAN subnets
+
+--site-name BR8 --udp-src-port 30270 --json: Queries flows and returns egress path
+
+Returns JSON with flow data including egress_path field
+
+Example Output:
+
+json
+{
+  "success": true,
+  "site_name": "BR8",
+  "flows": [{
+    "egress_path": "BR8-INET1 to DC1-INET",
+    "path_type": "VPN",
+    "source_port": 30270
+  }]
+}
+3.2 Architecture: Graceful Degradation Pattern
+text
+┌─────────────────────────────────────────────────────┐
+│ Container Startup (Phase 1)                         │
+│ ─────────────────────────────────────────────────   │
+│ 1. Check credentials.json exists                    │
+│ 2. Run: ./getflow.py --auto-detect --json          │
+│ 3. Timeout: 10 seconds                              │
+│ 4. Success → Store site info + enable Prisma        │
+│ 5. Failure → Log warning + disable Prisma           │
+│ 6. APP STARTS REGARDLESS (never blocks/crashes)     │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ Runtime (Phase 2) - Per Active Test                 │
+│ ─────────────────────────────────────────────────   │
+│ 1. User starts test with testId "270"               │
+│ 2. UDP port = 30270                                  │
+│ 3. Traffic generation starts immediately            │
+│ 4. Wait 2 minutes (flow appears in Prisma API)      │
+│ 5. Start path polling every 30 seconds              │
+│ 6. Query: --site-name BR8 --udp-src-port 30270     │
+│ 7. Timeout: 5 seconds per query                     │
+│ 8. Success → Update UI with egress path             │
+│ 9. No flow → Keep polling (path may change)         │
+│ 10. Test ends → Stop polling                        │
+└─────────────────────────────────────────────────────┘
+4. IMPLEMENTATION PLAN
+4.1 Backend Changes
+A. New Service: PrismaPathService.ts
+Responsibilities:
+
+Site auto-detection on startup
+
+Path query execution with retry logic
+
+Error handling and graceful degradation
+
+Key Methods:
+
+typescript
+class PrismaPathService {
+  private siteDetected: boolean = false;
+  private siteName: string | null = null;
+  private siteId: string | null = null;
+
+  // Called once on app startup
+  async detectSite(): Promise<void>
+
+  // Called periodically for active tests
+  async queryEgressPath(udpPort: number): Promise<PathResult>
+
+  // Execute Python script with timeout
+  private execPython(args: string[], timeoutMs: number): Promise<any>
+
+  // Check if Prisma integration is available
+  isAvailable(): boolean
+}
+
+interface PathResult {
+  available: boolean;
+  egressPath?: string;     // e.g., "BR8-INET1 to DC1-INET"
+  pathType?: string;        // "VPN" | "DirectInternet" | "ServiceLink"
+  error?: string;
+}
+B. Update Test Management Logic
+typescript
+interface TestState {
+  testId: string;
+  udpPort: number;
+  status: 'running' | 'stopped';
+  pathInfo: PathResult | null;  // null = not available yet
+  pathPollingInterval?: NodeJS.Timer;
+}
+
+class TestManager {
+  async startTest(testId: string) {
+    const udpPort = 30000 + parseInt(testId);
+    
+    // Start traffic generation immediately
+    await startTrafficGen(udpPort);
+    
+    // Schedule path polling (starts after 2 min delay)
+    if (prismaService.isAvailable()) {
+      schedulePathPolling(testId, udpPort);
+    }
+  }
+
+  private schedulePathPolling(testId: string, udpPort: number) {
+    // Wait 2 minutes before first attempt
+    setTimeout(() => {
+      // Then poll every 30 seconds
+      const interval = setInterval(async () => {
+        const pathInfo = await prismaService.queryEgressPath(udpPort);
+        
+        // Update test state
+        updateTestPath(testId, pathInfo);
+        
+        // Broadcast to frontend via WebSocket/SSE
+        broadcastPathUpdate(testId, pathInfo);
+      }, 30000); // 30 seconds
+
+      // Store interval for cleanup
+      storePollingInterval(testId, interval);
+    }, 120000); // 2 minutes initial delay
+  }
+
+  async stopTest(testId: string) {
+    // Stop traffic
+    await stopTrafficGen(testId);
+    
+    // Stop path polling
+    clearPollingInterval(testId);
+  }
+}
+C. New API Endpoints
+typescript
+// GET /api/prisma/status
+// Returns: { available: boolean, siteName: string | null }
+
+// GET /api/tests/:testId/path
+// Returns: PathResult for specific test
+4.2 Frontend Changes
+A. Update failover.tsx Component
+Add to existing display:
+
+tsx
+interface TestDisplayProps {
+  testId: string;
+  status: string;
+  metrics: {...};
+  pathInfo: PathResult | null;  // NEW
+}
+
+function FailoverComponent({ testId, pathInfo }: TestDisplayProps) {
+  return (
+    <div className="test-card">
+      {/* Existing test info */}
+      <div>Test ID: {testId}</div>
+      <div>Status: {status}</div>
+      
+      {/* NEW: Path Display Section */}
+      <div className="path-section">
+        <h4>Egress Path</h4>
+        {pathInfo?.available ? (
+          <div className="path-info">
+            <span className="path-badge">{pathInfo.pathType}</span>
+            <span className="path-name">{pathInfo.egressPath}</span>
+          </div>
+        ) : (
+          <div className="path-loading">
+            <Spinner size="sm" />
+            <span>Detecting path...</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+B. Real-time Updates (WebSocket/SSE)
+Option 1: Server-Sent Events (Simpler)
+
+typescript
+// Frontend
+useEffect(() => {
+  const eventSource = new EventSource(`/api/tests/${testId}/path-stream`);
+  
+  eventSource.onmessage = (event) => {
+    const pathInfo = JSON.parse(event.data);
+    setPathInfo(pathInfo);
+  };
+
+  return () => eventSource.close();
+}, [testId]);
+Option 2: Polling (Fallback)
+
+typescript
+useEffect(() => {
+  const interval = setInterval(async () => {
+    const response = await fetch(`/api/tests/${testId}/path`);
+    const pathInfo = await response.json();
+    setPathInfo(pathInfo);
+  }, 5000); // Poll every 5 seconds
+
+  return () => clearInterval(interval);
+}, [testId]);
+4.3 Docker Configuration
+Updated Dockerfile:
+text
+FROM node:18
+
+# Install Python3 and Prisma SDK
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --no-cache-dir prisma-sase requests urllib3
+
+WORKDIR /app
+
+# Copy Python script
+COPY scripts/getflow.py /app/scripts/
+RUN chmod +x /app/scripts/getflow.py
+
+# Copy credentials template
+COPY scripts/credentials.json.template /app/scripts/
+
+# Node.js app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+CMD ["npm", "start"]
+docker-compose.yml:
+text
+version: '3.8'
+
+services:
+  sdwan-traffic-gen:
+    build: .
+    container_name: sdwan-traffic-gen
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PRISMA_CLIENT_ID=${PRISMA_CLIENT_ID}
+      - PRISMA_CLIENT_SECRET=${PRISMA_CLIENT_SECRET}
+      - PRISMA_TSG_ID=${PRISMA_TSG_ID}
+    volumes:
+      # Mount credentials if not using env vars
+      - ./credentials.json:/app/scripts/credentials.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+5. ERROR HANDLING & EDGE CASES
+5.1 Graceful Degradation Scenarios
+Scenario	Behavior
+No credentials.json	Log warning, disable Prisma, app works without path display
+Invalid credentials	Same as above
+API timeout during startup	Disable Prisma, app continues
+Network unavailable	Path shows "Detecting..." indefinitely, app works
+Flow not found (too early)	Keep polling, show "Detecting..."
+Flow query timeout	Retry on next poll cycle
+Python script crashes	Catch error, log, disable Prisma for that test
+5.2 Hardened Python Execution
+typescript
+private execPython(args: string[], timeoutMs: number): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      py.kill('SIGTERM');
+      reject(new Error('Timeout'));
+    }, timeoutMs);
+
+    const py = spawn('python3', ['/app/scripts/getflow.py', ...args]);
+    
+    let stdout = '';
+    let stderr = '';
+
+    py.stdout.on('data', (data) => { stdout += data; });
+    py.stderr.on('data', (data) => { stderr += data; });
+
+    py.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(new Error(`Exec error: ${err.message}`));
+    });
+
+    py.on('close', (code) => {
+      clearTimeout(timeout);
+      
+      if (code !== 0) {
+        reject(new Error(`Exit code ${code}: ${stderr}`));
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(stdout));
+      } catch (e) {
+        reject(new Error(`Invalid JSON: ${stdout}`));
+      }
+    });
+  });
+}
+6. TESTING CHECKLIST
+ Container builds successfully with Python + SDK
+
+ Site auto-detection works on startup
+
+ Site detection failure doesn't block app startup
+
+ Path query returns correct egress path
+
+ Path polling starts 2 minutes after test start
+
+ Path updates every 30 seconds during active test
+
+ Path stops polling when test ends
+
+ UI updates when path changes (link failover scenario)
+
+ UI shows "Detecting..." when path not available
+
+ Health endpoint shows Prisma status
+
+ Multiple concurrent tests work correctly
+
+ App works completely without credentials.json
+
+7. FILE STRUCTURE
+text
+sdwan-traffic-gen/
+├── Dockerfile                          # UPDATED: Add Python + SDK
+├── docker-compose.yml                  # UPDATED: Add env vars
+├── package.json
+├── tsconfig.json
+├── scripts/
+│   ├── getflow.py                     # PROVIDED (ready to use)
+│   └── credentials.json.template       # NEW
+├── src/
+│   ├── backend/
+│   │   ├── server.ts                  # UPDATED: Initialize PrismaPathService
+│   │   ├── services/
+│   │   │   ├── PrismaPathService.ts   # NEW (main implementation)
+│   │   │   └── TestManager.ts         # UPDATED: Add path polling
+│   │   └── routes/
+│   │       └── prisma.routes.ts       # NEW: /api/prisma/* endpoints
+│   └── frontend/
+│       ├── components/
+│       │   └── failover.tsx           # UPDATED: Add path display
+│       └── hooks/
+│           └── usePathTracking.ts     # NEW: Path update subscription
+8. CREDENTIALS MANAGEMENT
+Option 1: Environment Variables (Recommended)
+
+typescript
+// Create credentials.json at runtime
+const credentialsPath = '/app/scripts/credentials.json';
+const credentials = {
+  client_id: process.env.PRISMA_CLIENT_ID,
+  client_secret: process.env.PRISMA_CLIENT_SECRET,
+  tsg_id: process.env.PRISMA_TSG_ID
+};
+
+if (credentials.client_id && credentials.client_secret && credentials.tsg_id) {
+  fs.writeFileSync(credentialsPath, JSON.stringify(credentials, null, 2));
+}
+Option 2: Docker Volume Mount
+
+bash
+docker run -v /path/to/credentials.json:/app/scripts/credentials.json:ro ...

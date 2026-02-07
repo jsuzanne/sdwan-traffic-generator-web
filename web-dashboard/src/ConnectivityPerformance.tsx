@@ -182,65 +182,16 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                         <Flame size={14} className="text-orange-500" /> Flaky Endpoints
                     </div>
                     <div className="space-y-2">
-                        {stats?.flakyEndpoints?.length > 0 ? stats.flakyEndpoints.map((e: any) => {
-                            // Use new history fields if available, fallback to old format
-                            const currentScore = e.currentScore !== undefined ? e.currentScore : (e.reliability || 0);
-                            const lastValidScore = e.lastValidScore !== undefined ? e.lastValidScore : currentScore;
-                            const avgScore = e.averageScore !== undefined ? e.averageScore : (e.avgScore || 0);
-                            const lastValidAge = e.lastValidAge || 0;
-                            const ageText = lastValidAge > 0 ? `${Math.floor(lastValidAge / 1000)}s ago` : 'now';
-                            const consecutiveFailures = e.consecutiveFailures || 0;
-
-                            // Determine status badge with proper fallback logic
-                            let statusEmoji = '🟢';
-                            let statusText = 'UP';
-                            let statusColor = 'text-green-600 dark:text-green-400';
-
-                            if (currentScore === 0) {
-                                // Current score is 0 - determine if FLAKY or DOWN
-                                if (consecutiveFailures >= 3 || (lastValidScore === 0 && consecutiveFailures > 0)) {
-                                    // DOWN: 3+ failures OR never been up
-                                    statusEmoji = '🔴';
-                                    statusText = 'DOWN';
-                                    statusColor = 'text-red-600 dark:text-red-400';
-                                } else if (lastValidScore > 0) {
-                                    // FLAKY: was working recently
-                                    statusEmoji = '🟡';
-                                    statusText = 'FLAKY';
-                                    statusColor = 'text-yellow-600 dark:text-yellow-400';
-                                } else {
-                                    // DOWN: score 0 with no valid history
-                                    statusEmoji = '🔴';
-                                    statusText = 'DOWN';
-                                    statusColor = 'text-red-600 dark:text-red-400';
-                                }
-                            }
-                            return (
-                                <div key={e.id} className="flex items-center justify-between gap-2 text-[11px] bg-red-500/5 border border-red-500/10 p-2 rounded">
-                                    <div className="flex flex-col gap-1 min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-text-primary font-bold">{e.name}</span>
-                                            <span className={`text-[9px] font-bold ${statusColor}`}>{statusEmoji} {statusText}</span>
-                                        </div>
-                                        {currentScore === 0 && lastValidScore > 0 && (
-                                            <div className="text-[9px] text-text-muted">
-                                                Last valid: {lastValidScore} ({ageText})
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <div className="flex flex-col items-end gap-0.5">
-                                            <span className={`font-bold font-mono ${currentScore === 0 ? 'text-red-600 dark:text-red-400' : 'text-text-primary'}`}>
-                                                {currentScore}
-                                            </span>
-                                            {avgScore > 0 && avgScore !== currentScore && (
-                                                <span className="text-[9px] text-text-muted font-mono">avg: {avgScore}</span>
-                                            )}
-                                        </div>
-                                    </div>
+                        {stats?.flakyEndpoints?.length > 0 ? stats.flakyEndpoints.map((e: any) => (
+                            <div key={e.id} className="flex items-center justify-between gap-2 text-[11px] bg-red-500/5 border border-red-500/10 p-1.5 rounded">
+                                <span className="text-text-primary font-bold min-w-0 flex-1">{e.name}</span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <span className="text-red-600 dark:text-red-400 font-bold font-mono">{e.reliability}%</span>
+                                    <div className="w-1 h-1 rounded-full bg-border" />
+                                    <span className="text-text-muted font-mono">{e.avgScore}</span>
                                 </div>
-                            );
-                        }) : (
+                            </div>
+                        )) : (
                             <div className="text-xs text-text-muted italic py-2">All probes stable</div>
                         )}
                     </div>
