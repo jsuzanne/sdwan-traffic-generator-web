@@ -183,20 +183,38 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     </div>
                     <div className="space-y-2">
                         {stats?.flakyEndpoints?.length > 0 ? stats.flakyEndpoints.map((e: any) => {
-                            // Determine status badge
-                            const isFlaky = e.consecutiveFailures !== undefined && e.consecutiveFailures > 0 && e.consecutiveFailures < 3;
-                            const isDown = e.consecutiveFailures !== undefined && e.consecutiveFailures >= 3;
-                            const statusEmoji = isDown ? '🔴' : isFlaky ? '🟡' : '🟢';
-                            const statusText = isDown ? 'DOWN' : isFlaky ? 'FLAKY' : 'UP';
-                            const statusColor = isDown ? 'text-red-600 dark:text-red-400' : isFlaky ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400';
-
                             // Use new history fields if available, fallback to old format
                             const currentScore = e.currentScore !== undefined ? e.currentScore : (e.reliability || 0);
                             const lastValidScore = e.lastValidScore !== undefined ? e.lastValidScore : currentScore;
                             const avgScore = e.averageScore !== undefined ? e.averageScore : (e.avgScore || 0);
                             const lastValidAge = e.lastValidAge || 0;
                             const ageText = lastValidAge > 0 ? `${Math.floor(lastValidAge / 1000)}s ago` : 'now';
+                            const consecutiveFailures = e.consecutiveFailures || 0;
 
+                            // Determine status badge with proper fallback logic
+                            let statusEmoji = '🟢';
+                            let statusText = 'UP';
+                            let statusColor = 'text-green-600 dark:text-green-400';
+
+                            if (currentScore === 0) {
+                                // Current score is 0 - determine if FLAKY or DOWN
+                                if (consecutiveFailures >= 3 || (lastValidScore === 0 && consecutiveFailures > 0)) {
+                                    // DOWN: 3+ failures OR never been up
+                                    statusEmoji = '🔴';
+                                    statusText = 'DOWN';
+                                    statusColor = 'text-red-600 dark:text-red-400';
+                                } else if (lastValidScore > 0) {
+                                    // FLAKY: was working recently
+                                    statusEmoji = '🟡';
+                                    statusText = 'FLAKY';
+                                    statusColor = 'text-yellow-600 dark:text-yellow-400';
+                                } else {
+                                    // DOWN: score 0 with no valid history
+                                    statusEmoji = '🔴';
+                                    statusText = 'DOWN';
+                                    statusColor = 'text-red-600 dark:text-red-400';
+                                }
+                            }
                             return (
                                 <div key={e.id} className="flex items-center justify-between gap-2 text-[11px] bg-red-500/5 border border-red-500/10 p-2 rounded">
                                     <div className="flex flex-col gap-1 min-w-0 flex-1">
