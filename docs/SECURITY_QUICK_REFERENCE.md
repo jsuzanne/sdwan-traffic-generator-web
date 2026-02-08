@@ -79,7 +79,7 @@ docker-compose restart sdwan-web-ui
 ### Add EICAR Endpoint
 
 1. Navigate to **Security** tab → **Threat Prevention**
-2. Enter URL in input field (e.g., `http://192.168.203.100/eicar.com.txt`)
+2. Enter URL in input field (e.g., `http://<target-ip>:8082/eicar.com.txt`)
 3. Click **"Run EICAR Test"**
 4. Configuration saves automatically
 

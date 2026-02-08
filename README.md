@@ -24,8 +24,8 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. [Read more](docs/IOT_SIMULATION.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
-- **VyOS Control ** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API.
- [Read more](docs/VYOS_CONTROL.md)
+- **VyOS Control ** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
+- **Target Site Mode** - Standalone container acting as a branch/hub target with HTTP, Voice, and Bandwidth services. [Read more](docs/TARGET_CAPABILITIES.md)
 
 ### 🛡️ Security Testing (v1.1.0)
 - **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)

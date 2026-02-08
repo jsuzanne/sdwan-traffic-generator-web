@@ -226,6 +226,15 @@ export default function Security({ token }: SecurityProps) {
         return () => clearInterval(pollInterval);
     }, []);
 
+    // Initialize eicarEndpoint from config only once
+    const eicarInitialized = React.useRef(false);
+    useEffect(() => {
+        if (config?.threat_prevention?.eicar_endpoint && !eicarInitialized.current) {
+            setEicarEndpoint(config.threat_prevention.eicar_endpoint);
+            eicarInitialized.current = true;
+        }
+    }, [config]);
+
     const fetchHealth = async () => {
         try {
             const res = await fetch('/api/system/health', { headers: authHeaders() });
@@ -270,9 +279,7 @@ export default function Security({ token }: SecurityProps) {
             }
 
             setConfig(data);
-            if (data.threat_prevention?.eicar_endpoint) {
-                setEicarEndpoint(data.threat_prevention.eicar_endpoint);
-            }
+
         } catch (e) {
             console.error('Failed to fetch security config:', e);
         }
