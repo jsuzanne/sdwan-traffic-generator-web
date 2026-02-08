@@ -874,6 +874,11 @@ export default function Security({ token }: SecurityProps) {
                                     <div className="text-3xl font-black text-yellow-600 dark:text-yellow-400 tabular-nums tracking-tighter">{config.statistics.dns_tests_sinkholed || 0}</div>
                                     <div className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-60">Sinkhole</div>
                                 </div>
+                                <div className="w-px h-8 bg-border/50" />
+                                <div>
+                                    <div className="text-3xl font-black text-green-600 dark:text-green-400 tabular-nums tracking-tighter">{config.statistics.dns_tests_allowed || 0}</div>
+                                    <div className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-60">Allowed</div>
+                                </div>
                             </div>
                         </div>
 
