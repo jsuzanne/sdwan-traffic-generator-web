@@ -403,7 +403,7 @@ export default function Voice(props: VoiceProps) {
                             : "text-text-muted hover:text-text-primary"
                     )}
                 >
-                    Diagnostic Monitoring
+                    Call Monitoring
                 </button>
                 <button
                     onClick={() => setActiveTab('config')}
@@ -414,7 +414,7 @@ export default function Voice(props: VoiceProps) {
                             : "text-text-muted hover:text-text-primary"
                     )}
                 >
-                    Payload Configuration
+                    Configuration
                 </button>
             </div>
 
@@ -634,7 +634,7 @@ export default function Voice(props: VoiceProps) {
                                             : "bg-card-secondary text-text-muted border border-border cursor-not-allowed"
                                     )}
                                 >
-                                    <Save size={14} /> {saving ? 'Persisting...' : 'Commit Configuration'}
+                                    <Save size={14} /> {saving ? 'Persisting...' : 'Save'}
                                 </button>
                             </div>
                         </div>
@@ -700,7 +700,7 @@ export default function Voice(props: VoiceProps) {
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between mb-1 px-1">
                                     <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2">
-                                        <Plus size={12} className="text-blue-500" /> Target Wizard
+                                        <Plus size={12} className="text-blue-500" /> Target Parameter
                                     </label>
                                     <button
                                         onClick={() => setShowGuided(!showGuided)}
@@ -773,14 +773,14 @@ export default function Voice(props: VoiceProps) {
                                             onClick={addProbeFromForm}
                                             className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-900/20 flex items-center justify-center gap-2"
                                         >
-                                            <Plus size={16} /> Inject Into Sequence
+                                            <Plus size={16} /> Add Voice Target
                                         </button>
                                     </div>
                                 )}
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between px-1">
-                                        <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Sequence Manifest</label>
+                                        <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Raw Target Parameter</label>
                                         <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest opacity-40">JSONL-Compat</span>
                                     </div>
                                     <textarea
