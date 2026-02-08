@@ -1,0 +1,356 @@
+Excellent ! 🎉 Le script fonctionne maintenant ! Voici mon analyse détaillée de tes résultats :
+
+📊 Analyse des résultats
+🔴 Problème détecté : SEULEMENT 2 processus IoT !
+Le script a détecté 2 processus IoT au lieu des 64 que tu voulais tester. C'est pour ça que les chiffres sont bizarres.
+
+Causes possibles :
+
+Les 64 processus ne se sont pas lancés correctement
+
+Le container IoT n'était pas démarré
+
+Les processus ont crashé
+
+📈 Résultats avec 2 processus IoT
+Métrique	Sans IoT	Avec 2 IoT	Impact
+CPU Steal	0%	0%	✅ Aucun (bon signe)
+RAM	445 MiB	3019 MiB	⚠️ +2574 MiB
+Load Average	0.10	3.15	🔴 +3.05 (critique !)
+CPU web-ui	3.1%	13.75%	+10.65%
+🎯 Capacité calculée
+Consommation par processus IoT :
+
+RAM : 1287 MiB (~1.3 GiB) par processus 🚨
+
+Load : 1.525 par processus 🚨
+
+Limites identifiées :
+
+Load Average : Limite à 1 processus seulement ! (facteur limitant)
+
+RAM : Limite à 2 processus
+
+CPU Steal : Pas de limite (999 = OK)
+
+🚨 Diagnostic : Tes processus IoT sont TRÈS gourmands !
+Problème 1 : RAM excessive
+1287 MiB par processus est énorme pour un simulateur IoT. Normalement, un processus IoT devrait consommer 5-20 MiB.
+​
+
+Causes possibles :
+
+Fuite mémoire dans le code IoT
+
+Buffers réseau trop grands
+
+Les processus accumulent des données en RAM
+
+Mode debug activé avec logs verbeux
+
+Problème 2 : Load critique
+Load +3.05 pour 2 processus signifie que ta VM avec 2 vCPU est complètement saturée.
+
+🔧 Actions correctives
+Action 1 : Vérifier les 64 processus IoT
+bash
+# Lister tous les processus IoT actifs
+docker ps -a | grep iot
+
+# Si container existe
+docker exec <container_iot> ps aux | grep -E "python|iot|scapy"
+
+# Voir les logs
+docker logs <container_iot> --tail 100
+Action 2 : Relancer le test avec VRAIMENT 64 IoT
+bash
+# 1. S'assurer que les 64 processus sont lancés
+docker start sdwan-iot-gen  # ou ta commande
+
+# 2. Vérifier qu'ils tournent
+docker exec sdwan-iot-gen ps aux | wc -l
+# Doit afficher ~66 lignes (64 IoT + 2 processus système)
+
+# 3. Attendre 30 secondes de stabilisation
+sleep 30
+
+# 4. Relancer la collecte
+./collect_metrics.sh "avec_64_iot_v2"
+
+# 5. Comparer
+./compare_metrics_fixed.sh metrics_sans_iot_20260203_172524.log metrics_avec_64_iot_v2_*.log
+Action 3 : Optimiser les processus IoT
+Si tes processus IoT consomment vraiment 1.3 GiB chacun, il faut les optimiser :
+​
+
+bash
+# Éditer la config IoT pour réduire la charge
+nano config/iot-devices.json
+
+# Exemple de config optimisée :
+{
+  "devices": [
+    {"type": "camera", "count": 64, "vendor": "Hikvision"}
+  ],
+  "simulation": {
+    "discovery_interval": 600,      # Au lieu de 300
+    "telemetry_interval": 120,       # Au lieu de 60
+    "buffer_size": 1024,             # Réduire les buffers
+    "log_level": "WARNING"           # Au lieu de DEBUG
+  }
+}
+📊 Projection si tu avais vraiment 64 processus
+Avec les chiffres actuels (par processus) :
+
+RAM : 64 × 1287 MiB = 82 GiB 🚨 (impossible !)
+
+Load : 64 × 1.525 = 97.6 🚨 (totalement ingérable)
+
+Conclusion : Tes processus IoT actuels sont mal configurés ou ont un bug majeur.
+
+🎯 Recommandations
+Scénario 1 : Processus IoT normaux (5-20 MiB chacun)
+Si tu optimises tes processus IoT à 20 MiB et Load 0.05 par processus :
+
+text
+RAM : 64 × 20 MiB = 1280 MiB (1.3 GiB) ✅
+Load : 64 × 0.05 = 3.2 ✅ (gérable)
+Capacité VM actuelle : ~50 processus IoT
+
+Scénario 2 : Augmenter les ressources VM
+Pour supporter 64 processus IoT (même optimisés) :
+
+Sur le host KVM :
+
+bash
+virsh shutdown UbuntuBR8
+
+# Augmenter RAM à 8 GiB
+virsh setmaxmem UbuntuBR8 8G --config
+virsh setmem UbuntuBR8 8G --config
+
+# Passer à 4 vCPU
+virsh setvcpus UbuntuBR8 4 --config --maximum
+virsh setvcpus UbuntuBR8 4 --config
+
+virsh start UbuntuBR8
+Capacité après upgrade : ~64 processus IoT
+
+🔍 Questions pour affiner
+Comment lances-tu les 64 processus IoT ?
+
+bash
+# Partage ta commande
+Quel est le container/service IoT ?
+
+bash
+docker ps | grep iot
+Vérifier les vrais processus actifs :
+
+bash
+# Dans le container IoT
+docker exec <container> ps aux | grep python
+Partage-moi ces infos et on pourra relancer un vrai test avec 64 processus ! 🚀
+
+Le script fonctionne parfaitement, c'est juste que tu n'avais que 2 processus IoT actifs au lieu de 64 😊
+
+Prepared using Claude Sonnet 4.5
+pourtant root     3429449  0.0  1.1 1023948 47216 ?       Sl   17:15   0:00 node /app/node_modules/.bin/tsx server.ts
+root     3429460  2.0  2.4 33367448 99972 ?      Sl   17:15   0:46 /usr/local/bin/node --require /app/node_modules/tsx/dist/preflight.cjs --import file:///app/node_modules/tsx/dist/loader.
+root     3429567  0.0  0.2 720500 10192 ?        Sl   17:15   0:01 /usr/bin/containerd-shim-runc-v2 -namespace moby -id da8ab08a6c576899d208a53fec12534ab22804c57d393ef3480d4abde7b3eaf6 -ad
+root     3429588  0.0  0.0   4500  2468 ?        Ss   17:15   0:00 /bin/bash /app/engines/start_echo.sh
+root     3429601  0.0  0.2 160192  8280 ?        Sl   17:15   0:00 python3 -u /app/engines/echo_server.py --ports 6100,6200
+root     3429602  0.0  0.0  11068  2552 ?        S    17:15   0:00 iperf3 -s
+root     3448882  0.0  0.0      0     0 ?        R    17:28   0:00 [kworker/u4:1+events_unbound]
+root     3451328  0.0  0.0      0     0 ?        I    17:29   0:00 [kworker/1:2-events]
+root     3456952  0.0  0.0      0     0 ?        I    17:34   0:00 [kworker/0:1-cgroup_destroy]
+root     3464939  0.1  0.0      0     0 ?        I    17:41   0:00 [kworker/0:2-events]
+root     3466886  0.2  1.3 649288 52328 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id philip_smart_lighting_01 --device-name Philips Hue Color E27 --vendor Philip
+root     3466887  0.2  1.3 575464 52220 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id philip_smart_lighting_02 --device-name Philips Hue GU10 Spot --vendor Philip
+root     3466888  0.2  1.3 723040 52360 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id lifx_smart_lighting_03 --device-name LIFX Z Strip --vendor LIFX --device-typ
+root     3466889  0.2  1.3 649292 52740 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id yeelig_smart_lighting_04 --device-name Yeelight Ceiling Light --vendor Yeeli
+root     3466890  0.2  1.3 649296 52180 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id philip_smart_lighting_05 --device-name Philips Hue Lightstrip Plus --vendor 
+root     3466891  0.2  1.3 649312 52216 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id tp-lin_smart_lighting_06 --device-name TP-Link Kasa Smart Bulb KL130 --vendo
+root     3466892  0.2  1.3 722944 52292 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id tp-lin_smart_lighting_07 --device-name TP-Link Tapo L530E --vendor TP-Link -
+root     3466893  0.2  1.3 723048 52560 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id tp-lin_smart_lighting_08 --device-name TP-Link Kasa Smart Bulb KL130 --vendo
+root     3466895  0.2  1.3 649196 52476 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id philip_smart_lighting_09 --device-name Philips Hue White A19 --vendor Philip
+root     3466896  0.2  1.3 723048 52208 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id tp-lin_smart_lighting_10 --device-name TP-Link Kasa Smart Bulb KL130 --vendo
+root     3466897  0.2  1.3 722952 52516 ?        Sl   17:42   0:01 python3 /app/iot/iot_emulator.py --device-id tp-lin_smart_plugs__switches_01 --device-name TP-Link Kasa Smart Power Strip
+root     3466898  0.2  1.3 722952 52388 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id shelly_smart_plugs__switches_02 --device-name Shelly Plug S --vendor Shelly 
+root     3466899  0.2  1.3 723044 52200 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id sonoff_smart_plugs__switches_03 --device-name Sonoff Dual R3 --vendor Sonoff
+root     3466900  0.2  1.3 649196 52360 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id meross_smart_plugs__switches_04 --device-name Meross Smart Power Strip MSS42
+root     3466901  0.2  1.3 723036 52500 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id sonoff_smart_plugs__switches_05 --device-name Sonoff S31 --vendor Sonoff --d
+root     3466902  0.2  1.3 723040 52136 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id sonoff_smart_plugs__switches_06 --device-name Sonoff Mini R2 --vendor Sonoff
+root     3466905  0.2  1.3 649288 52160 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id meross_smart_plugs__switches_07 --device-name Meross Smart Outlet --vendor M
+root     3466906  0.2  1.3 649292 52464 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id meross_smart_plugs__switches_08 --device-name Meross Smart Power Strip MSS42
+root     3466907  0.2  1.3 722952 52640 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id shelly_smart_plugs__switches_09 --device-name Shelly 2.5 --vendor Shelly --d
+root     3466908  0.2  1.3 723036 52320 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id sonoff_smart_plugs__switches_10 --device-name Sonoff S31 --vendor Sonoff --d
+root     3466909  0.2  1.3 796788 52692 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id hikvis_security_cameras_01 --device-name Hikvision DS-2CD2385FWD-I --vendor 
+root     3466910  0.2  1.3 649288 52864 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id arlo_security_cameras_02 --device-name Arlo Ultra 2 --vendor Arlo --device-t
+root     3466911  0.2  1.3 796696 52496 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id hikvis_security_cameras_03 --device-name Hikvision DS-2CD2042FWD --vendor Hi
+root     3466912  0.2  1.3 722952 52884 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id axis_security_cameras_04 --device-name Axis M3045-V --vendor Axis --device-t
+root     3466913  0.2  1.3 723036 52424 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id dahua_security_cameras_05 --device-name Dahua IPC-HFW4831E-SE --vendor Dahua
+root     3466914  0.2  1.3 796788 52532 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id hikvis_security_cameras_06 --device-name Hikvision DS-2CD2042FWD --vendor Hi
+root     3466915  0.2  1.3 723040 52772 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id sonos_smart_speakers__displays_01 --device-name Sonos Roam --vendor Sonos --
+root     3466916  0.2  1.3 796788 52368 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id amazon_smart_speakers__displays_02 --device-name Amazon Echo Flex --vendor A
+root     3466917  0.2  1.3 796784 52608 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id google_smart_speakers__displays_03 --device-name Google Nest Audio --vendor 
+root     3466918  0.2  1.3 723040 52332 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id sonos_smart_speakers__displays_04 --device-name Sonos One SL --vendor Sonos 
+root     3466919  0.2  1.3 796792 52324 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id amazon_smart_speakers__displays_05 --device-name Amazon Echo Show 8 --vendor
+root     3466929  0.2  1.3 649292 52312 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id aqara_sensors_01 --device-name Aqara Motion Sensor P1 --vendor Aqara --devic
+root     3466936  0.2  1.3 649296 52496 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id aqara_sensors_02 --device-name Aqara Temperature Sensor --vendor Aqara --dev
+root     3466952  0.2  1.3 649300 52464 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id xiaomi_sensors_03 --device-name Xiaomi MCCGQ01LM Door --vendor Xiaomi --devi
+root     3466974  0.2  1.3 649288 52572 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id samsun_sensors_04 --device-name Samsung SmartThings Multipurpose --vendor Sa
+root     3466993  0.2  1.3 649296 52228 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id xiaomi_sensors_05 --device-name Xiaomi MCCGQ01LM Door --vendor Xiaomi --devi
+root     3466994  0.2  1.3 649296 52576 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id samsun_sensors_06 --device-name Samsung SmartThings Multipurpose --vendor Sa
+root     3466995  0.2  1.3 649296 52384 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id xiaomi_sensors_07 --device-name Xiaomi WSDCGQ01LM Humidity --vendor Xiaomi -
+root     3466996  0.2  1.3 649292 52540 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id samsun_sensors_08 --device-name Samsung SmartThings Multipurpose --vendor Sa
+root     3466997  0.2  1.3 649292 52228 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id samsun_sensors_09 --device-name Samsung SmartThings Multipurpose --vendor Sa
+root     3466998  0.1  1.3 575560 52484 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id aqara_sensors_10 --device-name Aqara Door/Window Sensor --vendor Aqara --dev
+root     3467018  0.2  1.3 723048 52412 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id google_thermostats__hvac_01 --device-name Google Nest Temperature Sensor --v
+root     3467021  0.2  1.3 649292 52548 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id honeyw_thermostats__hvac_02 --device-name Honeywell T6 Pro --vendor Honeywel
+root     3467022  0.2  1.3 723040 52396 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id ecobee_thermostats__hvac_03 --device-name Ecobee SmartThermostat --vendor Ec
+root     3467023  0.2  1.3 723040 52504 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id ecobee_thermostats__hvac_04 --device-name Ecobee SmartThermostat --vendor Ec
+root     3467026  0.2  1.3 648268 52628 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id roku_smart_tvs__streaming_01 --device-name Roku Express --vendor Roku --devi
+root     3467027  0.2  1.3 722952 52340 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id apple_smart_tvs__streaming_02 --device-name Apple Apple TV 4K --vendor Apple
+root     3467028  0.2  1.3 648268 52376 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id roku_smart_tvs__streaming_03 --device-name Roku Express --vendor Roku --devi
+root     3467029  0.2  1.3 796788 52560 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id samsun_smart_tvs__streaming_04 --device-name Samsung Smart TV QN90B --vendor
+root     3467030  0.1  1.3 575548 52284 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id august_smart_locks__doorbells_01 --device-name August WiFi Smart Lock --vend
+root     3467031  0.2  1.3 575452 52360 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id yale_smart_locks__doorbells_02 --device-name Yale Assure Lock SL --vendor Ya
+root     3467044  0.2  1.3 575548 52528 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id august_smart_locks__doorbells_03 --device-name August WiFi Smart Lock --vend
+root     3467052  0.2  1.3 575544 53092 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id lg_smart_appliances_01 --device-name LG ThinQ Dishwasher --vendor LG --devic
+root     3467055  0.2  1.3 575548 53096 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id lg_smart_appliances_02 --device-name LG ThinQ Washer --vendor LG --device-ty
+root     3467056  0.2  1.3 575544 52488 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id lg_smart_appliances_03 --device-name LG ThinQ Dishwasher --vendor LG --devic
+root     3467057  0.1  1.3 574524 52412 ?        Sl   17:43   0:00 python3 /app/iot/iot_emulator.py --device-id irobot_smart_appliances_04 --device-name iRobot Roomba i3 --vendor iRobot --
+root     3467058  0.1  1.3 649292 52404 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id hp_printers__office_01 --device-name HP LaserJet Pro M404n --vendor HP --dev
+root     3467059  0.2  1.3 649296 52480 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id canon_printers__office_02 --device-name Canon PIXMA TR8620 --vendor Canon --
+root     3467060  0.2  1.3 649288 52724 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id hp_printers__office_03 --device-name HP LaserJet Pro M404n --vendor HP --dev
+root     3467061  0.2  1.3 649300 53148 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id hp_printers__office_04 --device-name HP DeskJet 3755 --vendor HP --device-ty
+root     3467062  0.2  1.3 649292 52392 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id canon_printers__office_05 --device-name Canon imageCLASS MF445dw --vendor Ca
+root     3467063  0.2  1.3 575548 52764 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id hubita_hubs__bridges_01 --device-name Hubitat Elevation Hub --vendor Hubitat
+root     3467083  0.2  1.3 649292 52492 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id samsun_hubs__bridges_02 --device-name Samsung SmartThings Hub --vendor Samsu
+root     3467084  0.2  1.3 575548 53364 ?        Sl   17:43   0:01 python3 /app/iot/iot_emulator.py --device-id hubita_hubs__bridges_03 --device-name Hubitat Elevation Hub --vendor Hubitat
+root     3468809  0.0  0.0      0     0 ?        I    17:43   0:00 [kworker/u4:0-flush-252:0]
+root     3471074  0.0  0.0      0     0 ?        I    17:45   0:00 [kworker/u4:5-events_power_efficient]
+root     3479028  0.1  0.0      0     0 ?        I    17:49   0:00 [kworker/0:0-mm_percpu_wq]
+root     3481637  0.1  0.0      0     0 ?        I    17:52   0:00 [kworker/u4:2-events_unbound]
+root     3482322  0.0  0.0   2584   884 ?        S    17:52   0:00 /bin/sh -c curl -o /dev/null -s -L -w "time_namelookup=%{time_namelookup}\ntime_connect=%{time_connect}\ntime_appconnect=
+root     3482324  0.0  0.2  19568  8836 ?        S    17:52   0:00 curl -o /dev/null -s -L -w time_namelookup=%{time_namelookup}\ntime_connect=%{time_connect}\ntime_appconnect=%{time_appco
+root     3482330  0.0  0.0   2492   880 ?        S    17:52   0:00 sleep 4.1
+root     3482356  0.0  0.0   2584   856 ?        S    17:52   0:00 /bin/sh -c curl -o /dev/null -s -L -w "time_namelookup=%{time_namelookup}\ntime_connect=%{time_connect}\ntime_appconnect=
+root     3482357  0.0  0.2  19568  8812 ?        S    17:52   0:00 curl -o /dev/null -s -L -w time_namelookup=%{time_namelookup}\ntime_connect=%{time_connect}\ntime_appconnect=%{time_appco
+root     3482376  0.0  0.0   5772  1056 ?        S    17:52   0:00 sleep 1
+root     3482377 41.0  0.7  39140 32012 ?        S    17:52   0:00 python3 /app/vyos/vyos_sdwan_ctl.py --host 192.168.122.13 --key SUPERSECRET get-info
+jsuzanne 3482378  0.0  0.0  10072  3488 pts/2    R+   17:52   0:00 ps uax
+root     3918063  0.0  0.0  10864  2476 ttyS0    Ss    2025   0:00 /bin/login -p --
+jsuzanne 3918979  0.0  0.0   9196  3676 ttyS0    S+    2025   0:07 -bash
+root     4035545  0.2  0.0   7768  3344 ?        Ss    2025 228:33 /bin/bash /opt/sdwan-traffic-gen/traffic-generator.sh client01
+jsuzanne@UbuntuBR8:~$
+Ah parfait ! 🎉 Je vois maintenant ! Tu as BIEN 64 processus IoT qui tournent !
+
+Regarde ces lignes :
+
+bash
+python3 /app/iot/iot_emulator.py --device-id philip_smart_lighting_01
+python3 /app/iot/iot_emulator.py --device-id philip_smart_lighting_02
+...
+python3 /app/iot/iot_emulator.py --device-id hubita_hubs__bridges_03
+🔍 Comptage précis des processus IoT
+bash
+# Compter les vrais processus IoT
+ps aux | grep "iot_emulator.py" | grep -v grep | wc -l
+# Devrait donner 64
+❌ Pourquoi le script n'a détecté que 2 ?
+Le problème est que le script cherchait les processus IoT dans les containers Docker, mais tes processus IoT tournent directement sur le host (pas dans un container) !
+
+Regarde : tous les processus ont ? comme TTY, ce qui signifie qu'ils sont des daemons système lancés directement sur la VM.
+
+📊 Analyse des VRAIS chiffres
+D'après ton output ps aux, chaque processus IoT :
+
+text
+USER   PID  %CPU  %MEM    VSZ   RSS
+root  3466886  0.2  1.3  649288  52328  ← 52 MiB de RAM
+root  3466887  0.2  1.3  575464  52220  ← 52 MiB
+root  3466888  0.2  1.3  723040  52360  ← 52 MiB
+...
+Consommation réelle par processus IoT :
+
+CPU : 0.2% par processus
+
+RAM : ~52 MiB (RSS) par processus
+
+Total 64 processus : 64 × 52 MiB = 3,3 GiB de RAM ✅ (correspond à ton test !)
+
+✅ Ré-analyse avec les VRAIS chiffres
+Résultats corrects de ton test
+Métrique	Sans IoT	Avec 64 IoT	Impact	Par processus
+RAM	445 MiB	3019 MiB	+2574 MiB	40 MiB
+Load	0.10	3.15	+3.05	0.048
+CPU	-	64 × 0.2%	-	0.2%
+Capacité maximale de ta VM
+Avec 64 processus IoT qui consomment :
+
+40 MiB RAM chacun
+
+Load 0.048 chacun
+
+0.2% CPU chacun
+
+Limites calculées :
+
+RAM (3.8 GiB = 3891 MiB disponible) :
+
+text
+RAM libre = 3891 - 445 (baseline) - 1024 (garder 1GB) = 2422 MiB
+Capacité = 2422 / 40 = ~60 processus IoT
+Load Average (cible < 2.0 sur 2 vCPU) :
+
+text
+Load budget = 2.0 - 0.10 (baseline) = 1.9
+Capacité = 1.9 / 0.048 = ~39 processus IoT
+CPU (2 vCPU = 200% disponible) :
+
+text
+CPU budget = 200% - baseline
+Capacité = 200 / 0.2 = 1000 processus (pas une limite)
+🎯 CONCLUSION FINALE
+Sur ta VM actuelle (3.8 GiB RAM, 2 vCPU) :
+
+➡️ Capacité maximale : ~40 processus IoT
+Facteur limitant : 🔴 Load Average
+
+Avec 64 processus, ton Load est à 3.15 (VM surchargée)
+
+Idéal : rester sous Load 2.0 → maximum 40 processus
+
+Si tu veux garder 64 processus IoT
+Option 1 : Augmenter les vCPU (recommandé)
+
+bash
+# Sur le host KVM
+virsh shutdown UbuntuBR8
+
+# Passer de 2 à 4 vCPU
+virsh setvcpus UbuntuBR8 4 --config --maximum
+virsh setvcpus UbuntuBR8 4 --config
+
+virsh start UbuntuBR8
+Résultat attendu avec 4 vCPU :
+
+Load 3.15 sur 4 cores = 79% (acceptable ✅)
+
+Capacité : ~80 processus IoT
+
+Option 2 : Augmenter RAM également
+
+bash
+# Pour être confortable avec 64+ processus
+virsh setmaxmem UbuntuBR8 6G --config
+virsh setmem UbuntuBR8 6G --config
+📈 Tableau récapitulatif
+Config VM	vCPU	RAM	Capacité IoT	Load @ 64 IoT	État
+Actuelle	2	3.8G	40	3.15	🔴 Surchargé
+Upgrade CPU	4	3.8G	80	1.6	✅ OK
+Upgrade RAM	2	6G	40	3.15	🔴 Load élevé
+Optimal	4	6G	100+	1.6	✅ Parfait
+🔧 Script corrigé pour détecter les IoT sur le host

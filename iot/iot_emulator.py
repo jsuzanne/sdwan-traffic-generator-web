@@ -1,0 +1,902 @@
+#!/usr/bin/env python3
+"""
+IoT Device Emulator for Palo Alto SD-WAN/IoT Security Lab
+Generates ARP, DHCP, MQTT, HTTP, RTSP, LLDP traffic and cloud heartbeats
+"""
+
+import json
+import sys
+import time
+import threading
+import logging
+import argparse
+import random
+import warnings
+from datetime import datetime
+from pathlib import Path
+import os
+
+# Suppress Scapy import errors by redirecting stderr temporarily
+_original_stderr = sys.stderr
+sys.stderr = open(os.devnull, 'w')
+
+try:
+    from scapy.all import (
+        Ether, IP, UDP, TCP, DHCP, ARP, DNS, DNSQR, Raw, BOOTP,
+        sendp, send, conf, sniff, get_if_hwaddr
+    )
+    from scapy.contrib.lldp import (
+        LLDPDUChassisID, LLDPDUPortID, LLDPDUTimeToLive,
+        LLDPDUSystemName, LLDPDUSystemDescription, LLDPDUEndOfLLDPDU,
+        LLDP_NEAREST_BRIDGE_MAC
+    )
+finally:
+    # Always restore stderr, even if import fails
+    sys.stderr.close()
+    sys.stderr = _original_stderr
+
+# Suppress Scapy warnings
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+warnings.filterwarnings("ignore")
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('iot_emulator.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Global flag for JSON output and DEBUG mode
+JSON_OUTPUT = False
+DEBUG_MODE = os.getenv('DEBUG', 'false').lower() == 'true'
+
+def emit_json(msg_type, **kwargs):
+    """Utility to print JSON to stdout for Node.js IPC"""
+    if JSON_OUTPUT:
+        msg = {
+            "type": msg_type,
+            "timestamp": datetime.now().isoformat(),
+            **kwargs
+        }
+        print(json.dumps(msg), flush=True)
+
+
+class IoTDevice:
+    """Base class for IoT device simulation"""
+    
+    # Cloud destinations per vendor (real public IPs)
+    CLOUD_DESTINATIONS = {
+        "Hikvision": {
+            "servers": ["47.88.59.64", "39.107.142.200"],
+            "domains": ["hik-connect.com", "hikvision.com"]
+        },
+        "Dahua": {
+            "servers": ["47.90.123.45"],
+            "domains": ["dahuasecurity.com", "p2p.dahuasecurity.com"]
+        },
+        "Philips": {
+            "servers": ["192.229.211.108"],
+            "domains": ["api.meethue.com", "firmware.meethue.com"]
+        },
+        "Xiaomi": {
+            "servers": ["47.88.62.181", "120.92.65.244"],
+            "domains": ["iot.mi.com", "api.io.mi.com"]
+        },
+        "Amazon": {
+            "servers": ["52.94.236.248", "54.239.31.128"],
+            "domains": ["alexa.amazon.com", "device-metrics-us.amazon.com"]
+        },
+        "Google": {
+            "servers": ["216.58.213.206", "172.217.168.46"],
+            "domains": ["home.nest.com", "googlehomeservices-pa.googleapis.com"]
+        },
+        "Sonoff": {
+            "servers": ["18.185.104.23", "52.28.132.157"],
+            "domains": ["eu-api.coolkit.cc", "eu-disp.coolkit.cc"]
+        },
+        "TP-Link": {
+            "servers": ["52.41.56.200", "54.148.220.147"],
+            "domains": ["wap.tplinkcloud.com", "use1-api.tplinkra.com"]
+        },
+        "Meross": {
+            "servers": ["13.36.125.34"],
+            "domains": ["iot.meross.com", "mqtt.meross.com"]
+        }
+    }
+    
+    # Common public services
+    PUBLIC_SERVICES = {
+        "ntp": ["129.6.15.28", "216.239.35.0"],
+        "dns": ["8.8.8.8", "1.1.1.1"],
+    }
+    
+    def __init__(self, device_config, interface="eth0", dhcp_mode="auto"):
+        self.id = device_config.get("id")
+        self.name = device_config.get("name")
+        self.vendor = device_config.get("vendor")
+        self.device_type = device_config.get("type")
+        self.mac = device_config.get("mac")
+        self.ip_static = device_config.get("ip_start")
+        self.ip = self.ip_static
+        self.protocols = device_config.get("protocols", [])
+        self.enabled = device_config.get("enabled", True)
+        self.traffic_interval = device_config.get("traffic_interval", 60)
+        self.mqtt_topic = device_config.get("mqtt_topic")
+        self.interface = interface
+        self.gateway = device_config.get("gateway", "192.168.207.1")
+        self.running = False
+        self.dhcp_xid = random.randint(1, 0xFFFFFFFF)
+        self.dhcp_offered_ip = None
+        self.dhcp_server_ip = None
+        self.dhcp_mode = dhcp_mode
+        self.start_time = None
+        
+        # Stats tracking
+        self.stats = {
+            "packets_sent": 0,
+            "bytes_sent": 0,
+            "protocols": {p: 0 for p in self.protocols}
+        }
+    
+    def log(self, level, message, **kwargs):
+        """Unified logging that supports JSON output"""
+        if JSON_OUTPUT:
+            emit_json("log", device_id=self.id, level=level, message=message, **kwargs)
+        else:
+            log_func = getattr(logger, level.lower(), logger.info)
+            log_func(f"{self.id}: {message}")
+
+    def emit_stats(self):
+        """Emit current stats in JSON format"""
+        if JSON_OUTPUT:
+            uptime = int(time.time() - self.start_time) if self.start_time else 0
+            emit_json("stats", device_id=self.id, stats={
+                "packets_sent": self.stats["packets_sent"],
+                "bytes_sent": self.stats["bytes_sent"],
+                "current_ip": self.ip,
+                "uptime_seconds": uptime,
+                "protocols": self.stats["protocols"]
+            })
+
+    def _send(self, pkt, protocol=None, **kwargs):
+        """Wrapper for scapy.send with stats tracking"""
+        try:
+            send(pkt, **kwargs)
+            self.stats["packets_sent"] += 1
+            self.stats["bytes_sent"] += len(pkt)
+            if protocol:
+                self.stats["protocols"][protocol] = self.stats["protocols"].get(protocol, 0) + 1
+        except Exception as e:
+            self.log("error", f"Send error: {e}")
+
+    def _sendp(self, pkt, protocol=None, **kwargs):
+        """Wrapper for scapy.sendp with stats tracking"""
+        try:
+            sendp(pkt, **kwargs)
+            self.stats["packets_sent"] += 1
+            self.stats["bytes_sent"] += len(pkt)
+            if protocol:
+                self.stats["protocols"][protocol] = self.stats["protocols"].get(protocol, 0) + 1
+        except Exception as e:
+            self.log("error", f"Sendp error: {e}")
+        
+    def __repr__(self):
+        return f"[{self.vendor}] {self.name} ({self.ip})"
+    
+    def start(self):
+        """Start device emulation threads"""
+        if not self.enabled:
+            self.log("warning", "Device is disabled, skipping")
+            return
+        
+        self.running = True
+        self.start_time = time.time()
+        
+        # Standard Interface Diagnostic
+        if self.id != "orchestrator":
+            self.log("info", f"📡 [IOT] System Interface: {self.interface} (Source: CLI/Auto)")
+            self.log("info", f"🚀 Starting device simulation: {self.name} ({self.id}) [DHCP: {self.dhcp_mode}]")
+        
+        self.log("info", f"🆔 MAC addr: {self.mac}")
+        if self.ip_static:
+            self.log("info", f"📌 Fallback/Static IP: {self.ip_static}")
+        self.log("info", "============================================================")
+        
+        if JSON_OUTPUT:
+            emit_json("started", device_id=self.id)
+        
+        # Start stats reporter thread if in JSON mode
+        if JSON_OUTPUT:
+            threading.Thread(target=self._stats_reporter_loop, daemon=True).start()
+
+        # Start with DHCP to get IP (if dhcp in protocols)
+        if "dhcp" in self.protocols:
+            threading.Thread(target=self.do_dhcp_sequence, daemon=True).start()
+            time.sleep(2)
+        
+        # Start protocol-specific threads
+        for protocol in self.protocols:
+            if protocol == "snmp":
+                self.log("warning", "⚠️ SNMP protocol is deprecated and will be ignored (incompatible with host mode)")
+                continue
+                
+            if protocol != "dhcp":
+                thread = threading.Thread(
+                    target=self._protocol_handler,
+                    args=(protocol,),
+                    daemon=True
+                )
+                thread.start()
+        
+        # DHCP renewal thread (periodic)
+        if "dhcp" in self.protocols:
+            thread = threading.Thread(target=self.dhcp_renewal_loop, daemon=True)
+            thread.start()
+    
+    def stop(self):
+        """Stop device emulation"""
+        self.running = False
+        self.log("info", "⏹️ Simulation stopped")
+        if JSON_OUTPUT:
+            self.emit_stats() # Final stats
+            emit_json("stopped", device_id=self.id)
+    
+    def _stats_reporter_loop(self):
+        """Periodically report stats in JSON mode"""
+        while self.running:
+            time.sleep(5)
+            if self.running:
+                self.emit_stats()
+    
+    def _protocol_handler(self, protocol):
+        """Route to protocol handler"""
+        handlers = {
+            "arp": self.send_arp,
+            "lldp": self.send_lldp,
+            "http": self.send_http,
+            "mqtt": self.send_mqtt,
+            "rtsp": self.send_rtsp,
+            "mdns": self.send_mdns,
+            "cloud": self.send_cloud_traffic,
+            "dns": self.send_dns,
+            "ntp": self.send_ntp,
+        }
+        
+        handler = handlers.get(protocol)
+        if handler:
+            handler()
+        else:
+            logger.warning(f"Unknown protocol: {protocol}")
+    
+    def parse_dhcp_options(self, packet):
+        """Parse DHCP options and return as dict"""
+        options = {}
+        if DHCP in packet:
+            for opt in packet[DHCP].options:
+                if isinstance(opt, tuple) and len(opt) == 2:
+                    options[opt[0]] = opt[1]
+        return options
+    
+    def do_dhcp_sequence(self):
+        """Perform complete DHCP sequence: Discover -> Offer -> Request -> ACK"""
+        try:
+            self.log("info", f"🔄 Starting DHCP sequence (mode: {self.dhcp_mode})...")
+            
+            # Step 1: Send DHCP Discover
+            self.dhcp_xid = random.randint(1, 0xFFFFFFFF)
+            
+            discover = Ether(dst="ff:ff:ff:ff:ff:ff", src=self.mac) / \
+                       IP(src="0.0.0.0", dst="255.255.255.255") / \
+                       UDP(sport=68, dport=67) / \
+                       BOOTP(chaddr=bytes.fromhex(self.mac.replace(':', '')), xid=self.dhcp_xid) / \
+                       DHCP(options=[
+                           ("message-type", "discover"),
+                           ("hostname", self.name.encode()),
+                           ("param_req_list", [1, 3, 6, 15]),
+                           ("end")
+                       ])
+            
+            self.log("info", f"📤 Sending DHCP DISCOVER (xid: {hex(self.dhcp_xid)}, MAC: {self.mac})")
+            if JSON_OUTPUT:
+                emit_json("dhcp_discover", device_id=self.id, xid=hex(self.dhcp_xid), mac=self.mac)
+            sendp(discover, iface=self.interface, verbose=0)
+            
+            # Step 2: Wait and capture DHCP OFFER
+            self.log("info", f"⏳ Waiting for DHCP OFFER (timeout: 3s)...")
+            
+            try:
+                def dhcp_filter(pkt):
+                    if DHCP in pkt and BOOTP in pkt:
+                        if pkt[BOOTP].xid == self.dhcp_xid:
+                            return True
+                    return False
+                
+                packets = sniff(
+                    iface=self.interface,
+                    lfilter=dhcp_filter,
+                    timeout=3,
+                    count=1,
+                    store=1
+                )
+                
+                if packets:
+                    offer_pkt = packets[0]
+                    options = self.parse_dhcp_options(offer_pkt)
+                    msg_type = options.get('message-type')
+                    
+                    if msg_type == 2:  # OFFER
+                        self.dhcp_offered_ip = offer_pkt[BOOTP].yiaddr
+                        self.dhcp_server_ip = offer_pkt[BOOTP].siaddr or offer_pkt[IP].src
+                        
+                        self.log("info", f"✅ Received DHCP OFFER from {self.dhcp_server_ip} (Offered IP: {self.dhcp_offered_ip})")
+                        if JSON_OUTPUT:
+                            emit_json("dhcp_offer", device_id=self.id, server_id=self.dhcp_server_ip, offered_ip=self.dhcp_offered_ip)
+                    else:
+                        self.log("warning", f"⚠️ Received DHCP packet but not OFFER (type: {msg_type})")
+                else:
+                    self.log("warning", "⚠️ No DHCP OFFER received (timeout)")
+                    
+            except Exception as e:
+                self.log("warning", f"⚠️ Could not capture DHCP OFFER: {e}")
+            
+            time.sleep(0.5)
+            
+            # Step 3: Send DHCP Request
+            dhcp_options = [("message-type", "request")]
+            
+            if self.dhcp_mode == "static" and self.ip_static:
+                dhcp_options.append(("requested_addr", self.ip_static))
+                self.log("info", f"📤 Sending DHCP REQUEST for static IP {self.ip_static}")
+            elif self.dhcp_offered_ip:
+                dhcp_options.append(("requested_addr", self.dhcp_offered_ip))
+                self.ip = self.dhcp_offered_ip
+                self.log("info", f"📤 Sending DHCP REQUEST for offered IP {self.dhcp_offered_ip}")
+            else:
+                self.log("info", "📤 Sending DHCP REQUEST (accepting any IP from server)")
+            
+            if self.dhcp_server_ip:
+                dhcp_options.append(("server_id", self.dhcp_server_ip))
+            else:
+                dhcp_options.append(("server_id", self.gateway))
+            
+            dhcp_options.extend([
+                ("hostname", self.name.encode()),
+                ("param_req_list", [1, 3, 6, 15]),
+                ("end")
+            ])
+            
+            request = Ether(dst="ff:ff:ff:ff:ff:ff", src=self.mac) / \
+                      IP(src="0.0.0.0", dst="255.255.255.255") / \
+                      UDP(sport=68, dport=67) / \
+                      BOOTP(chaddr=bytes.fromhex(self.mac.replace(':', '')), xid=self.dhcp_xid) / \
+                      DHCP(options=dhcp_options)
+            
+            sendp(request, iface=self.interface, verbose=0)
+            
+            # Step 4: Wait and capture DHCP ACK
+            self.log("info", f"⏳ Waiting for DHCP ACK (timeout: 3s)...")
+            
+            try:
+                packets = sniff(
+                    iface=self.interface,
+                    lfilter=dhcp_filter,
+                    timeout=3,
+                    count=1,
+                    store=1
+                )
+                
+                if packets:
+                    ack_pkt = packets[0]
+                    options = self.parse_dhcp_options(ack_pkt)
+                    msg_type = options.get('message-type')
+                    
+                    if msg_type == 5:  # ACK
+                        assigned_ip = ack_pkt[BOOTP].yiaddr
+                        self.ip = assigned_ip
+                        
+                        # Extract gateway from DHCP option 3 (router)
+                        router = options.get('router')
+                        if router:
+                            self.gateway = router[0] if isinstance(router, list) else router
+                            self.log("info", f"🌐 Gateway from DHCP: {self.gateway}")
+                        else:
+                            self.log("warning", f"⚠️ No router option in DHCP ACK, keeping {self.gateway}")
+                        
+                        self.log("info", f"✅ Received DHCP ACK from {ack_pkt[IP].src} (Assigned IP: {assigned_ip})")
+                        if JSON_OUTPUT:
+                            emit_json("dhcp_ack", device_id=self.id, assigned_ip=assigned_ip, server_id=ack_pkt[IP].src, gateway=self.gateway)
+                    elif msg_type == 6:  # NAK
+                        self.log("error", "❌ Received DHCP NAK - request rejected by server")
+                    else:
+                        self.log("warning", f"⚠️ Received DHCP packet but not ACK (type: {msg_type})")
+                else:
+                    self.log("warning", f"⚠️ No DHCP ACK received (timeout) - using fallback IP {self.ip}")
+                    
+            except Exception as e:
+                self.log("warning", f"⚠️ Could not capture DHCP ACK: {e}")
+            
+            self.log("info", f"✅ DHCP sequence completed (current IP: {self.ip})")
+            
+        except Exception as e:
+            self.log("error", f"❌ DHCP sequence error: {e}")
+    
+    def dhcp_renewal_loop(self):
+        """Periodic DHCP renewal"""
+        self.log("debug", "DHCP renewal thread started")
+        
+        time.sleep(self.traffic_interval * 5)
+        
+        while self.running:
+            try:
+                logger.info(f"🔄 {self.id}: Performing DHCP renewal...")
+                self.do_dhcp_sequence()
+                
+            except Exception as e:
+                self.log("error", f"❌ DHCP renewal error: {e}")
+            
+            time.sleep(self.traffic_interval * 5)
+    
+    def send_lldp(self):
+        """Send LLDP advertisements periodically (for switch/router discovery)"""
+        self.log("info", "📡 LLDP thread started")
+        
+        while self.running:
+            try:
+                # Wait for valid IP if using DHCP
+                if "dhcp" in self.protocols:
+                    wait_count = 0
+                    while (not self.ip or self.ip == "0.0.0.0") and wait_count < 20:
+                        time.sleep(0.5)
+                        wait_count += 1
+                
+                # Build LLDP frame
+                lldp_frame = Ether(dst=LLDP_NEAREST_BRIDGE_MAC, src=self.mac) / \
+                             LLDPDUChassisID(subtype=4, id=self.mac.encode()) / \
+                             LLDPDUPortID(subtype=3, id=self.mac.encode()) / \
+                             LLDPDUTimeToLive(ttl=120) / \
+                             LLDPDUSystemName(system_name=self.name.encode()) / \
+                             LLDPDUSystemDescription(
+                                 description=f"{self.vendor} {self.device_type}".encode()
+                             ) / \
+                             LLDPDUEndOfLLDPDU()
+                
+                self._sendp(lldp_frame, protocol="lldp", iface=self.interface, verbose=0)
+                self.log("info", f"📡 LLDP advertisement sent to switch")
+                
+            except Exception as e:
+                self.log("error", f"❌ LLDP error: {e}")
+            
+            time.sleep(30)  # LLDP advertisement every 30 seconds
+    
+    
+    def send_arp(self):
+        """Send ARP requests (device discovery)"""
+        self.log("debug", "🔍 ARP thread started")
+        
+        while self.running:
+            try:
+                pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src=self.mac) / \
+                      ARP(op="who-has", 
+                          pdst=self.gateway, 
+                          hwsrc=self.mac, 
+                          psrc=self.ip)
+                
+                self._sendp(pkt, protocol="arp", iface=self.interface, verbose=0)
+                self.log("debug", f"📤 ARP request sent for gateway {self.gateway}")
+                
+            except Exception as e:
+                self.log("error", f"❌ ARP error: {e}")
+            
+            time.sleep(self.traffic_interval)
+    
+    def send_http(self):
+        """Send HTTP requests (configuration/status check)"""
+        self.log("debug", "🌐 HTTP thread started")
+        
+        while self.running:
+            try:
+                pkt = IP(src=self.ip, dst=self.gateway) / \
+                      TCP(dport=80, flags="S")
+                
+                self._send(pkt, protocol="http", verbose=0)
+                self.log("debug", f"📤 HTTP SYN sent to {self.gateway}:80")
+                
+            except Exception as e:
+                self.log("error", f"❌ HTTP error: {e}")
+            
+            time.sleep(self.traffic_interval)
+    
+    def send_mqtt(self):
+        """Send MQTT publish packets (for sensors)"""
+        self.log("debug", "💬 MQTT thread started")
+        
+        mqtt_broker = "192.168.207.150"
+        
+        while self.running:
+            try:
+                pkt = IP(src=self.ip, dst=mqtt_broker) / \
+                      TCP(dport=1883, flags="S")
+                
+                self._send(pkt, protocol="mqtt", verbose=0)
+                self.log("debug", f"📤 MQTT Connect sent to {mqtt_broker}:1883")
+                
+                time.sleep(5)
+                
+            except Exception as e:
+                self.log("error", f"❌ MQTT error: {e}")
+            
+            time.sleep(self.traffic_interval)
+    
+    def send_rtsp(self):
+        """Send RTSP requests (for cameras)"""
+        self.log("debug", "🎥 RTSP thread started")
+        
+        while self.running:
+            try:
+                pkt = IP(src=self.ip, dst=self.gateway) / \
+                      TCP(dport=554, flags="S")
+                
+                self._send(pkt, protocol="rtsp", verbose=0)
+                self.log("debug", f"📤 RTSP SYN sent to {self.gateway}:554")
+                
+            except Exception as e:
+                self.log("error", f"❌ RTSP error: {e}")
+            
+            time.sleep(self.traffic_interval)
+    
+    def send_mdns(self):
+        """Send mDNS requests (for discovery)"""
+        self.log("debug", "🔎 mDNS thread started")
+        
+        while self.running:
+            try:
+                pkt = IP(src=self.ip, dst="224.0.0.251") / \
+                      UDP(sport=5353, dport=5353)
+                
+                self._send(pkt, protocol="mdns", verbose=0)
+                self.log("debug", "📤 mDNS query sent")
+                
+            except Exception as e:
+                self.log("error", f"❌ mDNS error: {e}")
+            
+            time.sleep(self.traffic_interval * 3)
+    
+    def send_cloud_traffic(self):
+        """Send HTTPS traffic to vendor cloud servers"""
+        self.log("debug", "☁️  Cloud traffic thread started")
+        
+        cloud_config = self.CLOUD_DESTINATIONS.get(self.vendor, {
+            "servers": ["8.8.8.8"],
+            "domains": []
+        })
+        
+        servers = cloud_config.get("servers", [])
+        
+        while self.running:
+            try:
+                for server in servers:
+                    pkt = IP(src=self.ip, dst=server) / \
+                          TCP(dport=443, flags="S")
+                    
+                    self._send(pkt, protocol="cloud", verbose=0)
+                    self.log("info", f"☁️ Cloud HTTPS sent to {server}:443")
+                    
+                    time.sleep(2)
+                    
+                    pkt_http = IP(src=self.ip, dst=server) / \
+                               TCP(dport=80, flags="S")
+                    
+                    self._send(pkt_http, protocol="cloud", verbose=0)
+                    self.log("info", f"☁️ Cloud HTTP sent to {server}:80")
+                    
+                    time.sleep(3)
+                
+            except Exception as e:
+                self.log("error", f"❌ Cloud traffic error: {e}")
+            
+            time.sleep(self.traffic_interval * 2)
+    
+    def send_dns(self):
+        """Send DNS queries to public resolvers"""
+        self.log("debug", "🌐 DNS thread started")
+        
+        cloud_config = self.CLOUD_DESTINATIONS.get(self.vendor, {"domains": []})
+        domains = cloud_config.get("domains", ["www.google.com"])
+        
+        dns_servers = self.PUBLIC_SERVICES["dns"]
+        
+        while self.running:
+            try:
+                for domain in domains:
+                    for dns_server in dns_servers:
+                        pkt = IP(src=self.ip, dst=dns_server) / \
+                              UDP(sport=53000, dport=53) / \
+                              DNS(rd=1, qd=DNSQR(qname=domain))
+                        
+                        self._send(pkt, protocol="dns", verbose=0)
+                        self.log("info", f"🌐 DNS query sent: {domain} → {dns_server}")
+                        
+                        time.sleep(1)
+                
+            except Exception as e:
+                self.log("error", f"❌ DNS error: {e}")
+            
+            time.sleep(self.traffic_interval * 3)
+    
+    def send_ntp(self):
+        """Send NTP time sync requests"""
+        self.log("debug", "🕐 NTP thread started")
+        
+        ntp_servers = self.PUBLIC_SERVICES["ntp"]
+        
+        while self.running:
+            try:
+                for ntp_server in ntp_servers:
+                    pkt = IP(src=self.ip, dst=ntp_server) / \
+                          UDP(sport=123, dport=123)
+                    
+                    self._send(pkt, protocol="ntp", verbose=0)
+                    self.log("info", f"🕐 NTP request sent to {ntp_server}")
+                    
+                    time.sleep(2)
+                
+            except Exception as e:
+                self.log("error", f"❌ NTP error: {e}")
+            
+            time.sleep(self.traffic_interval * 5)
+
+
+class IoTEmulator:
+    """Main emulator controller"""
+    
+    def __init__(self, config_file, interface="eth0", dhcp_mode="auto"):
+        self.config_file = Path(config_file)
+        self.interface_cli = interface
+        self.interface = interface
+        self.dhcp_mode = dhcp_mode
+        self.devices = []
+        self.threads = []
+        
+        if os.getuid() != 0:
+            if sys.platform == 'darwin':
+                logger.error("❌ Scapy requires root/sudo permissions on macOS to access /dev/bpf*")
+                logger.error("💡 Try running: sudo chmod 666 /dev/bpf* OR run with sudo")
+            else:
+                logger.error("❌ Scapy requires root/sudo permissions! Run with sudo.")
+            sys.exit(1)
+            
+        if conf.route is None:
+            logger.error("⚠️  Scapy routing table is empty. Are you running as root?")
+            sys.exit(1)
+        
+        logger.info("=" * 60)
+        logger.info("🚀 IoT Emulator for Palo Alto SD-WAN/IoT Security Lab")
+        logger.info(f"   DHCP Mode: {dhcp_mode.upper()}")
+        logger.info(f"   Features: DHCP, ARP, LLDP, SNMP, HTTP, MQTT, RTSP, Cloud")
+        logger.info("=" * 60)
+    
+    def load_config(self):
+        """Load device configuration from JSON"""
+        try:
+            with open(self.config_file, 'r') as f:
+                config = json.load(f)
+            
+            logger.info(f"✅ Loaded config from {self.config_file}")
+            
+            if self.interface:
+                logger.info(f"📡 Current Interface: {self.interface}")
+            
+            # The network config in JSON is now ignored for interface selection 
+            # to ensure the Dashboard/Installer remains the source of truth.
+            network = config.get("network", {})
+            self.gateway = network.get("gateway", "192.168.207.1")
+            
+            if "interface" in network:
+                logger.info(f"💡 Note: interface '{network.get('interface')}' was defined in JSON but is ignored in favor of CLI/Auto-detection.")
+            
+            for device_config in config.get("devices", []):
+                device = IoTDevice(device_config, interface=self.interface, dhcp_mode=self.dhcp_mode)
+                device.gateway = self.gateway
+                self.devices.append(device)
+            
+            logger.info(f"✅ Loaded {len(self.devices)} devices")
+            for device in self.devices:
+                status = "✅ enabled" if device.enabled else "⏸️  disabled"
+                protocols_str = ", ".join(device.protocols)
+                logger.info(f"   {device} - {status} [{protocols_str}]")
+            
+        except FileNotFoundError:
+            logger.error(f"❌ Config file not found: {self.config_file}")
+            sys.exit(1)
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Invalid JSON in config: {e}")
+            sys.exit(1)
+    
+    def start_all(self):
+        """Start all enabled devices"""
+        logger.info("🚀 Starting all devices...")
+        
+        for device in self.devices:
+            if device.enabled:
+                device.start()
+                time.sleep(0.5)
+        
+        logger.info(f"✅ All {len([d for d in self.devices if d.enabled])} devices started")
+    
+    def stop_all(self):
+        """Stop all devices"""
+        logger.info("⏹️  Stopping all devices...")
+        
+        for device in self.devices:
+            device.stop()
+        
+        logger.info("✅ All devices stopped")
+    
+    def print_status(self):
+        """Print current status"""
+        print("\n" + "=" * 60)
+        print(f"📊 IoT Emulator Status - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"   DHCP Mode: {self.dhcp_mode.upper()}")
+        print("=" * 60)
+        
+        for device in self.devices:
+            status = "🟢 RUNNING" if device.running else "🔴 STOPPED"
+            protocols = ", ".join(device.protocols)
+            print(f"{status} | {str(device):45} | {protocols}")
+        
+        print("=" * 60 + "\n")
+    
+    def run(self, duration=None):
+        """Run emulator"""
+        try:
+            self.load_config()
+            self.start_all()
+            
+            if duration:
+                logger.info(f"⏱️  Running for {duration} seconds...")
+                time.sleep(duration)
+                self.stop_all()
+            else:
+                logger.info("✅ Emulator running (Ctrl+C to stop)...")
+                
+                try:
+                    while True:
+                        time.sleep(60)
+                        if DEBUG_MODE:
+                            self.print_status()
+                except KeyboardInterrupt:
+                    logger.info("\n🛑 Interrupt received, stopping...")
+                    self.stop_all()
+        
+        except KeyboardInterrupt:
+            logger.info("\n🛑 Interrupt received, stopping...")
+            self.stop_all()
+        except Exception as e:
+            logger.error(f"❌ Fatal error: {e}", exc_info=True)
+            sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="IoT Device Emulator for Palo Alto SD-WAN/IoT Security Lab",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+DHCP Modes:
+  auto   - Accept any IP assigned by DHCP server (recommended)
+  static - Request specific IP from JSON config (ip_start field)
+
+Protocols Supported:
+  - dhcp: DHCP client (Discover/Offer/Request/ACK)
+  - arp: ARP requests for gateway discovery
+  - lldp: LLDP advertisements (Layer 2 discovery)
+  - snmp: SNMPv2c agent (deprecated - non fonctionnel en mode host)
+  - http: HTTP traffic to gateway
+  - mqtt: MQTT traffic to broker
+  - rtsp: RTSP traffic (cameras)
+  - cloud: HTTPS traffic to vendor cloud servers
+  - dns: DNS queries to public resolvers
+  - ntp: NTP time sync requests
+
+Examples:
+  sudo python3 iot_emulator.py -i ens4 --dhcp-mode auto
+  sudo python3 iot_emulator.py -i ens4 --dhcp-mode static
+  
+Test LLDP:
+  sudo tcpdump -i ens4 -vvv ether proto 0x88cc
+        """
+    )
+    parser.add_argument(
+        "-c", "--config",
+        default="iot_devices.json",
+        help="Path to device configuration file (default: iot_devices.json)"
+    )
+    parser.add_argument(
+        "-i", "--interface",
+        default="eth0",
+        help="Network interface to use (default: eth0)"
+    )
+    parser.add_argument(
+        "--dhcp-mode",
+        choices=["auto", "static"],
+        default="auto",
+        help="DHCP mode: 'auto' to accept server-assigned IPs, 'static' to request specific IPs from config (default: auto)"
+    )
+    parser.add_argument(
+        "-d", "--duration",
+        type=int,
+        help="Run duration in seconds (default: infinite)"
+    )
+    parser.add_argument(
+        "-s", "--status",
+        action="store_true",
+        help="Print status and exit"
+    )
+    
+    parser.add_argument(
+        "--json-output",
+        action="store_true",
+        help="Enable JSON output for Node.js IPC"
+    )
+    
+    # Single device mode arguments
+    parser.add_argument("--device-id", help="Run in single device mode with this ID")
+    parser.add_argument("--device-name", help="Device name for single device mode")
+    parser.add_argument("--vendor", help="Vendor name for single device mode")
+    parser.add_argument("--device-type", help="Device type for single device mode")
+    parser.add_argument("--mac", help="MAC address for single device mode")
+    parser.add_argument("--ip-static", help="Static IP to request in single device mode")
+    parser.add_argument("--protocols", help="Comma-separated protocols for single device mode")
+    parser.add_argument("--traffic-interval", type=int, default=60, help="Traffic interval in seconds")
+    parser.add_argument("--gateway", default="192.168.207.1", help="Gateway IP")
+
+    args = parser.parse_args()
+    
+    global JSON_OUTPUT
+    JSON_OUTPUT = args.json_output
+
+    if args.device_id:
+        # Single device mode
+        config = {
+            "id": args.device_id,
+            "name": args.device_name or args.device_id,
+            "vendor": args.vendor or "Generic",
+            "type": args.device_type or "IoT Device",
+            "mac": args.mac or "00:00:00:00:00:00",
+            "ip_start": args.ip_static,
+            "protocols": args.protocols.split(',') if args.protocols else ["dhcp", "arp", "http"],
+            "enabled": True,
+            "traffic_interval": args.traffic_interval,
+            "gateway": args.gateway
+        }
+        device = IoTDevice(config, interface=args.interface, dhcp_mode=args.dhcp_mode)
+        
+        # Handle SIGTERM for graceful exit
+        import signal
+        def handle_sigterm(signum, frame):
+            device.stop()
+            sys.exit(0)
+        signal.signal(signal.SIGTERM, handle_sigterm)
+        
+        try:
+            device.start()
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            device.stop()
+    else:
+        # Multi-device mode (existing behavior)
+        emulator = IoTEmulator(args.config, interface=args.interface, dhcp_mode=args.dhcp_mode)
+        
+        if args.status:
+            emulator.load_config()
+            emulator.print_status()
+        else:
+            emulator.run(duration=args.duration)
+
+
+if __name__ == "__main__":
+    main()

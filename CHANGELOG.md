@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1-patch.14] - 2026-02-08
+### Fixed
+- **CRITICAL**: Restored `/iot` directory and IoT emulator that was accidentally deleted in patch.9 🚨
+- **Dockerfile**: Re-added IoT directory COPY and pip install commands
+- **IoT Manager**: Reverted unnecessary safety check (script is now present)
+
 ## [1.2.1-patch.13] - 2026-02-08
 ### Fixed
 - **IoT Manager**: Added safety check to prevent attempting to spawn missing Python emulator script (gracefully handles IoT feature removal) 🛡️
