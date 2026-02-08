@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.2.1--patch.14-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.1--patch.15-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -87,7 +87,10 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 
 Recent improvements and features added to the SD-WAN Traffic Generator:
 
-### v1.2.1-patch.14 (Latest)
+### v1.2.1-patch.15 (Latest)
+- **System Maintenance**: Fixed version detection using GitHub Releases API for correct ordering
+
+### v1.2.1-patch.14
 - **CRITICAL FIX**: Restored IoT emulator directory accidentally deleted in patch.9
 
 ### v1.2.1-patch.13

@@ -4262,15 +4262,20 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
         let updateAvailable = false;
 
         try {
-            const { stdout } = await execPromise('curl -s --connect-timeout 5 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/tags');
-            const tags = JSON.parse(stdout);
-            if (Array.isArray(tags) && tags.length > 0) {
-                latestVersion = tags[0].name.replace('v', '');
-                updateAvailable = (latestVersion !== currentVersion);
+            // Use /releases endpoint instead of /tags to get chronological order (latest first)
+            const { stdout } = await execPromise('curl -s --connect-timeout 5 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/releases');
+            const releases = JSON.parse(stdout);
+            if (Array.isArray(releases) && releases.length > 0) {
+                // Get the latest non-draft, non-prerelease version
+                const latestRelease = releases.find((r: any) => !r.draft && !r.prerelease);
+                if (latestRelease) {
+                    latestVersion = latestRelease.tag_name.replace(/^v/, '');
+                    updateAvailable = (latestVersion !== currentVersion);
+                }
             }
         } catch (e) {
             if (!githubFetchErrorLogged) {
-                log('MAINTENANCE', '⚠️ Failed to fetch latest version from GitHub tags', 'warn');
+                log('MAINTENANCE', '⚠️ Failed to fetch latest version from GitHub releases', 'warn');
                 githubFetchErrorLogged = true;
             }
         }
