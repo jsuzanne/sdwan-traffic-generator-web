@@ -52,11 +52,6 @@ COPY VERSION ./VERSION
 COPY engines ./engines
 # Copy VyOS orchestration script
 COPY vyos ./vyos
-# Copy IoT emulation script and devices template
-COPY iot ./iot
-
-# Install Python dependencies for IoT emulator
-RUN pip3 install --no-cache-dir -r iot/requirements.txt --break-system-packages || true
 
 # Labels for Docker Hub
 LABEL org.opencontainers.image.title="SD-WAN Traffic Generator - Web UI"
