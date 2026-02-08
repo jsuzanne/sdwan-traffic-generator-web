@@ -13,6 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Version Synchronization**: Aligned version numbers across all components (`engines`, `web-dashboard`, documentation) to `v1.2.1-patch.5`. 🔄✅
 
+## [1.2.1-patch.4] - 2026-02-08
+### Fixed
+- **Security Config**: Resolved EICAR configuration overwrite issue during background polling. 🛡️
+- **Documentation**: Added help link to HTTP Target service. 📚
+
+## [1.2.1-patch.3] - 2026-02-08
+### Added
+- **HTTP Target**: Introduced dedicated HTTP target service container for connectivity testing. 🎯
+
+## [1.2.1-patch.2] - 2026-02-08
+### Changed
+- **Rollback**: Reverted to stable v1.2.0-patch.5 due to instability in v1.2.1 release candidates. 🔙
+
+## [1.2.1-patch.1] - 2026-02-08
+### Fixed
+- **DEM Badges**: Corrected status badge logic for endpoints with no history. 🏷️
+
+## [1.2.0-patch.3]
+### Added
+- **Convergence**: Added debug mode and improved signal handling. 📡
+
+## [1.2.0-patch.2]
+### Fixed
+- **Convergence**: Improved packet loss count accuracy. 📊
+
+## [1.2.0-patch.1]
+### Fixed
+- **UI**: Standardized BETA badge colors to blue. 🔵
+
 ## [1.1.2-patch.33.76] - 2026-02-04
 ### Fixed
 - **VyOS Control**: Fixed a bug in `vyos_sdwan_ctl.py` where clearing combined QoS policies could fail due to incorrect argument handling. 🛠️🐛
