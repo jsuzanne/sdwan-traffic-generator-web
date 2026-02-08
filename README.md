@@ -2,11 +2,37 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.1.2--patch.33.54-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.1--patch.9-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
 ![SD-WAN Traffic Generator](docs/hero-banner.png)
+
+---
+
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Screenshots Gallery](#-screenshots-gallery)
+- [Platform Support](#️-platform-support)
+- [Prerequisites](#-prerequisites)
+- [Quick Start](#-quick-start)
+- [Verify Installation](#-verify-installation)
+- [What Happens on First Start?](#-what-happens-on-first-start)
+- [Usage](#-usage)
+- [Configuration](#-configuration)
+- [Useful Commands](#️-useful-commands)
+- [Architecture](#️-architecture)
+- [Troubleshooting](#-troubleshooting)
+- [Security](#-security)
+- [Key Concepts](#-key-concepts)
+- [Docker Images](#-docker-images)
+- [Documentation](#-documentation)
+- [Use Cases](#-use-cases)
+- [Contributing](#-contributing)
+- [Roadmap](#-roadmap)
+- [License](#-license)
+- [Support](#-support)
 
 ---
 
@@ -57,54 +83,119 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 
 ---
 
-## 📸 Screenshots
+## 🆕 What's New in v1.2.1
 
-### Login Interface
-<img src="docs/screenshots/login.png" alt="Login Page" width="600">
+Recent improvements and features added to the SD-WAN Traffic Generator:
 
-*Secure authentication with JWT tokens*
+### v1.2.1-patch.9 (Latest)
+- **Documentation**: Added table of contents, organized screenshot gallery (9 categories), What's New section, and reorganized documentation by user journey
 
----
+### v1.2.1-patch.8
+- **Voice Dashboard UI**: Renamed "Diagnostic Monitoring" to "Call Monitoring" for better clarity
+- **Configuration**: Simplified button labels ("Save" instead of "Commit Configuration")
 
-### Dashboard - Real-time Monitoring
-<img src="docs/images/dashboard_main.png" alt="Dashboard" width="800">
+### v1.2.1-patch.7
+- **Build Fix**: Resolved Docker build failure in ConnectivityPerformance component
 
-*Monitor traffic generation status, success rate, and active apps with real-time analytics*
+### v1.2.1-patch.6
+- **Security Dashboard**: Added "Allowed" statistics column to DNS Protection card
+- **Connectivity Performance**: Fixed flaky endpoints filtering to respect "Show Deleted" toggle
 
----
+### v1.2.1-patch.5
+- **Synthetic Probes**: Full JSON configuration export/import in Configuration tab
+- **Voice MOS Score**: Real-time Average MOS Score display in Voice Dashboard
+- **Green Favicon**: New green digital globe favicon for Target App
 
-### Security Testing - Batch Processing
-<img src="docs/images/security_page.png" alt="Security Batch Testing" width="800">
+### v1.2.1-patch.4
+- **Security Configuration**: Fixed EICAR config persistence issue
+- **Help Integration**: Added documentation link to Security tab
 
-*Run 66+ security tests with real-time "Testing..." progress animation*
-
----
-
-### Voice Simulation - QoS Analytics
-<img src="docs/images/voice_analytics.png" alt="Voice QoS Analytics" width="800">
-
-*Measure Network Proof of Performance (RTT, Loss, Jitter) with SLA color coding*
-
----
-
-### Security Testing - Test Results
-<img src="docs/screenshots/security/test-results.png" alt="Test Results History" width="800">
-
-*Search, filter, and export security test results with persistent logging*
+[View full changelog →](CHANGELOG.md)
 
 ---
 
-### Live Logs & Statistics
-<img src="docs/screenshots/logs-stats.png" alt="Logs and Statistics" width="800">
+## 📸 Screenshots Gallery
 
-*View traffic volume charts and live log streaming*
+Explore the application interface organized by feature area. Each category contains detailed screenshots showcasing the functionality.
+
+### 🏠 Main Dashboard
+Real-time monitoring, traffic control, and system health overview.
+
+<img src="docs/screenshots/00 - Main Dashboard/01.png" alt="Main Dashboard" width="800">
+
+**[View all Main Dashboard screenshots →](docs/screenshots/00%20-%20Main%20Dashboard)** (2 images)
 
 ---
 
-### Configuration Management
-<img src="docs/screenshots/configuration.png" alt="Configuration" width="800">
+### ⚙️ Configuration
+Network interfaces, traffic distribution, synthetic probes, and application management.
 
-*Manage network interfaces and adjust traffic distribution weights*
+<img src="docs/screenshots/01 - Configuration/04.png" alt="Configuration Management" width="800">
+
+**[View all Configuration screenshots →](docs/screenshots/01%20-%20Configuration)** (2 images)
+
+---
+
+### 📊 Statistics
+Traffic volume charts, success rates, and performance metrics.
+
+<img src="docs/screenshots/02 - Statistics/03.png" alt="Statistics Dashboard" width="800">
+
+**[View all Statistics screenshots →](docs/screenshots/02%20-%20Statistics)** (1 image)
+
+---
+
+### 🛡️ Security Testing
+URL filtering, DNS security, threat prevention validation, and test results history.
+
+<img src="docs/screenshots/03 - security/06.png" alt="Security Testing" width="800">
+
+**[View all Security screenshots →](docs/screenshots/03%20-%20security)** (7 images)
+
+---
+
+### 🎯 Performance Monitoring
+Connectivity performance, synthetic probes, and endpoint health tracking.
+
+<img src="docs/screenshots/04 - Performance/13.png" alt="Performance Monitoring" width="800">
+
+**[View all Performance screenshots →](docs/screenshots/04%20-%20Performance)** (5 images)
+
+---
+
+### 🔌 IoT Simulation
+Layer-2/3 device simulation with DHCP and ARP support.
+
+<img src="docs/screenshots/05 - IOT/18.png" alt="IoT Simulation" width="800">
+
+**[View all IoT screenshots →](docs/screenshots/05%20-%20IOT)** (4 images)
+
+---
+
+### 🎙️ Voice Simulation
+RTP packet generation, QoS analytics, and MOS scoring.
+
+<img src="docs/screenshots/06 - Voice/22.png" alt="Voice Simulation" width="800">
+
+**[View all Voice screenshots →](docs/screenshots/06%20-%20Voice)** (3 images)
+
+---
+
+### 🔄 Failover Lab
+High-precision UDP failover monitoring and convergence testing.
+
+<img src="docs/screenshots/07 - Failover/24.png" alt="Failover Lab" width="800">
+
+**[View all Failover screenshots →](docs/screenshots/07%20-%20Failover)** (3 images)
+
+---
+
+### 🌐 VyOS Control
+Network impairment orchestration (latency, loss, rate-limiting) on VyOS routers.
+
+<img src="docs/screenshots/08 - Vyos Control/27.png" alt="VyOS Control" width="800">
+
+**[View all VyOS Control screenshots →](docs/screenshots/08%20-%20Vyos%20Control)** (5 images)
 
 ---
 
@@ -617,35 +708,39 @@ Images are automatically built for **AMD64** and **ARM64** architectures.
 
 ## 📚 Documentation
 
-Comprehensive guides for all features:
+Comprehensive guides organized by your journey with the SD-WAN Traffic Generator.
 
-### Getting Started
+### 🚀 Getting Started
 - **[Installation Guide](INSTALLATION.md)** - Complete setup instructions with troubleshooting
 - **[Windows Installation Guide](docs/WINDOWS_INSTALL.md)** - Step-by-step guide for Windows 10/11
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
 
-### Traffic Generation
-- **[Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md)** - Configure applications.txt and weights
+### 🎯 Core Features
+- **[Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md)** - Configure applications.txt and traffic weights
+- **[Security Testing Guide](docs/SECURITY_TESTING.md)** - Comprehensive security testing documentation
+  - [Security Quick Reference](docs/SECURITY_QUICK_REFERENCE.md) - Quick reference for security tests
+  - [Security FAQ](docs/SECURITY_TESTING_FAQ.md) - Frequently asked questions
+- **[Connectivity Endpoints](docs/CONNECTIVITY_ENDPOINTS.md)** - System health monitoring and synthetic probes
+
+### 🔬 Advanced Features
 - **[Voice Simulation Guide](docs/VOICE_SIMULATION.md)** - RTP packet forging and MOS scoring theory
 - **[IoT Simulation Guide](docs/IOT_SIMULATION.md)** - Layer-2/3 device simulation and Scapy networking
 - **[Convergence Lab Guide](docs/CONVERGENCE_LAB.md)** - High-precision failover & RX/TX loss theory
-- **[Smart Networking Guide](docs/SMART_NETWORKING.md)** - Host Mode and auto-detection architecture
 - **[VyOS Control Guide](docs/VYOS_CONTROL.md)** - Orchestrating SD-WAN impairments on VyOS nodes
-- **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
+- **[Smart Networking Guide](docs/SMART_NETWORKING.md)** - Host Mode and auto-detection architecture
+- **[Target Capabilities](docs/TARGET_CAPABILITIES.md)** - Standalone target site deployment
 
-### Security Testing
-- **[Security Testing Guide](docs/SECURITY_TESTING.md)** - Comprehensive security testing documentation
-- **[Security Quick Reference](docs/SECURITY_QUICK_REFERENCE.md)** - Quick reference for security tests
-- **[Security FAQ](docs/SECURITY_TESTING_FAQ.md)** - Frequently asked questions
-
-### Logging & Monitoring
+### 🔧 Operations & Maintenance
 - **[Persistent Logging](docs/PERSISTENT_LOGGING.md)** - Test results storage, search, and export
-- **[Connectivity Endpoints](docs/CONNECTIVITY_ENDPOINTS.md)** - System health monitoring
-- **[Remote Access Guide](docs/REMOTE_ACCESS.md)** - Guidelines for Tailscale, Cloudflare Tunnels, and Reverse Proxies
 - **[Maintenance & Update Guide](docs/MAINTENANCE.md)** - How to update via UI, script, or manually
-
-### Troubleshooting
+- **[Remote Access Guide](docs/REMOTE_ACCESS.md)** - Guidelines for Tailscale, Cloudflare Tunnels, and Reverse Proxies
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+### 📖 Technical Reference
+- **[MCP Server](docs/MCP_SERVER.md)** - Model Context Protocol integration
+- **[Architecture Overview](docs/ARCHITECTURE_OVERVIEW.md)** - System architecture and design
+- **[Technical Diagram](docs/TECHNICAL_DIAGRAM.md)** - Visual architecture diagrams
 
 ---
 
