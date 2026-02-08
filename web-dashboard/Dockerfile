@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y \
     python3-requests \
     python3-urllib3 \
     docker.io \
+    vim-tiny \
     && rm -rf /var/lib/apt/lists/*
 
 COPY web-dashboard/package*.json ./

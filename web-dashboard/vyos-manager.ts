@@ -97,12 +97,18 @@ export class VyosManager extends EventEmitter {
     }> {
         log('VYOS', `Discovering router at ${host}...`);
 
+        // Configurable timeout (default 30s, was hardcoded 15s with wrong error message)
+        const DISCOVERY_TIMEOUT_MS = parseInt(
+            process.env.VYOS_DISCOVERY_TIMEOUT_MS || '30000',
+            10
+        );
+
         return new Promise((resolve, reject) => {
-            // Set 5s timeout as requested
+            // Set configurable timeout
             const timeout = setTimeout(() => {
                 proc.kill();
-                reject(new Error('Discovery timeout (5s)'));
-            }, 5000);
+                reject(new Error(`Discovery timeout (${DISCOVERY_TIMEOUT_MS}ms)`));
+            }, DISCOVERY_TIMEOUT_MS);
 
             // Scrub API key for logging
             const scrubbedArgs = [this.pythonScriptPath, '--host', host, '--key', apiKey.substring(0, 4) + '***', 'get-info'];
