@@ -43,6 +43,17 @@ export class IoTManager extends EventEmitter {
     }
 
     async startDevice(deviceConfig: IoTDeviceConfig): Promise<void> {
+        // Safety check: Don't try to start devices if Python script doesn't exist
+        if (!fs.existsSync(this.pythonScriptPath)) {
+            log('IOT', `Cannot start device ${deviceConfig.id}: Python emulator script not found at ${this.pythonScriptPath}`, 'warn');
+            this.emit('device:error', {
+                device_id: deviceConfig.id,
+                error: 'IoT emulator not available (Python script missing)',
+                severity: 'warning'
+            });
+            return;
+        }
+
         if (this.devices.has(deviceConfig.id)) {
             log('IOT', `Device ${deviceConfig.id} already running, skipping start`, 'debug');
             return;
