@@ -1,7 +1,7 @@
 {
   "name": "web-dashboard",
   "private": true,
-  "version": "1.2.1-patch.10",
+  "version": "1.2.1-patch.11",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"tsx watch server.ts\"",

@@ -348,7 +348,7 @@ export default function Vyos(props: VyosProps) {
             id: `seq-${Date.now()}`,
             name: '',
             enabled: true,
-            cycle_duration: 60,
+            cycle_duration: 0,  // Default to Manual Trigger Only
             actions: []
         });
         setShowSeqModal(true);
