@@ -100,6 +100,13 @@ def get_eicar():
         headers={"Content-Disposition": "attachment; filename=eicar.com.txt"}
     )
 
+@app.route('/favicon.ico')
+def favicon():
+    favicon_path = os.path.join(os.path.dirname(__file__), 'favicon.png')
+    if os.path.exists(favicon_path):
+        return send_file(favicon_path, mimetype='image/png')
+    return "", 404
+
 @app.route('/')
 def index():
     # Simple HTML UI

@@ -265,6 +265,7 @@ export default function Voice(props: VoiceProps) {
         const totalLoss = finishedCalls.reduce((acc, c) => acc + (c.loss_pct || 0), 0);
         const rtts = finishedCalls.map(c => c.avg_rtt_ms || 0).filter(v => v > 0);
         const jitters = finishedCalls.map(c => c.jitter_ms || 0).filter(v => v > 0);
+        const mosScores = finishedCalls.map(c => c.mos_score || 0).filter(v => v > 0);
 
         return {
             totalCalls: finishedCalls.length,
@@ -272,7 +273,8 @@ export default function Voice(props: VoiceProps) {
             avgRtt: rtts.length > 0 ? (rtts.reduce((a, b) => a + b, 0) / rtts.length).toFixed(1) : '0',
             minRtt: rtts.length > 0 ? Math.min(...rtts).toFixed(1) : '0',
             maxRtt: rtts.length > 0 ? Math.max(...rtts).toFixed(1) : '0',
-            avgJitter: jitters.length > 0 ? (jitters.reduce((a, b) => a + b, 0) / jitters.length).toFixed(1) : '0'
+            avgJitter: jitters.length > 0 ? (jitters.reduce((a, b) => a + b, 0) / jitters.length).toFixed(1) : '0',
+            avgMos: mosScores.length > 0 ? (mosScores.reduce((a, b) => a + b, 0) / mosScores.length).toFixed(2) : 'N/A'
         };
     }, [calls]);
 
@@ -367,11 +369,12 @@ export default function Voice(props: VoiceProps) {
 
                 {/* QoS Summary Widget */}
                 {qosSummary && (
-                    <div className="mt-10 grid grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="mt-10 grid grid-cols-2 lg:grid-cols-6 gap-4">
                         {[
                             { label: 'Total Calls', value: qosSummary.totalCalls, icon: Activity, color: 'text-text-primary' },
                             { label: 'Avg Loss', value: `${qosSummary.avgLoss}%`, icon: Wifi, color: parseFloat(qosSummary.avgLoss) < 1 ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400" },
                             { label: 'Avg Latency', value: `${qosSummary.avgRtt}ms`, icon: Clock, color: "text-blue-600 dark:text-blue-400" },
+                            { label: 'Avg MOS Score', value: qosSummary.avgMos, icon: Activity, color: parseFloat(qosSummary.avgMos) >= 4.0 ? "text-green-600 dark:text-green-400" : parseFloat(qosSummary.avgMos) >= 3.0 ? "text-orange-600 dark:text-orange-400" : "text-red-600 dark:text-red-400" },
                             { label: 'RTT Variance', value: `${qosSummary.minRtt} / ${qosSummary.maxRtt}ms`, icon: BarChart2, color: "text-text-muted" },
                             { label: 'Avg Jitter', value: `${qosSummary.avgJitter}ms`, icon: Activity, color: "text-purple-600 dark:text-purple-400" }
                         ].map((stat, i) => (

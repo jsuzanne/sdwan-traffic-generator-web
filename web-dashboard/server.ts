@@ -1733,6 +1733,54 @@ app.post('/api/connectivity/custom', authenticateToken, (req, res) => {
     }
 });
 
+// API: Export Custom Connectivity Probes
+app.get('/api/connectivity/custom/export', authenticateToken, (req, res) => {
+    try {
+        if (!fs.existsSync(CUSTOM_CONNECTIVITY_FILE)) {
+            return res.status(404).json({ error: 'Config file not found' });
+        }
+        res.download(CUSTOM_CONNECTIVITY_FILE, 'connectivity-custom.json');
+    } catch (e: any) {
+        res.status(500).json({ error: 'Export failed: ' + e.message });
+    }
+});
+
+// API: Import Custom Connectivity Probes
+app.post('/api/connectivity/custom/import', authenticateToken, (req, res) => {
+    try {
+        const { content } = req.body;
+        if (!content) return res.status(400).json({ error: 'No content provided' });
+
+        let probes;
+        try {
+            probes = typeof content === 'string' ? JSON.parse(content) : content;
+        } catch (e) {
+            return res.status(400).json({ error: 'Invalid JSON content' });
+        }
+
+        if (!Array.isArray(probes)) {
+            return res.status(400).json({ error: 'Invalid format: expected array' });
+        }
+
+        // Validate structure
+        for (const p of probes) {
+            if (!p.name || !p.type || !p.target) {
+                return res.status(400).json({ error: 'Invalid probe format: missing required fields' });
+            }
+        }
+
+        // Backup
+        if (fs.existsSync(CUSTOM_CONNECTIVITY_FILE)) {
+            fs.copyFileSync(CUSTOM_CONNECTIVITY_FILE, CUSTOM_CONNECTIVITY_FILE + '.backup');
+        }
+
+        fs.writeFileSync(CUSTOM_CONNECTIVITY_FILE, JSON.stringify(probes, null, 2));
+        res.json({ success: true, message: 'Probes imported successfully', count: probes.length });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Import failed: ' + e.message });
+    }
+});
+
 // New DEM APIs
 app.get('/api/connectivity/results', authenticateToken, async (req, res) => {
     const { limit, offset, type, endpointId, timeRange } = req.query;

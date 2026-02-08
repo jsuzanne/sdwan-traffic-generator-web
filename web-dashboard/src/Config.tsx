@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Save, Plus, Trash2, Network, Sliders, ChevronDown, ChevronRight, Server, CheckCircle2 } from 'lucide-react';
+import { Save, Plus, Trash2, Network, Sliders, ChevronDown, ChevronRight, Server, CheckCircle2, Download, Upload } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -375,6 +375,82 @@ export default function Config({ token }: ConfigProps) {
                             <h2 className="text-lg font-black text-text-primary uppercase tracking-tight">Synthetic Probes (DEM)</h2>
                             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1 opacity-70">Custom telemetry for real-time monitoring</p>
                         </div>
+                    </div>
+
+                    {/* Import/Export Buttons */}
+                    <div className="flex gap-3">
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch('/api/connectivity/custom/export', {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    if (!res.ok) throw new Error('Export failed');
+                                    const blob = await res.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'connectivity-custom.json';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                } catch (e) {
+                                    console.error('Export failed', e);
+                                    showSuccess('Export failed');
+                                }
+                            }}
+                            className="bg-card hover:bg-card-secondary border border-border text-text-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center gap-2 shadow-sm"
+                        >
+                            <Download size={14} />
+                            Export
+                        </button>
+
+                        <label className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center gap-2 shadow-lg shadow-blue-900/20 cursor-pointer">
+                            <Upload size={14} />
+                            Import
+                            <input
+                                type="file"
+                                accept=".json"
+                                className="hidden"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+
+                                    const reader = new FileReader();
+                                    reader.onload = async (event) => {
+                                        try {
+                                            const content = event.target?.result;
+                                            const res = await fetch('/api/connectivity/custom/import', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'Authorization': `Bearer ${token}`
+                                                },
+                                                body: JSON.stringify({ content })
+                                            });
+                                            if (res.ok) {
+                                                const data = await res.json();
+                                                showSuccess(`Imported ${data.count} probes`);
+                                                // Refresh probes
+                                                const probesRes = await fetch('/api/connectivity/custom', { headers: { 'Authorization': `Bearer ${token}` } });
+                                                const probes = await probesRes.json();
+                                                setCustomProbes(probes);
+                                            } else {
+                                                console.error('Import failed');
+                                                showSuccess('Import failed');
+                                            }
+                                        } catch (err) {
+                                            console.error('Import error', err);
+                                            showSuccess('Import error');
+                                        }
+                                        // Reset input
+                                        e.target.value = '';
+                                    };
+                                    reader.readAsText(file);
+                                }}
+                            />
+                        </label>
                     </div>
                 </div>
 
