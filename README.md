@@ -39,7 +39,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 ## ✨ Features
 
 ### 🚀 Traffic Generation
-- **67 Pre-configured Applications** - Popular SaaS apps (Google, Microsoft 365, Salesforce, Zoom, etc.). Easy to customize according to any customer application profile.
+- **67 Pre-configured Applications** - Popular SaaS apps (Google, Microsoft 365, Salesforce, Zoom, etc.).
 - **Realistic Traffic Patterns** - Authentic HTTP requests with proper headers, User-Agents, and Referers
 - **Real-time Dashboard** - Live traffic visualization, metrics, and status monitoring
 - **Weighted Distribution** - Configure application traffic ratios using a visual Group/App percentage system
@@ -47,7 +47,7 @@ A modern web-based SD-WAN traffic generator with real-time monitoring, customiza
 - **Protocol & IP Flexibility** - Support for explicit `http://` or `https://` and full IP address identification
 - **Multi-interface Support** - Bind to specific network interfaces
 - **Voice Simulation (RTP)** - Simulate real-time voice calls (G.711, G.729) with Scapy-based packet forging. [Read more](docs/VOICE_SIMULATION.md)
-- **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. Easy to customize according to any customer application profile [Read more](docs/IOT_SIMULATION.md)
+- **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence.  [Read more](docs/IOT_SIMULATION.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
 - **VyOS Control ** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
