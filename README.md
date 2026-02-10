@@ -814,6 +814,22 @@ npm run build
 
 ---
 
+## Disclaimer
+
+This is a personal, community-driven project maintained in my own name.
+It is **not** an official Palo Alto Networks product, feature, or tool, and it is
+not supported by Palo Alto Networks in any way.
+
+All opinions, configurations, and examples in this repository are my own and do
+not represent the views of my employer. Use this software at your own risk and
+always validate behavior in a lab environment before using it in production.
+
+This project is provided "as is", without any warranty of any kind, express or
+implied, including but not limited to fitness for a particular purpose or
+non-infringement.
+
+---
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
