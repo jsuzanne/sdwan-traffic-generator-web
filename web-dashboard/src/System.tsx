@@ -146,12 +146,12 @@ export default function System({ token }: { token: string }) {
                     <div className="space-y-4">
                         <div className="flex justify-between items-center p-3 bg-card-secondary/50 rounded-lg border border-border">
                             <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Current Version</span>
-                            <span className="text-sm font-mono text-blue-600 dark:text-blue-400 font-bold">v{status?.current}</span>
+                            <span className="text-sm font-mono text-blue-600 dark:text-blue-400 font-bold">{status?.current}</span>
                         </div>
 
                         <div className="flex justify-between items-center p-3 bg-card-secondary/50 rounded-lg border border-border">
                             <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Latest Available</span>
-                            <span className="text-sm font-mono text-green-600 dark:text-green-400 font-bold">v{status?.latest}</span>
+                            <span className="text-sm font-mono text-green-600 dark:text-green-400 font-bold">{status?.latest}</span>
                         </div>
 
                         {status?.updateAvailable && !success && (
