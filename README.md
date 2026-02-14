@@ -95,7 +95,9 @@ This project is my way to turn all that lab and demo experience into an open-sou
 
 Recent improvements and features added to the SD-WAN Traffic Generator:
 
-### v1.2.1-patch.17 (Latest)
+### v1.2.1-patch.18 (Latest)
+
+### v1.2.1-patch.17
 - **Networking**: Added Public IP detection and display in the main dashboard
 - **Maintenance**: Added "Power & Restart" controls (Restart Services / Full System Reload)
 - **UX**: Removed "Export" button from Connectivity Performance

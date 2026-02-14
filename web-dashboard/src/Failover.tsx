@@ -460,8 +460,8 @@ export default function Failover(props: FailoverProps) {
                                                         <span>{test.label || test.test_id?.split(' (')[0]}</span>
                                                         <ChevronRight size={14} className={`text-text-muted/50 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                                                     </div>
-                                                    <div className="text-[10px] text-text-muted mt-1">
-                                                        {new Date(test.timestamp).toLocaleDateString('en-CA')} {new Date(test.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} | Duration: {test.duration_s ? `${test.duration_s}s` : '--'} | {test.target || '--'} | Source Port: {getSourcePort(test.test_id)} | {test.rate_pps || test.rate || '--'} pps
+                                                    <div className="text-[10px] text-text-muted mt-1 font-mono">
+                                                        <span className="font-bold text-text-secondary">Duration: {test.duration_s || '--'}s</span> | {test.target}:{test.port || '--'} | <span className="text-text-secondary">Source: {test.source_port || getSourcePort(test.test_id)}</span> | {test.rate_pps || test.rate || '--'} pps
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
@@ -481,18 +481,23 @@ export default function Failover(props: FailoverProps) {
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex flex-col items-center">
-                                                        <div className="flex gap-2 text-[10px] font-mono font-bold">
-                                                            <span className="text-green-600 dark:text-green-500">S: {test.sent}</span>
-                                                            <span className="text-blue-600 dark:text-blue-500 text-opacity-80">R: {test.received}</span>
+                                                        <div className="flex gap-2 text-[10px] font-mono font-bold uppercase tracking-tight mb-0.5 opacity-90">
+                                                            <span className={test.tx_loss_pct > 0 ? 'text-red-500' : 'text-text-muted/60'}>
+                                                                TX: {test.tx_loss_pct ?? 0}%
+                                                            </span>
+                                                            <span className="text-border">|</span>
+                                                            <span className={test.rx_loss_pct > 0 ? 'text-blue-500' : 'text-text-muted/60'}>
+                                                                RX: {test.rx_loss_pct ?? 0}%
+                                                            </span>
                                                         </div>
-                                                        <div className="flex gap-2 text-[9px] mt-1 font-mono uppercase font-bold">
-                                                            <span className={test.loss_pct > 0 ? 'text-red-500' : 'text-text-muted/60'}>Loss: {test.loss_pct}%</span>
+                                                        <div className="text-[9px] text-text-muted font-mono tracking-tighter whitespace-nowrap bg-card-secondary/50 px-2 py-0.5 rounded border border-border/30">
+                                                            S: {test.sent} • Echo: {test.server_received ?? '-'} • R: {test.received}
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="text-[10px] font-mono text-text-secondary">{test.rate_pps || test.rate || '--'} pps</div>
-                                                    <div className="text-[9px] font-mono text-text-muted uppercase">Port: {test.source_port}</div>
+                                                    <div className="text-[9px] font-mono text-text-muted uppercase">Port: {test.source_port || getSourcePort(test.test_id)}</div>
                                                 </td>
                                             </tr>
                                             {isExpanded && (
