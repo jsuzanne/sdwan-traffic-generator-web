@@ -305,9 +305,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                             <option value="7d">7 Days</option>
                         </select>
                     </div>
-                    <button className="flex items-center gap-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase tracking-widest">
-                        <Download size={14} /> EXPORT
-                    </button>
+
                     {onManage && (
                         <button
                             onClick={onManage}
