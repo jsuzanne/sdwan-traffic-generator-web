@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.25] - 2026-02-14
+### Added
+- **Convergence Lab**: Sync loss detection for long outages (>60s). 🕵️
+- **UI**: Conditional display hiding directional ms metrics if server sync is lost, ensuring data reliability. 🛡️
+
 ## [v1.2.1-patch.24] - 2026-02-14
 ### Fixed
 - **Echo Server**: Increased maintenance timeout to 60s to survive long failover outages. ⏱️

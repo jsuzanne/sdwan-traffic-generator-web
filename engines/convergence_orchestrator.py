@@ -108,10 +108,12 @@ class ConvergenceMetrics:
             if not hasattr(self, 'server_received_offset'):
                 self.server_received_offset = 0
                 self.last_seen_server_count = 0
+                self.sync_lost = False
 
             # Detect server reset (count went backwards significantly)
             if server_count < self.last_seen_server_count - 100:
                 self.server_received_offset += self.last_seen_server_count
+                self.sync_lost = True
                 
             self.last_seen_server_count = server_count
             effective_server_count = self.server_received_offset + server_count
@@ -237,6 +239,7 @@ class ConvergenceMetrics:
             "rx_lost_packets": rx_lost_packets,
             "tx_loss_ms": tx_loss_ms,
             "rx_loss_ms": rx_loss_ms,
+            "sync_lost": getattr(self, "sync_lost", False),
             "max_blackout_ms": max_blackout,
             "current_blackout_ms": round(outage) if is_blackout else 0,
             "avg_rtt_ms": avg_rtt,

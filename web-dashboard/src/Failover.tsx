@@ -482,11 +482,11 @@ export default function Failover(props: FailoverProps) {
                                                     <div className="flex flex-col items-center">
                                                         <div className="flex gap-2 text-[10px] font-mono font-bold tracking-tight mb-0.5 opacity-90">
                                                             <span className={test.tx_loss_pct > 0 ? 'text-red-500' : 'text-text-muted/60'}>
-                                                                TX Loss: {test.tx_loss_pct ?? 0}% {test.tx_loss_ms > 0 ? `(${test.tx_loss_ms} ms)` : ''}
+                                                                TX Loss: {test.tx_loss_pct ?? 0}% {test.tx_loss_ms > 0 && !test.sync_lost ? `(${test.tx_loss_ms} ms)` : ''}
                                                             </span>
                                                             <span className="text-border">|</span>
                                                             <span className={test.rx_loss_pct > 0 ? 'text-blue-500' : 'text-text-muted/60'}>
-                                                                RX Loss: {test.rx_loss_pct ?? 0}% {test.rx_loss_ms > 0 ? `(${test.rx_loss_ms} ms)` : ''}
+                                                                RX Loss: {test.rx_loss_pct ?? 0}% {test.rx_loss_ms > 0 && !test.sync_lost ? `(${test.rx_loss_ms} ms)` : ''}
                                                             </span>
                                                         </div>
                                                         <div className="text-[9px] text-text-muted font-mono tracking-tighter whitespace-nowrap bg-card-secondary/50 px-2 py-0.5 rounded border border-border/30">
