@@ -71,8 +71,8 @@ export default function Login({ onLogin }: LoginProps) {
                             type="text"
                             value={username}
                             onChange={e => setUsername(e.target.value)}
-                            className="w-full bg-card-secondary/30 border border-border text-text-primary rounded-2xl px-5 py-3.5 text-[11px] font-black uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-inner placeholder:opacity-30"
-                            placeholder="USERNAME..."
+                            className="w-full bg-card-secondary/30 border border-border text-text-primary rounded-2xl px-5 py-3.5 text-[11px] font-black tracking-widest focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-inner placeholder:opacity-30"
+                            placeholder="username..."
                             required
                         />
                     </div>
@@ -82,7 +82,7 @@ export default function Login({ onLogin }: LoginProps) {
                             type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            className="w-full bg-card-secondary/30 border border-border text-text-primary rounded-2xl px-5 py-3.5 text-[11px] font-black uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-inner placeholder:opacity-30"
+                            className="w-full bg-card-secondary/30 border border-border text-text-primary rounded-2xl px-5 py-3.5 text-[11px] font-black tracking-widest focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-inner placeholder:opacity-30"
                             placeholder="••••••••"
                             required
                         />

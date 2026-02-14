@@ -296,8 +296,8 @@ export default function Config({ token }: ConfigProps) {
                     <div className="flex gap-4 items-center">
                         <input
                             type="text"
-                            placeholder="INJECT INTERFACE NAME (e.g. eth0)..."
-                            className="flex-1 bg-card-secondary/50 border border-border text-[11px] font-black uppercase tracking-widest text-text-primary rounded-xl px-5 py-3 outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-inner"
+                            placeholder="inject interface name (e.g. eth0)..."
+                            className="flex-1 bg-card-secondary/50 border border-border text-[11px] font-black tracking-widest text-text-primary rounded-xl px-5 py-3 outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-inner"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     const input = e.currentTarget;
@@ -462,7 +462,7 @@ export default function Config({ token }: ConfigProps) {
                             <input
                                 type="text"
                                 placeholder="HQ-GATEWAY"
-                                className="w-full bg-card border border-border text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 text-[11px] font-black uppercase tracking-widest shadow-sm"
+                                className="w-full bg-card border border-border text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 text-[11px] font-black tracking-widest shadow-sm"
                                 value={newProbe.name}
                                 onChange={e => setNewProbe({ ...newProbe, name: e.target.value })}
                             />
@@ -487,7 +487,7 @@ export default function Config({ token }: ConfigProps) {
                             <input
                                 type="text"
                                 placeholder={newProbe.type === 'TCP' || newProbe.type === 'UDP' ? '10.0.0.1:5201' : (newProbe.type === 'PING' ? '8.8.8.8' : 'google.com')}
-                                className="w-full bg-card border border-border text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 text-[11px] font-black uppercase tracking-widest shadow-sm"
+                                className="w-full bg-card border border-border text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 text-[11px] font-black tracking-widest shadow-sm"
                                 value={newProbe.target}
                                 onChange={e => setNewProbe({ ...newProbe, target: e.target.value })}
                             />
