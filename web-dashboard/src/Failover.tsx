@@ -182,7 +182,9 @@ export default function Failover(props: FailoverProps) {
         try {
             const match = testId?.match(/CONV-(\d+)/);
             if (match && match[1]) {
-                return (30000 + parseInt(match[1])).toString();
+                const num = parseInt(match[1], 10);
+                // Cyclic mapping 0..9999 -> 30000..39999
+                return (30000 + (num % 10000)).toString();
             }
         } catch (e) {
             return '????';
@@ -338,7 +340,7 @@ export default function Failover(props: FailoverProps) {
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-3">
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white uppercase tracking-tighter shadow-lg shadow-blue-500/20">
+                                        <span title={`Source Port: ${getSourcePort(test.test_id || '')}`} className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white uppercase tracking-tighter shadow-lg shadow-blue-500/20 cursor-help">
                                             {test.test_id?.match(/\((CONV-\d+)\)/)?.[1] || test.testId}
                                         </span>
                                         <span className="text-sm font-bold text-text-primary uppercase tracking-tight">
@@ -431,7 +433,7 @@ export default function Failover(props: FailoverProps) {
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="font-medium text-text-primary flex items-center gap-2">
-                                                        <span className="bg-blue-600/10 text-blue-500 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20">
+                                                        <span title={`Source Port: ${getSourcePort(test.test_id || '')}`} className="bg-blue-600/10 text-blue-500 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-500/20 cursor-help">
                                                             {test.test_id?.match(/CONV-\d+/)?.[0] || 'CONV-??'}
                                                         </span>
                                                         <span>{test.label || test.test_id?.split(' (')[0]}</span>

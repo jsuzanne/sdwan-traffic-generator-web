@@ -300,11 +300,19 @@ if __name__ == "__main__":
     start_time = time.time()
 
     test_num = 0
-    if args.id.startswith("CONV-") and args.id[5:].split()[0].isdigit():
-        test_num = int(args.id[5:].split()[0])
-    source_port = 30000 + test_num
-    if source_port > 65535:
-        source_port = 65535
+    # Clean ID extraction (remove any extra text like spaces/labels if present)
+    id_part = args.id
+    if " (" in id_part:
+        id_part = id_part.split(" (")[0]
+        
+    if id_part.startswith("CONV-") and id_part[5:].isdigit():
+        try:
+            test_num = int(id_part[5:])
+        except:
+            test_num = 0
+            
+    # Cyclic mapping: CONV-0000..9999 -> Port 30000..39999
+    source_port = 30000 + (test_num % 10000)
 
     if " (" in args.id:
         real_id = args.id.split(" (")[0]

@@ -218,9 +218,9 @@ const getNextFailoverTestId = (): string => {
             fs.writeFileSync(CONVERGENCE_COUNTER_FILE, JSON.stringify({ counter: 0 }));
         }
         const data = JSON.parse(fs.readFileSync(CONVERGENCE_COUNTER_FILE, 'utf8'));
-        const nextId = (data.counter || 0) + 1;
+        const nextId = ((data.counter || 0) + 1) % 10000;
         fs.writeFileSync(CONVERGENCE_COUNTER_FILE, JSON.stringify({ counter: nextId }));
-        return `CONV-${nextId.toString().padStart(3, '0')}`;
+        return `CONV-${nextId.toString().padStart(4, '0')}`;
     } catch (e) {
         return `CONV-${Date.now()}`;
     }
