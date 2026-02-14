@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi, Search, CheckSquare, AlertCircle } from 'lucide-react';
+import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi, Search, CheckSquare, AlertCircle, Hash } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -162,6 +162,16 @@ export default function Voice(props: VoiceProps) {
             setIsStartingV(false);
             setIsStoppingV(false);
         }
+    };
+
+    const resetIds = async () => {
+        if (!confirm('This will reset the CALL-XXXX counter to CALL-0000 for the next call. Continue?')) return;
+        try {
+            await fetch('/api/voice/counter', {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        } catch (e) { }
     };
 
     const resetLogs = async () => {
@@ -507,13 +517,22 @@ export default function Voice(props: VoiceProps) {
                                 </select>
                             </div>
 
-                            <button
-                                onClick={resetLogs}
-                                className="flex items-center gap-2 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-red-600 dark:text-red-400 hover:bg-red-600/10 border border-red-500/20 rounded-xl transition-all shadow-sm"
-                            >
-                                <Trash2 size={12} />
-                                Purge
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={resetIds}
+                                    className="flex items-center gap-2 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-orange-600 dark:text-orange-400 hover:bg-orange-600/10 border border-orange-500/20 rounded-xl transition-all shadow-sm"
+                                >
+                                    <Hash size={12} />
+                                    Reset ID
+                                </button>
+                                <button
+                                    onClick={resetLogs}
+                                    className="flex items-center gap-2 px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-red-600 dark:text-red-400 hover:bg-red-600/10 border border-red-500/20 rounded-xl transition-all shadow-sm"
+                                >
+                                    <Trash2 size={12} />
+                                    Purge
+                                </button>
+                            </div>
                         </div>
                         <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border">
                             <table className="w-full text-sm relative">

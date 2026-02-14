@@ -59,6 +59,7 @@ if (DEBUG) console.log(`Connectivity Logger initialized (DEM)`);
 // Test Counter - Persistent sequential ID for all tests
 const TEST_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'test-counter.json');
 const VOICE_CONTROL_FILE = path.join(APP_CONFIG.configDir, 'voice-control.json');
+const VOICE_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'voice-counter.json');
 const VOICE_SERVERS_FILE = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
 const VOICE_STATS_FILE = path.join(APP_CONFIG.logDir, 'voice-stats.jsonl');
 const CONVERGENCE_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'convergence-history.jsonl');
@@ -1344,6 +1345,17 @@ app.delete('/api/voice/stats', authenticateToken, (req, res) => {
     }
 });
 
+// API: Reset Voice Counter
+app.delete('/api/voice/counter', authenticateToken, (req, res) => {
+    try {
+        // Write 9999 so the next call is CALL-0000
+        fs.writeFileSync(VOICE_COUNTER_FILE, JSON.stringify({ counter: 9999 }));
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // API: Get Stats
 app.get('/api/stats', (req, res) => {
     const content = readFile(STATS_FILE);
@@ -1875,6 +1887,18 @@ app.delete('/api/convergence/endpoints/:id', authenticateToken, (req, res) => {
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: 'Failed to delete endpoint' });
+    }
+});
+
+app.delete('/api/convergence/counter', authenticateToken, (req, res) => {
+    try {
+        if (fs.existsSync(CONVERGENCE_COUNTER_FILE)) {
+            // Write 9999 so the next call becomes CONV-0000
+            fs.writeFileSync(CONVERGENCE_COUNTER_FILE, JSON.stringify({ counter: 9999 }));
+        }
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
