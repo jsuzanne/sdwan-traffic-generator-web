@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1-patch.17] - 2026-02-14
+### Added
+- **Networking**: Added Public IP detection and display in the main dashboard 🌍
+- **Maintenance**: Added "Power & Restart" controls (Restart Services / Full System Reload) 🔌
+### Fixed
+- **UI**: Fixed version display format (removed duplicate 'v') 🔢
+### Changed
+- **UX**: Removed "Export" button from Connectivity Performance component 🗑️
+
+## [1.2.1-patch.16] - 2026-02-14
+### Added
+- **Voice**: Added "Reset ID" button to reset CALL-ID counter to 0000 🔄
+- **Failover**: Added "RESET ID" button to reset CONV-ID counter to 0000 🔄
 ## [1.2.1-patch.15] - 2026-02-08
 ### Fixed
 - **System Maintenance**: Fixed version detection to use GitHub Releases API instead of Tags API for correct chronological ordering (was showing v1.2.1 instead of latest patch version) 🔧
