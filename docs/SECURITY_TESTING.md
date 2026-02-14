@@ -4,7 +4,7 @@
 
 The Security Testing feature enables controlled testing of Palo Alto Networks / Prisma Access security policies for demos and POCs. It provides automated testing of URL Filtering, DNS Security, and Threat Prevention capabilities.
 
-**Version:** 1.2.1-patch.15  
+**Version:** 1.2.1-patch.16  
 **Last Updated:** 2026-02-08
 
 ---
@@ -778,5 +778,5 @@ For issues or questions:
 ---
 
 **Document Version:** 1.8  
-**Feature Version:** 1.1.2-patch.33.79  
+**Feature Version:** 1.2.1-patch.16  
 **Last Updated:** 2026-02-02
