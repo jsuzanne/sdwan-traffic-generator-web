@@ -439,7 +439,6 @@ export default function Failover(props: FailoverProps) {
                                     <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Verdict</th>
                                     <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Outcome / Duration</th>
                                     <th className="px-6 py-3 font-bold uppercase tracking-tight text-center">Packet Details</th>
-                                    <th className="px-6 py-3 font-bold uppercase tracking-tight text-right">Config</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -461,7 +460,7 @@ export default function Failover(props: FailoverProps) {
                                                         <ChevronRight size={14} className={`text-text-muted/50 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                                                     </div>
                                                     <div className="text-[10px] text-text-muted mt-1 font-mono">
-                                                        <span className="font-bold text-text-secondary">Duration: {test.duration_s || '--'}s</span> | {test.target}:{test.port || '--'} | <span className="text-text-secondary">Source: {test.source_port || getSourcePort(test.test_id)}</span> | {test.rate_pps || test.rate || '--'} pps
+                                                        <span className="font-bold text-text-secondary">Duration: {test.duration_s || '--'}s</span> | {test.target}:{test.port || '--'} | <span className="text-text-secondary">Source Port: {test.source_port || getSourcePort(test.test_id)}</span> | {test.rate_pps || test.rate || '--'} pps
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
@@ -483,21 +482,17 @@ export default function Failover(props: FailoverProps) {
                                                     <div className="flex flex-col items-center">
                                                         <div className="flex gap-2 text-[10px] font-mono font-bold uppercase tracking-tight mb-0.5 opacity-90">
                                                             <span className={test.tx_loss_pct > 0 ? 'text-red-500' : 'text-text-muted/60'}>
-                                                                TX Loss: {test.tx_loss_pct ?? 0}%
+                                                                TX Loss: {test.tx_loss_pct ?? 0}% {test.tx_loss_ms > 0 ? `(${test.tx_loss_ms}ms)` : ''}
                                                             </span>
                                                             <span className="text-border">|</span>
                                                             <span className={test.rx_loss_pct > 0 ? 'text-blue-500' : 'text-text-muted/60'}>
-                                                                RX Loss: {test.rx_loss_pct ?? 0}%
+                                                                RX Loss: {test.rx_loss_pct ?? 0}% {test.rx_loss_ms > 0 ? `(${test.rx_loss_ms}ms)` : ''}
                                                             </span>
                                                         </div>
                                                         <div className="text-[9px] text-text-muted font-mono tracking-tighter whitespace-nowrap bg-card-secondary/50 px-2 py-0.5 rounded border border-border/30">
                                                             S: {test.sent} • Echo: {test.server_received ?? '-'} • R: {test.received}
                                                         </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="text-[10px] font-mono text-text-secondary">{test.rate_pps || test.rate || '--'} pps</div>
-                                                    <div className="text-[9px] font-mono text-text-muted uppercase">Port: {test.source_port || getSourcePort(test.test_id)}</div>
                                                 </td>
                                             </tr>
                                             {isExpanded && (

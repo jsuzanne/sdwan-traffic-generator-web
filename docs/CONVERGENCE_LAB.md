@@ -27,7 +27,40 @@ The core logic resides in the `convergence_orchestrator.py`. It detects "Blackou
 Unlike standard "Round Trip" loss, the Convergence Lab breaks down loss by direction:
 - **TX Loss (Uplink)**: Calculated by comparing the number of packets sent by the generator vs. the number received by the echo server (reported in the echoed payload).
 - **RX Loss (Downlink)**: Calculated by comparing the number of packets echoed by the server vs. the number actually received back by the generator.
-- **Loss Time (ms)**: The history table displays the estimated total "outage time" for each direction (e.g., `↑ 2% (240ms)`). This is calculated by multiplying the lost packet count by the sampling interval.
+
+### 4. Packet Details Display
+The history view shows comprehensive packet statistics for each test:
+- **S (Sent)**: Total packets transmitted by the client.
+- **Echo**: Server-side receive counter (requires `echo_server.py` or `target_host.py` on destination).
+  - If using a standard UDP echo (like `socat`), this will show `-` as the server doesn't report its counter.
+- **R (Received)**: Total echo packets received back by the client.
+- **TX Loss**: Percentage and color-coded indicator (Red) for uplink packet loss.
+- **RX Loss**: Percentage and color-coded indicator (Blue) for downlink packet loss.
+
+---
+
+## 📊 Visual Indicators
+
+### Real-Time Sequence Monitoring
+During active tests, a live timeline displays the last 100 packets:
+- **Blue Bars (Full Height)**: Packet successfully sent and echo received.
+- **Red Bars (Short & Pulsing)**: Packet sent but echo not yet received (potential drop or high latency). 
+  - If the echo arrives late (within the 100-packet window), the bar will turn from red to blue.
+  - Persistent red bars indicate confirmed packet loss or a blackout period.
+
+### Historical Failover Timeline
+Expanded test results show a compact 100-packet history:
+- **Blue**: Successful round-trip.
+- **Red**: Confirmed drop or timeout.
+
+### Directional Loss Analysis
+The history view provides detailed directional metrics:
+- **TX Loss**: Uplink loss (Client → Server). Shown in Red. Displays percentage and calculated duration (ms).
+- **RX Loss**: Downlink loss (Server → Client). Shown in Blue. Displays percentage and calculated duration (ms).
+- **Packet Counters**: 
+  - **S**: Total Sent.
+  - **Echo**: Received by Server (if supported).
+  - **R**: Received by Client.
 
 ---
 
@@ -43,6 +76,8 @@ The "Verdict" of a test is determined by the **Maximum Blackout Duration** recor
 
 > [!NOTE]
 > Even if total packet loss is low, a single high "Max Blackout" indicates a specific event (like a hard circuit failover) that impacted the real-time flow.
+>
+> **Understanding Red Bars**: If you see red bars during a test but the final result shows 0% loss, those packets were delayed (jitter) but eventually arrived. This is normal for network paths with variable latency.
 
 ---
 

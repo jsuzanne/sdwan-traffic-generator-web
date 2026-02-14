@@ -191,15 +191,18 @@ class ConvergenceMetrics:
         duration = round(now - start_time_copy, 1)
 
         if server_received_copy > 0 and seq > 0:
-            tx_loss_pct = round(
-                (1.0 - (server_received_copy / float(seq))) * 100.0, 1
-            )
-            rx_loss_pct = round(
-                (1.0 - (rcvd / float(server_received_copy))) * 100.0, 1
-            )
+            tx_lost_packets = max(0, seq - server_received_copy)
+            rx_lost_packets = max(0, server_received_copy - rcvd)
+            tx_loss_pct = round((tx_lost_packets / float(seq)) * 100.0, 1)
+            rx_loss_pct = round((rx_lost_packets / float(server_received_copy)) * 100.0, 1)
         else:
+            tx_lost_packets = seq - rcvd
+            rx_lost_packets = 0
             tx_loss_pct = total_loss_pct
             rx_loss_pct = 0.0
+
+        tx_loss_ms = round((tx_lost_packets / rate_copy) * 1000) if rate_copy > 0 else 0
+        rx_loss_ms = round((rx_lost_packets / rate_copy) * 1000) if rate_copy > 0 else 0
 
         avg_rtt = round(sum(rtts_copy) / len(rtts_copy), 2) if rtts_copy else 0.0
         jitter_ms = round(jitter_copy * 1000.0, 2)
@@ -213,6 +216,10 @@ class ConvergenceMetrics:
             "loss_pct": max(0.0, total_loss_pct),
             "tx_loss_pct": max(0.0, tx_loss_pct),
             "rx_loss_pct": max(0.0, rx_loss_pct),
+            "tx_lost_packets": tx_lost_packets,
+            "rx_lost_packets": rx_lost_packets,
+            "tx_loss_ms": tx_loss_ms,
+            "rx_loss_ms": rx_loss_ms,
             "max_blackout_ms": max_blackout,
             "current_blackout_ms": round(outage) if is_blackout else 0,
             "avg_rtt_ms": avg_rtt,
@@ -499,6 +506,8 @@ if __name__ == "__main__":
         print(f"[{log_id}] ⏹️ [{timestamp}] {label} - CONVERGENCE STOPPED:", flush=True)
         print(f"[{log_id}] - Duration: {duration}s | PPS: {args.rate}", flush=True)
         print(f"[{log_id}] - Sent: {tx_sent} | Received: {rcvd} | Loss: {final_stats['loss_pct']}%", flush=True)
+        print(f"[{log_id}] - TX Lost: {final_stats['tx_lost_packets']} packets (~{final_stats['tx_loss_ms']}ms)", flush=True)
+        print(f"[{log_id}] - RX Lost: {final_stats['rx_lost_packets']} packets (~{final_stats['rx_loss_ms']}ms)", flush=True)
         print(f"[{log_id}] - Max Blackout: {final_stats['max_blackout_ms']}ms", flush=True)
         print(f"[{log_id}] - Missed Seqs: {missed_str}", flush=True)
         sys.stdout.flush()
