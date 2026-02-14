@@ -4520,6 +4520,84 @@ app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) =
     runUpgrade();
 });
 
+app.post('/api/admin/maintenance/restart', authenticateToken, async (req, res) => {
+    const { type } = req.body; // 'restart' or 'redeploy'
+
+    if (G_UPGRADE_STATUS.inProgress) {
+        return res.status(400).json({ error: 'Maintenance in progress' });
+    }
+
+    // Initialize status for UI tracking
+    G_UPGRADE_STATUS = {
+        inProgress: true,
+        version: 'restart',
+        stage: 'restarting',
+        logs: [`[${new Date().toISOString()}] System ${type === 'redeploy' ? 'Reload' : 'Restart'} requested`],
+        error: null,
+        startTime: Date.now()
+    };
+
+    const { spawn } = require('child_process');
+    const rootDir = path.join(__dirname, '..');
+
+    res.json({ success: true, message: 'Restart sequence initiated' });
+
+    const runRestart = async () => {
+        try {
+            const cmd = type === 'redeploy' ? 'docker compose up -d' : 'docker compose restart';
+
+            G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] Executing: ${cmd}`);
+
+            // If we are in the container, we need to ensure we are executing this correctly.
+            // Assuming the same environment as 'upgrade' which seems to rely on host docker socket.
+            // For 'restart' verify if we can simply spawn it.
+
+            const restartProcess = spawn('sh', ['-c', cmd], { cwd: rootDir });
+
+            restartProcess.stdout.on('data', (data: any) => {
+                const line = data.toString().trim();
+                if (line) G_UPGRADE_STATUS.logs.push(line);
+            });
+
+            restartProcess.stderr.on('data', (data: any) => {
+                const line = data.toString().trim();
+                if (line) G_UPGRADE_STATUS.logs.push(`[INFO] ${line}`);
+            });
+
+            const exitCode = await new Promise((resolve) => {
+                restartProcess.on('close', resolve);
+            });
+
+            if (exitCode !== 0) {
+                throw new Error(`Command failed with exit code ${exitCode}`);
+            }
+
+            G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] ✅ Sequence complete.`);
+
+            if (type === 'redeploy') {
+                // If we redeployed, we might need to kill ourselves to ensure we pick up changes if our own container was recreated (it will kill us anyway)
+                G_UPGRADE_STATUS.stage = 'complete';
+                // Wait a moment for logs to flush then exit if we are still alive
+                setTimeout(() => process.exit(0), 1000);
+            } else {
+                G_UPGRADE_STATUS.stage = 'complete';
+                // For simple restart, we might wait for services to come back. 
+                // If 'docker compose restart' restarts US, we die here.
+            }
+
+        } catch (e: any) {
+            console.error('[MAINTENANCE] Restart failed:', e);
+            G_UPGRADE_STATUS.inProgress = false;
+            G_UPGRADE_STATUS.stage = 'failed';
+            G_UPGRADE_STATUS.error = e.message;
+            G_UPGRADE_STATUS.logs.push(`[ERROR] ${e.message}`);
+        }
+    };
+
+    // Run slightly delayed to allow response to flush
+    setTimeout(runRestart, 500);
+});
+
 // Schedule daily log cleanup (runs at 2 AM)
 const scheduleLogCleanup = () => {
     const now = new Date();

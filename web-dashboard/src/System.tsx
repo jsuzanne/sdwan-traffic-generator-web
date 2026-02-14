@@ -251,6 +251,69 @@ export default function System({ token }: { token: string }) {
                     </div>
                 </div>
 
+                {/* Power & Restart */}
+                <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-red-600/10 rounded-lg text-red-600 dark:text-red-400 border border-red-500/20">
+                            <Terminal size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-text-primary uppercase tracking-tight">Power & Restart</h3>
+                            <p className="text-text-muted text-xs mt-0.5">Control system lifecycle and apply configuration changes.</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="p-4 bg-card-secondary/40 border border-border rounded-lg shadow-inner">
+                            <h4 className="text-xs font-black text-text-muted uppercase tracking-widest mb-2">Service Restart</h4>
+                            <p className="text-[10px] text-text-muted mb-3 leading-relaxed italic opacity-80">
+                                Quickly restarts all containers without recreating them. Use this to clear memory or reset application state.
+                            </p>
+                            <button
+                                onClick={async () => {
+                                    if (!confirm('Are you sure you want to restart all services? The dashboard will be briefly unavailable.')) return;
+                                    setUpgrading(true);
+                                    try {
+                                        await fetch('/api/admin/maintenance/restart', {
+                                            method: 'POST',
+                                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ type: 'restart' })
+                                        });
+                                    } catch (e) { setUpgrading(false); }
+                                }}
+                                disabled={upgrading}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-card-secondary hover:bg-card-hover text-text-primary rounded-lg text-xs font-bold transition-all border border-border uppercase tracking-widest shadow-sm disabled:opacity-50"
+                            >
+                                <RefreshCw size={14} /> Restart Services (Fast)
+                            </button>
+                        </div>
+
+                        <div className="p-4 bg-card-secondary/40 border border-border rounded-lg shadow-inner">
+                            <h4 className="text-xs font-black text-text-muted uppercase tracking-widest mb-2">Full System Reload</h4>
+                            <p className="text-[10px] text-text-muted mb-3 leading-relaxed italic opacity-80">
+                                Recreates containers to apply changes from <strong>docker-compose.yml</strong> or environment variables.
+                            </p>
+                            <button
+                                onClick={async () => {
+                                    if (!confirm('This will recreate containers and reload configuration. Are you sure?')) return;
+                                    setUpgrading(true);
+                                    try {
+                                        await fetch('/api/admin/maintenance/restart', {
+                                            method: 'POST',
+                                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ type: 'redeploy' })
+                                        });
+                                    } catch (e) { setUpgrading(false); }
+                                }}
+                                disabled={upgrading}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold transition-all border border-blue-500/30 uppercase tracking-widest shadow-sm disabled:opacity-50"
+                            >
+                                <Terminal size={14} /> Reload Configuration (Slower)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Configuration Backup & Restore */}
                 <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
