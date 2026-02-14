@@ -209,6 +209,7 @@ class ConvergenceMetrics:
             "status": "running" if is_running else "stopped",
             "sent": seq,
             "received": rcvd,
+            "server_received": server_received_copy,
             "loss_pct": max(0.0, total_loss_pct),
             "tx_loss_pct": max(0.0, tx_loss_pct),
             "rx_loss_pct": max(0.0, rx_loss_pct),
