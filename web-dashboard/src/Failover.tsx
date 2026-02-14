@@ -136,6 +136,16 @@ export default function Failover(props: FailoverProps) {
         }
     };
 
+    const resetIds = async () => {
+        if (!confirm('This will reset the CONV-XXXX counter to CONV-0000. Continue?')) return;
+        try {
+            await fetch('/api/convergence/counter', {
+                method: 'DELETE',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' }
+            });
+        } catch (e) { }
+    };
+
     const handleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -406,9 +416,20 @@ export default function Failover(props: FailoverProps) {
                         <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
                             <Clock size={16} /> Test History
                         </h3>
-                        {history.length > 0 && (
-                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{history.length} TESTS RECORDED</span>
-                        )}
+                        <div className="flex items-center gap-3">
+                            {activeTests.length === 0 && (
+                                <button
+                                    onClick={resetIds}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-orange-600 dark:text-orange-400 bg-orange-600/5 hover:bg-orange-600/10 border border-orange-500/20 rounded-lg transition-all"
+                                >
+                                    <Hash size={12} />
+                                    RESET ID
+                                </button>
+                            )}
+                            {history.length > 0 && (
+                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{history.length} TESTS RECORDED</span>
+                            )}
+                        </div>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
