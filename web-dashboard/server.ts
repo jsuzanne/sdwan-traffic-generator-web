@@ -114,7 +114,7 @@ const getInterface = (): string => {
 
     // 2. Auto-detect fallback (Host Mode) - Prefer ip route
     try {
-        const { execSync } = require('child_process');
+
         const output = execSync("ip route | grep '^default' | awk '{print $5}' | head -n 1", {
             encoding: 'utf8',
             timeout: 2000
@@ -2563,7 +2563,7 @@ app.get('/api/system/default-interface', authenticateToken, async (req, res) => 
 app.post('/api/system/auto-detect-interface', authenticateToken, async (req, res) => {
     try {
         console.log('🔍 INTERFACE: Manual auto-detection requested');
-        const { execSync } = require('child_process');
+
         const execPromise = promisify(exec);
         let defaultIface = '';
         let detectionMethod = '';
@@ -4451,7 +4451,7 @@ app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) =
     };
 
     const pullTarget = version || 'stable';
-    const { spawn } = require('child_process');
+
     const rootDir = path.join(__dirname, '..');
 
     res.json({ success: true, message: 'Upgrade started in background' });
@@ -4492,7 +4492,7 @@ app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) =
             setTimeout(async () => {
                 try {
                     G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] Running: docker compose up -d`);
-                    const { execSync } = require('child_process');
+
                     if (fs.existsSync(path.join(rootDir, 'docker-compose.yml'))) {
                         execSync('docker compose up -d', { cwd: rootDir });
                     }
@@ -4537,7 +4537,7 @@ app.post('/api/admin/maintenance/restart', authenticateToken, async (req, res) =
         startTime: Date.now()
     };
 
-    const { spawn } = require('child_process');
+
     const rootDir = path.join(__dirname, '..');
 
     res.json({ success: true, message: 'Restart sequence initiated' });

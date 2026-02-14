@@ -95,7 +95,9 @@ This project is my way to turn all that lab and demo experience into an open-sou
 
 Recent improvements and features added to the SD-WAN Traffic Generator:
 
-### v1.2.1-patch.20 (Latest)
+### v1.2.1-patch.21 (Latest)
+
+### v1.2.1-patch.20
 
 ### v1.2.1-patch.19
 
