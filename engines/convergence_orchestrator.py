@@ -191,10 +191,16 @@ class ConvergenceMetrics:
         duration = round(now - start_time_copy, 1)
 
         if server_received_copy > 0 and seq > 0:
-            tx_lost_packets = max(0, seq - server_received_copy)
-            rx_lost_packets = max(0, server_received_copy - rcvd)
-            tx_loss_pct = round((tx_lost_packets / float(seq)) * 100.0, 1)
-            rx_loss_pct = round((rx_lost_packets / float(server_received_copy)) * 100.0, 1)
+            # Safeguard: If server says it rcvd less than we rcvd back, the server counter is likely reset/invalid
+            if server_received_copy < rcvd:
+                tx_lost_packets = 0 
+                rx_lost_packets = seq - rcvd
+            else:
+                tx_lost_packets = max(0, seq - server_received_copy)
+                rx_lost_packets = max(0, server_received_copy - rcvd)
+            
+            tx_loss_pct = round((tx_lost_packets / float(seq)) * 100.0, 1) if seq > 0 else 0.0
+            rx_loss_pct = round((rx_lost_packets / float(server_received_copy)) * 100.0, 1) if server_received_copy > 0 else 0.0
         else:
             tx_lost_packets = seq - rcvd
             rx_lost_packets = 0

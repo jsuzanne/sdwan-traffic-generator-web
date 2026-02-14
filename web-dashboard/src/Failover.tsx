@@ -480,7 +480,7 @@ export default function Failover(props: FailoverProps) {
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex flex-col items-center">
-                                                        <div className="flex gap-2 text-[10px] font-mono font-bold uppercase tracking-tight mb-0.5 opacity-90">
+                                                        <div className="flex gap-2 text-[10px] font-mono font-bold tracking-tight mb-0.5 opacity-90">
                                                             <span className={test.tx_loss_pct > 0 ? 'text-red-500' : 'text-text-muted/60'}>
                                                                 TX Loss: {test.tx_loss_pct ?? 0}% {test.tx_loss_ms > 0 ? `(${test.tx_loss_ms}ms)` : ''}
                                                             </span>

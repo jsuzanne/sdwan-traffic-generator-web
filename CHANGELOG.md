@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.23] - 2026-02-14
+### Fixed
+- **Echo Server**: Session tracking now uses Test ID instead of IP/Port, ensuring counters survive failover events. 🔄
+- **Orchestrator**: Added safeguard to prevent artificial TX loss if the server counter is logically invalid. 🛡️
+- **UI**: Fixed "ms" casing and removed forced uppercase in directional loss display. 🔡
+
 ## [v1.2.1-patch.22] - 2026-02-14
 ### Added
 - **Convergence Lab**: Directional loss duration (ms) and lost packet counters in history results. ⏱️

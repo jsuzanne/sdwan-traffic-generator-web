@@ -53,7 +53,11 @@ def handle_port(ip, port, active_sessions, lock):
                 except: pass
 
                 with lock:
-                    if addr not in active_sessions:
+                    # Use Test ID as key for Convergence to handle IP/Port change during failover
+                    # Use (addr, port) for standard Voice calls
+                    session_key = detected_id if session_type == "Convergence" and detected_id != "Unknown" else addr
+                    
+                    if session_key not in active_sessions:
                         log_id = detected_id
                         prefix = "CONV" if session_type == "Convergence" else "CALL"
                         if not (log_id.startswith("CONV-") or log_id.startswith("CALL-")):
@@ -63,13 +67,14 @@ def handle_port(ip, port, active_sessions, lock):
                         label_str = f" {detected_label} -" if detected_label else ""
                         if DEBUG_MODE: print(f"[{timestamp}] [{log_id}] 📥{label_str} RECEIVED ON PORT {port}: {addr[0]}:{addr[1]}", flush=True)
                     
-                    session = active_sessions.get(addr, {"packet_count": 0, "start_time": now, "port": port})
+                    session = active_sessions.get(session_key, {"packet_count": 0, "start_time": now, "port": port})
                     session["last_seen"] = now
                     session["id"] = detected_id
                     session["label"] = detected_label
                     session["type"] = session_type
                     session["packet_count"] += 1
-                    active_sessions[addr] = session
+                    session["last_addr"] = addr # Track last seen address for maintenance logging
+                    active_sessions[session_key] = session
 
                 # Echo back
                 if session_type == "Convergence":
@@ -95,7 +100,7 @@ def maintenance(active_sessions, lock):
         now = time.time()
         to_remove = []
         with lock:
-            for addr, session in active_sessions.items():
+            for key, session in active_sessions.items():
                 if now - session['last_seen'] > 5.0:
                     id_val = session.get('id', 'Unknown')
                     prefix = "CONV" if session.get("type") == "Convergence" else "CALL"
@@ -105,11 +110,12 @@ def maintenance(active_sessions, lock):
                     timestamp = time.strftime('%H:%M:%S')
                     duration = int(now - session['start_time'] - 5.0)
                     label_str = f" {session.get('label', '')} -" if session.get('label') else ""
-                    if DEBUG_MODE: print(f"[{timestamp}] [{id_val}] ✅{label_str} COMPLETED ON PORT {session['port']}: {addr[0]}:{addr[1]} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
-                    to_remove.append(addr)
+                    addr_info = f"{session['last_addr'][0]}:{session['last_addr'][1]}" if "last_addr" in session else "Unknown"
+                    if DEBUG_MODE: print(f"[{timestamp}] [{id_val}] ✅{label_str} COMPLETED ON PORT {session['port']}: {addr_info} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)
+                    to_remove.append(key)
             
-            for addr in to_remove:
-                del active_sessions[addr]
+            for key in to_remove:
+                del active_sessions[key]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
