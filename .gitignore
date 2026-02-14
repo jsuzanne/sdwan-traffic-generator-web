@@ -45,3 +45,4 @@ logs/
 
 # Docker Compose
 docker-compose.yml
+__pycache__/
