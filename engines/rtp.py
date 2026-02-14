@@ -118,20 +118,37 @@ if __name__ == "__main__":
 
     source_port = args['source_port']
     if source_port == 0:
-        # Derive deterministic source port from CALL-ID
-        # Example: CALL-001 -> 31001, CALL-042 -> 31042
-        call_num = 0
+        # ---------------------------------------------------------
+        #  NEW LOGIC: Deterministic Source Port from CALL ID
+        #  Goal: Map CALL-XXXX -> Port 30000..39999 (modulo 10000)
+        # ---------------------------------------------------------
         call_id = args.get('call_id', 'NONE')
+        
+        target_port = 0
+        
         if call_id.startswith("CALL-") and call_id[5:].isdigit():
-            call_num = int(call_id[5:])
+            try:
+                raw_num = int(call_id[5:])
+                
+                # Warn if we see huge numbers (unexpected from orchestrator)
+                if raw_num > 9999:
+                    print(f"Warning: CALL ID {call_id} exceeds 4 digits. Modulo will be applied.")
 
-        if call_num > 0:
-            source_port = 31000 + call_num
-            if source_port > 65535:
-                source_port = 65535  # Safety cap
+                # 0..9999
+                call_num = raw_num % 10000
+                
+                # Map to 30000..39999
+                target_port = 30000 + call_num
+                
+            except ValueError:
+                target_port = 0
+
+        if target_port > 0:
+            source_port = target_port
         else:
-            # Fallback to random port if CALL-ID format not recognized
-            source_port = random.randrange(10000, 65535)
+            # Fallback: specific random range 40000-45000
+            # (Distinct from the 3xxxx range to avoid collision/confusion)
+            source_port = random.randrange(40000, 45000)
 
 
     # Setup receiving socket to capture echoes

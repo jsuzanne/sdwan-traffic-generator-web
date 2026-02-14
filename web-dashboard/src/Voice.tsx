@@ -3,9 +3,24 @@ import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activ
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
+
+// Helper logic to match rtp.py port mapping
+// CALL-0000 -> 30000
+// CALL-9999 -> 39999
+const deriveSourcePort = (callId: string): string => {
+    if (callId && callId.startsWith('CALL-')) {
+        const num = parseInt(callId.substring(5), 10);
+        if (!isNaN(num)) {
+            const port = 30000 + (num % 10000);
+            return port.toString();
+        }
+    }
+    return '?';
+};
 
 interface VoiceProps {
     token: string;
@@ -440,7 +455,7 @@ export default function Voice(props: VoiceProps) {
                                     <div key={idx} className="bg-card-secondary/50 p-4 rounded-2xl border border-border flex items-center justify-between shadow-sm group hover:border-blue-500/30 transition-all">
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic">
+                                                <span title={`Source Port: ${deriveSourcePort(call.call_id)}`} className="text-[9px] font-black text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic cursor-help">
                                                     #{call.call_id}
                                                 </span>
                                                 <div className="text-xs font-black text-text-primary tracking-tight uppercase">{call.target}</div>
@@ -534,7 +549,7 @@ export default function Voice(props: VoiceProps) {
                                             </td>
                                             <td className="py-4 px-3">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic min-w-[80px] text-center">
+                                                    <span title={`Source Port: ${deriveSourcePort(call.call_id)}`} className="text-[10px] font-black text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded bg-blue-600/10 border border-blue-500/10 font-mono italic min-w-[80px] text-center cursor-help">
                                                         #{call.call_id}
                                                     </span>
                                                     {call.event === 'start' && <Phone className="text-blue-500 animate-pulse" size={14} fill="currentColor" />}

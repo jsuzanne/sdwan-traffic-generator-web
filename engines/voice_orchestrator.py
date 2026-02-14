@@ -37,7 +37,11 @@ def get_next_call_id():
                 counter = data.get('counter', 0)
     except: pass
     
-    counter += 1
+    # Implementation of cyclic counter (0-9999) for deterministic port mapping
+    # CALL-0000 -> Port 30000
+    # ...
+    # CALL-9999 -> Port 39999
+    counter = (counter + 1) % 10000
     
     try:
         with open(COUNTER_FILE, 'w') as f:
