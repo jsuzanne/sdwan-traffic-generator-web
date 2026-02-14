@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.2.1--patch.15-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.1--patch.17-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -95,7 +95,13 @@ This project is my way to turn all that lab and demo experience into an open-sou
 
 Recent improvements and features added to the SD-WAN Traffic Generator:
 
-### v1.2.1-patch.15 (Latest)
+### v1.2.1-patch.17 (Latest)
+- **Networking**: Added Public IP detection and display in the main dashboard
+- **Maintenance**: Added "Power & Restart" controls (Restart Services / Full System Reload)
+- **UX**: Removed "Export" button from Connectivity Performance
+- **UI**: Fixed version display format (removed duplicate 'v')
+
+### v1.2.1-patch.15
 - **System Maintenance**: Fixed version detection using GitHub Releases API for correct ordering
 
 ### v1.2.1-patch.14
