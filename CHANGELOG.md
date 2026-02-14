@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.24] - 2026-02-14
+### Fixed
+- **Echo Server**: Increased maintenance timeout to 60s to survive long failover outages. ⏱️
+- **Orchestrator**: Implemented cumulative counter logic to handle potential server resets gracefully. 🛡️
+- **UI**: Polished directional loss labels and "ms" lowercase formatting. ✨
+
 ## [v1.2.1-patch.23] - 2026-02-14
 ### Fixed
 - **Echo Server**: Session tracking now uses Test ID instead of IP/Port, ensuring counters survive failover events. 🔄

@@ -101,14 +101,14 @@ def maintenance(active_sessions, lock):
         to_remove = []
         with lock:
             for key, session in active_sessions.items():
-                if now - session['last_seen'] > 5.0:
+                if now - session['last_seen'] > 60.0:
                     id_val = session.get('id', 'Unknown')
                     prefix = "CONV" if session.get("type") == "Convergence" else "CALL"
                     if not (id_val.startswith("CONV-") or id_val.startswith("CALL-")):
                         id_val = f"{prefix}-{id_val}"
                     
                     timestamp = time.strftime('%H:%M:%S')
-                    duration = int(now - session['start_time'] - 5.0)
+                    duration = int(now - session['start_time'] - 60.0)
                     label_str = f" {session.get('label', '')} -" if session.get('label') else ""
                     addr_info = f"{session['last_addr'][0]}:{session['last_addr'][1]}" if "last_addr" in session else "Unknown"
                     if DEBUG_MODE: print(f"[{timestamp}] [{id_val}] ✅{label_str} COMPLETED ON PORT {session['port']}: {addr_info} | Duration: {duration}s | Packets: {session['packet_count']}", flush=True)

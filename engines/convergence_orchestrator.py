@@ -105,8 +105,19 @@ class ConvergenceMetrics:
             self.received_seqs.add(seq)
             self.last_rcvd_time = receive_time
 
-            if server_count > self.server_received:
-                self.server_received = server_count
+            if not hasattr(self, 'server_received_offset'):
+                self.server_received_offset = 0
+                self.last_seen_server_count = 0
+
+            # Detect server reset (count went backwards significantly)
+            if server_count < self.last_seen_server_count - 100:
+                self.server_received_offset += self.last_seen_server_count
+                
+            self.last_seen_server_count = server_count
+            effective_server_count = self.server_received_offset + server_count
+
+            if effective_server_count > self.server_received:
+                self.server_received = effective_server_count
 
             sent_time = self.sent_times.get(seq)
             if sent_time is None:
