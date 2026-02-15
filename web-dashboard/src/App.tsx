@@ -713,15 +713,6 @@ export default function App() {
           <Settings size={18} /> Configuration
         </button>
         <button
-          onClick={() => setView('security')}
-          className={cn(
-            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
-            view === 'security' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
-          )}
-        >
-          <Shield size={18} /> Security
-        </button>
-        <button
           onClick={() => setView('performance')}
           className={cn(
             "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
@@ -731,13 +722,22 @@ export default function App() {
           <Gauge size={18} /> Performance
         </button>
         <button
+          onClick={() => setView('security')}
+          className={cn(
+            "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+            view === 'security' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
+          )}
+        >
+          <Shield size={18} /> Security
+        </button>
+        <button
           onClick={() => setView('iot')}
           className={cn(
             "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
             view === 'iot' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
           )}
         >
-          <Cpu size={18} /> IoT <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-600/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 ml-1">Beta</span>
+          <Cpu size={18} /> IoT
         </button>
         <button
           onClick={() => setView('voice')}
