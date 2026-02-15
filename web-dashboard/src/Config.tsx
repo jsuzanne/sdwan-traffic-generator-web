@@ -547,7 +547,7 @@ export default function Config({ token }: ConfigProps) {
                         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                             {customProbes.map((probe, idx) => (
                                 <div key={idx} className={cn(
-                                    "group bg-card border border-border hover:border-blue-500/30 rounded-2xl p-5 flex items-center justify-between transition-all shadow-sm",
+                                    "group bg-card border border-border hover:border-blue-500/30 rounded-2xl p-5 pr-2 flex items-center justify-between transition-all shadow-sm",
                                     probe.enabled === false && "opacity-50"
                                 )}>
                                     <div className="flex items-center gap-4">
