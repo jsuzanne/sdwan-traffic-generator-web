@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.25] - 2026-02-14
+## [v1.2.1-patch.26] - 2026-02-15
+### Added
+- **IoT Documentation**: Reorganized IoT documentation with dedicated guides for device generation methods. 📚
+  - New `IOT_DEVICE_GENERATOR.md` - Python script-based generation guide
+  - New `IOT_LLM_GENERATION.md` - LLM-based generation guide with industry examples
+  - Updated `IOT_SIMULATION.md` as central hub linking to both methods
+- **IoT Emulator**: Updated `iot_emulator.py` with enhanced DHCP fingerprinting support. 🔧
+
 ### Added
 - **Convergence Lab**: Sync loss detection for long outages (>60s). 🕵️
 - **UI**: Conditional display hiding directional ms metrics if server sync is lost, ensuring data reliability. 🛡️

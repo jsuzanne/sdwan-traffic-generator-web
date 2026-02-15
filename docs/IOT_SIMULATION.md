@@ -71,52 +71,48 @@ Each device in the JSON array follows this structure:
 }
 ```
 
-### 🤖 Generate Devices with AI (LLM Prompt)
+### 🤖 Device Configuration Generation
 
-You can use any LLM (ChatGPT, Claude, Gemini, etc.) to generate realistic IoT device configurations for your specific customer or industry. Simply use this prompt:
+You have **two methods** to generate realistic IoT device configurations:
+
+#### 1. Python Script Generator (Recommended for Speed)
+Use the `generate_iot_devices.py` script for fast, deterministic device generation with built-in DHCP fingerprints.
+
+**Features:**
+- ✅ Instant generation (< 1 second)
+- ✅ 13 device categories, 50+ vendors, 200+ models
+- ✅ DHCP fingerprinting support
+- ✅ Presets: Small (30), Medium (65), Large (110), Enterprise (170)
+- ✅ Offline - no API calls required
+
+**Quick Start:**
+```bash
+# Generate medium lab (65 devices)
+python iot/generate_iot_devices.py --preset medium
+
+# Custom configuration
+python iot/generate_iot_devices.py --custom "Security Cameras:10,Sensors:20,Smart Lighting:15"
+```
+
+📖 **Full Documentation:** [IOT_DEVICE_GENERATOR.md](IOT_DEVICE_GENERATOR.md)
 
 ---
 
-**Copy and paste this prompt into your LLM:**
+#### 2. LLM-Based Generation (Recommended for Custom Scenarios)
+Use ChatGPT, Claude, or Gemini to generate industry-specific device configurations with contextual narratives.
 
-```
-Act as a Palo Alto IoT Security Specialist.
+**Features:**
+- ✅ Industry-specific device mixes (Healthcare, Manufacturing, Utilities, etc.)
+- ✅ Customer-tailored configurations
+- ✅ Realistic vendor diversity
+- ✅ DHCP fingerprints included
 
-Task: Create a JSON file for a traffic generator using a specific format. The goal is to simulate realistic IoT/OT devices for a customer named [INSERT CUSTOMER NAME HERE].
+**Quick Start:**
+Copy the prompt template from `iot/IOT_PROMPT.txt` and customize for your use case.
 
-Requirements:
-
-Count: Generate exactly 16 devices.
-
-Context: Use devices relevant to the customer's industry (e.g., Water, Healthcare, Manufacturing).
-
-Format: Use the exact JSON structure provided below:
-
-{
-  "id": "unique_string_id",
-  "name": "Full Device Model Name",
-  "vendor": "Real Vendor Name",
-  "type": "Specific Device Category",
-  "mac": "XX:XX:XX:00:00:00 (Use real vendor OUI)",
-  "ip_start": "192.168.207.X",
-  "protocols": ["dhcp", "arp", "lldp", "snmp", "http", "dns", "cloud", "specific_industrial_proto"],
-  "enabled": true,
-  "traffic_interval": integer_between_30_and_600,
-  "description": "Short description of the device's role in the site"
-}
-
-Fidelity: Use real-world MAC OUI prefixes for the vendors. For Industrial (OT) devices, include protocols like modbus, s7comm, bacnet, or profinet to help the Palo Alto IoT engine fingerprint them.
-
-Customer Context: [INSERT DETAILS OR LEAVE BLANK FOR GENERIC]
-```
+📖 **Full Documentation:** [IOT_LLM_GENERATION.md](IOT_LLM_GENERATION.md)
 
 ---
-
-**Example Usage:**
-
-> "Act as a Palo Alto IoT Security Specialist. Create a JSON file for a traffic generator... for a customer named **Suez Water Treatment Plant**."
-
-The LLM will generate 16 realistic water industry devices (PLCs, SCADA sensors, flow meters, etc.) with proper MAC OUIs and industrial protocols.
 
 **Then:**
 1. Copy the generated JSON
@@ -124,7 +120,6 @@ The LLM will generate 16 realistic water industry devices (PLCs, SCADA sensors, 
 3. Click **Import**
 4. Paste the JSON
 5. Start simulating!
-
 
 
 ### Protocol Support Details
