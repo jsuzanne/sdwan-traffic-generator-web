@@ -2,10 +2,15 @@
 FROM public.ecr.aws/docker/library/node:20-slim AS builder
 
 WORKDIR /app
+
+# Copy package files
 COPY web-dashboard/package*.json ./
 RUN npm ci
+
+# Copy source code (includes VERSION file)
 COPY web-dashboard/ ./
-COPY VERSION ./VERSION
+
+# Build the application
 RUN npm run build
 
 # Runtime Stage
@@ -46,8 +51,10 @@ COPY web-dashboard/vyos-scheduler.ts ./
 COPY web-dashboard/shared ./shared
 COPY web-dashboard/utils ./utils
 COPY web-dashboard/tsconfig.json ./
-# Copy VERSION file from root of build context
-COPY VERSION ./VERSION
+
+# Copy VERSION file from builder (already in web-dashboard/)
+COPY --from=builder /app/VERSION ./VERSION
+
 # Copy engines orchestration script
 COPY engines ./engines
 # Copy VyOS orchestration script
@@ -74,4 +81,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/api/version || exit 1
 
 CMD ["npx", "tsx", "server.ts"]
-
