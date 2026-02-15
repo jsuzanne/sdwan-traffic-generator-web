@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2, Play } from 'lucide-react';
+import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2, Play, Download, Upload } from 'lucide-react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { twMerge } from 'tailwind-merge';
@@ -435,6 +435,82 @@ export default function Vyos(props: VyosProps) {
         setError(null);
     };
 
+    const exportSequences = async () => {
+        const toastId = toast.loading('Exporting sequences...');
+        try {
+            const data = {
+                version: "1.0",
+                exported_at: new Date().toISOString(),
+                sequences: sequences.map(seq => ({
+                    name: seq.name,
+                    enabled: seq.enabled,
+                    cycle_duration: seq.cycle_duration,
+                    actions: seq.actions.map(action => ({
+                        offset_minutes: action.offset_minutes,
+                        router_id: action.router_id,
+                        interface: action.interface,
+                        command: action.command,
+                        parameters: action.parameters,
+                        comment: action.parameters?.comment || ''
+                    }))
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vyos-sequences-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success('✓ Sequences exported', { id: toastId });
+        } catch (e: any) {
+            toast.error(`❌ Export failed: ${e.message}`, { id: toastId });
+        }
+    };
+
+    const importSequences = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const toastId = toast.loading('Importing sequences...');
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            if (!data.sequences || !Array.isArray(data.sequences)) {
+                throw new Error('Invalid JSON format: missing sequences array');
+            }
+
+            let imported = 0;
+            for (const seq of data.sequences) {
+                const newSeq = {
+                    id: `seq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    name: seq.name || 'Imported Sequence',
+                    enabled: seq.enabled ?? true,
+                    cycle_duration: seq.cycle_duration || 0,
+                    actions: seq.actions || []
+                };
+
+                const res = await fetch('/api/vyos/sequences', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(newSeq)
+                });
+
+                if (res.ok) imported++;
+            }
+
+            fetchData();
+            toast.success(`✓ Imported ${imported} sequence(s)`, { id: toastId });
+        } catch (e: any) {
+            toast.error(`❌ Import failed: ${e.message}`, { id: toastId });
+        }
+
+        // Reset file input
+        event.target.value = '';
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-20">
             {/* Live Indicator Overlay */}
@@ -482,12 +558,30 @@ export default function Vyos(props: VyosProps) {
                             </button>
                         )}
                         {view === 'sequences' && (
-                            <button
-                                onClick={() => openSeqModal()}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-purple-900/20"
-                            >
-                                <Plus size={18} /> NEW SEQUENCE
-                            </button>
+                            <>
+                                <button
+                                    onClick={exportSequences}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-green-900/20"
+                                    title="Export all sequences as JSON"
+                                >
+                                    <Download size={16} /> EXPORT
+                                </button>
+                                <label className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-orange-900/20 cursor-pointer">
+                                    <Upload size={16} /> IMPORT
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        onChange={importSequences}
+                                        className="hidden"
+                                    />
+                                </label>
+                                <button
+                                    onClick={() => openSeqModal()}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-purple-900/20"
+                                >
+                                    <Plus size={18} /> NEW SEQUENCE
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
