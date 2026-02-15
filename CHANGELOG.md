@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.30] - 2026-02-15
+### Fixed
+- **Connectivity Performance**: Endpoint status now correctly displays Active/Inactive based on enabled field. 🐛
+  - Fixed endpoint ID mapping to use name-based format matching backend
+  - Disabled endpoints now properly show "Inactive" status badge
+
+### Changed
+- **Config Page UX**: Improved form layout and labels. ✨
+  - Renamed "Profile Name" → "Probe Name"
+  - Renamed "Protocol Type" → "Protocol"
+  - Replaced Save icon with Edit (pen) icon
+  - Widened "Target URI/IP" field (2 columns)
+  - Renamed "Commit Update" → "Update"
+  - Better vertical alignment of form fields
+- **Performance Metrics**: Reduced font sizes for better visual balance. 📊
+  - Global Experience: text-5xl → text-4xl
+  - HTTP Coverage: text-4xl → text-3xl
+- **Widget Layout**: Separated "Recent Performance Trends" from "Flaky Endpoints" widget. 🎨
+
 ## [v1.2.1-patch.29] - 2026-02-15
 ### Added
 - **Connectivity Endpoints**: Enable/disable functionality with visual indicators. 🔌
