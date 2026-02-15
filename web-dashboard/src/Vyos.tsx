@@ -324,6 +324,17 @@ export default function Vyos(props: VyosProps) {
     };
 
     const runSequence = async (id: string) => {
+        // Validate sequence is enabled
+        const sequence = sequences.find(s => s.id === id);
+        if (!sequence) {
+            toast.error('❌ Sequence not found');
+            return;
+        }
+        if (!sequence.enabled) {
+            toast.error('❌ Cannot run disabled sequence. Enable it first.');
+            return;
+        }
+
         const toastId = toast.loading('Starting sequence...');
         try {
             const res = await fetch(`/api/vyos/sequences/run/${id}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
@@ -1075,6 +1086,7 @@ export default function Vyos(props: VyosProps) {
                                 sequence={seq}
                                 history={history}
                                 routers={routers}
+                                onRefresh={fetchData}
                             />
                         ))}
 
@@ -1652,11 +1664,13 @@ interface ConfirmModalProps {
 function ExecutionTimeline({
     sequence,
     history,
-    routers
+    routers,
+    onRefresh
 }: {
     sequence: VyosSequence;
     history: any[];
-    routers: VyosRouter[]
+    routers: VyosRouter[];
+    onRefresh: () => Promise<void>;
 }) {
     const [countdown, setCountdown] = useState('');
     const [currentOffset, setCurrentOffset] = useState(-1);
@@ -1726,7 +1740,7 @@ function ExecutionTimeline({
             });
             if (res.ok) {
                 toast.success('✓ Sequence paused', { id: toastId });
-                window.location.reload();  // Refresh to update UI
+                await onRefresh();  // Refresh data without page reload
             } else {
                 const data = await res.json();
                 toast.error(`❌ ${data.error}`, { id: toastId });
@@ -1745,7 +1759,7 @@ function ExecutionTimeline({
             });
             if (res.ok) {
                 toast.success('✓ Sequence resumed', { id: toastId });
-                window.location.reload();
+                await onRefresh();  // Refresh data without page reload
             } else {
                 const data = await res.json();
                 toast.error(`❌ ${data.error}`, { id: toastId });
@@ -1764,7 +1778,7 @@ function ExecutionTimeline({
             });
             if (res.ok) {
                 toast.success('✓ Sequence stopped - will restart from beginning', { id: toastId });
-                window.location.reload();
+                await onRefresh();  // Refresh data without page reload
             } else {
                 const data = await res.json();
                 toast.error(`❌ ${data.error}`, { id: toastId });
