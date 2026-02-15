@@ -230,29 +230,29 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                             <div className="text-xs text-text-muted italic py-2">All probes stable</div>
                         )}
                     </div>
+                </div>
 
-                    <div className="md:col-span-2 bg-card border border-border p-6 rounded-2xl shadow-sm">
-                        <div className="text-text-muted text-xs font-bold mb-4 uppercase tracking-wider flex items-center gap-2">
-                            <BarChart3 size={16} /> Recent Performance Trends
-                        </div>
-                        <div className="h-[100px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData}>
-                                    <defs>
-                                        <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <Area type="monotone" dataKey="score" stroke="#22c55e" fillOpacity={1} fill="url(#colorScore)" />
-                                    <ReTooltip
-                                        contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        itemStyle={{ color: 'var(--text-primary)' }}
-                                        labelStyle={{ color: 'var(--text-muted)', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
+                <div className="md:col-span-2 bg-card border border-border p-6 rounded-2xl shadow-sm">
+                    <div className="text-text-muted text-xs font-bold mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <BarChart3 size={16} /> Recent Performance Trends
+                    </div>
+                    <div className="h-[100px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <Area type="monotone" dataKey="score" stroke="#22c55e" fillOpacity={1} fill="url(#colorScore)" />
+                                <ReTooltip
+                                    contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                    itemStyle={{ color: 'var(--text-primary)' }}
+                                    labelStyle={{ color: 'var(--text-muted)', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             </div>
