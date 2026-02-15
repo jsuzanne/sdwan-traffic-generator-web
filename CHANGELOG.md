@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.26] - 2026-02-15
+## [v1.2.1-patch.27] - 2026-02-15
+### Fixed
+- **IoT Documentation**: Fixed markdown formatting across all IoT documentation files. 📝
+  - Fixed code blocks, tables, and section structure in `IOT_DEVICE_GENERATOR.md`
+  - Cleaned up markdown formatting in `IOT_LLM_GENERATION.md`
+  - Updated JSON example in `IOT_SIMULATION.md` to include DHCP fingerprints
+
 ### Added
 - **IoT Documentation**: Reorganized IoT documentation with dedicated guides for device generation methods. 📚
   - New `IOT_DEVICE_GENERATOR.md` - Python script-based generation guide

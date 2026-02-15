@@ -54,22 +54,38 @@ On macOS, Windows, and WSL2, IoT simulation runs in **Bridge Mode** with these l
 IoT devices are managed via the **IoT Tab** in the Dashboard. The configuration is stored in `config/iot-devices.json`.
 
 ### Technical JSON Format
+
 Each device in the JSON array follows this structure:
 
 ```json
 {
-  "id": "camera_01",
+  "id": "hikvis_security_cameras_01",
   "name": "Hikvision DS-2CD2042FWD",
   "vendor": "Hikvision",
-  "type": "IP Camera",
+  "type": "Security Camera",
   "mac": "00:12:34:56:78:01",
   "ip_start": "192.168.207.100",
-  "protocols": ["dhcp", "arp", "lldp", "snmp", "http", "rtsp", "cloud"],
+  "protocols": ["dhcp", "arp", "lldp", "http", "rtsp", "cloud", "dns", "ntp"],
   "enabled": true,
-  "traffic_interval": 60,
-  "description": "Hikvision outdoor camera simulation"
+  "traffic_interval": 180,
+  "description": "Hikvision DS-2CD2042FWD - Security Camera",
+  "fingerprint": {
+    "dhcp": {
+      "hostname": "DS-2CD2042FWD",
+      "vendor_class_id": "HIKVISION",
+      "client_id_type": 1,
+      "param_req_list": [1, 3, 6, 12, 15, 28, 42, 51, 54, 58, 59]
+    }
+  }
 }
 ```
+
+**Key Fields:**
+- `fingerprint.dhcp` - DHCP fingerprint for device identification by Palo Alto IoT Security
+- `hostname` - DHCP Option 12
+- `vendor_class_id` - DHCP Option 60
+- `param_req_list` - DHCP Option 55 (Parameter Request List)
+
 
 ### 🤖 Device Configuration Generation
 
