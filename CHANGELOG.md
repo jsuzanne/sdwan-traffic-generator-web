@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.27] - 2026-02-15
+## [v1.2.1-patch.28] - 2026-02-15
+### Added
+- **IoT Emulator**: DHCP fingerprint support via CLI argument. 🔐
+  - Added `--fingerprint` argument to `iot_emulator.py` for single-device mode
+  - Backend now passes fingerprint data from JSON config to Python script
+  - Fingerprints are parsed and applied for realistic device identification
+
 ### Fixed
 - **IoT Documentation**: Fixed markdown formatting across all IoT documentation files. 📝
   - Fixed code blocks, tables, and section structure in `IOT_DEVICE_GENERATOR.md`

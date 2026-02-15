@@ -20,6 +20,14 @@ export interface IoTDeviceConfig {
     traffic_interval: number;
     description?: string;
     gateway?: string;
+    fingerprint?: {
+        dhcp?: {
+            hostname?: string;
+            vendor_class_id?: string;
+            client_id_type?: number;
+            param_req_list?: number[];
+        };
+    };
 }
 
 export class IoTManager extends EventEmitter {
@@ -70,6 +78,11 @@ export class IoTManager extends EventEmitter {
 
         if (deviceConfig.gateway) {
             args.push('--gateway', deviceConfig.gateway);
+        }
+
+        // Pass DHCP fingerprint to Python script if present
+        if (deviceConfig.fingerprint) {
+            args.push('--fingerprint', JSON.stringify(deviceConfig.fingerprint));
         }
 
         try {

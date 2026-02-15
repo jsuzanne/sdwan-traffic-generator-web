@@ -906,6 +906,7 @@ Test LLDP:
     parser.add_argument("--protocols", help="Comma-separated protocols for single device mode")
     parser.add_argument("--traffic-interval", type=int, default=60, help="Traffic interval in seconds")
     parser.add_argument("--gateway", default="192.168.207.1", help="Gateway IP")
+    parser.add_argument("--fingerprint", type=str, help="JSON-encoded DHCP fingerprint for single device mode")
 
     args = parser.parse_args()
     
@@ -926,6 +927,15 @@ Test LLDP:
             "traffic_interval": args.traffic_interval,
             "gateway": args.gateway
         }
+        
+        # Parse fingerprint from CLI argument if provided
+        if args.fingerprint:
+            try:
+                config["fingerprint"] = json.loads(args.fingerprint)
+                logger.info(f"✅ Loaded fingerprint from CLI for device {args.device_id}")
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️ Failed to parse --fingerprint JSON: {e}. Continuing without fingerprint.")
+        
         device = IoTDevice(config, interface=args.interface, dhcp_mode=args.dhcp_mode)
         
         # Handle SIGTERM for graceful exit
