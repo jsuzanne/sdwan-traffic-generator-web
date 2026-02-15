@@ -236,7 +236,6 @@ export default function Iot({ token }: IotProps) {
                     <div>
                         <h2 className="text-2xl font-bold text-text-primary flex items-center gap-2">
                             IoT Device Simulation
-                            <span className="bg-blue-600 text-[10px] text-white px-2 py-0.5 rounded-full uppercase tracking-widest align-middle">Beta</span>
                         </h2>
                         <div className="flex items-center gap-3">
                             <p className="text-text-muted text-sm">Scale your branch with realistic IoT traffic patterns per vendor.</p>
@@ -255,7 +254,12 @@ export default function Iot({ token }: IotProps) {
                                                 "ip_start": "192.168.207.100",
                                                 "protocols": ["dhcp", "arp", "http", "rtsp", "cloud"],
                                                 "enabled": true,
-                                                "traffic_interval": 60
+                                                "traffic_interval": 60,
+                                                "dhcp_fingerprint": {
+                                                    "hostname": "hikvision-cam-01",
+                                                    "vendor_class_id": "dhcpcd-5.5.6",
+                                                    "parameter_request_list": "1,3,6,15,28,33,42"
+                                                }
                                             }
                                         ]
                                     };
@@ -269,8 +273,28 @@ export default function Iot({ token }: IotProps) {
                                 }}
                                 className="text-blue-400 hover:text-blue-300 text-xs font-bold transition-colors flex items-center gap-1"
                             >
-                                <ExternalLink size={12} /> DOWNLOAD SAMPLE JSON
+                                <ExternalLink size={12} /> DOWNLOAD SAMPLE
                             </button>
+                            <span className="text-text-muted/30">|</span>
+                            <a
+                                href="https://github.com/jsuzanne/sdwan-traffic-generator/blob/main/docs/IOT_DEVICE_GENERATOR.md"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 text-xs font-bold transition-colors flex items-center gap-1"
+                                title="Python Script Generator"
+                            >
+                                <ExternalLink size={12} /> PYTHON GENERATOR
+                            </a>
+                            <span className="text-text-muted/30">|</span>
+                            <a
+                                href="https://github.com/jsuzanne/sdwan-traffic-generator/blob/main/docs/IOT_LLM_GENERATION.md"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 text-xs font-bold transition-colors flex items-center gap-1"
+                                title="LLM-based Generation"
+                            >
+                                <ExternalLink size={12} /> LLM GUIDE
+                            </a>
                         </div>
                     </div>
                 </div>
