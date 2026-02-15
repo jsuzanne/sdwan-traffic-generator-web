@@ -23,6 +23,24 @@ function getCommandDisplayName(command: string): string {
     }
 }
 
+// Format action parameters for clean display
+function formatActionParameters(command: string, parameters: any): string {
+    if (!parameters || Object.keys(parameters).length === 0) return '';
+
+    switch (command) {
+        case 'deny-traffic':
+        case 'allow-traffic':
+            return parameters.ip ? `IP: ${parameters.ip}` : '';
+        case 'set-qos':
+            const parts = [];
+            if (parameters.latency) parts.push(`${parameters.latency}ms latency`);
+            if (parameters.loss) parts.push(`${parameters.loss}% loss`);
+            return parts.join(', ');
+        default:
+            return '';
+    }
+}
+
 const socket = io();
 
 export interface VyosRouterInterface {
@@ -648,12 +666,22 @@ export default function Vyos(props: VyosProps) {
                             <div className="flex items-center gap-2 overflow-hidden">
                                 <Server size={12} className="text-text-muted flex-shrink-0 opacity-50" />
                                 <div className="flex gap-1.5 truncate">
-                                    {seq.actions.slice(0, 2).map((a, i) => (
-                                        <span key={i} className="text-[10px] bg-card-secondary/80 text-text-secondary px-2 py-0.5 rounded border border-border/50 whitespace-nowrap font-mono tracking-tighter">
-                                            {routers.find(r => r.id === a.router_id)?.name || '?'}
-                                            {!['deny-traffic', 'allow-traffic', 'clear-all-blocks', 'show-denied'].includes(a.command) && `:${a.interface}`}
-                                        </span>
-                                    ))}
+                                    {seq.actions.slice(0, 2).map((a, i) => {
+                                        const router = routers.find(r => r.id === a.router_id);
+                                        const paramDisplay = formatActionParameters(a.command, a.parameters);
+                                        return (
+                                            <span key={i} className="text-[10px] bg-card-secondary/80 text-text-secondary px-2 py-0.5 rounded border border-border/50 whitespace-nowrap font-mono tracking-tighter">
+                                                {paramDisplay ? (
+                                                    <>{paramDisplay} on {router?.name || '?'}</>
+                                                ) : (
+                                                    <>
+                                                        {router?.name || '?'}
+                                                        {!['deny-traffic', 'allow-traffic', 'clear-all-blocks', 'show-denied'].includes(a.command) && `:${a.interface}`}
+                                                    </>
+                                                )}
+                                            </span>
+                                        );
+                                    })}
                                     {seq.actions.length > 2 && (
                                         <span className="text-[9px] text-text-muted font-black uppercase tracking-tighter self-center">+{seq.actions.length - 2}</span>
                                     )}
@@ -671,9 +699,14 @@ export default function Vyos(props: VyosProps) {
                                     )} />
                                     <div className="flex flex-col">
                                         <span className="text-[10px] font-black text-text-primary uppercase tracking-tighter leading-none">
-                                            {seq.lastRun ? new Date(seq.lastRun).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never'}
+                                            {seq.cycle_duration > 0
+                                                ? (seq.lastRun ? new Date(seq.lastRun).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Scheduled')
+                                                : (seq.lastRun ? new Date(seq.lastRun).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Ready')
+                                            }
                                         </span>
-                                        <span className="text-[8px] text-text-muted font-bold uppercase tracking-widest mt-0.5 opacity-60">Last Pulse</span>
+                                        <span className="text-[8px] text-text-muted font-bold uppercase tracking-widest mt-0.5 opacity-60">
+                                            {seq.cycle_duration > 0 ? 'Last Pulse' : 'Manual Trigger'}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -821,9 +854,12 @@ export default function Vyos(props: VyosProps) {
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="px-2 py-0.5 bg-card-secondary rounded text-text-secondary font-black uppercase text-[9px] tracking-widest border border-border/50">{log.command}</span>
-                                                                {log.parameters && Object.keys(log.parameters).length > 0 && !['clear-blocks', 'get-blocks'].includes(log.command) && (
-                                                                    <span className="text-[9px] text-text-muted font-mono italic">({JSON.stringify(log.parameters)})</span>
-                                                                )}
+                                                                {(() => {
+                                                                    const paramDisplay = formatActionParameters(log.command, log.parameters);
+                                                                    return paramDisplay ? (
+                                                                        <span className="text-[9px] text-blue-400 font-mono">{paramDisplay}</span>
+                                                                    ) : null;
+                                                                })()}
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
@@ -865,9 +901,12 @@ export default function Vyos(props: VyosProps) {
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-2">
                                                     <span className="px-2 py-0.5 bg-card-secondary rounded text-text-secondary font-black uppercase text-[9px] tracking-widest border border-border/50">{log.command}</span>
-                                                    {log.parameters && Object.keys(log.parameters).length > 0 && !['clear-blocks', 'get-blocks'].includes(log.command) && (
-                                                        <span className="text-[9px] text-text-muted font-mono italic">({JSON.stringify(log.parameters)})</span>
-                                                    )}
+                                                    {(() => {
+                                                        const paramDisplay = formatActionParameters(log.command, log.parameters);
+                                                        return paramDisplay ? (
+                                                            <span className="text-[9px] text-blue-400 font-mono">{paramDisplay}</span>
+                                                        ) : null;
+                                                    })()}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5 text-center">
