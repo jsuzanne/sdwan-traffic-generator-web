@@ -26,6 +26,7 @@ export interface VyosSequence {
     id: string;
     name: string;
     enabled: boolean;
+    paused?: boolean;  // NEW: Paused state for running sequences
     cycle_duration: number; // Cycle duration in minutes (replaces cycleMinutes)
     actions: VyosAction[];
     lastRun?: number;
@@ -51,6 +52,7 @@ export class VyosScheduler extends EventEmitter {
     private logFile: string;
     private sequences: Map<string, VyosSequence> = new Map();
     private activeTimers: Map<string, NodeJS.Timeout[]> = new Map();
+    private pausedTimers: Map<string, NodeJS.Timeout[]> = new Map();  // NEW: Store paused timers
     private runCounter: number = 0;
 
     constructor(private manager: VyosManager, configDir: string, logDir: string) {
@@ -218,6 +220,66 @@ export class VyosScheduler extends EventEmitter {
             this.startScheduled(seq);
         } else {
             this.stopScheduled(id);
+        }
+    }
+
+    // NEW: Pause a running sequence
+    pauseSequence(id: string) {
+        const seq = this.sequences.get(id);
+        if (!seq) throw new Error('Sequence not found');
+
+        const timers = this.activeTimers.get(id);
+        if (!timers || timers.length === 0) {
+            throw new Error('Sequence is not running');
+        }
+
+        // Move timers to paused state
+        this.pausedTimers.set(id, timers);
+        this.activeTimers.delete(id);
+
+        seq.paused = true;
+        this.saveSequences();
+
+        log('VYOS-SCHED', `Paused sequence "${seq.name}"`);
+    }
+
+    // NEW: Resume a paused sequence
+    resumeSequence(id: string) {
+        const seq = this.sequences.get(id);
+        if (!seq) throw new Error('Sequence not found');
+        if (!seq.paused) throw new Error('Sequence is not paused');
+
+        const timers = this.pausedTimers.get(id);
+        if (!timers) throw new Error('No paused timers found');
+
+        // Restore timers to active state
+        this.activeTimers.set(id, timers);
+        this.pausedTimers.delete(id);
+
+        seq.paused = false;
+        this.saveSequences();
+
+        log('VYOS-SCHED', `Resumed sequence "${seq.name}"`);
+    }
+
+    // NEW: Stop a running sequence (reset to beginning)
+    stopSequence(id: string) {
+        const seq = this.sequences.get(id);
+        if (!seq) throw new Error('Sequence not found');
+
+        // Clear both active and paused timers
+        this.stopScheduled(id);
+        this.pausedTimers.delete(id);
+
+        seq.paused = false;
+        seq.lastRun = undefined;  // Reset last run
+        this.saveSequences();
+
+        log('VYOS-SCHED', `Stopped sequence "${seq.name}" - will restart from beginning`);
+
+        // Restart if enabled
+        if (seq.enabled && seq.cycle_duration > 0) {
+            this.startScheduled(seq);
         }
     }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2, Play, Download, Upload } from 'lucide-react';
+import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2, Play, Download, Upload, Pause, Square } from 'lucide-react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { twMerge } from 'tailwind-merge';
@@ -1716,6 +1716,63 @@ function ExecutionTimeline({
         return () => clearInterval(interval);
     }, [sequence]);
 
+    const handlePause = async () => {
+        const toastId = toast.loading('Pausing sequence...');
+        try {
+            const res = await fetch(`/api/vyos/sequences/pause/${sequence.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (res.ok) {
+                toast.success('✓ Sequence paused', { id: toastId });
+                window.location.reload();  // Refresh to update UI
+            } else {
+                const data = await res.json();
+                toast.error(`❌ ${data.error}`, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('❌ Network error', { id: toastId });
+        }
+    };
+
+    const handleResume = async () => {
+        const toastId = toast.loading('Resuming sequence...');
+        try {
+            const res = await fetch(`/api/vyos/sequences/resume/${sequence.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (res.ok) {
+                toast.success('✓ Sequence resumed', { id: toastId });
+                window.location.reload();
+            } else {
+                const data = await res.json();
+                toast.error(`❌ ${data.error}`, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('❌ Network error', { id: toastId });
+        }
+    };
+
+    const handleStop = async () => {
+        const toastId = toast.loading('Stopping sequence...');
+        try {
+            const res = await fetch(`/api/vyos/sequences/stop/${sequence.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (res.ok) {
+                toast.success('✓ Sequence stopped - will restart from beginning', { id: toastId });
+                window.location.reload();
+            } else {
+                const data = await res.json();
+                toast.error(`❌ ${data.error}`, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('❌ Network error', { id: toastId });
+        }
+    };
+
     return (
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             {/* Header with sequence name and status */}
@@ -1735,12 +1792,48 @@ function ExecutionTimeline({
                         )}
                     </div>
                 </div>
-                {sequence.enabled && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-xs font-black text-green-400 uppercase">ACTIVE</span>
-                    </div>
-                )}
+                <div className="flex items-center gap-2">
+                    {sequence.enabled && (
+                        <>
+                            {sequence.paused ? (
+                                <>
+                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                                        <Pause size={12} className="text-orange-400" />
+                                        <span className="text-xs font-black text-orange-400 uppercase">PAUSED</span>
+                                    </div>
+                                    <button
+                                        onClick={handleResume}
+                                        className="p-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-all shadow-sm"
+                                        title="Resume sequence"
+                                    >
+                                        <Play size={14} />
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg">
+                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                        <span className="text-xs font-black text-green-400 uppercase">ACTIVE</span>
+                                    </div>
+                                    <button
+                                        onClick={handlePause}
+                                        className="p-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-all shadow-sm"
+                                        title="Pause sequence"
+                                    >
+                                        <Pause size={14} />
+                                    </button>
+                                </>
+                            )}
+                            <button
+                                onClick={handleStop}
+                                className="p-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-all shadow-sm"
+                                title="Stop and reset sequence"
+                            >
+                                <Square size={14} />
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* Action Timeline */}

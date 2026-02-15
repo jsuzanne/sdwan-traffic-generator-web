@@ -969,6 +969,33 @@ app.post('/api/vyos/sequences/run/:id', authenticateToken, async (req, res) => {
     }
 });
 
+app.post('/api/vyos/sequences/pause/:id', authenticateToken, async (req, res) => {
+    try {
+        vyosScheduler.pauseSequence(req.params.id);
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/vyos/sequences/resume/:id', authenticateToken, async (req, res) => {
+    try {
+        vyosScheduler.resumeSequence(req.params.id);
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/vyos/sequences/stop/:id', authenticateToken, async (req, res) => {
+    try {
+        vyosScheduler.stopSequence(req.params.id);
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/api/vyos/history', authenticateToken, (req, res) => {
     const limit = parseInt(req.query.limit as string) || 50;
     res.json(vyosScheduler.getHistory(limit));
