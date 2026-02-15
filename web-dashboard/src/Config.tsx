@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Save, Plus, Trash2, Network, Sliders, ChevronDown, ChevronRight, Server, CheckCircle2, Download, Upload } from 'lucide-react';
+import { Save, Plus, Trash2, Network, Sliders, ChevronDown, ChevronRight, Server, CheckCircle2, Download, Upload, Power } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -29,6 +29,7 @@ interface CustomProbe {
     type: 'HTTP' | 'HTTPS' | 'TCP' | 'PING' | 'DNS' | 'UDP';
     target: string;
     timeout: number;
+    enabled?: boolean; // NEW: default true
 }
 
 interface ConfigProps {
@@ -219,7 +220,7 @@ export default function Config({ token }: ConfigProps) {
             formattedTarget = `${newProbe.type.toLowerCase()}://${formattedTarget}`;
         }
 
-        const probeToSave = { ...newProbe, target: formattedTarget };
+        const probeToSave = { ...newProbe, target: formattedTarget, enabled: newProbe.enabled ?? true };
         let updatedProbes: CustomProbe[];
 
         if (editingIndex !== null) {
@@ -260,6 +261,19 @@ export default function Config({ token }: ConfigProps) {
         } catch (e) {
             console.error('Failed to save probes');
         }
+    };
+
+    const toggleProbeEnabled = async (index: number) => {
+        const updatedProbes = [...customProbes];
+        updatedProbes[index].enabled = !updatedProbes[index].enabled;
+        await saveProbes(updatedProbes);
+        setCustomProbes(updatedProbes);
+    };
+
+    const toggleAllProbes = async (enabled: boolean) => {
+        const updatedProbes = customProbes.map(p => ({ ...p, enabled }));
+        await saveProbes(updatedProbes);
+        setCustomProbes(updatedProbes);
     };
 
 
@@ -509,10 +523,32 @@ export default function Config({ token }: ConfigProps) {
 
                     {/* Probes List */}
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Provisioned Endpoints</label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Provisioned Endpoints ({customProbes.length})</label>
+                            {customProbes.length > 0 && (
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => toggleAllProbes(true)}
+                                        className="text-[9px] font-black uppercase tracking-widest text-green-600 dark:text-green-400 hover:text-green-500 transition-colors"
+                                    >
+                                        Enable All
+                                    </button>
+                                    <span className="text-text-muted opacity-30">|</span>
+                                    <button
+                                        onClick={() => toggleAllProbes(false)}
+                                        className="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 hover:text-gray-400 transition-colors"
+                                    >
+                                        Disable All
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                             {customProbes.map((probe, idx) => (
-                                <div key={idx} className="group bg-card border border-border hover:border-blue-500/30 rounded-2xl p-5 flex items-center justify-between transition-all shadow-sm">
+                                <div key={idx} className={cn(
+                                    "group bg-card border border-border hover:border-blue-500/30 rounded-2xl p-5 flex items-center justify-between transition-all shadow-sm",
+                                    probe.enabled === false && "opacity-50"
+                                )}>
                                     <div className="flex items-center gap-4">
                                         <div className={cn(
                                             "w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black",
@@ -528,6 +564,18 @@ export default function Config({ token }: ConfigProps) {
                                         </div>
                                     </div>
                                     <div className="flex gap-1.5">
+                                        <button
+                                            onClick={() => toggleProbeEnabled(idx)}
+                                            className={cn(
+                                                "p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all",
+                                                probe.enabled !== false
+                                                    ? "text-green-600 dark:text-green-400 hover:bg-green-600/10"
+                                                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-400/10"
+                                            )}
+                                            title={probe.enabled !== false ? "Disable" : "Enable"}
+                                        >
+                                            <Power size={14} />
+                                        </button>
                                         <button
                                             onClick={() => editProbe(idx)}
                                             className="p-2 text-text-muted hover:text-blue-600 hover:bg-blue-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all"

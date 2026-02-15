@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.2.1--patch.28-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.1--patch.29-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 

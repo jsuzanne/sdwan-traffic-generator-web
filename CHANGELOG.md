@@ -4,7 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.28] - 2026-02-15
+## [v1.2.1-patch.29] - 2026-02-15
+### Added
+- **Connectivity Endpoints**: Enable/disable functionality with visual indicators. 🔌
+  - Power toggle button in Config page (green when enabled, gray when disabled)
+  - Bulk actions: "Enable All" and "Disable All" buttons
+  - Status column in Performance view showing Active/Inactive badges
+  - "Show/Hide Inactive" filter button
+  - Disabled endpoints sorted to bottom with reduced opacity
+  - New endpoints enabled by default for backward compatibility
+
 ### Added
 - **IoT Emulator**: DHCP fingerprint support via CLI argument. 🔐
   - Added `--fingerprint` argument to `iot_emulator.py` for single-device mode

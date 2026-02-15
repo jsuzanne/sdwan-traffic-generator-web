@@ -18,6 +18,8 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [activeProbes, setActiveProbes] = useState<string[]>([]); // List of active endpoint IDs
     const [showDeleted, setShowDeleted] = useState(false);
+    const [showInactive, setShowInactive] = useState(false);
+    const [endpointConfigs, setEndpointConfigs] = useState<Map<string, any>>(new Map());
 
     // Sorting state
     const [sortField, setSortField] = useState<string>('name');
@@ -32,16 +34,18 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
 
     const fetchData = async () => {
         try {
-            const [statsRes, resultsRes, activeRes] = await Promise.all([
+            const [statsRes, resultsRes, activeRes, configsRes] = await Promise.all([
                 fetch(`/api/connectivity/stats?range=${timeRange}`, { headers: authHeaders() }),
                 fetch(`/api/connectivity/results?timeRange=${timeRange}&limit=500`, { headers: authHeaders() }),
-                fetch('/api/connectivity/active-probes', { headers: authHeaders() })
+                fetch('/api/connectivity/active-probes', { headers: authHeaders() }),
+                fetch('/api/connectivity/custom', { headers: authHeaders() })
             ]);
 
-            const [statsData, resultsData, activeData] = await Promise.all([
+            const [statsData, resultsData, activeData, configsData] = await Promise.all([
                 statsRes.json(),
                 resultsRes.json(),
-                activeRes.json()
+                activeRes.json(),
+                configsRes.json()
             ]);
 
             setStats(statsData);
@@ -49,6 +53,16 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             if (activeData.success) {
                 setActiveProbes(activeData.probes.map((p: any) => p.id));
             }
+
+            // Build map of endpoint configs by ID
+            const configMap = new Map();
+            if (Array.isArray(configsData)) {
+                configsData.forEach((config: any) => {
+                    const id = `${config.type.toLowerCase()}_${config.target.replace(/[^a-z0-9]/gi, '_')}`;
+                    configMap.set(id, config);
+                });
+            }
+            setEndpointConfigs(configMap);
         } catch (e) {
             console.error("Failed to fetch connectivity data", e);
         } finally {
@@ -86,6 +100,10 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             const last = endpointResults[0];
             const reachable = endpointResults.filter(r => r.reachable);
 
+            // Get enabled status from config
+            const config = endpointConfigs.get(id);
+            const enabled = config?.enabled !== false; // default true
+
             return {
                 id,
                 name: last?.endpointName || 'Unknown',
@@ -96,14 +114,21 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                 maxLatency: reachable.length > 0 ? Math.max(...reachable.map(r => r.metrics.total_ms)) : 0,
                 checks: endpointResults.length,
                 successRate: Math.round((reachable.length / endpointResults.length) * 100),
-                lastResult: last
+                lastResult: last,
+                enabled
             };
         }).filter(e => {
             if (!showDeleted && activeProbes.length > 0 && !activeProbes.includes(e.id)) return false;
+            if (!showInactive && !e.enabled) return false; // Filter out inactive if not showing
             if (filterType !== 'ALL' && e.type !== filterType) return false;
             if (searchQuery && !e.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
             return true;
         }).sort((a: any, b: any) => {
+            // First sort by enabled status (enabled first)
+            if (a.enabled !== b.enabled) {
+                return a.enabled ? -1 : 1;
+            }
+
             let valA: any = a[sortField];
             let valB: any = b[sortField];
 
@@ -123,7 +148,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
             return 0;
         });
-    }, [results, showDeleted, activeProbes, filterType, searchQuery, sortField, sortDirection]);
+    }, [results, showDeleted, activeProbes, filterType, searchQuery, sortField, sortDirection, endpointConfigs, showInactive]);
 
     const handleSort = (field: string) => {
         if (sortField === field) {
@@ -288,6 +313,18 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                         <Clock size={14} className={showDeleted ? "text-blue-600 dark:text-blue-400" : ""} />
                         {showDeleted ? "HIDE DELETED" : "SHOW DELETED"}
                     </button>
+                    <button
+                        onClick={() => setShowInactive(!showInactive)}
+                        className={cn(
+                            "px-3 py-2 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-2 uppercase tracking-tight",
+                            showInactive
+                                ? "bg-orange-500/10 text-orange-600 border-orange-500/20"
+                                : "bg-card/40 text-text-muted border-border hover:border-text-muted/20"
+                        )}
+                    >
+                        <XCircle size={14} className={showInactive ? "text-orange-600 dark:text-orange-400" : ""} />
+                        {showInactive ? "HIDE INACTIVE" : "SHOW INACTIVE"}
+                    </button>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -334,6 +371,9 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                             >
                                 <div className="flex items-center justify-center">Type <SortIndicator field="type" /></div>
                             </th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider text-center">
+                                Status
+                            </th>
                             <th
                                 className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider text-center cursor-pointer hover:text-text-primary transition-colors"
                                 onClick={() => handleSort('score')}
@@ -357,7 +397,10 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     </thead>
                     <tbody className="divide-y divide-border">
                         {endpoints.map(e => (
-                            <tr key={e.id} className="hover:bg-card-secondary transition-colors group">
+                            <tr key={e.id} className={cn(
+                                "hover:bg-card-secondary transition-colors group",
+                                !e.enabled && "opacity-40"
+                            )}>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-text-primary group-hover:text-blue-500 transition-colors uppercase tracking-tight">{e.name}</span>
@@ -372,6 +415,16 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                                                 "text-orange-500 bg-orange-500/10 border-orange-500/20"
                                     )}>
                                         {e.type}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className={cn(
+                                        "px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest",
+                                        e.enabled
+                                            ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                            : "bg-gray-500/10 text-gray-500 dark:text-gray-400"
+                                    )}>
+                                        {e.enabled ? "Active" : "Inactive"}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
