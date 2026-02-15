@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Save, Plus, Trash2, Network, Sliders, ChevronDown, ChevronRight, Server, CheckCircle2, Download, Upload, Power } from 'lucide-react';
+import { Edit, Plus, Trash2, Network, Sliders, ChevronDown, ChevronRight, Server, CheckCircle2, Download, Upload, Power } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -470,9 +470,9 @@ export default function Config({ token }: ConfigProps) {
 
                 <div className="flex flex-col gap-8">
                     {/* Form to add probe */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-card-secondary/30 p-6 rounded-2xl border border-border shadow-inner">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 bg-card-secondary/30 p-6 rounded-2xl border border-border shadow-inner">
                         <div className="space-y-2">
-                            <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Profile Name</label>
+                            <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Probe Name</label>
                             <input
                                 type="text"
                                 placeholder="HQ-GATEWAY"
@@ -482,7 +482,7 @@ export default function Config({ token }: ConfigProps) {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Protocol Type</label>
+                            <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Protocol</label>
                             <select
                                 className="w-full bg-card border border-border text-text-primary rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 text-[11px] font-black uppercase tracking-widest shadow-sm"
                                 value={newProbe.type}
@@ -496,7 +496,7 @@ export default function Config({ token }: ConfigProps) {
                                 <option value="UDP">UDP (IPERF3)</option>
                             </select>
                         </div>
-                        <div className="space-y-2">
+                        <div className="md:col-span-2 space-y-2">
                             <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Target URI/IP</label>
                             <input
                                 type="text"
@@ -509,14 +509,15 @@ export default function Config({ token }: ConfigProps) {
                                 {newProbe.type === 'HTTP' ? "FQDN or IP" : (newProbe.type === 'UDP' ? "iperf3 host:port" : "IP/FQDN ONLY")}
                             </p>
                         </div>
-                        <div className="flex items-end">
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] ml-1 opacity-0">Action</label>
                             <button
                                 onClick={addProbe}
                                 disabled={!newProbe.name || !newProbe.target}
-                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-card-secondary disabled:text-text-muted text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
+                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-card-secondary disabled:text-text-muted text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
                             >
                                 <Plus size={16} />
-                                {editingIndex !== null ? 'Commit Update' : 'Initialize'}
+                                {editingIndex !== null ? 'Update' : 'Initialize'}
                             </button>
                         </div>
                     </div>
@@ -581,7 +582,7 @@ export default function Config({ token }: ConfigProps) {
                                             className="p-2 text-text-muted hover:text-blue-600 hover:bg-blue-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all"
                                             title="Edit"
                                         >
-                                            <Save size={14} />
+                                            <Edit size={14} />
                                         </button>
                                         <button
                                             onClick={() => deleteProbe(idx)}
