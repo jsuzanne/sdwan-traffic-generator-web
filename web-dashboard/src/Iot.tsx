@@ -429,7 +429,7 @@ export default function Iot({ token }: IotProps) {
                                 onClick={() => setSelectedIds(prev => prev.includes(device.id) ? prev.filter(i => i !== device.id) : [...prev, device.id])}
                                 className={cn(
                                     "absolute z-10 p-1 rounded-lg bg-background/60 backdrop-blur-sm border border-border text-text-primary transition-opacity",
-                                    isCompact ? "right-4 top-1/2 -translate-y-1/2 opacity-100" : "top-4 left-4 opacity-0 group-hover:opacity-100"
+                                    isCompact ? "right-2 top-1/2 -translate-y-1/2 opacity-100" : "top-4 left-4 opacity-0 group-hover:opacity-100"
                                 )}
                             >
                                 {selectedIds.includes(device.id) ? <CheckSquare size={16} className="text-blue-500" /> : <SquareIcon size={16} />}
@@ -527,7 +527,7 @@ export default function Iot({ token }: IotProps) {
                                 </div>
 
                                 {/* Actions */}
-                                <div className={cn("flex items-center gap-2", isCompact ? "w-1/6 justify-end" : "")}>
+                                <div className={cn("flex items-center", isCompact ? "gap-3 w-auto justify-end mr-12" : "gap-2")}>
                                     <button
                                         onClick={() => toggleDevice(device.id, device.running)}
                                         className={cn(
