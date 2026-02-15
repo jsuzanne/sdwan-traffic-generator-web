@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.31] - 2026-02-15
+### Fixed
+- **Endpoint Status Display**: Fixed critical bug where disabled endpoints showed as "Active". 🐛
+  - Corrected endpoint ID mapping to use name-based format matching backend (server.ts:1499)
+  - Disabled endpoints now properly display "Inactive" status badge
+- **UI Cosmetics**: Fixed horizontal shift and icon spacing issues. ✨
+  - Added permanent scrollbar to prevent page shift when toggling inactive filter
+  - Improved trash icon spacing in probe cards with better right padding
+
+### Changed
+- **Navigation Menu**: Improved menu organization and removed beta flags. 🎯
+  - Removed "BETA" badge from IoT menu item
+  - Reordered menu: Performance now appears before Security
+  - New order: Dashboard → Statistics → Configuration → Performance → Security → IoT → Voice → Failover → NTOP → System
+
 ## [v1.2.1-patch.30] - 2026-02-15
 ### Fixed
 - **Connectivity Performance**: Endpoint status now correctly displays Active/Inactive based on enabled field. 🐛
