@@ -54,11 +54,11 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                 setActiveProbes(activeData.probes.map((p: any) => p.id));
             }
 
-            // Build map of endpoint configs by ID
+            // Build map of endpoint configs by ID (matching server.ts line 1499)
             const configMap = new Map();
             if (Array.isArray(configsData)) {
                 configsData.forEach((config: any) => {
-                    const id = `${config.type.toLowerCase()}_${config.target.replace(/[^a-z0-9]/gi, '_')}`;
+                    const id = config.name.toLowerCase().replace(/\s+/g, '-');
                     configMap.set(id, config);
                 });
             }
