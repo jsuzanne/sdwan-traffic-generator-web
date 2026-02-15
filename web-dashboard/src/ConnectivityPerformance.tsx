@@ -186,8 +186,8 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     <div className="text-text-muted text-xs font-bold mb-2 uppercase tracking-wider flex items-center gap-2">
                         <Gauge size={16} /> Global Experience
                     </div>
-                    <div className={cn("text-5xl font-black mb-1 tracking-tighter", stats?.globalHealth >= 80 ? "text-green-600 dark:text-green-400" : stats?.globalHealth >= 50 ? "text-orange-500" : "text-red-500")}>
-                        {stats?.globalHealth || 0}<span className="text-xl text-text-muted">/100</span>
+                    <div className={cn("text-4xl font-black mb-1 tracking-tighter", stats?.globalHealth >= 80 ? "text-green-600 dark:text-green-400" : stats?.globalHealth >= 50 ? "text-orange-500" : "text-red-500")}>
+                        {stats?.globalHealth || 0}<span className="text-lg text-text-muted">/100</span>
                     </div>
                     <div className="text-[10px] text-text-muted font-bold uppercase tracking-tight opacity-70">Avg. Scoring across all probes</div>
                 </div>
@@ -196,7 +196,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     <div className="text-text-muted text-xs font-bold mb-2 uppercase tracking-wider flex items-center gap-2">
                         <Activity size={16} /> HTTP Coverage
                     </div>
-                    <div className="text-4xl font-black text-blue-600 dark:text-blue-400 mb-1 tracking-tighter">
+                    <div className="text-3xl font-black text-blue-600 dark:text-blue-400 mb-1 tracking-tighter">
                         {stats?.httpEndpoints?.total || 0}
                     </div>
                     <div className="text-[10px] text-text-muted font-bold uppercase tracking-tight opacity-70">Active Synthetic Endpoints</div>
