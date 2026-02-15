@@ -1,17 +1,108 @@
 import React, { useState, useEffect } from 'react';
 import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, ChevronUp, ChevronDown, Flame, Plus, XCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { twMerge } from 'tailwind-merge';
 
 interface ConnectivityPerformanceProps {
     token: string;
     onManage?: () => void;
 }
 
+// Component for individual endpoint type graph
+function EndpointTypeGraph({ type, results, color }: { type: string; results: any[]; color: string }) {
+    // Filter successful results (reachable and score > 0)
+    const successResults = results.filter(r => r.reachable && r.score > 0);
+
+    // Calculate metrics
+    const avgScore = successResults.length > 0
+        ? Math.round(successResults.reduce((sum, r) => sum + r.score, 0) / successResults.length)
+        : 0;
+    const avgLatency = successResults.length > 0
+        ? Math.round(successResults.reduce((sum, r) => sum + r.metrics.total_ms, 0) / successResults.length)
+        : 0;
+    const successRate = results.length > 0
+        ? Math.round((successResults.length / results.length) * 100)
+        : 0;
+
+    // Prepare chart data (last 50 points, newest first)
+    const chartData = results
+        .slice(0, 50)
+        .reverse()
+        .map(r => ({
+            time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            score: r.score,
+            latency: Math.round(r.metrics.total_ms)
+        }));
+
+    if (results.length === 0) {
+        return (
+            <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+                <div className="text-text-muted text-xs font-bold mb-2 uppercase tracking-wider">{type}</div>
+                <div className="text-xs text-text-muted italic">No data available</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+            <div className="text-text-muted text-xs font-bold mb-2 uppercase tracking-wider">{type}</div>
+            <div className="flex items-center gap-4 mb-3 text-[10px] font-bold">
+                <div className="flex items-center gap-1">
+                    <span className="text-text-muted">Score:</span>
+                    <span className={twMerge("font-black", avgScore >= 80 ? "text-green-600 dark:text-green-400" : avgScore >= 50 ? "text-orange-500" : "text-red-500")}>
+                        {avgScore}
+                    </span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <span className="text-text-muted">Latency:</span>
+                    <span className="text-text-primary font-mono">{avgLatency}ms</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <span className="text-text-muted">Success:</span>
+                    <span className={twMerge("font-black", successRate >= 95 ? "text-green-600 dark:text-green-400" : successRate >= 80 ? "text-orange-500" : "text-red-500")}>
+                        {successRate}%
+                    </span>
+                </div>
+            </div>
+            <div className="h-[80px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                        <defs>
+                            <linearGradient id={`color${type.replace(/[^a-zA-Z]/g, '')}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={color} stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <Area
+                            type="monotone"
+                            dataKey="score"
+                            stroke={color}
+                            fillOpacity={1}
+                            fill={`url(#color${type.replace(/[^a-zA-Z]/g, '')})`}
+                        />
+                        <ReTooltip
+                            contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                            itemStyle={{ color: 'var(--text-primary)', fontSize: '11px' }}
+                            labelStyle={{ color: 'var(--text-muted)', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px' }}
+                            formatter={(value: any, name: string) => {
+                                if (name === 'score') return [value, 'Score'];
+                                return [value, name];
+                            }}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+}
+
+
 export default function ConnectivityPerformance({ token, onManage }: ConnectivityPerformanceProps) {
     const [results, setResults] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState('24h');
+    const [graphTimeRange, setGraphTimeRange] = useState('6h'); // Separate time range for graphs
     const [filterType, setFilterType] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedEndpoint, setSelectedEndpoint] = useState<any>(null);
@@ -72,7 +163,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000);
+        const interval = setInterval(fetchData, 60000); // Optimized: 60s instead of 30s
         return () => clearInterval(interval);
     }, [timeRange]);
 
@@ -164,18 +255,21 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
         return sortDirection === 'asc' ? <ChevronUp size={12} className="ml-1" /> : <ChevronDown size={12} className="ml-1" />;
     };
 
-    // Prepare chart data - Memoized
-    const chartData = React.useMemo(() => {
-        return results.slice(0, 50).reverse().map(r => ({
-            time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            score: r.score,
-            total: parseFloat(r.metrics.total_ms.toFixed(1)),
-            ttfb: parseFloat((r.metrics.ttfb_ms || 0).toFixed(1)),
-            tls: parseFloat((r.metrics.tls_ms || 0).toFixed(1)),
-            tcp: parseFloat((r.metrics.tcp_ms || 0).toFixed(1)),
-            dns: parseFloat((r.metrics.dns_ms || 0).toFixed(1)),
-            endpointName: r.endpointName
-        }));
+    // Filter results by endpoint type for separate graphs
+    const httpResults = React.useMemo(() => {
+        return results.filter(r => r.endpointType === 'HTTP' || r.endpointType === 'HTTPS');
+    }, [results]);
+
+    const pingResults = React.useMemo(() => {
+        return results.filter(r => r.endpointType === 'PING');
+    }, [results]);
+
+    const dnsResults = React.useMemo(() => {
+        return results.filter(r => r.endpointType === 'DNS');
+    }, [results]);
+
+    const udpResults = React.useMemo(() => {
+        return results.filter(r => r.endpointType === 'UDP');
     }, [results]);
 
     return (
@@ -232,27 +326,35 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     </div>
                 </div>
 
-                <div className="md:col-span-2 bg-card border border-border p-6 rounded-2xl shadow-sm">
-                    <div className="text-text-muted text-xs font-bold mb-4 uppercase tracking-wider flex items-center gap-2">
-                        <BarChart3 size={16} /> Recent Performance Trends
+                {/* Performance Trends by Endpoint Type */}
+                <div className="md:col-span-4 bg-card-secondary/30 border border-border p-6 rounded-2xl shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="text-text-muted text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                            <BarChart3 size={16} /> Performance Trends by Type
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-text-muted font-bold uppercase">Time Range:</span>
+                            {['1h', '6h', '24h', '7d'].map(range => (
+                                <button
+                                    key={range}
+                                    onClick={() => setGraphTimeRange(range)}
+                                    className={twMerge(
+                                        "px-2 py-1 text-[10px] font-bold uppercase rounded transition-all",
+                                        graphTimeRange === range
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-card-secondary text-text-muted hover:bg-card-secondary/80"
+                                    )}
+                                >
+                                    {range}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <div className="h-[100px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <Area type="monotone" dataKey="score" stroke="#22c55e" fillOpacity={1} fill="url(#colorScore)" />
-                                <ReTooltip
-                                    contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                    itemStyle={{ color: 'var(--text-primary)' }}
-                                    labelStyle={{ color: 'var(--text-muted)', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <EndpointTypeGraph type="HTTP/HTTPS" results={httpResults} color="#3b82f6" />
+                        <EndpointTypeGraph type="PING" results={pingResults} color="#22c55e" />
+                        <EndpointTypeGraph type="DNS" results={dnsResults} color="#a855f7" />
+                        <EndpointTypeGraph type="UDP" results={udpResults} color="#f97316" />
                     </div>
                 </div>
             </div>
