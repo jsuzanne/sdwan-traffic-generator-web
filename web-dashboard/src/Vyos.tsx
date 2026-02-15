@@ -511,6 +511,26 @@ export default function Vyos(props: VyosProps) {
         event.target.value = '';
     };
 
+    const toggleSequenceEnabled = async (seq: VyosSequence) => {
+        const toastId = toast.loading(seq.enabled ? 'Disabling sequence...' : 'Enabling sequence...');
+        try {
+            const updatedSeq = { ...seq, enabled: !seq.enabled };
+            const res = await fetch('/api/vyos/sequences', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(updatedSeq)
+            });
+            if (res.ok) {
+                fetchData();
+                toast.success(`✓ Sequence ${updatedSeq.enabled ? 'enabled' : 'disabled'}`, { id: toastId });
+            } else {
+                toast.error('❌ Failed to update sequence', { id: toastId });
+            }
+        } catch (e) {
+            toast.error('❌ Network error', { id: toastId });
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-20">
             {/* Live Indicator Overlay */}
@@ -729,7 +749,23 @@ export default function Vyos(props: VyosProps) {
                                         <span className="text-[10px] text-text-muted font-mono opacity-50">#{seq.id.split('-').pop()?.substring(0, 4)}</span>
                                     </div>
                                 </div>
-                                <div className="flex gap-1">
+                                <div className="flex items-center gap-2">
+                                    {/* Enable/Disable Toggle */}
+                                    <button
+                                        onClick={() => toggleSequenceEnabled(seq)}
+                                        className={cn(
+                                            "relative w-10 h-5 rounded-full transition-all duration-300 border-2",
+                                            seq.enabled
+                                                ? "bg-green-500 border-green-600"
+                                                : "bg-gray-700 border-gray-600"
+                                        )}
+                                        title={seq.enabled ? "Disable sequence" : "Enable sequence"}
+                                    >
+                                        <div className={cn(
+                                            "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-300",
+                                            seq.enabled ? "translate-x-5" : "translate-x-0.5"
+                                        )} />
+                                    </button>
                                     <button onClick={() => openSeqModal(seq)} className="p-1.5 text-text-muted hover:text-blue-500 hover:bg-blue-500/5 rounded-md transition-all">
                                         <Edit2 size={14} />
                                     </button>
