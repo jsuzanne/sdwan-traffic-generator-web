@@ -75,6 +75,7 @@ export interface VyosSequence {
     id: string;
     name: string;
     enabled: boolean;
+    paused?: boolean;  // Paused state for running sequences
     cycle_duration: number;
     actions: VyosAction[];
     lastRun?: number;
