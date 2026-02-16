@@ -74,6 +74,10 @@ export const URL_CATEGORIES: URLCategory[] = [
     { id: 'web-ads', name: 'Web Advertisements', url: 'http://urlfiltering.paloaltonetworks.com/test-web-ads' },
     { id: 'web-email', name: 'Web-based Email', url: 'http://urlfiltering.paloaltonetworks.com/test-web-email' },
     { id: 'web-hosting', name: 'Web Hosting', url: 'http://urlfiltering.paloaltonetworks.com/test-web-hosting' },
+    { id: 'real-time-c2', name: 'Real-time Detection: C2', url: 'http://urlfiltering.paloaltonetworks.com/test-real-time-detection-command-and-control' },
+    { id: 'real-time-malware', name: 'Real-time Detection: Malware', url: 'http://urlfiltering.paloaltonetworks.com/test-real-time-detection-malware' },
+    { id: 'real-time-phishing', name: 'Real-time Detection: Phishing', url: 'http://urlfiltering.paloaltonetworks.com/test-real-time-detection-phishing' },
+    { id: 'real-time-grayware', name: 'Real-time Detection: Grayware', url: 'http://urlfiltering.paloaltonetworks.com/test-real-time-detection-grayware' },
 ];
 
 // DNS Security Test Domains

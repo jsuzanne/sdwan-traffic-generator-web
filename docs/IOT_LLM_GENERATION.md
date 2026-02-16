@@ -36,6 +36,130 @@ Requirements:
 Output format: Return ONLY valid JSON with complete DHCP fingerprints.
 ```
 
+
+**Output format: Return ONLY valid JSON matching this exact schema:**
+
+```json
+{
+  "network": {
+    "gateway": "192.168.207.1"
+  },
+  "devices": [
+    {
+      "id": "vendor_devicetype_01",
+      "name": "Device Model Name",
+      "vendor": "Vendor Name",
+      "type": "Device Category",
+      "mac": "aa:bb:cc:dd:ee:ff",
+      "ip_start": "192.168.207.50",
+      "protocols": ["dhcp", "arp", "lldp", "http", "cloud", "dns"],
+      "enabled": true,
+      "traffic_interval": 180,
+      "description": "Vendor Device Model Name - Device Category",
+      "fingerprint": {
+        "dhcp": {
+          "hostname": "device-hostname",
+          "vendor_class_id": "Vendor Device Model",
+          "client_id_type": 1,
+          "param_req_list": [1, 3, 6, 15, 28, 51, 58, 59]
+        }
+      }
+    }
+  ]
+}
+```
+
+### Reference Example
+
+Copy this structure exactly:
+
+```json
+{
+  "id": "hikvis_security_cameras_01",
+  "name": "Hikvision DS-2CD2385FWD-I",
+  "vendor": "Hikvision",
+  "type": "Security Camera",
+  "mac": "00:12:34:14:00:14",
+  "ip_start": "192.168.207.70",
+  "protocols": ["dhcp", "arp", "lldp", "http", "rtsp", "cloud", "dns", "ntp"],
+  "enabled": true,
+  "traffic_interval": 242,
+  "description": "Hikvision DS-2CD2385FWD-I - Security Cameras",
+  "fingerprint": {
+    "dhcp": {
+      "hostname": "DS-2CD2385FWD-I",
+      "vendor_class_id": "HIKVISION",
+      "client_id_type": 1,
+      "param_req_list": [1, 3, 6, 12, 15, 28, 42, 51, 54, 58, 59]
+    }
+  }
+}
+```
+
+### Protocol Assignments by Device Type
+
+- **Cameras** → `["dhcp", "arp", "lldp", "http", "rtsp", "cloud", "dns", "ntp"]`
+- **Sensors** → `["dhcp", "arp", "mqtt", "cloud", "dns"]`
+- **Smart Lighting** → `["dhcp", "arp", "lldp", "http", "cloud", "dns"]`
+- **Printers** → `["dhcp", "arp", "lldp", "http", "mdns", "dns"]`
+- **Thermostats** → `["dhcp", "arp", "http", "cloud", "dns", "ntp"]`
+
+### DHCP Fingerprint Guidelines
+
+**Cameras** (Hikvision, Axis, Dahua):
+```json
+"param_req_list": [1, 3, 6, 12, 15, 28, 42, 51, 54, 58, 59]
+```
+*(includes NTP option 42)*
+
+**Smart Lighting** (Philips Hue, LIFX, TP-Link):
+```json
+"param_req_list": [1, 3, 6, 15, 28, 51, 58, 59]
+```
+or with NTP:
+```json
+"param_req_list": [1, 3, 6, 15, 28, 42, 51, 58, 59]
+```
+
+**Sensors** (Xiaomi, Aqara, Samsung):
+```json
+"param_req_list": [1, 3, 6, 15, 28, 51, 58, 59]
+```
+
+**Thermostats** (Nest, Ecobee, Honeywell):
+```json
+"param_req_list": [1, 3, 6, 15, 26, 28, 42, 51, 58, 59]
+```
+*(includes MTU option 26)*
+
+**Printers** (HP, Canon):
+```json
+"param_req_list": [1, 3, 6, 15, 28, 51, 54, 58, 59, 119]
+```
+*(includes domain search option 119)*
+
+**Smart Speakers** (Amazon Echo, Google Home):
+- Echo: `[1, 3, 6, 15, 119, 252]`
+- Google: `[1, 3, 6, 15, 28, 42, 51, 58, 59, 119]`
+
+### MAC OUI Prefixes
+
+Use these vendor-specific OUI prefixes:
+
+- **Philips**: `ec:b5:fa`
+- **Hikvision**: `00:12:34`
+- **TP-Link**: `50:c7:bf`
+- **Xiaomi**: `4c:65:a8`
+- **Samsung**: `d0:52:a8`
+- **Axis**: `00:40:8c`
+- **Sonoff**: `34:94:54`
+- **Shelly**: `c4:5b:be`
+- **Arlo**: `d0:73:d5`
+- **Google**: `18:b4:30`
+- **Amazon**: `50:f5:da`
+
+---
+
 ### Step 2: Customize for Your Use Case
 
 Replace the placeholders in the Context section:
