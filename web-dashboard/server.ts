@@ -17,6 +17,7 @@ import { IoTManager, IoTDeviceConfig } from './iot-manager.js';
 import { VyosManager } from './vyos-manager.js';
 import { VyosScheduler } from './vyos-scheduler.js';
 import { SiteManager } from './site-manager.js';
+import { DiscoveryManager, DiscoveredProbe } from './discovery-manager.js';
 import { createServer } from 'http';
 
 import { Server } from 'socket.io';
@@ -180,6 +181,7 @@ const iotManager = new IoTManager(getInterface());
 const vyosManager = new VyosManager(APP_CONFIG.configDir);
 const vyosScheduler = new VyosScheduler(vyosManager, APP_CONFIG.configDir, APP_CONFIG.logDir);
 const siteManager = new SiteManager(APP_CONFIG.configDir);
+const discoveryManager = new DiscoveryManager(APP_CONFIG.configDir);
 
 // START Site Detection Background Jobs
 siteManager.runDetection().catch(e => log('SYSTEM', `Initial site detection failed: ${e.message}`, 'error'));
@@ -1707,13 +1709,24 @@ const saveCustomConnectivityEndpoints = (endpoints: any[]) => {
     }
 };
 
+// API: Refresh Discovered Connectivity Probes
+app.post('/api/probes/discovery/sync', authenticateToken, async (req, res) => {
+    try {
+        const result = await discoveryManager.syncProbes();
+        res.json(result);
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // API: Internet Connectivity Test
 // API: Get active probes list (dynamic + static)
 app.get('/api/connectivity/active-probes', authenticateToken, (req, res) => {
     try {
         const envProbes = getEnvConnectivityEndpoints();
         const customProbes = getCustomConnectivityEndpoints();
-        const allProbes = [...envProbes, ...customProbes];
+        const discoveredProbes = discoveryManager.getProbes();
+        const allProbes = [...envProbes, ...customProbes, ...discoveredProbes];
         res.json({
             success: true,
             probes: allProbes.map(p => ({
@@ -1781,7 +1794,9 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
 
 // API: Get Custom Connectivity Endpoints
 app.get('/api/connectivity/custom', authenticateToken, (req, res) => {
-    res.json(getCustomConnectivityEndpoints());
+    const custom = getCustomConnectivityEndpoints();
+    const discovered = discoveryManager.getProbes();
+    res.json([...custom, ...discovered]);
 });
 
 // API: Update Custom Connectivity Endpoints
@@ -1789,10 +1804,16 @@ app.post('/api/connectivity/custom', authenticateToken, (req, res) => {
     const { endpoints } = req.body;
     if (!Array.isArray(endpoints)) return res.status(400).json({ error: 'Invalid format, expected array' });
 
-    if (saveCustomConnectivityEndpoints(endpoints)) {
-        res.json({ success: true, endpoints });
+    const customProbes = endpoints.filter(p => p.source !== 'discovery');
+    const discoveredProbes = endpoints.filter(p => p.source === 'discovery');
+
+    const customSuccess = saveCustomConnectivityEndpoints(customProbes);
+    discoveryManager.updateProbesFromUI(discoveredProbes);
+
+    if (customSuccess) {
+        res.json({ success: true, count: endpoints.length });
     } else {
-        res.status(500).json({ error: 'Failed to save endpoints' });
+        res.status(500).json({ error: 'Failed to save custom endpoints' });
     }
 });
 
@@ -1870,7 +1891,8 @@ const startConnectivityMonitor = (intervalMinutes: number = 5) => {
     const runMonitor = async () => {
         const testEndpoints: any[] = [
             ...getEnvConnectivityEndpoints(),
-            ...getCustomConnectivityEndpoints()
+            ...getCustomConnectivityEndpoints(),
+            ...discoveryManager.getProbes()
         ];
 
         if (testEndpoints.length === 0) return;

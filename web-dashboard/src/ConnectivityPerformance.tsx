@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, ChevronUp, ChevronDown, Flame, Plus, XCircle } from 'lucide-react';
+import { Gauge, Activity, Clock, Filter, Download, Zap, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, ChevronUp, ChevronDown, Flame, Plus, XCircle, RefreshCw, Globe } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { twMerge } from 'tailwind-merge';
 
@@ -115,6 +115,8 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
     // Sorting state
     const [sortField, setSortField] = useState<string>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncResult, setSyncResult] = useState<any>(null);
 
     const authHeaders = () => ({ 'Authorization': `Bearer ${token}` });
 
@@ -158,6 +160,22 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             console.error("Failed to fetch connectivity data", e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const syncDiscovery = async () => {
+        setIsSyncing(true);
+        setSyncResult(null);
+        try {
+            const res = await fetch('/api/probes/discovery/sync', { method: 'POST', headers: authHeaders() });
+            const data = await res.json();
+            setSyncResult(data);
+            fetchData();
+            setTimeout(() => setSyncResult(null), 5000);
+        } catch (e) {
+            console.error("Sync failed", e);
+        } finally {
+            setIsSyncing(false);
         }
     };
 
@@ -206,7 +224,9 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                 checks: endpointResults.length,
                 successRate: Math.round((reachable.length / endpointResults.length) * 100),
                 lastResult: last,
-                enabled
+                enabled,
+                source: config?.source,
+                stale: config?.stale
             };
         }).filter(e => {
             if (!showDeleted && activeProbes.length > 0 && !activeProbes.includes(e.id)) return false;
@@ -445,6 +465,20 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                         </select>
                     </div>
 
+                    <button
+                        onClick={syncDiscovery}
+                        disabled={isSyncing}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all border",
+                            isSyncing
+                                ? "bg-card-secondary text-text-muted border-border cursor-not-allowed"
+                                : "bg-card/40 text-blue-600 dark:text-blue-400 border-blue-500/20 hover:bg-blue-500/10 shadow-sm"
+                        )}
+                    >
+                        <RefreshCw size={14} className={cn(isSyncing && "animate-spin")} />
+                        {isSyncing ? "SYNCING..." : "SYNC DISCOVERY (ICMP)"}
+                    </button>
+
                     {onManage && (
                         <button
                             onClick={onManage}
@@ -455,6 +489,15 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                     )}
                 </div>
             </div>
+
+            {syncResult && (
+                <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3 text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-tight">
+                        <Zap size={16} />
+                        Discovery Sync Complete: {syncResult.created} created, {syncResult.updated} updated, {syncResult.staleMarked} stale.
+                    </div>
+                </div>
+            )}
 
             {/* Metrics Table */}
             <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl shadow-black/5">
@@ -505,7 +548,17 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                             )}>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-text-primary group-hover:text-blue-500 transition-colors uppercase tracking-tight">{e.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-text-primary group-hover:text-blue-500 transition-colors uppercase tracking-tight">{e.name}</span>
+                                            {e.source === 'discovery' && (
+                                                <span className={cn(
+                                                    "px-1.5 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest flex items-center gap-1",
+                                                    e.stale ? "bg-orange-500/20 text-orange-500" : "bg-blue-500/20 text-blue-500"
+                                                )}>
+                                                    <Globe size={10} /> {e.stale ? "STALE" : "DISCOVERED"}
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="text-[10px] text-text-muted font-mono truncate max-w-[200px]">{e.lastResult.url}</span>
                                     </div>
                                 </td>

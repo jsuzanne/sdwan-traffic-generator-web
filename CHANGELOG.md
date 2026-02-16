@@ -4,7 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.31] - 2026-02-15
+## [v1.2.1-patch.39] - 2026-02-16
+### Added
+- **Site Discovery Probes (DEM)**: Automatic discovery of Prisma SD-WAN sites. 🌐
+  - New `DiscoveryManager` to fetch LAN interfaces via `getflow.py`.
+  - Deterministic selection of one ICMP probe per site (Interface '1' preference).
+  - Separate persistence in `connectivity-discovered.json` with user overrides support.
+  - "Sync Discovery (ICMP)" action in the Connectivity dashboard with real-time status reporting.
+  - "DISCOVERED" and "STALE" badges in performance and configuration views.
+
+## [v1.2.1-patch.38] - 2026-02-15
 ### Fixed
 - **Endpoint Status Display**: Fixed critical bug where disabled endpoints showed as "Active". 🐛
   - Corrected endpoint ID mapping to use name-based format matching backend (server.ts:1499)

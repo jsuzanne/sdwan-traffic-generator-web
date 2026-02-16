@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Edit, Plus, Trash2, Network, Sliders, ChevronDown, ChevronRight, Server, CheckCircle2, Download, Upload, Power } from 'lucide-react';
+import { Edit, Plus, Trash2, Network, Sliders, ChevronDown, ChevronRight, Server, CheckCircle2, Download, Upload, Power, Globe } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -560,7 +560,17 @@ export default function Config({ token }: ConfigProps) {
                                             {probe.type.substring(0, 3)}
                                         </div>
                                         <div>
-                                            <div className="text-[11px] font-black text-text-primary uppercase tracking-tight group-hover:text-blue-600 transition-colors">{probe.name}</div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-[11px] font-black text-text-primary uppercase tracking-tight group-hover:text-blue-600 transition-colors">{probe.name}</div>
+                                                {(probe as any).source === 'discovery' && (
+                                                    <span className={cn(
+                                                        "px-1.5 py-0.5 rounded-[4px] text-[7px] font-black uppercase tracking-widest flex items-center gap-1",
+                                                        (probe as any).stale ? "bg-orange-500/20 text-orange-500" : "bg-blue-500/20 text-blue-500"
+                                                    )}>
+                                                        <Globe size={8} /> {(probe as any).stale ? "STALE" : "DISCOVERED"}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-[10px] text-text-muted font-mono tracking-tighter truncate max-w-[140px] opacity-70">{probe.target}</div>
                                         </div>
                                     </div>
@@ -577,20 +587,24 @@ export default function Config({ token }: ConfigProps) {
                                         >
                                             <Power size={14} />
                                         </button>
-                                        <button
-                                            onClick={() => editProbe(idx)}
-                                            className="p-2 text-text-muted hover:text-blue-600 hover:bg-blue-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all"
-                                            title="Edit"
-                                        >
-                                            <Edit size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => deleteProbe(idx)}
-                                            className="p-2 text-text-muted hover:text-red-600 hover:bg-red-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all"
-                                            title="Purge"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                        {(probe as any).source !== 'discovery' && (
+                                            <>
+                                                <button
+                                                    onClick={() => editProbe(idx)}
+                                                    className="p-2 text-text-muted hover:text-blue-600 hover:bg-blue-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all"
+                                                    title="Edit"
+                                                >
+                                                    <Edit size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteProbe(idx)}
+                                                    className="p-2 text-text-muted hover:text-red-600 hover:bg-red-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all"
+                                                    title="Purge"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ))}
