@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.2.1--patch.31-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.1--patch.36-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -465,7 +465,21 @@ Navigate to the **Security** tab to:
 
 ## 🔧 Configuration
 
+### 🌐 Prisma SD-WAN Integration (Auto-detect)
+
+The tool supports auto-detection of your Prisma SD-WAN site name for lab visibility.
+
+1. Create a service account in Prisma SASE (TSG) with **Read Only** permissions.
+2. Add the following to your `.env` file:
+   ```bash
+   PRISMA_SDWAN_CLIENT_ID=your-client-id@tsgid.iam.panserviceaccount.com
+   PRISMA_SDWAN_CLIENT_SECRET=your-client-secret
+   PRISMA_SDWAN_TSG_ID=your-tsg-id
+   ```
+3. Restart the container. The detected site name will appear in the dashboard header.
+
 ### Change Port
+
 
 ```yaml
 # docker-compose.yml

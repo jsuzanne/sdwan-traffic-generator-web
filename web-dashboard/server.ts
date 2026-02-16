@@ -16,7 +16,9 @@ import { URL_CATEGORIES, DNS_TEST_DOMAINS } from './shared/security-categories.j
 import { IoTManager, IoTDeviceConfig } from './iot-manager.js';
 import { VyosManager } from './vyos-manager.js';
 import { VyosScheduler } from './vyos-scheduler.js';
+import { SiteManager } from './site-manager.js';
 import { createServer } from 'http';
+
 import { Server } from 'socket.io';
 import multer from 'multer';
 
@@ -177,6 +179,12 @@ if (fs.existsSync(INTERFACES_FILE)) {
 const iotManager = new IoTManager(getInterface());
 const vyosManager = new VyosManager(APP_CONFIG.configDir);
 const vyosScheduler = new VyosScheduler(vyosManager, APP_CONFIG.configDir, APP_CONFIG.logDir);
+const siteManager = new SiteManager(APP_CONFIG.configDir);
+
+// START Site Detection Background Jobs
+siteManager.runDetection().catch(e => log('SYSTEM', `Initial site detection failed: ${e.message}`, 'error'));
+siteManager.startPeriodicRefresh(10); // Refresh every 10 minutes
+
 
 
 const getNextBatchId = (): string => {
@@ -1008,8 +1016,24 @@ app.get('/api/config/ui', (req, res) => {
     });
 });
 
+// API: Get Site Information (Prisma SD-WAN)
+app.get('/api/siteinfo', authenticateToken, (req, res) => {
+    res.json(siteManager.getSiteInfo());
+});
+
+// API: Refresh Site Information (Prisma SD-WAN)
+app.post('/api/siteinfo/refresh', authenticateToken, async (req, res) => {
+    try {
+        const result = await siteManager.runDetection();
+        res.json(result);
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // API: Get Version (Public endpoint)
 app.get('/api/version', (req, res) => {
+
     try {
         const versionFile = path.join(__dirname, 'VERSION');
         if (fs.existsSync(versionFile)) {

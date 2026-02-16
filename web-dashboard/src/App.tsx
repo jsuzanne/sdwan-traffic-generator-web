@@ -36,6 +36,17 @@ interface Stats {
   errors_by_app: Record<string, number>;
 }
 
+interface SiteInfo {
+  success: boolean;
+  detected_site_name?: string;
+  detected_site_id?: string;
+  local_ip?: string;
+  matched_network?: string;
+  error?: string;
+  last_attempt: number;
+}
+
+
 
 
 export default function App() {
@@ -98,6 +109,10 @@ export default function App() {
 
   // Maintenance State
   const [maintenance, setMaintenance] = useState<{ updateAvailable: boolean } | null>(null);
+
+  // Site Info State
+  const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null);
+
 
   // Rate Calculation State - Use Refs to avoid stale closures in setInterval
   const prevTotalRequestsRef = useRef<number | null>(null);
@@ -469,6 +484,16 @@ export default function App() {
     } catch (e) { }
   };
 
+  const fetchSiteInfo = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/siteinfo', { headers: authHeaders() });
+      const data = await res.json();
+      setSiteInfo(data);
+    } catch (e) { }
+  };
+
+
 
   useEffect(() => {
     if (!token) return;
@@ -480,6 +505,8 @@ export default function App() {
     fetchAppConfig();
     fetchMaintenance();
     fetchPublicIp();
+    fetchSiteInfo();
+
 
     // The "Single Clock" - Everything high-freq (1s baseline)
     const interval = setInterval(() => {
@@ -500,7 +527,9 @@ export default function App() {
       fetchConnectivity();
       fetchIperfStatus();
       fetchPublicIp();
+      fetchSiteInfo();
     }, 30000);
+
 
     const maintenanceInterval = setInterval(() => {
       fetchMaintenance();
@@ -531,8 +560,13 @@ export default function App() {
             SD-WAN Traffic Generator
           </h1>
           <p className="text-text-muted mt-1">
-            Real-time Control Center {version && <span className="text-text-muted/60">• {version}</span>}
+            Real-time Control Center
+            {siteInfo?.success && siteInfo.detected_site_name && (
+              <span className="text-text-muted/60"> • <span className="text-blue-400 font-bold">{siteInfo.detected_site_name}</span></span>
+            )}
+            {version && <span className="text-text-muted/60"> • {version}</span>}
           </p>
+
         </div>
 
 

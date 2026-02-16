@@ -22,6 +22,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=8080
+      - PRISMA_SDWAN_CLIENT_ID=${PRISMA_SDWAN_CLIENT_ID:-}
+      - PRISMA_SDWAN_CLIENT_SECRET=${PRISMA_SDWAN_CLIENT_SECRET:-}
+      - PRISMA_SDWAN_TSG_ID=${PRISMA_SDWAN_TSG_ID:-}
       - CONFIG_DIR=/app/config
       - LOG_DIR=/var/log/sdwan-traffic-gen
       - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7}
