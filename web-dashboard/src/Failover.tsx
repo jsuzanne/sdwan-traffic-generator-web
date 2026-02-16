@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Clock, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, Play, Pause, Trash2, Zap, Server, Globe, Hash, Plus, Target, X, Square } from 'lucide-react';
 
+function cn(...classes: string[]) {
+    return classes.filter(Boolean).join(' ');
+}
+
 interface FailoverProps {
     token: string;
     externalStatus?: any[];
@@ -251,11 +255,11 @@ export default function Failover(props: FailoverProps) {
                             {activeTests.length > 0 && (
                                 <button
                                     onClick={() => stopTest()}
-                                    disabled={isStopping}
+                                    disabled={activeTests.some(t => t.status === 'stopping')}
                                     className="mt-5 flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg text-sm font-bold transition-all border border-red-500/30 shadow-lg shadow-red-900/20 group disabled:opacity-50"
                                 >
-                                    {isStopping ? <Activity size={16} className="animate-spin" /> : <Square size={16} fill="currentColor" className="group-hover:animate-pulse" />}
-                                    {isStopping ? 'STOPPING...' : 'STOP ALL PROBES'}
+                                    {activeTests.some(t => t.status === 'stopping') ? <Activity size={16} className="animate-spin" /> : <Square size={16} fill="currentColor" className="group-hover:animate-pulse" />}
+                                    {activeTests.some(t => t.status === 'stopping') ? 'STOPPING...' : 'STOP ALL PROBES'}
                                 </button>
                             )}
                             {selectedCount > 0 && (
@@ -397,13 +401,29 @@ export default function Failover(props: FailoverProps) {
                                 </span>
                                 <button
                                     onClick={() => stopTest(test.testId)}
-                                    disabled={isStopping}
-                                    className="px-4 py-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded border border-red-500/20 text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg shadow-red-900/10 disabled:opacity-50"
+                                    disabled={test.status === 'stopping'}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded border text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg",
+                                        test.status === 'stopping'
+                                            ? "bg-orange-500/20 text-orange-500 border-orange-500/30 cursor-wait shadow-orange-900/10"
+                                            : "bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border-red-500/20 shadow-red-900/10"
+                                    )}
                                 >
-                                    {isStopping ? <Activity size={10} className="animate-spin" /> : <Square size={10} fill="currentColor" />}
-                                    {isStopping ? 'STOPPING...' : 'STOP PROBE'}
+                                    {test.status === 'stopping' ? <Activity size={10} className="animate-spin" /> : <Square size={10} fill="currentColor" />}
+                                    {test.status === 'stopping' ? 'STOPPING...' : 'STOP PROBE'}
                                 </button>
                             </div>
+
+                            {test.status === 'stopping' && (
+                                <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] z-10 flex items-center justify-center animate-in fade-in duration-500">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/30 rounded-full">
+                                            <div className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+                                            <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Finalizing Capture (Grace Period)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -599,68 +619,70 @@ export default function Failover(props: FailoverProps) {
             </div>
 
             {/* Add Target Modal */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-                        <div className="p-6 border-b border-border flex items-center justify-between bg-card-secondary/50">
-                            <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                                <Target size={20} className="text-blue-500" /> Add Failover Target
-                            </h3>
-                            <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Target Label</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. DC1 - Primary"
-                                    value={newTarget.label}
-                                    onChange={(e) => setNewTarget({ ...newTarget, label: e.target.value })}
-                                    className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all"
-                                />
+            {
+                showAddModal && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                        <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+                            <div className="p-6 border-b border-border flex items-center justify-between bg-card-secondary/50">
+                                <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                                    <Target size={20} className="text-blue-500" /> Add Failover Target
+                                </h3>
+                                <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="col-span-2 space-y-1.5">
-                                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">IP / Hostname</label>
+                            <div className="p-6 space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Target Label</label>
                                     <input
                                         type="text"
-                                        placeholder="192.168.1.10"
-                                        value={newTarget.target}
-                                        onChange={(e) => setNewTarget({ ...newTarget, target: e.target.value })}
-                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                                        placeholder="e.g. DC1 - Primary"
+                                        value={newTarget.label}
+                                        onChange={(e) => setNewTarget({ ...newTarget, label: e.target.value })}
+                                        className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all"
                                     />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Port</label>
-                                    <input
-                                        type="number"
-                                        value={newTarget.port}
-                                        onChange={(e) => setNewTarget({ ...newTarget, port: parseInt(e.target.value) })}
-                                        disabled={true}
-                                        className="w-full bg-card-secondary/50 border border-border rounded-xl px-4 py-3 text-text-muted outline-none cursor-not-allowed font-mono opacity-70"
-                                    />
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="col-span-2 space-y-1.5">
+                                        <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">IP / Hostname</label>
+                                        <input
+                                            type="text"
+                                            placeholder="192.168.1.10"
+                                            value={newTarget.target}
+                                            onChange={(e) => setNewTarget({ ...newTarget, target: e.target.value })}
+                                            className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-text-primary outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-text-muted uppercase tracking-widest pl-1">Port</label>
+                                        <input
+                                            type="number"
+                                            value={newTarget.port}
+                                            onChange={(e) => setNewTarget({ ...newTarget, port: parseInt(e.target.value) })}
+                                            disabled={true}
+                                            className="w-full bg-card-secondary/50 border border-border rounded-xl px-4 py-3 text-text-muted outline-none cursor-not-allowed font-mono opacity-70"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="p-6 border-t border-border bg-card-secondary/50 rounded-b-2xl flex gap-3">
-                            <button
-                                onClick={() => setShowAddModal(false)}
-                                className="flex-1 px-4 py-3 rounded-xl bg-card-secondary hover:bg-card-hover text-text-muted font-bold transition-all text-sm border border-border"
-                            >
-                                CANCEL
-                            </button>
-                            <button
-                                onClick={addEndpoint}
-                                className="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-900/20 text-sm"
-                            >
-                                SAVE TARGET
-                            </button>
+                            <div className="p-6 border-t border-border bg-card-secondary/50 rounded-b-2xl flex gap-3">
+                                <button
+                                    onClick={() => setShowAddModal(false)}
+                                    className="flex-1 px-4 py-3 rounded-xl bg-card-secondary hover:bg-card-hover text-text-muted font-bold transition-all text-sm border border-border"
+                                >
+                                    CANCEL
+                                </button>
+                                <button
+                                    onClick={addEndpoint}
+                                    className="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-900/20 text-sm"
+                                >
+                                    SAVE TARGET
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

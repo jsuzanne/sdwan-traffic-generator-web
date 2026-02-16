@@ -1,7 +1,7 @@
 # SD-WAN Traffic Generator - Technical Specification
 
-**Repository**: [jsuzanne/sdwan-traffic-generator-web](https://github.com/jsuzanne/sdwan-traffic-generator-web)  [![Version](https://img.shields.io/badge/Version-1.2.1--patch.43-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
-**Version**: 1.2.1-patch.43
+**Repository**: [jsuzanne/sdwan-traffic-generator-web](https://github.com/jsuzanne/sdwan-traffic-generator-web)  [![Version](https://img.shields.io/badge/Version-1.2.1--patch.44-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+**Version:** 1.2.1-patch.44  
 **Last Updated**: January 2026
 
 ---

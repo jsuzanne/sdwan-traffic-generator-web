@@ -718,7 +718,7 @@ docusign.com|50|/`;
             try {
                 const defaultData = JSON.parse(fs.readFileSync(defaultIoTFile, 'utf8'));
                 // Save the full object (network + devices)
-                fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify(defaultData, null, 2), 'utf8');
+                fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify({ devices: defaultData.devices || [] }, null, 2), 'utf8');
                 console.log('✅ Initialized IoT devices from template');
             } catch (e) {
                 console.error('Error initializing IoT devices template:', e);
@@ -2065,34 +2065,38 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
         convergenceProcesses.set(testId, proc);
         convergencePPS.set(testId, requestedPPS);
 
-        proc.on('error', (err: any) => {
-            console.error(`[CONVERGENCE-ERROR] Failed to start ${testId}: ${err.message}`);
+        proc.on('exit', (code) => {
+            const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            console.log(`[${testId}] [${now}] 🏁 Convergence process exited with code ${code}`);
+            log(`CONV-${testId}`, `${code === 0 || code === null ? '✅' : '❌'} Convergence test ended: ${code === 0 || code === null ? 'SUCCESS' : 'FAILED'} (exit code: ${code})`);
             convergenceProcesses.delete(testId);
             convergencePPS.delete(testId);
+
+            // Clean up stats file after a short delay to allow last reading
+            setTimeout(() => {
+                const statsFile = `/tmp/convergence_stats_${testId}.json`;
+                if (fs.existsSync(statsFile)) {
+                    try {
+                        const finalStats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
+                        fs.appendFileSync(CONVERGENCE_HISTORY_FILE, JSON.stringify({
+                            ...finalStats,
+                            timestamp: Math.floor(Date.now() / 1000)
+                        }) + '\n');
+                        fs.unlinkSync(statsFile);
+                    } catch (e) {
+                        console.error(`[CONVERGENCE-ERROR] Failed to process final stats for ${testId}:`, e);
+                    }
+                }
+            }, 2000);
         });
 
-        proc.on('close', (code: any) => {
-            const status = code === 0 || code === null ? 'SUCCESS' : 'FAILED';
-            const emoji = code === 0 || code === null ? '✅' : '❌';
-            log(`CONV-${testId}`, `${emoji} Convergence test ended: ${status} (exit code: ${code})`);
-
+        proc.on('error', (err: any) => {
+            console.error(`[CONVERGENCE-ERROR] Failed to start ${testId}: ${err.message}`);
+            // Log failure immediately if process fails to spawn
+            const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            log(`CONV-${testId}`, `❌ Convergence test failed to start: ${err.message}`);
             convergenceProcesses.delete(testId);
             convergencePPS.delete(testId);
-
-            // Finalize history entry
-
-            // Finalize history entry
-            if (fs.existsSync(statsFile)) {
-                try {
-                    const finalStats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
-                    fs.appendFileSync(CONVERGENCE_HISTORY_FILE, JSON.stringify({
-                        ...finalStats,
-                        timestamp: Date.now()
-                    }) + '\n');
-                    // Cleanup tmp file
-                    fs.unlinkSync(statsFile);
-                } catch (e) { }
-            }
         });
 
         res.json({ success: true, testId: testId });
@@ -2106,23 +2110,20 @@ app.post('/api/convergence/stop', authenticateToken, (req, res) => {
     if (testId) {
         const proc = convergenceProcesses.get(testId);
         if (proc) {
-            proc.kill(); // Default is SIGTERM, which is usually fine. SIGINT is also an option.
-            convergenceProcesses.delete(testId);
-            convergencePPS.delete(testId);
+            proc.kill(); // Triggers the 'exit' listener we added above
             const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
-            console.log(`[${testId}] [${now}] 🛑 Stopped specific test`);
-            return res.json({ success: true });
+            console.log(`[${testId}] [${now}] 🛑 Requested stop for specific test`);
+            return res.json({ success: true, stopping: true });
         }
         return res.status(404).json({ error: 'Test not found' });
     } else {
         // Stop all
+        const count = convergenceProcesses.size;
         for (const [id, proc] of convergenceProcesses.entries()) {
             proc.kill();
-            convergencePPS.delete(id);
         }
-        convergenceProcesses.clear();
-        console.log('[CONVERGENCE] Stopped all tests');
-        res.json({ success: true, count: convergenceProcesses.size });
+        console.log(`[CONVERGENCE] Requested stop for all tests (${count})`);
+        res.json({ success: true, count, stopping: true });
     }
 });
 

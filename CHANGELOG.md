@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.44] - 2026-02-16
+### Improved
+- **Convergence Lab Stop Sequence**: Optimized the "Stop Probe" UX to prevent UI freezing during the 5-second grace period. 🛑
+  - Added a "stopping" transient state in the Python orchestrator for better visual feedback.
+  - Refactored the backend to manage the full process lifecycle until completion.
+  - Added per-probe "Stopping..." UI indicators and glassmorphism overlays during capture finalization.
+
 ## [v1.2.1-patch.43] - 2026-02-16
 ### Added
 - **Traffic Volume History**: Persisted real-time stats to `traffic-history.jsonl` on the backend. 📈
