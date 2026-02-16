@@ -571,7 +571,12 @@ export default function Config({ token }: ConfigProps) {
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-text-muted font-mono tracking-tighter truncate max-w-[140px] opacity-70">{probe.target}</div>
+                                            <div className="text-[10px] text-text-muted font-mono tracking-tighter truncate max-w-[140px] opacity-70">
+                                                {probe.target}
+                                                {(probe as any).selected_interface_label && (
+                                                    <span className="ml-2 opacity-50">via {(probe as any).selected_interface_label}</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-1.5">

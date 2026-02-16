@@ -476,7 +476,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                         )}
                     >
                         <RefreshCw size={14} className={cn(isSyncing && "animate-spin")} />
-                        {isSyncing ? "SYNCING..." : "SYNC DISCOVERY (ICMP)"}
+                        {isSyncing ? "SYNCING..." : "SYNC PRISMA SD-WAN"}
                     </button>
 
                     {onManage && (
@@ -690,6 +690,26 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                                         <p className="text-xs text-text-muted leading-relaxed italic">
                                             High **TLS** timing often indicates SASE inspection or poor network path quality. **TTFB** (Time to First Byte) reflects backend application responsiveness after the handshake.
                                         </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Discovery Parameters */}
+                            {(selectedEndpoint as any).source === 'discovery' && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-card-secondary/30 p-4 rounded-xl border border-border">
+                                        <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Site ID</div>
+                                        <div className="text-xs font-bold text-text-primary">{(selectedEndpoint as any).site_id}</div>
+                                    </div>
+                                    <div className="bg-card-secondary/30 p-4 rounded-xl border border-border">
+                                        <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Interface</div>
+                                        <div className="text-xs font-bold text-text-primary">
+                                            {(selectedEndpoint as any).selected_interface_label || (selectedEndpoint as any).selected_interface_name}
+                                        </div>
+                                    </div>
+                                    <div className="bg-card-secondary/30 p-4 rounded-xl border border-border">
+                                        <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Network</div>
+                                        <div className="text-xs font-bold text-text-primary">{(selectedEndpoint as any).selected_network}</div>
                                     </div>
                                 </div>
                             )}

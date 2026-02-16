@@ -3,10 +3,6 @@
 Prisma SD-WAN Flow Browser Query Script using Official Prisma SASE SDK
 Collects flow data filtered by UDP source port, source IP, and destination IP
 Resolves path IDs to full path names (source to destination)
-
-Enhancement:
-- For LAN/DC LAN listings, keep interface_name AND (if present) interface_description.
-- Add interface_label = "name (description)" when description exists, else "name".
 """
 
 import json
@@ -16,8 +12,6 @@ import sys
 import socket
 import ipaddress
 import os
-from typing import Optional, Dict, Any
-
 from prisma_sase import API, jd
 
 
@@ -277,44 +271,17 @@ def get_site_roles(sdk, debug=False):
     return roles
 
 
-def get_interface_description(interface: Dict[str, Any]) -> Optional[str]:
-    """
-    Try to extract an interface description/comment field.
-    The exact key can vary by API/payload, so we try a few common ones.
-    """
-    desc = (
-        interface.get("description")
-        or interface.get("desc")
-        or interface.get("comment")
-        or interface.get("comments")
-        or interface.get("notes")
-    )
-
-    if isinstance(desc, str):
-        desc = desc.strip()
-        return desc or None
-
-    return None
-
-
-def format_interface_label(name: str, desc: Optional[str]) -> str:
-    return f"{name} ({desc})" if desc else name
-
-
 def get_all_lan_interfaces(sdk, sites, debug=False):
     """
     Branch LAN interfaces:
     - used_for == 'lan'
     - ipv4_config.type == 'static'
-
-    Enhancement:
-    - store interface_name + interface_description + interface_label
     """
     site_lan_map = {}
 
     try:
         if debug:
-            print(" Fetching all elements...", file=sys.stderr)
+            print(f" Fetching all elements...", file=sys.stderr)
 
         elements_resp = sdk.get.elements()
         if not elements_resp.cgx_status:
@@ -358,9 +325,6 @@ def get_all_lan_interfaces(sdk, sites, debug=False):
 
             for interface in interfaces:
                 intf_name = interface.get('name', 'Unknown')
-                intf_desc = get_interface_description(interface)
-                intf_label = format_interface_label(intf_name, intf_desc)
-
                 used_for = (interface.get('used_for') or "").lower()
                 if used_for != "lan":
                     continue
@@ -395,16 +359,14 @@ def get_all_lan_interfaces(sdk, sites, debug=False):
 
                     site_lan_map[element_site_id]['networks'].append({
                         'network': network,
-                        'interface_name': intf_name,
-                        'interface_description': intf_desc,
-                        'interface_label': intf_label,
+                        'interface': intf_name,
                         'ip': ip_address
                     })
 
                     if debug:
                         print(
                             f" ✓ LAN interface: {site_name} / {element_name} / "
-                            f"{intf_label} (name={intf_name}) used_for=lan -> {ip_address} ({network})",
+                            f"{intf_name} used_for=lan -> {ip_address} ({network})",
                             file=sys.stderr
                         )
 
@@ -420,24 +382,20 @@ def get_all_lan_interfaces(sdk, sites, debug=False):
     return site_lan_map
 
 
-def get_all_dc_lan_interfaces(sdk, sites, debug=False):
+def get_all_dc_lan_interfaces(api_client, sites, debug=False):
     """
     DC LAN interfaces:
     - used_for == 'private'
     - ipv4_config.type == 'static'
-    - exclude WAN/overlay linked interfaces (site_wan_interface_ids)
-    - exclude circuit attached (label_id, circuit_label_id, wan_network_id)
-
-    Enhancement:
-    - store interface_name + interface_description + interface_label
+    - pas de circuit attaché (label_id, circuit_label_id, wan_network_id)
     """
     site_lan_map = {}
 
     try:
         if debug:
-            print(" Fetching all elements...", file=sys.stderr)
+            print(f" Fetching all elements...", file=sys.stderr)
 
-        elements_resp = sdk.get.elements()
+        elements_resp = api_client.get.elements()
         if not elements_resp.cgx_status:
             if debug:
                 print(f" Could not get elements: {elements_resp.status_code}", file=sys.stderr)
@@ -467,7 +425,7 @@ def get_all_dc_lan_interfaces(sdk, sites, debug=False):
             print(f" Checking element: {element_name} at site {site_name}", file=sys.stderr)
 
         try:
-            intf_resp = sdk.get.interfaces(site_id=element_site_id, element_id=element.get('id'))
+            intf_resp = api_client.get.interfaces(site_id=element_site_id, element_id=element.get('id'))
             if not intf_resp.cgx_status:
                 if debug:
                     print(f" Could not get interfaces: {intf_resp.status_code}", file=sys.stderr)
@@ -479,12 +437,9 @@ def get_all_dc_lan_interfaces(sdk, sites, debug=False):
 
             for interface in interfaces:
                 intf_name = interface.get('name', 'Unknown')
-                intf_desc = get_interface_description(interface)
-                intf_label = format_interface_label(intf_name, intf_desc)
-
                 used_for = (interface.get('used_for') or "").lower()
 
-                # Filter 1: private only
+                # Filtre 1: private uniquement
                 if used_for != "private":
                     continue
 
@@ -492,18 +447,17 @@ def get_all_dc_lan_interfaces(sdk, sites, debug=False):
                 if ipv4_config.get('type') != 'static':
                     continue
 
-                # Filter 2: exclude interfaces linked to a WAN interface (overlay)
+                # Filtre 2: exclure les interfaces liées à un WAN interface (overlay)
                 site_wan_interface_ids = interface.get('site_wan_interface_ids')
                 if site_wan_interface_ids:
                     if debug:
                         print(
-                            f" [SKIP] {site_name}/{element_name}/{intf_label} (name={intf_name}) "
-                            f"linked to WAN interface {site_wan_interface_ids}",
+                            f" [SKIP] {site_name}/{element_name}/{intf_name} linked to WAN interface {site_wan_interface_ids}",
                             file=sys.stderr
                         )
                     continue
 
-                # Filter 3: exclude interfaces with circuit attached
+                # Filtre 3: exclure les interfaces avec circuit attaché
                 circuit = (
                     interface.get("label_id")
                     or interface.get("circuit_label_id")
@@ -513,7 +467,7 @@ def get_all_dc_lan_interfaces(sdk, sites, debug=False):
                 if circuit:
                     if debug:
                         print(
-                            f" [SKIP] {site_name}/{element_name}/{intf_label} (name={intf_name}) has circuit {circuit}",
+                            f" [SKIP] {site_name}/{element_name}/{intf_name} has circuit {circuit}",
                             file=sys.stderr
                         )
                     continue
@@ -522,6 +476,12 @@ def get_all_dc_lan_interfaces(sdk, sites, debug=False):
                 ip_address_raw = static_config.get('address')
                 if not ip_address_raw:
                     continue
+
+                # # DEBUG: dump les interfaces 192.168.190.x pour voir le champ circuit
+                # if debug and ip_address_raw and "192.168.190" in ip_address_raw:
+                #     print(f"\n [DEBUG-190] Interface {site_name}/{element_name}/{intf_name}:", file=sys.stderr)
+                #     print(json.dumps(interface, indent=2), file=sys.stderr)
+                #     print("\n", file=sys.stderr)
 
                 try:
                     if '/' in ip_address_raw:
@@ -544,16 +504,14 @@ def get_all_dc_lan_interfaces(sdk, sites, debug=False):
 
                     site_lan_map[element_site_id]['networks'].append({
                         'network': network,
-                        'interface_name': intf_name,
-                        'interface_description': intf_desc,
-                        'interface_label': intf_label,
+                        'interface': intf_name,
                         'ip': ip_address
                     })
 
                     if debug:
                         print(
                             f" ✓ DC LAN interface: {site_name} / {element_name} / "
-                            f"{intf_label} (name={intf_name}) used_for=private -> {ip_address} ({network})",
+                            f"{intf_name} used_for=private -> {ip_address} ({network})",
                             file=sys.stderr
                         )
 
@@ -580,14 +538,7 @@ def flatten_lan_map(site_lan_map):
             flat.append({
                 "site_name": site_name,
                 "site_id": site_id,
-
-                # Keep the original field name "interface_name" for compatibility
-                "interface_name": net_info.get('interface_name'),
-
-                # New optional fields
-                "interface_description": net_info.get('interface_description'),
-                "interface_label": net_info.get('interface_label'),
-
+                "interface_name": net_info.get('interface'),
                 "ip": net_info.get('ip'),
                 "network": str(net_info.get('network'))
             })
@@ -856,10 +807,9 @@ def main():
             else:
                 log_output("\nSite\tSite ID\tInterface\tIP\tNetwork", json_mode)
                 for item in flat:
-                    iface_disp = item.get("interface_label") or item.get("interface_name")
                     log_output(
                         f"{item['site_name']}\t{item['site_id']}\t"
-                        f"{iface_disp}\t{item['ip']}\t{item['network']}",
+                        f"{item['interface_name']}\t{item['ip']}\t{item['network']}",
                         json_mode
                     )
                 log_output(f"\nTotal LAN interfaces: {len(flat)}", json_mode)
@@ -881,10 +831,9 @@ def main():
             else:
                 log_output("\nSite\tSite ID\tInterface\tIP\tNetwork", json_mode)
                 for item in flat:
-                    iface_disp = item.get("interface_label") or item.get("interface_name")
                     log_output(
                         f"{item['site_name']}\t{item['site_id']}\t"
-                        f"{iface_disp}\t{item['ip']}\t{item['network']}",
+                        f"{item['interface_name']}\t{item['ip']}\t{item['network']}",
                         json_mode
                     )
                 log_output(f"\nTotal DC LAN interfaces: {len(flat)}", json_mode)
@@ -992,10 +941,10 @@ def main():
     wan_if_lookup = {}
 
     if not args.fast:
-        log_output("\n🌐 Retrieving VPN topology...", json_mode)
+        log_output(f"\n🌐 Retrieving VPN topology...", json_mode)
         topology = get_topology(sdk, target_site_id, debug=args.debug)
 
-        log_output(" Retrieving WAN interfaces...", json_mode)
+        log_output(f" Retrieving WAN interfaces...", json_mode)
         wan_if_lookup = get_wan_interfaces_all_sites(sdk, site_map, debug=args.debug)
 
         if topology:
@@ -1004,7 +953,7 @@ def main():
             log_output("⚠️ Could not retrieve VPN topology (will show IDs only)", json_mode)
     else:
         if args.debug:
-            log_output("\n⚡ Fast mode enabled - skipping topology lookup", json_mode)
+            log_output(f"\n⚡ Fast mode enabled - skipping topology lookup", json_mode)
 
     end_time = datetime.utcnow()
 
@@ -1039,7 +988,7 @@ def main():
     log_output(f" - Region: {args.region}", json_mode)
 
     if args.fast:
-        log_output(" - Mode: Fast (no path resolution)", json_mode)
+        log_output(f" - Mode: Fast (no path resolution)", json_mode)
 
     query_payload = {
         "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -1109,14 +1058,14 @@ def main():
                 with open(args.output, 'w') as f:
                     json.dump(flows_data, f, indent=2)
 
-                log_output("\n✓ Flow query completed", json_mode)
+                log_output(f"\n✓ Flow query completed", json_mode)
                 log_output(f" Results saved to: {args.output}", json_mode)
 
             if 'items' in flows:
                 flow_count = len(flows['items'])
 
                 if not json_mode:
-                    log_output("\n✓ Flow query completed", json_mode)
+                    log_output(f"\n✓ Flow query completed", json_mode)
                     log_output(f" Total flows found: {flow_count}", json_mode)
 
                 if flow_count > 0:
@@ -1152,7 +1101,7 @@ def main():
                         print(json.dumps(result, indent=2))
                     else:
                         first_flow_info = result["flows"][0]
-                        log_output("\n Sample flow:", json_mode)
+                        log_output(f"\n Sample flow:", json_mode)
                         log_output(f" Source: {first_flow_info['source_ip']}:{first_flow_info['source_port']}", json_mode)
                         log_output(f" Destination: {first_flow_info['destination_ip']}:{first_flow_info['destination_port']}", json_mode)
                         log_output(f" Protocol: {first_flow_info['protocol']}", json_mode)
@@ -1163,7 +1112,7 @@ def main():
                         log_output(f" App ID: {first_flow_info['app_id']}", json_mode)
 
                         if args.debug:
-                            log_output("\n Full flow details:", json_mode)
+                            log_output(f"\n Full flow details:", json_mode)
                             jd(flows['items'][0])
 
                 else:
@@ -1171,14 +1120,14 @@ def main():
                     if json_mode:
                         print(json.dumps(result, indent=2))
                     else:
-                        log_output(" No flows found matching the criteria", json_mode)
+                        log_output(f" No flows found matching the criteria", json_mode)
 
             else:
                 result["flows"] = []
                 if json_mode:
                     print(json.dumps(result, indent=2))
                 else:
-                    log_output(" No flows found matching the criteria", json_mode)
+                    log_output(f" No flows found matching the criteria", json_mode)
 
         else:
             error_msg = {"error": "No flows found or unexpected response format"}
@@ -1188,7 +1137,7 @@ def main():
                 log_output("\n No flows found or unexpected response format", json_mode)
 
             if args.debug:
-                log_output("\n Full response:", json_mode)
+                log_output(f"\n Full response:", json_mode)
                 jd(flows_data)
 
     except Exception as e:
@@ -1208,3 +1157,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

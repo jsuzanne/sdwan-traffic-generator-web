@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.41] - 2026-02-16
+### Changed
+- **Site Discovery UI Tuning**: Renamed "Sync Discovery" back to "Sync Prisma SD-WAN" for better clarity. ⚡
+- **Discovery Metadata**: Added support for `interface_label` (e.g., "1 (Users VLAN)") in Site Discovery probes.
+  - Updated `DiscoveryManager` to capture and persist the new `interface_label` field.
+  - Enhanced detailed modal in Connectivity dashboard to display discovery parameters (Site ID, Interface, Network).
+  - Config view now displays interface labels next to IP targets for discovered probes.
+
 ## [v1.2.1-patch.40] - 2026-02-16
 ### Fixed
 - **Docker Build**: Fixed `ERR_MODULE_NOT_FOUND` by adding `discovery-manager.ts` to the Dockerfile runtime stage. 🐳

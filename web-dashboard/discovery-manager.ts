@@ -14,6 +14,7 @@ export interface DiscoveredProbe {
     site_name: string;
     scope: 'branch' | 'dc';
     selected_interface_name: string;
+    selected_interface_label?: string;
     selected_network: string;
     stale?: boolean;
 }
@@ -147,6 +148,7 @@ export class DiscoveryManager {
                         target: selected.ip,
                         site_name: selected.site_name,
                         selected_interface_name: selected.interface_name,
+                        selected_interface_label: selected.interface_label,
                         selected_network: selected.network,
                         scope: selected.scope,
                         stale: false // Reset stale if found again
@@ -155,6 +157,7 @@ export class DiscoveryManager {
                     // Check if anything changed (excluding user-owned fields like enabled/timeout)
                     const changed = existing.target !== updatedProbe.target ||
                         existing.site_name !== updatedProbe.site_name ||
+                        existing.selected_interface_label !== updatedProbe.selected_interface_label ||
                         existing.stale === true;
 
                     if (changed) result.updated++;
@@ -175,6 +178,7 @@ export class DiscoveryManager {
                         site_name: selected.site_name,
                         scope: selected.scope,
                         selected_interface_name: selected.interface_name,
+                        selected_interface_label: selected.interface_label,
                         selected_network: selected.network,
                         stale: false
                     };
