@@ -60,7 +60,7 @@ export class SiteManager {
     public async runDetection(): Promise<SiteInfo> {
         const clientId = process.env.PRISMA_SDWAN_CLIENT_ID;
         const clientSecret = process.env.PRISMA_SDWAN_CLIENT_SECRET;
-        const tsgId = process.env.PRISMA_SDWAN_TSG_ID;
+        const tsgId = process.env.PRISMA_SDWAN_TSG_ID || process.env.PRISMA_SDWAN_TSGID;
 
         if (!clientId || !clientSecret || !tsgId) {
             log('SITE-MGR', 'Prisma SD-WAN credentials not set, skipping auto-detection', 'debug');

@@ -182,7 +182,7 @@ def load_credentials(args, json_mode=False):
 
     env_client_id = os.getenv("PRISMA_SDWAN_CLIENT_ID")
     env_client_secret = os.getenv("PRISMA_SDWAN_CLIENT_SECRET")
-    env_tsg_id = os.getenv("PRISMA_SDWAN_TSG_ID")
+    env_tsg_id = os.getenv("PRISMA_SDWAN_TSG_ID") or os.getenv("PRISMA_SDWAN_TSGID")
 
     if env_client_id and env_client_secret and env_tsg_id:
         return {
