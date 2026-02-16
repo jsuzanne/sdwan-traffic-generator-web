@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Statistics from './Statistics';
 import Security from './Security';
 import Voice from './Voice';
@@ -112,6 +112,10 @@ export default function App() {
 
   // Site Info State
   const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null);
+
+  // Traffic History State
+  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h'>('1h');
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
 
   // Rate Calculation State - Use Refs to avoid stale closures in setInterval
@@ -235,20 +239,54 @@ export default function App() {
       if (data.total_requests !== prevTotalRequestsRef.current) {
         prevTotalRequestsRef.current = data.total_requests;
         prevTimestampRef.current = data.timestamp;
+
+        // Only append live data to history if we're not loading historical snapshots
+        // and if the timestamp is newer than our last entry.
         setHistory(prev => {
-          if (prev.length > 0 && prev[prev.length - 1].rawTimestamp === data.timestamp) return prev;
+          if (prev.length > 0 && prev[prev.length - 1].rawTimestamp >= data.timestamp) return prev;
+
           const newEntry = {
-            time: new Date(data.timestamp * 1000).toLocaleTimeString(),
+            time: new Date(data.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
             rawTimestamp: data.timestamp,
             requests: Math.round(calculatedRpm),
             total: data.total_requests,
             ...data.requests_by_app
           };
+
           const newHistory = [...prev, newEntry];
-          if (newHistory.length > 30) newHistory.shift();
+
+          // Max points based on time range (1 point per minute usually, but live is 1s)
+          // For simplicity, let's keep the last few hundred points if live.
+          // But if we just loaded 1440 points (24h), we don't want to prune too much.
+          const maxPoints = timeRange === '1h' ? 3600 : (timeRange === '6h' ? 21600 : 86400);
+          if (newHistory.length > maxPoints) newHistory.shift();
+
           return newHistory;
         });
       }
+    }
+  };
+
+  const fetchHistory = async () => {
+    if (!token) return;
+    setIsHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/traffic/history?range=${timeRange}`, { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = data.map((item: any) => ({
+          time: new Date(item.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          rawTimestamp: item.timestamp,
+          requests: item.rpm,
+          total: item.total_requests,
+          ...item.requests_by_app
+        }));
+        setHistory(formatted);
+      }
+    } catch (e) {
+      console.error('Failed to fetch traffic history');
+    } finally {
+      setIsHistoryLoading(false);
     }
   };
 
@@ -506,6 +544,7 @@ export default function App() {
     fetchMaintenance();
     fetchPublicIp();
     fetchSiteInfo();
+    fetchHistory();
 
 
     // The "Single Clock" - Everything high-freq (1s baseline)
@@ -542,6 +581,10 @@ export default function App() {
       clearInterval(maintenanceInterval);
     };
   }, [token, view]); // Re-run when view changes to start/stop fast polling
+
+  useEffect(() => {
+    if (token) fetchHistory();
+  }, [timeRange]);
 
 
   const totalErrors = stats ? Object.values(stats.errors_by_app).reduce((a, b) => a + b, 0) : 0;
@@ -1153,18 +1196,94 @@ export default function App() {
           </div>
 
           {/* Main Chart */}
-          <div className="bg-card border border-border rounded-xl p-6 mb-8 backdrop-blur-sm shadow-sm">
-            <h3 className="text-lg font-semibold mb-4 text-text-primary">Traffic Volume</h3>
-            <div className="h-[300px] w-full">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                  <BarChart3 size={20} />
+                </div>
+                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight">Traffic Volume</h3>
+              </div>
+              <div className="flex bg-card-secondary/20 p-1 rounded-xl border border-border">
+                {(['1h', '6h', '24h'] as const).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setTimeRange(range)}
+                    className={cn(
+                      "px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                      timeRange === range
+                        ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
+                        : "text-text-muted hover:text-text-primary hover:bg-card-secondary"
+                    )}
+                  >
+                    {range}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="h-[300px] w-full relative">
+              {isHistoryLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10 rounded-xl">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Synchronizing History...</span>
+                  </div>
+                </div>
+              )}
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={history}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="time" stroke="var(--text-muted)" />
-                  <YAxis stroke="var(--text-muted)" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                  <defs>
+                    <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                  <XAxis
+                    dataKey="time"
+                    stroke="rgba(255,255,255,0.3)"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={30}
                   />
-                  <Line type="monotone" dataKey="requests" stroke="var(--accent)" strokeWidth={2} dot={false} />
+                  <YAxis
+                    stroke="rgba(255,255,255,0.3)"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      color: '#fff',
+                      backdropFilter: 'blur(8px)',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
+                    }}
+                    itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
+                    cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="requests"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={false}
+                    activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2, fill: '#3b82f6' }}
+                    name="Requests/Min"
+                    animationDuration={1500}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="requests"
+                    stroke="none"
+                    fill="url(#colorRequests)"
+                    fillOpacity={1}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>

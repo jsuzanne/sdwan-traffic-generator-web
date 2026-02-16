@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.43] - 2026-02-16
+### Added
+- **Traffic Volume History**: Persisted real-time stats to `traffic-history.jsonl` on the backend. 📈
+  - New API endpoint `GET /api/traffic/history` with time range support.
+  - Snapshot collector saves traffic metricsEvery 60 seconds.
+- **Improved Dashboard UI**:
+  - Added time range selector (1h, 6h, 24h) for traffic visualization.
+  - Upgraded "Traffic Volume" chart with monotone area gradients and smooth curves.
+  - Added glassmorphism effects and loading states for historical data synchronization.
+
 ## [v1.2.1-patch.42] - 2026-02-16
 ### Added
 - **DC Cluster Discovery**: Enabled discovery of multiple IPs for Data Center (DC) sites. 🏢🏢

@@ -1184,6 +1184,8 @@ app.use('/api/status', authenticateToken); // Protect status too
 
 
 const STATS_FILE = path.join(APP_CONFIG.logDir, 'stats.json');
+const TRAFFIC_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'traffic-history.jsonl');
+const TRAFFIC_HISTORY_RETENTION = 10080; // 7 days in minutes
 const APPS_FILE = path.join(APP_CONFIG.configDir, 'applications.txt');
 // INTERFACES_FILE is already declared at the top of the file for the watcher
 
@@ -1430,9 +1432,46 @@ app.delete('/api/stats', authenticateToken, (req, res) => {
             errors_by_app: {}
         };
         fs.writeFileSync(STATS_FILE, JSON.stringify(emptyStats, null, 2));
+
+        // Also clear history
+        if (fs.existsSync(TRAFFIC_HISTORY_FILE)) {
+            fs.writeFileSync(TRAFFIC_HISTORY_FILE, '');
+        }
+
         res.json({ success: true });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// API: Get Traffic History
+app.get('/api/traffic/history', authenticateToken, async (req, res) => {
+    try {
+        if (!fs.existsSync(TRAFFIC_HISTORY_FILE)) {
+            return res.json([]);
+        }
+
+        const range = (req.query.range as string) || '1h';
+        let minutes = 60;
+        if (range === '6h') minutes = 360;
+        if (range === '24h') minutes = 1440;
+        if (range === 'all') minutes = TRAFFIC_HISTORY_RETENTION;
+
+        const { stdout } = await promisify(exec)(`tail -n ${minutes} "${TRAFFIC_HISTORY_FILE}"`);
+        const history = stdout.split('\n')
+            .filter(line => line.trim())
+            .map(line => {
+                try {
+                    return JSON.parse(line);
+                } catch (e) {
+                    return null;
+                }
+            })
+            .filter(item => item !== null);
+
+        res.json(history);
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to fetch traffic history', message: e.message });
     }
 });
 
@@ -3225,6 +3264,51 @@ setTimeout(() => {
     // VyOS Health Check (60s)
     setInterval(() => {
         vyosManager.checkHealth().catch(e => console.error('[VYOS] Health check error:', e));
+    }, 60000);
+
+    // Traffic History Collector (60s)
+    let lastTotalRequests = 0;
+    let lastTimestamp = 0;
+
+    setInterval(async () => {
+        try {
+            const statsFile = path.join(APP_CONFIG.logDir, 'stats.json');
+            if (fs.existsSync(statsFile)) {
+                const stats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
+                const now = Math.floor(Date.now() / 1000);
+
+                let rpm = 0;
+                if (lastTimestamp > 0 && now > lastTimestamp) {
+                    const deltaReq = stats.total_requests - lastTotalRequests;
+                    const deltaTime = now - lastTimestamp;
+                    rpm = Math.max(0, (deltaReq / deltaTime) * 60);
+                }
+
+                const snapshot = {
+                    timestamp: now,
+                    rpm: Math.round(rpm * 100) / 100,
+                    total_requests: stats.total_requests,
+                    requests_by_app: stats.requests_by_app
+                };
+
+                fs.appendFileSync(TRAFFIC_HISTORY_FILE, JSON.stringify(snapshot) + '\n');
+
+                lastTotalRequests = stats.total_requests;
+                lastTimestamp = now;
+
+                // Rotation Check (approx once per hour)
+                if (Math.random() < 0.02) {
+                    const { stdout } = await promisify(exec)(`wc -l "${TRAFFIC_HISTORY_FILE}"`);
+                    const count = parseInt(stdout.trim().split(' ')[0]);
+                    if (count > TRAFFIC_HISTORY_RETENTION * 1.2) {
+                        const { stdout: recent } = await promisify(exec)(`tail -n ${TRAFFIC_HISTORY_RETENTION} "${TRAFFIC_HISTORY_FILE}"`);
+                        fs.writeFileSync(TRAFFIC_HISTORY_FILE, recent);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[STATS] History collection failed:', e);
+        }
     }, 60000);
 
     // VyOS Socket Events
