@@ -127,63 +127,27 @@ export class DiscoveryManager {
             const seenKeys = new Set<string>();
 
             for (const [siteId, candidates] of sitesMap.entries()) {
-                // Selection logic
-                let selected = candidates.find(c => c.interface_name === '1');
-                if (!selected) {
-                    selected = candidates.sort((a, b) => this.compareIPs(a.ip, b.ip))[0];
-                }
+                const scope = candidates[0].scope;
 
-                if (!selected || !selected.ip) continue;
-
-                const discoveryKey = `discovery:ping:${siteId}`;
-                seenKeys.add(discoveryKey);
-
-                const existingIndex = currentProbes.findIndex(p => p.discoveryKey === discoveryKey);
-
-                if (existingIndex > -1) {
-                    const existing = currentProbes[existingIndex];
-                    const updatedProbe: DiscoveredProbe = {
-                        ...existing,
-                        name: selected.site_name, // Update name if site_name changed
-                        target: selected.ip,
-                        site_name: selected.site_name,
-                        selected_interface_name: selected.interface_name,
-                        selected_interface_label: selected.interface_label,
-                        selected_network: selected.network,
-                        scope: selected.scope,
-                        stale: false // Reset stale if found again
-                    };
-
-                    // Check if anything changed (excluding user-owned fields like enabled/timeout)
-                    const changed = existing.target !== updatedProbe.target ||
-                        existing.site_name !== updatedProbe.site_name ||
-                        existing.selected_interface_label !== updatedProbe.selected_interface_label ||
-                        existing.stale === true;
-
-                    if (changed) result.updated++;
-                    else result.unchanged++;
-
-                    newProbesList.push(updatedProbe);
+                if (scope === 'dc') {
+                    // DC Cluster logic: all IPs
+                    for (const selected of candidates) {
+                        if (!selected.ip) continue;
+                        const discoveryKey = `discovery:ping:${siteId}:${selected.ip}`;
+                        const probeName = `${selected.site_name} (${selected.ip})`;
+                        this.upsertOneProbe(newProbesList, currentProbes, selected, discoveryKey, probeName, seenKeys, result);
+                    }
                 } else {
-                    // Create new
-                    const newProbe: DiscoveredProbe = {
-                        name: selected.site_name,
-                        type: 'PING',
-                        target: selected.ip,
-                        timeout: 5000,
-                        enabled: false,
-                        source: 'discovery',
-                        discoveryKey,
-                        site_id: siteId,
-                        site_name: selected.site_name,
-                        scope: selected.scope,
-                        selected_interface_name: selected.interface_name,
-                        selected_interface_label: selected.interface_label,
-                        selected_network: selected.network,
-                        stale: false
-                    };
-                    result.created++;
-                    newProbesList.push(newProbe);
+                    // Branch logic: ONE probe (select best)
+                    let selected = candidates.find(c => c.interface_name === '1');
+                    if (!selected) {
+                        selected = candidates.sort((a, b) => this.compareIPs(a.ip, b.ip))[0];
+                    }
+
+                    if (selected && selected.ip) {
+                        const discoveryKey = `discovery:ping:${siteId}`;
+                        this.upsertOneProbe(newProbesList, currentProbes, selected, discoveryKey, selected.site_name, seenKeys, result);
+                    }
                 }
             }
 
@@ -208,6 +172,64 @@ export class DiscoveryManager {
             return result;
         } catch (e: any) {
             throw new Error(`Sync failed: ${e.message}`);
+        }
+    }
+
+    private upsertOneProbe(
+        newProbesList: DiscoveredProbe[],
+        currentProbes: DiscoveredProbe[],
+        selected: any,
+        discoveryKey: string,
+        probeName: string,
+        seenKeys: Set<string>,
+        result: DiscoverySyncResult
+    ): void {
+        seenKeys.add(discoveryKey);
+        const existingIndex = currentProbes.findIndex(p => p.discoveryKey === discoveryKey);
+
+        if (existingIndex > -1) {
+            const existing = currentProbes[existingIndex];
+            const updatedProbe: DiscoveredProbe = {
+                ...existing,
+                name: probeName,
+                target: selected.ip,
+                site_name: selected.site_name,
+                selected_interface_name: selected.interface_name,
+                selected_interface_label: selected.interface_label,
+                selected_network: selected.network,
+                scope: selected.scope,
+                stale: false
+            };
+
+            const changed = existing.target !== updatedProbe.target ||
+                existing.site_name !== updatedProbe.site_name ||
+                existing.name !== updatedProbe.name ||
+                existing.selected_interface_label !== updatedProbe.selected_interface_label ||
+                existing.stale === true;
+
+            if (changed) result.updated++;
+            else result.unchanged++;
+
+            newProbesList.push(updatedProbe);
+        } else {
+            const newProbe: DiscoveredProbe = {
+                name: probeName,
+                type: 'PING',
+                target: selected.ip,
+                timeout: 5000,
+                enabled: false,
+                source: 'discovery',
+                discoveryKey,
+                site_id: selected.site_id,
+                site_name: selected.site_name,
+                scope: selected.scope,
+                selected_interface_name: selected.interface_name,
+                selected_interface_label: selected.interface_label,
+                selected_network: selected.network,
+                stale: false
+            };
+            result.created++;
+            newProbesList.push(newProbe);
         }
     }
 

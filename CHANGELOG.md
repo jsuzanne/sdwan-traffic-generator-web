@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.42] - 2026-02-16
+### Added
+- **DC Cluster Discovery**: Enabled discovery of multiple IPs for Data Center (DC) sites. 🏢🏢
+  - DC sites now generate distinct probes for every discovered IP/interface.
+  - New naming convention for DC probes: `Site Name (IP Address)`.
+  - Unique `discoveryKey` per IP to independently track enabled/disabled status in clusters.
+  - Maintained single-probe logic for Branch sites.
+
 ## [v1.2.1-patch.41] - 2026-02-16
 ### Changed
 - **Site Discovery UI Tuning**: Renamed "Sync Discovery" back to "Sync Prisma SD-WAN" for better clarity. ⚡
