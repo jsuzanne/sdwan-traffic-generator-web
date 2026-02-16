@@ -48,6 +48,7 @@ COPY web-dashboard/connectivity-logger.ts ./
 COPY web-dashboard/iot-manager.ts ./
 COPY web-dashboard/vyos-manager.ts ./
 COPY web-dashboard/vyos-scheduler.ts ./
+COPY web-dashboard/site-manager.ts ./
 COPY web-dashboard/shared ./shared
 COPY web-dashboard/utils ./utils
 COPY web-dashboard/tsconfig.json ./
