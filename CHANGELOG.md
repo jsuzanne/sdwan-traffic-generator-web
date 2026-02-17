@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.56] - 2026-02-17
+### Fixed
+- **Backend**: Resolved critical `TransformError` (variable redeclaration) causing container startup failure. 🛠️🔥
+- **UI Versioning**: Fixed stale version reporting in the dashboard by updating API fallbacks and synchronizing `VERSION` files across all directories. 🔢🔄
+
 ## [v1.2.1-patch.55] - 2026-02-17
 ### Added
 - **Voice UI**: Added specialized **Import/Export** buttons for Voice configuration bundles. 📥📤

@@ -181,7 +181,6 @@ const migrateVoiceConfig = () => {
     console.log('[SYSTEM] 📦 Migrating legacy Voice configuration to unified format...');
 
     let control: any = { enabled: false, max_simultaneous_calls: 3, sleep_between_calls: 5, interface: getInterface() };
-    const legacyControlFile = path.join(APP_CONFIG.configDir, 'voice-control.json');
     if (fs.existsSync(legacyControlFile)) {
         try {
             const data = JSON.parse(fs.readFileSync(legacyControlFile, 'utf8'));
@@ -190,7 +189,6 @@ const migrateVoiceConfig = () => {
     }
 
     let servers: any[] = [];
-    const legacyServersFile = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
     if (fs.existsSync(legacyServersFile)) {
         try {
             const content = fs.readFileSync(legacyServersFile, 'utf8');
@@ -222,8 +220,6 @@ const migrateVoiceConfig = () => {
 
     // Cleanup old files
     try {
-        const legacyControlFile = path.join(APP_CONFIG.configDir, 'voice-control.json');
-        const legacyServersFile = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
         if (fs.existsSync(legacyControlFile)) fs.renameSync(legacyControlFile, legacyControlFile + '.migrated');
         if (fs.existsSync(legacyServersFile)) fs.renameSync(legacyServersFile, legacyServersFile + '.migrated');
         if (fs.existsSync(VOICE_COUNTER_FILE_LEGACY)) fs.renameSync(VOICE_COUNTER_FILE_LEGACY, VOICE_COUNTER_FILE_LEGACY + '.migrated');
@@ -4499,7 +4495,8 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
             '/app/VERSION'
         ];
 
-        let currentVersion = '1.1.2-patch.8';
+        let currentVersion = '1.2.1-patch.56';
+
         let foundPath = 'none (fallback)';
 
         for (const vPath of versionPaths) {
