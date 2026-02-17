@@ -56,7 +56,7 @@ This project is my way to turn all that lab and demo experience into an open-sou
 - **Multi-interface Support** - Bind to specific network interfaces
 - **Voice Simulation (RTP)** - Simulate real-time voice calls (G.711, G.729) with Scapy-based packet forging. [Read more](docs/VOICE_SIMULATION.md)
 - **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. Includes **Security Testing / Attack Mode** to validate malicious behavior detection (DNS Flood, C2 Beacon, Port Scan, Data Exfiltration). [Read more](docs/IOT_SIMULATION.md)
-- **Digital Experience Monitoring (DEM) Discovery** - Automatic discovery of Prisma SD-WAN sites via API for instant synthetic probe creation and LAN visibility. [Read more](docs/SMART_NETWORKING.md)
+- **Prisma SD-WAN Integration** - Automatic discovery of sites and LAN interfaces via API for "Zero-Config" connectivity probes and path validation. [Read more](docs/PRISMA-SDWAN_INTEGRATION.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
 - **VyOS Control ** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
@@ -117,21 +117,20 @@ Recent improvements and features added to the SD-WAN Traffic Generator:
 ### v1.2.1-patch.26
 - **VyOS Timeline**: Added interactive pause/resume/stop controls for impairment sequences.
 
-### v1.2.1-patch.25
+### v1.2.1-patch.29
+- **Connectivity Endpoints**: Added enable/disable toggle for probes and bulk management actions in Config/Performance tabs.
+- **Config UX**: Improved layout with better labels, wider target fields, and hardware-style edit icons.
 
-### v1.2.1-patch.24
-
-### v1.2.1-patch.23
+### v1.2.1-patch.26
+- **IoT Simulation**: Reorganized documentation into specialized guides and added DHCP fingerprint CLI support for single-device mode.
 
 ### v1.2.1-patch.22
-
-### v1.2.1-patch.21
-
-### v1.2.1-patch.20
-
-### v1.2.1-patch.19
+- **Metrics**: Enriched directional loss monitoring with detailed TX/RX packet counters and ms duration in Convergence Lab.
 
 ### v1.2.1-patch.18
+- **UI/UX**: Significantly enhanced Convergence History with visual loss indicators and detailed packet statistics.
+- **Networking**: Added Public IP detection and display in the main dashboard.
+- **Maintenance**: Added "Power & Restart" controls (Restart Services / Full System Reload).
 
 ### v1.2.1-patch.17
 - **Networking**: Added Public IP detection and display in the main dashboard

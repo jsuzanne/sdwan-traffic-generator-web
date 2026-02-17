@@ -126,32 +126,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v1.2.1-patch.29] - 2026-02-15
 ### Added
-- **Connectivity Endpoints**: Enable/disable functionality with visual indicators. 🔌
-  - Power toggle button in Config page (green when enabled, gray when disabled)
-  - Bulk actions: "Enable All" and "Disable All" buttons
-  - Status column in Performance view showing Active/Inactive badges
-  - "Show/Hide Inactive" filter button
-  - Disabled endpoints sorted to bottom with reduced opacity
-  - New endpoints enabled by default for backward compatibility
-
-### Added
-- **IoT Emulator**: DHCP fingerprint support via CLI argument. 🔐
-  - Added `--fingerprint` argument to `iot_emulator.py` for single-device mode
-  - Backend now passes fingerprint data from JSON config to Python script
-  - Fingerprints are parsed and applied for realistic device identification
-
+- **Connectivity Endpoints**: Enable/disable functionality for proactive monitoring control. 🔌
+  - Power toggle in Config page and bulk "Enable/Disable All" actions.
+  - "Show/Hide Inactive" filter and reduced opacity for disabled items.
+- **IoT Emulator**: Added `--fingerprint` CLI support for manual device simulation. 🔐
+### Changed
+- **Config UX**: Improved form layout with better labels, wider fields, and edit icons. ✨
 ### Fixed
-- **IoT Documentation**: Fixed markdown formatting across all IoT documentation files. 📝
-  - Fixed code blocks, tables, and section structure in `IOT_DEVICE_GENERATOR.md`
-  - Cleaned up markdown formatting in `IOT_LLM_GENERATION.md`
-  - Updated JSON example in `IOT_SIMULATION.md` to include DHCP fingerprints
-
-### Added
-- **IoT Documentation**: Reorganized IoT documentation with dedicated guides for device generation methods. 📚
-  - New `IOT_DEVICE_GENERATOR.md` - Python script-based generation guide
-  - New `IOT_LLM_GENERATION.md` - LLM-based generation guide with industry examples
-  - Updated `IOT_SIMULATION.md` as central hub linking to both methods
-- **IoT Emulator**: Updated `iot_emulator.py` with enhanced DHCP fingerprinting support. 🔧
+- **UI Styling**: Balanced font sizes in performance cards and fixed IoT markdown formatting. 📊
 
 ### Added
 - **Convergence Lab**: Sync loss detection for long outages (>60s). 🕵️
@@ -159,23 +141,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v1.2.1-patch.24] - 2026-02-14
 ### Fixed
-- **Echo Server**: Increased maintenance timeout to 60s to survive long failover outages. ⏱️
-- **Orchestrator**: Implemented cumulative counter logic to handle potential server resets gracefully. 🛡️
-- **UI**: Polished directional loss labels and "ms" lowercase formatting. ✨
+- **Convergence Tracking**: Improved tracking for long outages (>60s) with sync loss safety hooks. ⏱️
+- **Echo Server**: Increased maintenance timeout and implemented cumulative counter logic. 🛡️
+- **UI**: Refined metric casing ("ms") and polished directional loss labels. ✨
 
 ## [v1.2.1-patch.23] - 2026-02-14
 ### Fixed
-- **Echo Server**: Session tracking now uses Test ID instead of IP/Port, ensuring counters survive failover events. 🔄
-- **Orchestrator**: Added safeguard to prevent artificial TX loss if the server counter is logically invalid. 🛡️
-- **UI**: Fixed "ms" casing and removed forced uppercase in directional loss display. 🔡
+- **Session Tracking**: Echo server now uses Test ID to maintain counters during failovers. 🔄
+- **Safety**: Added safeguards to prevent artificial TX loss reporting on invalid counters. 🛡️
 
 ## [v1.2.1-patch.22] - 2026-02-14
 ### Added
-- **Convergence Lab**: Directional loss duration (ms) and lost packet counters in history results. ⏱️
-- **Orchestrator**: Final directional loss summary in console logs. 📊
-
+- **Enriched Metrics**: Added directional loss duration (ms) and packet loss counters to history. ⏱️
 ### Changed
-- **UI**: Refined Convergence History layout (removed redundant Config column, renamed "Source" to "Source Port"). ✨
+- **UI**: Refined Convergence History layout with dedicated source port columns. ✨
 
 ## [v1.2.1-patch.21] - 2026-02-14
 ### Fixed
@@ -191,8 +170,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **UI**: Removed enforced uppercase styling from input fields in Login and Configuration pages (Profile Name, Target URI, Interface) to allow mixed-case entry. 🔡
 
 ## [v1.2.1-patch.18] - 2026-02-14
-### Changed
-- No major changes.
+### Added
+- **Convergence History**: Enhanced UI with detailed packet loss statistics and visual indicators. 🔢
+- **UI Build**: Fixed missing Globe icon import preventing build in patch.17. 🌐
 
 
 ## [1.2.1-patch.17] - 2026-02-14
