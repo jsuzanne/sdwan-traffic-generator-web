@@ -92,10 +92,10 @@ export class IoTManager extends EventEmitter {
         // Pass Security configuration to Python script if present and bad behavior is enabled
         if (deviceConfig.security?.bad_behavior) {
             args.push('--enable-bad-behavior');
-            if (deviceConfig.security.behavior_type && deviceConfig.security.behavior_type.length > 0) {
-                // If it's multiple, join with comma
-                args.push('--behavior-type', deviceConfig.security.behavior_type.join(','));
-            }
+            args.push('--security', JSON.stringify({
+                bad_behavior: true,
+                behavior_type: deviceConfig.security.behavior_type || ['random']
+            }));
         }
 
         try {
