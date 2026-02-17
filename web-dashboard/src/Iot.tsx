@@ -20,6 +20,10 @@ interface IoTDevice {
     enabled: boolean;
     traffic_interval: number;
     description?: string;
+    security?: {
+        bad_behavior: boolean;
+        behavior_type: string[];
+    };
     running?: boolean;
     status?: {
         running: boolean;
@@ -447,6 +451,16 @@ export default function Iot({ token }: IotProps) {
                                     <div className="truncate">
                                         <h3 className={cn("font-bold text-text-primary transition-colors uppercase tracking-tight truncate", isCompact ? "text-sm" : "text-base group-hover:text-blue-500")}>{device.name}</h3>
                                         <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest truncate">{device.vendor} • {device.type}</p>
+                                        {!isCompact && device.security?.bad_behavior && (
+                                            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                                <span className="bg-orange-500/10 text-orange-500 text-[9px] font-black px-1.5 py-0.5 rounded border border-orange-500/20 uppercase tracking-widest flex items-center gap-1">
+                                                    <Shield size={10} fill="currentColor" /> ATTACK MODE
+                                                </span>
+                                                <span className="text-[9px] text-text-muted font-bold uppercase truncate">
+                                                    {(device.security.behavior_type || []).join(', ')}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -662,6 +676,83 @@ export default function Iot({ token }: IotProps) {
                                         onChange={e => setEditingDevice(prev => ({ ...prev!, mac: e.target.value }))}
                                     />
                                 </div>
+                            </div>
+
+                            {/* Security Testing Section */}
+                            <div className="space-y-4 pt-4 border-t border-border">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                                        <Shield size={14} className="text-orange-500" /> Security Testing
+                                    </label>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={editingDevice?.security?.bad_behavior || false}
+                                            onChange={e => {
+                                                const checked = e.target.checked;
+                                                setEditingDevice(prev => ({
+                                                    ...prev!,
+                                                    security: {
+                                                        bad_behavior: checked,
+                                                        behavior_type: prev?.security?.behavior_type || ['random']
+                                                    }
+                                                }));
+                                            }}
+                                        />
+                                        <div className="w-11 h-6 bg-card-secondary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                                        <span className="ml-3 text-xs font-bold text-text-secondary uppercase">Enable Bad Behavior</span>
+                                    </label>
+                                </div>
+
+                                {editingDevice?.security?.bad_behavior && (
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Attack Types</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[
+                                                { id: 'pan_test_domains', label: 'PAN Test Domains', guaranteed: true, tooltip: 'Official Palo Alto test domains' },
+                                                { id: 'dns_flood', label: 'DNS Flood' },
+                                                { id: 'beacon', label: 'C2 Beacon' },
+                                                { id: 'port_scan', label: 'Port Scan' },
+                                                { id: 'data_exfil', label: 'Data Exfil' },
+                                                { id: 'random', label: 'Random Mix' }
+                                            ].map(bt => (
+                                                <label
+                                                    key={bt.id}
+                                                    title={bt.tooltip}
+                                                    className={cn(
+                                                        "px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all uppercase flex items-center gap-1.5",
+                                                        editingDevice?.security?.behavior_type?.includes(bt.id)
+                                                            ? "bg-orange-500 border-transparent text-white shadow-lg shadow-orange-900/20"
+                                                            : "bg-card-secondary border-border text-text-muted hover:border-orange-500/50 hover:text-orange-400"
+                                                    )}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        className="hidden"
+                                                        checked={editingDevice?.security?.behavior_type?.includes(bt.id)}
+                                                        onChange={e => {
+                                                            const current = editingDevice?.security?.behavior_type || [];
+                                                            const next = e.target.checked
+                                                                ? [...current, bt.id]
+                                                                : current.filter(x => x !== bt.id);
+
+                                                            setEditingDevice(prev => ({
+                                                                ...prev!,
+                                                                security: {
+                                                                    ...prev!.security!,
+                                                                    behavior_type: next.length > 0 ? next : ['random']
+                                                                }
+                                                            }));
+                                                        }}
+                                                    />
+                                                    {bt.label}
+                                                    {bt.guaranteed && <span className="text-[8px] bg-green-500 text-white px-1 rounded-sm">TARGET 🎯</span>}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-2">

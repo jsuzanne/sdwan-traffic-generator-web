@@ -505,12 +505,14 @@ export default function App() {
 
   const fetchPublicIp = async () => {
     try {
-      const res = await fetch('https://ifconfig.me/ip');
+      const res = await fetch('/api/connectivity/public-ip', { headers: authHeaders() });
       if (res.ok) {
-        const ip = await res.text();
-        setPublicIp(ip.trim());
+        const data = await res.json();
+        setPublicIp(data.ip);
       }
-    } catch (e) { console.error('Failed to fetch public IP'); }
+    } catch (e) {
+      console.error('Failed to fetch public IP');
+    }
   };
 
   const fetchMaintenance = async () => {

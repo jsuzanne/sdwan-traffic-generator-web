@@ -1831,6 +1831,20 @@ app.get('/api/connectivity/test', authenticateToken, async (req, res) => {
     });
 });
 
+app.get('/api/connectivity/public-ip', authenticateToken, async (req, res) => {
+    try {
+        const response = await fetch('https://ifconfig.me/ip');
+        if (response.ok) {
+            const ip = await response.text();
+            res.json({ ip: ip.trim() });
+        } else {
+            res.status(500).json({ error: 'Failed to fetch public IP' });
+        }
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // API: Get Custom Connectivity Endpoints
 app.get('/api/connectivity/custom', authenticateToken, (req, res) => {
     const custom = getCustomConnectivityEndpoints();

@@ -28,6 +28,10 @@ export interface IoTDeviceConfig {
             param_req_list?: number[];
         };
     };
+    security?: {
+        bad_behavior: boolean;
+        behavior_type: string[];
+    };
 }
 
 export class IoTManager extends EventEmitter {
@@ -83,6 +87,15 @@ export class IoTManager extends EventEmitter {
         // Pass DHCP fingerprint to Python script if present
         if (deviceConfig.fingerprint) {
             args.push('--fingerprint', JSON.stringify(deviceConfig.fingerprint));
+        }
+
+        // Pass Security configuration to Python script if present and bad behavior is enabled
+        if (deviceConfig.security?.bad_behavior) {
+            args.push('--enable-bad-behavior');
+            if (deviceConfig.security.behavior_type && deviceConfig.security.behavior_type.length > 0) {
+                // If it's multiple, join with comma
+                args.push('--behavior-type', deviceConfig.security.behavior_type.join(','));
+            }
         }
 
         try {
