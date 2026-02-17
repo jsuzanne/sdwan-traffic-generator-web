@@ -2069,11 +2069,10 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
             const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
             console.log(`[${testId}] [${now}] 🏁 Convergence process exited with code ${code}`);
             log(`CONV-${testId}`, `${code === 0 || code === null ? '✅' : '❌'} Convergence test ended: ${code === 0 || code === null ? 'SUCCESS' : 'FAILED'} (exit code: ${code})`);
-            convergenceProcesses.delete(testId);
-            convergencePPS.delete(testId);
-
             // Clean up stats file after a short delay to allow last reading
             setTimeout(() => {
+                convergenceProcesses.delete(testId);
+                convergencePPS.delete(testId);
                 const statsFile = `/tmp/convergence_stats_${testId}.json`;
                 if (fs.existsSync(statsFile)) {
                     try {
