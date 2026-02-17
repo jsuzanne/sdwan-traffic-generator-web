@@ -597,7 +597,7 @@ def generate_dhcp_fingerprint(category, vendor, model):
     }
 
 
-def generate_iot_devices(categories_config, base_ip="192.168.207", start_ip=50):
+def generate_iot_devices(categories_config, base_ip="192.168.207", start_ip=50, enable_security=False, security_percentage=None):
     """
     Generate a list of IoT devices with DHCP fingerprints.
 
@@ -605,6 +605,8 @@ def generate_iot_devices(categories_config, base_ip="192.168.207", start_ip=50):
         categories_config: dict, category -> number of devices
         base_ip: first three octets (e.g. "192.168.207")
         start_ip: starting last octet (1-254)
+        enable_security: Whether to enable security testing fields
+        security_percentage: Percentage of devices to have security enabled (0-100)
     """
     devices = []
     device_counter = 0
@@ -645,6 +647,27 @@ def generate_iot_devices(categories_config, base_ip="192.168.207", start_ip=50):
                     "dhcp": dhcp_fingerprint
                 }
             }
+
+            # Add Security Testing block if enabled
+            is_secure = False
+            if security_percentage is not None:
+                if random.randint(1, 100) <= security_percentage:
+                    is_secure = True
+            elif enable_security:
+                is_secure = True
+
+            if is_secure:
+                device["security"] = {
+                    "bad_behavior": True,
+                    "behavior_type": [
+                        "random",
+                        "dns_flood",
+                        "beacon",
+                        "port_scan",
+                        "data_exfil",
+                        "pan_test_domains"
+                    ]
+                }
 
             if "mqtt" in device["protocols"]:
                 topic_base = cat_slug
@@ -724,6 +747,19 @@ Examples:
         action="store_true",
         default=True,
         help="Add network section to JSON (default: True)",
+    )
+
+    parser.add_argument(
+        "--enable-security",
+        action="store_true",
+        help="Enable security testing (bad behavior) for ALL generated devices",
+    )
+
+    parser.add_argument(
+        "--security-percentage",
+        type=int,
+        default=None,
+        help="Percentage of devices (0-100) to have security testing enabled",
     )
 
     args = parser.parse_args()
@@ -813,8 +849,14 @@ Examples:
         return
 
     print("🚀 Generating IoT devices with DHCP fingerprints...")
-    devices = generate_iot_devices(config, args.base_ip, args.start_ip)
-    
+    devices = generate_iot_devices(
+        config,
+        base_ip=args.base_ip,
+        start_ip=args.start_ip,
+        enable_security=args.enable_security,
+        security_percentage=args.security_percentage
+    )
+
     if args.add_network:
         output = {
             "network": {

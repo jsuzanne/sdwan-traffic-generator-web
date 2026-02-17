@@ -104,7 +104,12 @@ Options:
   --list-categories     Show all available categories and exit
   
   --add-network         Add network section to JSON (default: True)
-  
+
+  --enable-security     Enable security testing (bad behavior) for ALL devices
+
+  --security-percentage N
+                        Enable security testing for N%% of devices (0-100)
+
   -h, --help            Show this help message and exit
 Presets
 Small Lab (30 devices)

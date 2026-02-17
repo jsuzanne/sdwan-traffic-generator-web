@@ -144,6 +144,25 @@ Copy the prompt template from `iot/IOT_PROMPT.txt` and customize for your use ca
 - **`cloud`**: Simulates periodic outbound "heartbeat" traffic to a vendor-specific FQDN.
 - **`mqtt`**: Simulates periodic telemetry updates to an MQTT broker.
 
+## 🛡️ Security Testing (Bad Behavior)
+
+The IoT engine includes a **Security Testing** mode designed to validate malicious behavior detection (e.g., Palo Alto Networks IoT Security). 
+
+When **Bad Behavior** is enabled, the simulated device will generate traffic patterns matching known attack profiles:
+- **DNS Flood**: Rapid DNS queries to various domains.
+- **C2 Beacon**: Periodic "heartbeat" connections to simulated Command & Control domains.
+- **Port Scan**: Internal scanning of the local subnet.
+- **Data Exfil**: Simulated large data transfers to external IPs.
+- **PAN Test Domains**: Generates traffic to official Palo Alto test domains for guaranteed detection.
+
+### JSON Security Configuration
+```json
+"security": {
+  "bad_behavior": true,
+  "behavior_type": ["beacon", "dns_flood", "pan_test_domains"]
+}
+```
+
 ## 📊 Live Log Examples
 
 When a device starts, you can monitor the "Real-on-the-Wire" interaction in the UI logs:

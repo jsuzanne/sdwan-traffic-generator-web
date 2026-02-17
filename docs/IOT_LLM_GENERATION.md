@@ -32,6 +32,7 @@ Requirements:
 6. Use realistic hostnames and vendor_class_id values per vendor
 7. Vary traffic_interval between 60-300 seconds for realism
 8. Use IP addresses in the 192.168.207.X range starting from .50
+9. (Optional) For specialized security demos, add a "security" block to relevant devices with "bad_behavior": true and a list of attack types in "behavior_type" (options: dns_flood, beacon, port_scan, data_exfil, pan_test_domains, or "random" for a mix).
 
 Output format: Return ONLY valid JSON with complete DHCP fingerprints.
 ```
@@ -63,6 +64,10 @@ Output format: Return ONLY valid JSON with complete DHCP fingerprints.
           "client_id_type": 1,
           "param_req_list": [1, 3, 6, 15, 28, 51, 58, 59]
         }
+      },
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": ["beacon", "dns_flood", "pan_test_domains"]
       }
     }
   ]
@@ -92,6 +97,10 @@ Copy this structure exactly:
       "client_id_type": 1,
       "param_req_list": [1, 3, 6, 12, 15, 28, 42, 51, 54, 58, 59]
     }
+  },
+  "security": {
+    "bad_behavior": true,
+    "behavior_type": ["random", "dns_flood", "beacon", "port_scan", "data_exfil", "pan_test_domains"]
   }
 }
 ```
