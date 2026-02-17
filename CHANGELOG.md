@@ -4,11 +4,52 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.51] - 2026-02-17
+### Fixed
+- **IoT Device Launch**: Corrected argument passing to `iot_emulator.py`. 🛠️
+  - Fixed `--behavior-type` error (replaced with `--security` JSON structure).
+  - Restored missing `--fingerprint` argument for proper DHCP identification.
+  - Ensured `--enable-bad-behavior` flag is passed when security is active.
+- **Documentation**: Updated `README.md` with latest feature list and version info. 📚
+
+## [v1.2.1-patch.50] - 2026-02-17
+### Added
+- **IoT Lab Generation**: Updated `generate_iot_devices.py` with new security options. 🔐
+  - Added `--enable-security` to force enable attack mode on all devices.
+  - Added `--security-percentage` to randomize security configuration in large labs.
+- **Security Protocols**: Added official PAN-test-domains to IoT attack profiles for guaranteed detection. 🛡️
+
+## [v1.2.1-patch.49] - 2026-02-17
+### Changed
+- **IoT Engine**: Included the latest version of the Scapy emulator script in the core package. 🚀
+- **Version Alignment**: Standardized versioning across all engines and documentation.
+
+## [v1.2.1-patch.48] - 2026-02-17
+### Added
+- **IoT Security Testing**: Initial release of "Bad Behavior" mode for IoT devices. 💀
+  - New attack profiles: DNS Flood, C2 Beacon, Port Scan, Data Exfiltration.
+  - Interactive UI with security toggles in device settings.
+  - "ATTACK MODE" visual badges for real-time threat identification on cards.
+
 ## [v1.2.1-patch.47] - 2026-02-17
 ### Fixed
 - **Rollback to Stable**: Reverted to `v1.2.1-patch.43` logic for Convergence Lab. 🛡️
   - Reverted recent stop sequence optimizations (patch.44, .45, .46) due to history reporting regressions.
   - Restored stable baseline for further investigation.
+
+## [v1.2.1-patch.46] - 2026-02-17
+### Fixed
+- **Convergence History**: Restored history persistence that was broken in recent optimizations. 📋
+- **Performance**: Optimized PPS (Packets Per Second) limit handling for more reliable high-load testing. ⚡
+
+## [v1.2.1-patch.45] - 2026-02-17
+### Fixed
+- **Convergence Lab**: Finalized stop sequence logic and corrected packet counter discrepancies. 🔢
+- **Regression Fix**: Resolved a critical regression that prevented correct RX loss calculation.
+
+## [v1.2.1-patch.44] - 2026-02-16
+### Changed
+- **UX Optimization**: Improved the Convergence Lab stop sequence for a smoother user experience. ✨
 
 ## [v1.2.1-patch.43] - 2026-02-16
 ### Added

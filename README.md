@@ -55,7 +55,8 @@ This project is my way to turn all that lab and demo experience into an open-sou
 - **Protocol & IP Flexibility** - Support for explicit `http://` or `https://` and full IP address identification
 - **Multi-interface Support** - Bind to specific network interfaces
 - **Voice Simulation (RTP)** - Simulate real-time voice calls (G.711, G.729) with Scapy-based packet forging. [Read more](docs/VOICE_SIMULATION.md)
-- **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. Includes **Security Testing / Attack Mode** to validate malicious behavior detection (DNS Flood, C2 Beacon, Port Scan). [Read more](docs/IOT_SIMULATION.md)
+- **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. Includes **Security Testing / Attack Mode** to validate malicious behavior detection (DNS Flood, C2 Beacon, Port Scan, Data Exfiltration). [Read more](docs/IOT_SIMULATION.md)
+- **Digital Experience Monitoring (DEM) Discovery** - Automatic discovery of Prisma SD-WAN sites via API for instant synthetic probe creation and LAN visibility. [Read more](docs/SMART_NETWORKING.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
 - **VyOS Control ** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
@@ -96,11 +97,25 @@ This project is my way to turn all that lab and demo experience into an open-sou
 Recent improvements and features added to the SD-WAN Traffic Generator:
 
 ### v1.2.1-patch.51 (Latest)
-- **IoT Security Testing**: Full implementation of "Bad Behavior" mode for IoT devices.
-- **Attack Profiles**: Support for DNS Flood, C2 Beacon, Port Scan, Data Exfiltration, and PAN Test Domains.
-- **IoT UI Improvements**: Added security toggles, attack mode badges, and hardware-style indicators in the dashboard.
-- **Generator Script**: Updated `generate_iot_devices.py` with `--enable-security` flags for automated lab creation.
-- **Bug Fix**: Corrected IoT emulator argument passing in the backend.
+- **IoT Security Testing**: Full implementation of "Bad Behavior" mode for IoT devices including DNS Flood, C2 Beacon, and Port Scan.
+- **UI/UX**: Added hardware-style visual badges, security toggles, and improved argument passing for the scapy engine.
+
+### v1.2.1-patch.43
+- **Traffic Volume History**: Persistent metrics storage and historical visualization in the main dashboard.
+- **Premium UI**: Upgraded charts with monotone area gradients, glassmorphism effects, and better time range selectors (1h/6h/24h).
+
+### v1.2.1-patch.39
+- **Site Discovery (DEM)**: Automatic discovery of Prisma SD-WAN LAN interfaces for "Zero-Config" connectivity probes.
+- **DC Cluster Discovery**: Support for discovering multiple LAN IPs per site for high-availability cluster monitoring.
+
+### v1.2.1-patch.35
+- **Security**: Added Advanced URL Filtering (Malware, Phishing, Grayware, C2) categories with real-time detection validation.
+
+### v1.2.1-patch.30
+- **Performance Trends**: Redesigned performance dashboard with separate metrics per endpoint type (HTTP, ICMP, DNS, UDP).
+
+### v1.2.1-patch.26
+- **VyOS Timeline**: Added interactive pause/resume/stop controls for impairment sequences.
 
 ### v1.2.1-patch.25
 
