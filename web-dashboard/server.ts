@@ -73,6 +73,11 @@ const CONVERGENCE_ENDPOINTS_FILE = path.join(APP_CONFIG.configDir, 'convergence-
 // Batch Counter - Persistent rotating ID for batch tests
 const BATCH_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'batch-counter.json');
 
+// NEW Unified Configurations
+const VOICE_CONFIG_FILE = path.join(APP_CONFIG.configDir, 'voice-config.json');
+const SECURITY_CONFIG_FILE = path.join(APP_CONFIG.configDir, 'security-config.json');
+const SECURITY_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'security-history.jsonl');
+
 // IoT Devices
 const IOT_DEVICES_FILE = path.join(APP_CONFIG.configDir, 'iot-devices.json');
 
@@ -162,6 +167,100 @@ const getInterface = (): string => {
     console.warn('📡 [SYSTEM] No interface detected. Defaulting to eth0');
     return 'eth0';
 };
+
+/**
+ * MIGRATION: Consolidate Voice legacy files into voice-config.json
+ */
+const migrateVoiceConfig = () => {
+    if (fs.existsSync(VOICE_CONFIG_FILE)) return;
+
+    if (!fs.existsSync(VOICE_CONTROL_FILE) && !fs.existsSync(VOICE_SERVERS_FILE)) return;
+
+    console.log('[SYSTEM] 📦 Migrating legacy Voice configuration to unified format...');
+
+    let control: any = { enabled: false, max_simultaneous_calls: 3, sleep_between_calls: 5, interface: getInterface() };
+    if (fs.existsSync(VOICE_CONTROL_FILE)) {
+        try {
+            const data = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+            control = { ...control, ...data };
+        } catch (e) { console.error('Voice control migration failed', e); }
+    }
+
+    let servers: any[] = [];
+    if (fs.existsSync(VOICE_SERVERS_FILE)) {
+        try {
+            const content = fs.readFileSync(VOICE_SERVERS_FILE, 'utf8');
+            servers = content.split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#'))
+                .map(line => {
+                    const parts = line.split('|');
+                    return {
+                        target: parts[0] || "",
+                        codec: parts[1] || "G.711-ulaw",
+                        weight: parseInt(parts[2]) || 50,
+                        duration: parseInt(parts[3]) || 30
+                    };
+                });
+        } catch (e) { console.error('Voice servers migration failed', e); }
+    }
+
+    let state = { counter: 0 };
+    if (fs.existsSync(VOICE_COUNTER_FILE)) {
+        try {
+            state = JSON.parse(fs.readFileSync(VOICE_COUNTER_FILE, 'utf8'));
+        } catch (e) { console.error('Voice counter migration failed', e); }
+    }
+
+    const unifiedConfig = { control, servers, state };
+    fs.writeFileSync(VOICE_CONFIG_FILE, JSON.stringify(unifiedConfig, null, 2));
+    console.log('[SYSTEM] ✅ Voice configuration consolidated.');
+
+    // Cleanup old files
+    try {
+        if (fs.existsSync(VOICE_CONTROL_FILE)) fs.renameSync(VOICE_CONTROL_FILE, VOICE_CONTROL_FILE + '.migrated');
+        if (fs.existsSync(VOICE_SERVERS_FILE)) fs.renameSync(VOICE_SERVERS_FILE, VOICE_SERVERS_FILE + '.migrated');
+        if (fs.existsSync(VOICE_COUNTER_FILE)) fs.renameSync(VOICE_COUNTER_FILE, VOICE_COUNTER_FILE + '.migrated');
+    } catch (e) { console.log('[SYSTEM] ⚠️ Failed to rename legacy voice files, but migration succeeded.'); }
+};
+
+/**
+ * MIGRATION: Split security-tests.json into Config and History
+ */
+const migrateSecurityConfig = () => {
+    const legacyFile = path.join(APP_CONFIG.configDir, 'security-tests.json');
+    if (!fs.existsSync(legacyFile) || fs.existsSync(SECURITY_CONFIG_FILE)) return;
+
+    console.log('[SYSTEM] 📦 Migrating legacy Security configuration and history...');
+    try {
+        const legacyData = JSON.parse(fs.readFileSync(legacyFile, 'utf8'));
+
+        // 1. Extract History
+        const history = legacyData.test_history || [];
+        if (history.length > 0) {
+            const historyContent = history.map((h: any) => JSON.stringify(h)).join('\n') + '\n';
+            fs.mkdirSync(path.dirname(SECURITY_HISTORY_FILE), { recursive: true });
+            fs.appendFileSync(SECURITY_HISTORY_FILE, historyContent);
+            console.log(`[SYSTEM] 🚚 Moved ${history.length} security history entries to logs.`);
+        }
+
+        // 2. Clean Config
+        const cleanConfig = { ...legacyData };
+        delete cleanConfig.test_history;
+
+        fs.writeFileSync(SECURITY_CONFIG_FILE, JSON.stringify(cleanConfig, null, 2));
+        console.log('[SYSTEM] ✅ Security configuration separation complete.');
+
+        // Cleanup
+        fs.renameSync(legacyFile, legacyFile + '.migrated');
+    } catch (e) {
+        console.error('Security migration failed', e);
+    }
+};
+
+// Run Migrations
+migrateVoiceConfig();
+migrateSecurityConfig();
 
 // --- Hot-Reload: Watch for interfaces.txt changes ---
 const INTERFACES_FILE = path.join(APP_CONFIG.configDir, 'interfaces.txt');
@@ -1332,15 +1431,17 @@ app.post('/api/voice/control', authenticateToken, (req, res) => {
 // API: Voice Configuration - Get
 app.get('/api/voice/config', authenticateToken, (req, res) => {
     try {
-        let servers = "";
-        if (fs.existsSync(VOICE_SERVERS_FILE)) {
-            servers = fs.readFileSync(VOICE_SERVERS_FILE, 'utf8');
+        if (!fs.existsSync(VOICE_CONFIG_FILE)) {
+            return res.json({
+                success: true,
+                servers: "",
+                control: { enabled: false, max_simultaneous_calls: 3, sleep_between_calls: 5, interface: getInterface() }
+            });
         }
-        let control = { max_simultaneous_calls: 3, interface: 'eth0', sleep_between_calls: 5 };
-        if (fs.existsSync(VOICE_CONTROL_FILE)) {
-            control = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
-        }
-        res.json({ success: true, servers, control });
+        const config = JSON.parse(fs.readFileSync(VOICE_CONFIG_FILE, 'utf8'));
+        // Parse servers back to raw string for frontend textarea
+        const rawServers = (config.servers || []).map((s: any) => `${s.target}|${s.codec}|${s.weight}|${s.duration}`).join('\n');
+        res.json({ success: true, servers: rawServers, control: config.control });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
     }
@@ -1350,18 +1451,66 @@ app.get('/api/voice/config', authenticateToken, (req, res) => {
 app.post('/api/voice/config', authenticateToken, (req, res) => {
     try {
         const { servers, control } = req.body;
-        if (servers !== undefined) fs.writeFileSync(VOICE_SERVERS_FILE, servers);
-        if (control !== undefined) {
-            let currentControl = {};
-            if (fs.existsSync(VOICE_CONTROL_FILE)) {
-                currentControl = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
-            }
-            const newControl = { ...currentControl, ...control };
-            fs.writeFileSync(VOICE_CONTROL_FILE, JSON.stringify(newControl, null, 2));
+        let currentConfig: any = { control: {}, servers: [], state: { counter: 0 } };
+        if (fs.existsSync(VOICE_CONFIG_FILE)) {
+            currentConfig = JSON.parse(fs.readFileSync(VOICE_CONFIG_FILE, 'utf8'));
         }
+
+        if (control !== undefined) {
+            currentConfig.control = { ...currentConfig.control, ...control };
+        }
+
+        if (servers !== undefined) {
+            currentConfig.servers = servers.split('\n')
+                .map((l: string) => l.trim())
+                .filter((l: string) => l && !l.startsWith('#'))
+                .map((l: string) => {
+                    const [target, codec, weight, duration] = l.split('|');
+                    return {
+                        target: target || "",
+                        codec: codec || "G.711-ulaw",
+                        weight: parseInt(weight) || 50,
+                        duration: parseInt(duration) || 30
+                    };
+                });
+        }
+
+        fs.writeFileSync(VOICE_CONFIG_FILE, JSON.stringify(currentConfig, null, 2));
         res.json({ success: true });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// API: Voice Configuration - Export
+app.get('/api/voice/config/export', authenticateToken, (req, res) => {
+    try {
+        if (!fs.existsSync(VOICE_CONFIG_FILE)) return res.status(404).json({ error: 'Config not found' });
+        const content = fs.readFileSync(VOICE_CONFIG_FILE, 'utf8');
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=voice-config.json');
+        res.send(content);
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Voice Configuration - Import
+app.post('/api/voice/config/import', authenticateToken, (req, res) => {
+    try {
+        const { config } = req.body;
+        if (!config || !config.control || !config.servers) {
+            return res.status(400).json({ error: 'Invalid voice configuration' });
+        }
+        // Preserve state if possible
+        if (fs.existsSync(VOICE_CONFIG_FILE)) {
+            const current = JSON.parse(fs.readFileSync(VOICE_CONFIG_FILE, 'utf8'));
+            config.state = config.state || current.state;
+        }
+        fs.writeFileSync(VOICE_CONFIG_FILE, JSON.stringify(config, null, 2));
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -2789,164 +2938,77 @@ app.get('/api/logs', (req, res) => {
 });
 
 // ===== SECURITY TESTING API =====
-const SECURITY_CONFIG_FILE = path.join(APP_CONFIG.configDir, 'security-tests.json');
 
-// Helper: Read security config
+const DEFAULT_SECURITY_CONFIG = {
+    url_filtering: { enabled_categories: [], protocol: 'http' },
+    dns_security: { enabled_tests: [] },
+    threat_prevention: { enabled: false, eicar_endpoint: 'http://192.168.203.100/eicar.com.txt', eicar_endpoints: ['http://192.168.203.100/eicar.com.txt'] },
+    scheduled_execution: {
+        url: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
+        dns: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
+        threat: { enabled: false, interval_minutes: 120, last_run_time: null, next_run_time: null }
+    },
+    statistics: { total_tests_run: 0, url_tests_blocked: 0, url_tests_allowed: 0, dns_tests_blocked: 0, dns_tests_sinkholed: 0, dns_tests_allowed: 0, threat_tests_blocked: 0, threat_tests_allowed: 0, last_test_time: null },
+    edlTesting: {
+        ipList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
+        urlList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
+        dnsList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
+        testMode: 'sequential',
+        randomSampleSize: 50,
+        maxElementsPerRun: 200
+    },
+    test_history: []
+};
+
+// Helper: Get security config
 const getSecurityConfig = () => {
     try {
-        const defaultConfig = {
-            url_filtering: { enabled_categories: [], protocol: 'http' },
-            dns_security: { enabled_tests: [] },
-            threat_prevention: { enabled: false, eicar_endpoint: 'http://192.168.203.100/eicar.com.txt', eicar_endpoints: ['http://192.168.203.100/eicar.com.txt'] },
-            scheduled_execution: {
-                url: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
-                dns: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
-                threat: { enabled: false, interval_minutes: 120, last_run_time: null, next_run_time: null }
-            },
-            statistics: {
-                total_tests_run: 0,
-                url_tests_blocked: 0,
-                url_tests_allowed: 0,
-                dns_tests_blocked: 0,
-                dns_tests_sinkholed: 0,
-                dns_tests_allowed: 0,
-                threat_tests_blocked: 0,
-                threat_tests_allowed: 0,
-                last_test_time: null
-            },
-            edlTesting: {
-                ipList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
-                urlList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
-                dnsList: { remoteUrl: null, lastSyncTime: 0, elements: [] },
-                testMode: 'sequential',
-                randomSampleSize: 50,
-                maxElementsPerRun: 200
-            },
-            test_history: []
-        };
-
         if (!fs.existsSync(SECURITY_CONFIG_FILE)) {
-            fs.writeFileSync(SECURITY_CONFIG_FILE, JSON.stringify(defaultConfig, null, 2));
-            return defaultConfig;
+            // Migration is handled at startup, but for fresh installs:
+            saveSecurityConfig(DEFAULT_SECURITY_CONFIG);
+            return DEFAULT_SECURITY_CONFIG;
         }
-
-        const config = JSON.parse(fs.readFileSync(SECURITY_CONFIG_FILE, 'utf8'));
-
-        // Robustness: Ensure config is an object
-        if (!config || typeof config !== 'object') {
-            console.log('Security config is invalid, returning default.');
-            return defaultConfig;
-        }
+        const data = fs.readFileSync(SECURITY_CONFIG_FILE, 'utf8');
+        const config = JSON.parse(data);
 
         let migrated = false;
+        // Basic sanity checks for missing fields
+        if (!config.scheduled_execution) { config.scheduled_execution = { ...DEFAULT_SECURITY_CONFIG.scheduled_execution }; migrated = true; }
+        if (!config.edlTesting) { config.edlTesting = { ...DEFAULT_SECURITY_CONFIG.edlTesting }; migrated = true; }
+        if (!config.statistics) { config.statistics = { ...DEFAULT_SECURITY_CONFIG.statistics }; migrated = true; }
 
-        // Migration: Handle old global scheduler to split scheduler
-        // Cases: scheduled_execution is missing, or is a boolean, or is an object with 'enabled' property
-        const sched = config.scheduled_execution;
-        const isOldStructure = sched && (typeof sched === 'boolean' || (typeof sched === 'object' && 'enabled' in sched && !sched.url));
-
-        if (isOldStructure) {
-            console.log('Migrating old security scheduler config to split structure...');
-            const oldEnabled = typeof sched === 'boolean' ? sched : (sched.enabled === true);
-            const oldInterval = (typeof sched === 'object' && sched.interval_minutes) || 60;
-
-            config.scheduled_execution = {
-                url: {
-                    enabled: oldEnabled && (sched.run_url_tests !== false),
-                    interval_minutes: oldInterval,
-                    last_run_time: (typeof sched === 'object' && sched.last_run_time) || null,
-                    next_run_time: (typeof sched === 'object' && sched.next_run_time) || null
-                },
-                dns: {
-                    enabled: oldEnabled && (sched.run_dns_tests !== false),
-                    interval_minutes: oldInterval,
-                    last_run_time: (typeof sched === 'object' && sched.last_run_time) || null,
-                    next_run_time: (typeof sched === 'object' && sched.next_run_time) || null
-                },
-                threat: {
-                    enabled: oldEnabled && (sched.run_threat_tests !== false),
-                    interval_minutes: oldInterval,
-                    last_run_time: (typeof sched === 'object' && sched.last_run_time) || null,
-                    next_run_time: (typeof sched === 'object' && sched.next_run_time) || null
-                }
-            };
-            migrated = true;
-        }
-
-        // Final safety check for each section
-        if (!config.scheduled_execution || typeof config.scheduled_execution !== 'object') {
-            config.scheduled_execution = { ...defaultConfig.scheduled_execution };
-            migrated = true;
-        } else {
-            const sections = ['url', 'dns', 'threat'] as const;
-            sections.forEach(s => {
-                if (!config.scheduled_execution[s] || typeof config.scheduled_execution[s] !== 'object') {
-                    config.scheduled_execution[s] = { ...defaultConfig.scheduled_execution[s] };
-                    migrated = true;
-                }
-            });
-        }
-
-        // Migration: Ensure edlTesting exists
-        if (!config.edlTesting || typeof config.edlTesting !== 'object') {
-            console.log('Initializing EDL testing configuration...');
-            config.edlTesting = { ...defaultConfig.edlTesting };
-            migrated = true;
-        } else {
-            // Ensure lists exist
-            const lists = ['ipList', 'urlList', 'dnsList'] as const;
-            lists.forEach(l => {
-                if (!config.edlTesting[l] || typeof config.edlTesting[l] !== 'object') {
-                    config.edlTesting[l] = { ...defaultConfig.edlTesting[l] };
-                    migrated = true;
-                } else if (!Array.isArray(config.edlTesting[l].elements)) {
-                    config.edlTesting[l].elements = [];
-                    migrated = true;
-                }
-            });
-            // Ensure other parameters exist
-            if (config.edlTesting.testMode === undefined) { config.edlTesting.testMode = 'sequential'; migrated = true; }
-            if (config.edlTesting.randomSampleSize === undefined) { config.edlTesting.randomSampleSize = 50; migrated = true; }
-            if (config.edlTesting.maxElementsPerRun === undefined) { config.edlTesting.maxElementsPerRun = 200; migrated = true; }
-        }
-
-        if (migrated) {
-            saveSecurityConfig(config);
-        }
-
+        if (migrated) saveSecurityConfig(config);
         return config;
     } catch (e) {
-        console.error('Error reading/migrating security config:', e);
-        // On error, return default config instead of null to prevent frontend crashes
-        try {
-            const data = fs.readFileSync(SECURITY_CONFIG_FILE, 'utf8');
-            return JSON.parse(data);
-        } catch (e2) {
-            return {
-                url_filtering: { enabled_categories: [], protocol: 'http' },
-                dns_security: { enabled_tests: [] },
-                threat_prevention: { enabled: false, eicar_endpoint: 'http://192.168.203.100/eicar.com.txt', eicar_endpoints: ['http://192.168.203.100/eicar.com.txt'] },
-                scheduled_execution: {
-                    url: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
-                    dns: { enabled: false, interval_minutes: 60, last_run_time: null, next_run_time: null },
-                    threat: { enabled: false, interval_minutes: 120, last_run_time: null, next_run_time: null }
-                },
-                statistics: { total_tests_run: 0, url_tests_blocked: 0, url_tests_allowed: 0, dns_tests_blocked: 0, dns_tests_sinkholed: 0, dns_tests_allowed: 0, threat_tests_blocked: 0, threat_tests_allowed: 0, last_test_time: null },
-                test_history: []
-            };
-        }
+        console.error('Error reading security config:', e);
+        return DEFAULT_SECURITY_CONFIG;
     }
 };
 
 /**
  * Returns a security configuration optimized for the UI.
- * It adds elementsCount to EDL lists and removes the actual large arrays of elements.
+ * It adds elementsCount to EDL lists and populates history from the log file.
  */
 const getSecurityUIConfig = () => {
     const config = getSecurityConfig();
     if (!config) return null;
 
     const uiConfig = JSON.parse(JSON.stringify(config));
+
+    // 1. Populate History from .jsonl (last 50 for UI)
+    try {
+        if (fs.existsSync(SECURITY_HISTORY_FILE)) {
+            const data = execSync(`tail -n 50 "${SECURITY_HISTORY_FILE}"`, { encoding: 'utf8' });
+            const lines = data.trim().split('\n').filter(l => l.trim());
+            uiConfig.test_history = lines.map(l => JSON.parse(l)).reverse();
+        } else {
+            uiConfig.test_history = [];
+        }
+    } catch (e) {
+        uiConfig.test_history = [];
+    }
+
+    // 2. Optimization for large EDL lists
     if (uiConfig.edlTesting) {
         const lists = ['ipList', 'urlList', 'dnsList'] as const;
         lists.forEach(l => {
@@ -2962,7 +3024,9 @@ const getSecurityUIConfig = () => {
 // Helper: Save security config
 const saveSecurityConfig = (config: any) => {
     try {
-        fs.writeFileSync(SECURITY_CONFIG_FILE, JSON.stringify(config, null, 2));
+        const configToSave = { ...config };
+        delete configToSave.test_history; // History is in .jsonl now
+        fs.writeFileSync(SECURITY_CONFIG_FILE, JSON.stringify(configToSave, null, 2));
         return true;
     } catch (e) {
         console.error('Error saving security config:', e);
@@ -2975,7 +3039,6 @@ const addTestResult = async (testType: string, testName: string, result: any, te
     const config = getSecurityConfig();
     if (!config) return;
 
-    // Get next test ID if not provided
     const id = testId || getNextTestId();
 
     const historyEntry = {
@@ -2986,39 +3049,31 @@ const addTestResult = async (testType: string, testName: string, result: any, te
         result,
     };
 
-    // Keep in-memory history for backward compatibility (last 50)
-    config.test_history = config.test_history || [];
-    config.test_history.unshift(historyEntry);
-
-    if (config.test_history.length > 50) {
-        config.test_history = config.test_history.slice(0, 50);
+    // 1. Log to Security History Line-delimited JSON
+    try {
+        fs.mkdirSync(path.dirname(SECURITY_HISTORY_FILE), { recursive: true });
+        fs.appendFileSync(SECURITY_HISTORY_FILE, JSON.stringify(historyEntry) + '\n');
+    } catch (e) {
+        console.error('Failed to log security result to history file:', e);
     }
 
-    saveSecurityConfig(config);
-
-    // Also update statistics
+    // 2. Update stats
     if (result.status) {
         updateStatistics(testType, result.status);
     }
 
-    // Log to persistent TestLogger
+    // 3. Log to general TestLogger 
     const testResult: TestResult = {
         id,
         timestamp: Date.now(),
         type: testType === 'url_filtering' ? 'url' : testType === 'dns_security' ? 'dns' : 'threat',
         name: testName,
         status: result.status || 'error',
-        details: details || {
-            url: result.url,
-            domain: result.domain,
-            endpoint: result.endpoint,
-            ...result
-        }
+        details: details || { ...result }
     };
-
     await testLogger.logTest(testResult);
 
-    return id; // Return the test ID
+    return id;
 };
 
 // Helper: Update statistics
@@ -3027,17 +3082,7 @@ const updateStatistics = (testType: string, status: string) => {
     if (!config) return;
 
     if (!config.statistics) {
-        config.statistics = {
-            total_tests_run: 0,
-            url_tests_blocked: 0,
-            url_tests_allowed: 0,
-            dns_tests_blocked: 0,
-            dns_tests_sinkholed: 0,
-            dns_tests_allowed: 0,
-            threat_tests_blocked: 0,
-            threat_tests_allowed: 0,
-            last_test_time: null
-        };
+        config.statistics = { ...DEFAULT_SECURITY_CONFIG.statistics };
     }
 
     config.statistics.total_tests_run++;
@@ -4390,9 +4435,10 @@ app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) 
         let voiceStats: any[] = [];
         let voiceControl = { enabled: false };
         try {
-            if (fs.existsSync(VOICE_CONTROL_FILE)) {
-                const vcData = await fs.promises.readFile(VOICE_CONTROL_FILE, 'utf8');
-                voiceControl = JSON.parse(vcData);
+            if (fs.existsSync(VOICE_CONFIG_FILE)) {
+                const vData = await fs.promises.readFile(VOICE_CONFIG_FILE, 'utf8');
+                const vConfig = JSON.parse(vData);
+                voiceControl = vConfig.control || { enabled: false };
             }
             if (fs.existsSync(VOICE_STATS_FILE)) {
                 const { stdout: vsOut } = await promisify(exec)(`tail -n 200 "${VOICE_STATS_FILE}"`);

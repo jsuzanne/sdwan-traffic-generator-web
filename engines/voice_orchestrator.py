@@ -21,8 +21,7 @@ def get_version():
     except: pass
     return "1.1.0-patch.47"
 
-CONTROL_FILE = os.path.join(CONFIG_DIR, 'voice-control.json')
-SERVERS_FILE = os.path.join(CONFIG_DIR, 'voice-servers.txt')
+VOICE_CONFIG_FILE = os.path.join(CONFIG_DIR, 'voice-config.json')
 STATS_FILE = os.path.join(LOG_DIR, 'voice-stats.jsonl')
 COUNTER_FILE = os.path.join(CONFIG_DIR, 'voice-counter.json')
 active_calls = []
@@ -38,9 +37,6 @@ def get_next_call_id():
     except: pass
     
     # Implementation of cyclic counter (0-9999) for deterministic port mapping
-    # CALL-0000 -> Port 30000
-    # ...
-    # CALL-9999 -> Port 39999
     counter = (counter + 1) % 10000
     
     try:
@@ -58,6 +54,14 @@ def print_banner():
     print(f"📝 Logs: {STATS_FILE}")
     print("="*60)
     sys.stdout.flush()
+
+def load_voice_config():
+    if os.path.exists(VOICE_CONFIG_FILE):
+        try:
+            with open(VOICE_CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except: pass
+    return {}
 
 def load_control():
     # Primary interface discovery
@@ -83,42 +87,24 @@ def load_control():
             except: pass
     except: pass
 
-    try:
-        if os.path.exists(CONTROL_FILE):
-            with open(CONTROL_FILE, 'r') as f:
-                data = json.load(f)
-                # If explicitly set to eth0 but we found something else in interfaces.txt, prioritize interfaces.txt
-                if data.get('interface') == 'eth0' and default_iface != 'eth0':
-                    data['interface'] = default_iface
-                return data
-    except Exception as e:
-        print(f"Error loading control file: {e}")
-    return {"enabled": False, "max_simultaneous_calls": 3, "sleep_between_calls": 5, "interface": default_iface}
+    config = load_voice_config()
+    data = config.get('control', {})
+    
+    # If explicitly set to eth0 but we found something else in interfaces.txt, prioritize interfaces.txt
+    if data.get('interface') == 'eth0' and default_iface != 'eth0':
+        data['interface'] = default_iface
+    
+    # Defaults
+    if 'enabled' not in data: data['enabled'] = False
+    if 'max_simultaneous_calls' not in data: data['max_simultaneous_calls'] = 3
+    if 'sleep_between_calls' not in data: data['sleep_between_calls'] = 5
+    if 'interface' not in data: data['interface'] = default_iface
+    
+    return data
 
 def load_servers():
-    servers = []
-    try:
-        if os.path.exists(SERVERS_FILE):
-            with open(SERVERS_FILE, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith('#'):
-                        continue
-                    parts = line.split('|')
-                    if len(parts) >= 4:
-                        target = parts[0]
-                        codec = parts[1]
-                        weight = int(parts[2])
-                        duration = int(parts[3])
-                        servers.append({
-                            "target": target,
-                            "codec": codec,
-                            "weight": weight,
-                            "duration": duration
-                        })
-    except Exception as e:
-        print(f"Error loading servers file: {e}")
-    return servers
+    config = load_voice_config()
+    return config.get('servers', [])
 
 def calculate_mos(latency_ms, jitter_ms, loss_pct):
     """
@@ -272,13 +258,15 @@ def main():
         # 1. Reset Counter
         with open(COUNTER_FILE, 'w') as f:
             json.dump({'counter': 0}, f)
-        # 2. Disable simulation by default
-        if os.path.exists(CONTROL_FILE):
-            with open(CONTROL_FILE, 'r') as f:
-                ctrl = json.load(f)
-            ctrl['enabled'] = False
-            with open(CONTROL_FILE, 'w') as f:
-                json.dump(ctrl, f)
+    # 2. Disable simulation by default
+    try:
+        config = load_voice_config()
+        if 'control' in config:
+            config['control']['enabled'] = False
+            with open(VOICE_CONFIG_FILE, 'w') as f:
+                json.dump(config, f, indent=2)
+    except Exception as e:
+        print(f"Warning during config reset: {e}")
         # 3. Clear logs to stay perfectly synchronized with the UI
         with open(STATS_FILE, 'w') as f:
             f.write("")

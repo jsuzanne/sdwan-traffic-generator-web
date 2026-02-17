@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.52] - 2026-02-17
+### Added
+- **Voice Configuration Consolidation**: Merged `voice-control.json` and `voice-servers.txt` into a single `voice-config.json` for easier management. 🎙️📦
+- **Security History Refactor**: Moved security test results to a dedicated line-delimited JSON log file (`security-history.jsonl`) for better persistence and observability. 🛡️📋
+### Changed
+- **Backend Architecture**: Optimized configuration handlers to support unified data structures and automated migration for legacy files. 🚀
+- **Performance**: Improved security statistics tracking with dedicated counters and historical trend logging.
+
 ## [v1.2.1-patch.51] - 2026-02-17
 ### Fixed
 - **IoT Device Launch**: Corrected argument passing to `iot_emulator.py`. 🛠️
