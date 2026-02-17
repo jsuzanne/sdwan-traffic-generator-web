@@ -19,6 +19,12 @@ services:
       - LOG_DIR=/var/log/sdwan-traffic-gen
       - PORT=8080
       - DEBUG=false
+
+      # Prisma SD-WAN API Credentials
+      - PRISMA_SDWAN_REGION=${PRISMA_SDWAN_REGION:-}
+      - PRISMA_SDWAN_TSGID=${PRISMA_SDWAN_TSGID:-}
+      - PRISMA_SDWAN_CLIENT_ID=${PRISMA_SDWAN_CLIENT_ID:-}
+      - PRISMA_SDWAN_CLIENT_SECRET=${PRISMA_SDWAN_CLIENT_SECRET:-}
     volumes:
       - ./config:/app/config
       - ./logs:/var/log/sdwan-traffic-gen

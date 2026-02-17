@@ -160,6 +160,28 @@ environment:
 ```
 
 **Change admin password after first login:**
+
+---
+
+### 6. Prisma SD-WAN Integration
+
+To enable site auto-detection and flow validation, add your Prisma credentials to `docker-compose.yml` or your `.env` file:
+
+```yaml
+environment:
+  - PRISMA_SDWAN_REGION=${PRISMA_SDWAN_REGION}
+  - PRISMA_SDWAN_TSGID=${PRISMA_SDWAN_TSGID}
+  - PRISMA_SDWAN_CLIENT_ID=${PRISMA_SDWAN_CLIENT_ID}
+  - PRISMA_SDWAN_CLIENT_SECRET=${PRISMA_SDWAN_CLIENT_SECRET}
+```
+
+Or in your `.env` file:
+```bash
+PRISMA_SDWAN_REGION=de
+PRISMA_SDWAN_TSGID=123456789
+PRISMA_SDWAN_CLIENT_ID=abc@tsgid.iam.panserviceaccount.com
+PRISMA_SDWAN_CLIENT_SECRET=long-secret-key-here
+```
 Dashboard → Settings → Change Password
 
 ---
