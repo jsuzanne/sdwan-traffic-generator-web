@@ -68,13 +68,13 @@ export default function Failover(props: FailoverProps) {
     useEffect(() => {
         fetchEndpoints();
         fetchHistory();
-        // We only poll endpoints and history occasionally now
+        // Polling history regularly for reliability
         const interval = setInterval(() => {
             fetchEndpoints();
-            if (activeTests.length === 0) fetchHistory();
+            fetchHistory();
         }, 5000);
         return () => clearInterval(interval);
-    }, [activeTests.length === 0]);
+    }, []);
 
     const addEndpoint = async () => {
         if (!newTarget.label || !newTarget.target) return;

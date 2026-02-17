@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.45] - 2026-02-17
+## [v1.2.1-patch.46] - 2026-02-17
+### Fixed
+- **Convergence Lab History & PPS**: Optimized history persistence and PPS limit logic. 🧪
+  - Archived test results immediately on process exit (no more delay in results display).
+  - Excluded stopping probes from Global PPS limit calculation to allow immediate re-run.
+  - Improved frontend history polling reliability.
+
+## [v1.2.1-patch.46
+] - 2026-02-17
 ### Fixed
 - **Convergence Lab Regression**: Fixed flickering "Stopping" status and inaccurate packet counts. 🛡️
   - Synchronized status reporting between Python threads.

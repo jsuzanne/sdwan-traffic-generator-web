@@ -2024,7 +2024,14 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
     if (!target) return res.status(400).json({ error: 'Target IP required' });
 
     // Safety Scaling: Enforce a Global PPS limit of 500
-    const currentTotalPPS = Array.from(convergencePPS.values()).reduce((a, b) => a + b, 0);
+    // Exclude 'stopping' processes from PPS calculation
+    let currentTotalPPS = 0;
+    for (const [id, proc] of convergenceProcesses.entries()) {
+        // We need to check if they are actually running or in stopping state
+        // This requires an extra check but for simplicity we rely on PPS map
+        currentTotalPPS += convergencePPS.get(id) || 0;
+    }
+
     const requestedPPS = parseInt(rate) || 50;
     const GLOBAL_PPS_LIMIT = 1000;
 
@@ -2069,24 +2076,31 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
             const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
             console.log(`[${testId}] [${now}] 🏁 Convergence process exited with code ${code}`);
             log(`CONV-${testId}`, `${code === 0 || code === null ? '✅' : '❌'} Convergence test ended: ${code === 0 || code === null ? 'SUCCESS' : 'FAILED'} (exit code: ${code})`);
-            // Clean up stats file after a short delay to allow last reading
+
+            // Archive IMMEDIATELY on exit
+            const statsFile = `/tmp/convergence_stats_${testId}.json`;
+            if (fs.existsSync(statsFile)) {
+                try {
+                    const finalStats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
+                    fs.appendFileSync(CONVERGENCE_HISTORY_FILE, JSON.stringify({
+                        ...finalStats,
+                        timestamp: Math.floor(Date.now() / 1000)
+                    }) + '\n');
+                } catch (e) {
+                    console.error(`[CONVERGENCE-ERROR] Failed to archive stats for ${testId}:`, e);
+                }
+            }
+
+            // Exclude from PPS limit immediately
+            convergencePPS.delete(testId);
+
+            // Clean up reference after a delay to allow UI to stay in "Stopping" overlay
             setTimeout(() => {
                 convergenceProcesses.delete(testId);
-                convergencePPS.delete(testId);
-                const statsFile = `/tmp/convergence_stats_${testId}.json`;
                 if (fs.existsSync(statsFile)) {
-                    try {
-                        const finalStats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
-                        fs.appendFileSync(CONVERGENCE_HISTORY_FILE, JSON.stringify({
-                            ...finalStats,
-                            timestamp: Math.floor(Date.now() / 1000)
-                        }) + '\n');
-                        fs.unlinkSync(statsFile);
-                    } catch (e) {
-                        console.error(`[CONVERGENCE-ERROR] Failed to process final stats for ${testId}:`, e);
-                    }
+                    try { fs.unlinkSync(statsFile); } catch (e) { }
                 }
-            }, 2000);
+            }, 3000);
         });
 
         proc.on('error', (err: any) => {

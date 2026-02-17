@@ -529,8 +529,9 @@ if __name__ == "__main__":
         try:
             with open(args.stats_file, "w") as f:
                 json.dump(final_stats, f)
-            # Ensure it's flushed to disk
-            os.fsync(open(args.stats_file, "r").fileno())
+                f.flush()
+                # Ensure it's physically written to disk
+                os.fsync(f.fileno())
         except Exception as e:
             debug_log(f"{log_id} STATS_WRITE_ERROR err={e}")
 
