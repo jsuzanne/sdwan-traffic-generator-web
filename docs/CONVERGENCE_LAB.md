@@ -10,7 +10,7 @@ The tool uses a **High-Frequency UDP Probe** strategy to identify sub-second net
 
 ### 1. High-Frequency Probing
 - **Default Rate**: 50 PPS (Packets Per Second), meaning a packet is sent every **20ms**.
-- **Default Port**: **UDP 6200** (Separated from Voice traffic on 6100).
+- **Default Port**: **UDP 6101** (Separated from Voice traffic on 6100).
 - **Source Port**: Deterministic based on Test ID (Range **30000+**).
     - `CONV-001` → Source Port `30001`
     - `CONV-042` → Source Port `30042`

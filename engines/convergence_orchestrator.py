@@ -134,7 +134,7 @@ class ConvergenceMetrics:
                 self.jitter = self.jitter + (d - self.jitter) / 16.0
             self.last_transit_time = transit_time
 
-    def get_stats(self, is_running: bool = True, status_override: str = None) -> dict:
+    def get_stats(self, is_running: bool = True) -> dict:
         with self.lock:
             now = time.time()
 
@@ -228,7 +228,7 @@ class ConvergenceMetrics:
 
         return {
             "test_id": self.test_id,
-            "status": status_override if status_override else ("running" if is_running else "stopped"),
+            "status": "running" if is_running else "stopped",
             "sent": seq,
             "received": rcvd,
             "server_received": server_received_copy,
@@ -287,7 +287,7 @@ def receiver_thread(sock, metrics: ConvergenceMetrics, stop_event):
 
 
 def stats_writer_thread(metrics: ConvergenceMetrics, stats_file: str, stop_event):
-    while not stop_event.is_set() and not graceful_shutdown.is_set():
+    while not stop_event.is_set():
         stats = metrics.get_stats(is_running=True)
         try:
             with open(stats_file, "w") as f:
@@ -453,17 +453,6 @@ if __name__ == "__main__":
         pass
     finally:
         # ===== GRACE PERIOD CRITIQUE =====
-        # Signal that we are in stopping phase immediately
-        def update_stopping_stats():
-            try:
-                stop_stats = metrics.get_stats(is_running=True, status_override="stopping")
-                with open(args.stats_file, "w") as f:
-                    json.dump(stop_stats, f)
-            except:
-                pass
-        
-        update_stopping_stats()
-
         running_stats = metrics.get_stats(is_running=True)
         avg_rtt_ms = running_stats.get("avg_rtt_ms", 0) or 20.0
         
@@ -475,12 +464,7 @@ if __name__ == "__main__":
         print(f"[{log_id}] ⏳ Grace period: {grace_ms:.0f}ms (RTT={avg_rtt_ms:.1f}ms)...", flush=True)
         debug_log(f"{log_id} GRACE_START avg_rtt_ms={avg_rtt_ms} grace_ms={grace_ms} threads_active=True")
         
-        # Periodic update during grace to keep UI alive
-        # Thread stats_writer is stopped because graceful_shutdown is set
-        grace_start = time.time()
-        while time.time() - grace_start < (grace_ms / 1000.0) and not stop_event.is_set():
-            update_stopping_stats()
-            time.sleep(0.5)
+        time.sleep(grace_ms / 1000.0)
         
         print(f"[{log_id}] 🛑 Stopping receiver threads...", flush=True)
         debug_log(f"{log_id} STOPPING_THREADS")
@@ -494,7 +478,7 @@ if __name__ == "__main__":
         
         while time.time() - wait_start < 1.0:
             time.sleep(0.1)
-            stats_now = metrics.get_stats(is_running=False, status_override="stopping")
+            stats_now = metrics.get_stats(is_running=False)
             current_rcvd = stats_now["received"]
             
             if current_rcvd > last_rcvd:
@@ -507,31 +491,18 @@ if __name__ == "__main__":
             if stable_count >= 3:
                 debug_log(f"{log_id} GRACE_RX_STABLE rcvd={current_rcvd} stable_ms=300")
                 break
-            
-            # Keep reporting as stopping during stabilization
-            try:
-                with open(args.stats_file, "w") as f:
-                    json.dump(stats_now, f)
-            except: pass
         
         stabilization_time = round((time.time() - wait_start) * 1000)
         total_grace_time = grace_ms + stabilization_time
         print(f"[{log_id}] ✓ Capture complete (grace: {total_grace_time:.0f}ms, rcvd={last_rcvd})", flush=True)
         debug_log(f"{log_id} GRACE_END total_grace_ms={total_grace_time} final_rcvd={last_rcvd}")
 
-        # STOP ALL THREADS BEFORE FINAL STATS
-        stop_event.set()
-        t_recv.join(1.0)
-        
         metrics.measurement_end_time = time.time()
 
-        final_stats = metrics.get_stats(is_running=False, status_override="stopped")
+        final_stats = metrics.get_stats(is_running=False)
         try:
             with open(args.stats_file, "w") as f:
                 json.dump(final_stats, f)
-                f.flush()
-                # Ensure it's physically written to disk
-                os.fsync(f.fileno())
         except Exception as e:
             debug_log(f"{log_id} STATS_WRITE_ERROR err={e}")
 

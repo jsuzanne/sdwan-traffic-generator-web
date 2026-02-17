@@ -2,7 +2,6 @@
 """
 IoT Device Emulator for Palo Alto SD-WAN/IoT Security Lab
 Generates ARP, DHCP, MQTT, HTTP, RTSP, LLDP traffic and cloud heartbeats
-WITH OPTIONAL BAD BEHAVIOR FOR ALERT TESTING (MULTI-BEHAVIOR + PAN TEST DOMAINS)
 """
 
 import json
@@ -54,7 +53,6 @@ logger = logging.getLogger(__name__)
 # Global flag for JSON output and DEBUG mode
 JSON_OUTPUT = False
 DEBUG_MODE = os.getenv('DEBUG', 'false').lower() == 'true'
-ENABLE_BAD_BEHAVIOR = False  # Global flag set by CLI
 
 def emit_json(msg_type, **kwargs):
     """Utility to print JSON to stdout for Node.js IPC"""
@@ -120,62 +118,6 @@ class IoTDevice:
         "dns": ["8.8.8.8", "1.1.1.1"],
     }
     
-    # Suspicious domains for bad behavior testing
-    SUSPICIOUS_DOMAINS = [
-        "update.windows.com",
-        "api.github.com",
-        "docker.io",
-        "gitlab.com",
-        "vpn.corporate.example",
-        "admin.suspicious-iot.ru",
-        "c2.malware-test.org",
-        "random-dga-12345.com",
-        "torrent-tracker.net",
-        "bitcoin-pool.mining.cc",
-        "malware-download.xyz",
-        "phishing-site.bad",
-        "cryptominer.evil"
-    ]
-    
-    # Palo Alto Networks official test domains for guaranteed detection
-    PAN_DNS_TEST_DOMAINS = [
-        "test-malware.testpanw.com",
-        "test-phishing.testpanw.com",
-        "test-dnstun.testpanw.com",
-        "test-ransomware.testpanw.com",
-        "test-proxy.testpanw.com",
-        "test-grayware.testpanw.com",
-        "test-fastflux.testpanw.com",
-        "test-nrd.testpanw.com",
-        "test-ddns.testpanw.com",
-        "test-parked.testpanw.com",
-        "test-malicious-nrd.testpanw.com",
-        "test-nxns.testpanw.com",
-        "test-dangling-domain.testpanw.com",
-        "test-dns-rebinding.testpanw.com",
-        "test-dns-infiltration.testpanw.com",
-        "test-wildcard-abuse.testpanw.com",
-        "test-strategically-aged.testpanw.com",
-        "test-compromised-dns.testpanw.com",
-        "test-adtracking.testpanw.com",
-        "test-cname-cloaking.testpanw.com",
-        "test-stockpile-domain.testpanw.com",
-        "test-squatting.testpanw.com",
-        "test-subdomain-reputation.testpanw.com",
-        "test-fake-software.testpanw.com"
-    ]
-    
-    PAN_URL_TEST_TARGETS = [
-        ("urlfiltering.paloaltonetworks.com", "/test-malware"),
-        ("urlfiltering.paloaltonetworks.com", "/test-phishing"),
-        ("urlfiltering.paloaltonetworks.com", "/test-command-and-control"),
-        ("urlfiltering.paloaltonetworks.com", "/test-hacking"),
-        ("urlfiltering.paloaltonetworks.com", "/test-weapons"),
-        ("urlfiltering.paloaltonetworks.com", "/test-adult"),
-        ("urlfiltering.paloaltonetworks.com", "/test-gambling"),
-        ("urlfiltering.paloaltonetworks.com", "/test-abused-drugs")
-    ]
-    
     def __init__(self, device_config, interface="eth0", dhcp_mode="auto"):
         self.id = device_config.get("id")
         self.name = device_config.get("name")
@@ -202,23 +144,11 @@ class IoTDevice:
         self.dhcp_fingerprint = self.fingerprint.get("dhcp", {})
         self.http_fingerprint = self.fingerprint.get("http", {})
         
-        # Security / Bad Behavior config - SUPPORT MULTI-BEHAVIORS
-        self.security_config = device_config.get("security", {})
-        self.bad_behavior = self.security_config.get("bad_behavior", False)
-        
-        # Support both single string and list of behavior types
-        behavior_cfg = self.security_config.get("behavior_type", "random")
-        if isinstance(behavior_cfg, list):
-            self.behavior_types = behavior_cfg  # Multiple behaviors
-        else:
-            self.behavior_types = [behavior_cfg]  # Single behavior -> list with 1 element
-        
         # Stats tracking
         self.stats = {
             "packets_sent": 0,
             "bytes_sent": 0,
-            "protocols": {p: 0 for p in self.protocols},
-            "bad_behavior_active": False
+            "protocols": {p: 0 for p in self.protocols}
         }
     
     def log(self, level, message, **kwargs):
@@ -238,8 +168,7 @@ class IoTDevice:
                 "bytes_sent": self.stats["bytes_sent"],
                 "current_ip": self.ip,
                 "uptime_seconds": uptime,
-                "protocols": self.stats["protocols"],
-                "bad_behavior_active": self.stats["bad_behavior_active"]
+                "protocols": self.stats["protocols"]
             })
 
     def _send(self, pkt, protocol=None, **kwargs):
@@ -284,14 +213,6 @@ class IoTDevice:
         self.log("info", f"🆔 MAC addr: {self.mac}")
         if self.ip_static:
             self.log("info", f"📌 Fallback/Static IP: {self.ip_static}")
-        
-        # Bad behavior indicator
-        if ENABLE_BAD_BEHAVIOR and self.bad_behavior:
-            self.stats["bad_behavior_active"] = True
-            self.log("warning", f"⚠️  BAD BEHAVIOR ENABLED (types: {', '.join(self.behavior_types)})")
-            if JSON_OUTPUT:
-                emit_json("bad_behavior_enabled", device_id=self.id, behavior_types=self.behavior_types)
-        
         self.log("info", "============================================================")
         
         if JSON_OUTPUT:
@@ -323,11 +244,6 @@ class IoTDevice:
         # DHCP renewal thread (periodic)
         if "dhcp" in self.protocols:
             thread = threading.Thread(target=self.dhcp_renewal_loop, daemon=True)
-            thread.start()
-        
-        # Start BAD BEHAVIOR threads if enabled (one thread per behavior type)
-        if ENABLE_BAD_BEHAVIOR and self.bad_behavior:
-            thread = threading.Thread(target=self._bad_behavior_handler, daemon=True)
             thread.start()
     
     def stop(self):
@@ -365,278 +281,6 @@ class IoTDevice:
         else:
             logger.warning(f"{self.id}: Unknown protocol: {protocol}")
     
-    # ========================================================================
-    # BAD BEHAVIOR HANDLERS - MULTI-BEHAVIOR SUPPORT + PAN TEST DOMAINS
-    # ========================================================================
-    
-    def _bad_behavior_handler(self):
-        """Main bad behavior dispatcher - lance tous les behavior_types en parallèle"""
-        self.log("warning", f"💀 BAD BEHAVIOR thread started (types: {', '.join(self.behavior_types)})")
-        
-        # Wait for IP assignment
-        wait_count = 0
-        while (not self.ip or self.ip == "0.0.0.0") and wait_count < 30:
-            time.sleep(0.5)
-            wait_count += 1
-        
-        if not self.ip or self.ip == "0.0.0.0":
-            self.log("error", "❌ Cannot start bad behavior without IP")
-            return
-        
-        # Map behavior types to handler functions
-        behavior_handlers = {
-            "dns_flood": self._bad_dns_flood,
-            "port_scan": self._bad_port_scan,
-            "beacon": self._bad_beacon,
-            "data_exfil": self._bad_data_exfil,
-            "random": self._bad_random_mix,
-            "pan_test_domains": self._bad_pan_test_domains  # NEW: PAN official test domains
-        }
-        
-        # Start a thread for each behavior type
-        for behavior_type in self.behavior_types:
-            handler = behavior_handlers.get(behavior_type)
-            if handler:
-                self.log("warning", f"💀 Starting behavior thread: {behavior_type}")
-                thread = threading.Thread(
-                    target=handler, 
-                    daemon=True, 
-                    name=f"bad_{behavior_type}_{self.id}"
-                )
-                thread.start()
-                time.sleep(0.2)  # Small delay between thread starts
-            else:
-                self.log("error", f"❌ Unknown behavior type: {behavior_type}")
-    
-    def _bad_dns_flood(self):
-        """Flood DNS with suspicious/random domains"""
-        self.log("warning", "💀 DNS FLOOD behavior started")
-        dns_servers = self.PUBLIC_SERVICES["dns"] + [self.gateway]
-        
-        while self.running:
-            try:
-                for _ in range(10):  # Burst of 10 queries
-                    domain = random.choice(self.SUSPICIOUS_DOMAINS)
-                    dns_server = random.choice(dns_servers)
-                    
-                    pkt = IP(src=self.ip, dst=dns_server) / \
-                          UDP(sport=random.randint(50000, 60000), dport=53) / \
-                          DNS(rd=1, qd=DNSQR(qname=domain, qtype="A"))
-                    
-                    self._send(pkt, protocol="bad_dns", verbose=0)
-                    self.log("warning", f"💀 [dns_flood] Query: {domain} → {dns_server}")
-                    
-                    time.sleep(0.5)
-                
-            except Exception as e:
-                self.log("error", f"❌ Bad DNS flood error: {e}")
-            
-            time.sleep(15)  # Repeat every 15s
-    
-    def _bad_port_scan(self):
-        """Simulate port scanning behavior"""
-        self.log("warning", "💀 PORT SCAN behavior started")
-        
-        # Scan gateway + random internal IPs
-        targets = [self.gateway]
-        base_ip = ".".join(self.gateway.split(".")[0:3])
-        for _ in range(5):
-            targets.append(f"{base_ip}.{random.randint(1, 254)}")
-        
-        common_ports = [21, 22, 23, 80, 443, 445, 3389, 8080, 8443, 10000]
-        
-        while self.running:
-            try:
-                target = random.choice(targets)
-                
-                for port in common_ports:
-                    pkt = IP(src=self.ip, dst=target) / \
-                          TCP(sport=random.randint(1024, 65535), dport=port, flags="S")
-                    
-                    self._send(pkt, protocol="bad_scan", verbose=0)
-                    self.log("warning", f"💀 [port_scan] Scan: {target}:{port}")
-                    
-                    time.sleep(0.1)
-                
-            except Exception as e:
-                self.log("error", f"❌ Bad port scan error: {e}")
-            
-            time.sleep(30)  # Repeat every 30s
-    
-    def _bad_beacon(self):
-        """Simulate C2 beacon behavior (regular DNS/HTTP to same suspicious domain)"""
-        self.log("warning", "💀 BEACON behavior started")
-        
-        beacon_domain = "c2.malware-test.org"
-        beacon_ip = "198.51.100.66"  # TEST-NET-2 (won't respond but that's OK)
-        dns_server = self.PUBLIC_SERVICES["dns"][0]
-        
-        while self.running:
-            try:
-                # DNS beacon
-                pkt_dns = IP(src=self.ip, dst=dns_server) / \
-                          UDP(sport=53000, dport=53) / \
-                          DNS(rd=1, qd=DNSQR(qname=beacon_domain, qtype="A"))
-                
-                self._send(pkt_dns, protocol="bad_beacon", verbose=0)
-                self.log("warning", f"💀 [beacon] DNS: {beacon_domain}")
-                
-                time.sleep(1)
-                
-                # HTTP beacon (SYN to fake C2)
-                pkt_http = IP(src=self.ip, dst=beacon_ip) / \
-                           TCP(sport=random.randint(1024, 65535), dport=8443, flags="S")
-                
-                self._send(pkt_http, protocol="bad_beacon", verbose=0)
-                self.log("warning", f"💀 [beacon] HTTP: {beacon_ip}:8443")
-                
-            except Exception as e:
-                self.log("error", f"❌ Bad beacon error: {e}")
-            
-            time.sleep(10)  # Every 10s (classic beacon interval)
-    
-    def _bad_data_exfil(self):
-        """Simulate data exfiltration (large uploads to external IPs)"""
-        self.log("warning", "💀 DATA EXFIL behavior started")
-        
-        exfil_targets = [
-            ("198.51.100.88", 443),  # Fake HTTPS upload
-            ("203.0.113.50", 8080),  # Fake HTTP proxy
-        ]
-        
-        while self.running:
-            try:
-                target_ip, target_port = random.choice(exfil_targets)
-                
-                # Send multiple large TCP packets
-                for _ in range(5):
-                    payload = Raw(b"X" * 1400)  # Large payload
-                    pkt = IP(src=self.ip, dst=target_ip) / \
-                          TCP(sport=random.randint(1024, 65535), dport=target_port, flags="PA") / \
-                          payload
-                    
-                    self._send(pkt, protocol="bad_exfil", verbose=0)
-                    self.log("warning", f"💀 [data_exfil] Upload: {target_ip}:{target_port} ({len(payload)} bytes)")
-                    
-                    time.sleep(0.5)
-                
-            except Exception as e:
-                self.log("error", f"❌ Bad exfil error: {e}")
-            
-            time.sleep(20)  # Every 20s
-    
-    def _bad_pan_test_domains(self):
-        """Test with official Palo Alto Networks test domains for GUARANTEED detection"""
-        self.log("warning", "💀 PAN TEST DOMAINS behavior started (DNS Security + URL Filtering)")
-        dns_servers = self.PUBLIC_SERVICES["dns"] + [self.gateway]
-        
-        while self.running:
-            try:
-                # DNS Security tests - cycle through PAN test domains
-                for _ in range(5):  # Burst of 5 DNS queries
-                    domain = random.choice(self.PAN_DNS_TEST_DOMAINS)
-                    dns_server = random.choice(dns_servers)
-                    
-                    pkt = IP(src=self.ip, dst=dns_server) / \
-                          UDP(sport=random.randint(50000, 60000), dport=53) / \
-                          DNS(rd=1, qd=DNSQR(qname=domain, qtype="A"))
-                    
-                    self._send(pkt, protocol="bad_pan_dns", verbose=0)
-                    self.log("warning", f"💀 [pan_test] DNS Security: {domain} → {dns_server}")
-                    
-                    time.sleep(1)
-                
-                time.sleep(5)
-                
-                # URL Filtering tests (HTTP/HTTPS SYN to trigger detection)
-                for _ in range(3):
-                    host, path = random.choice(self.PAN_URL_TEST_TARGETS)
-                    
-                    # urlfiltering.paloaltonetworks.com IP (one of their test IPs)
-                    pan_url_ip = "35.223.6.162"
-                    
-                    # HTTPS (443) - will trigger SNI-based detection if SSL inspection enabled
-                    pkt_https = IP(src=self.ip, dst=pan_url_ip) / \
-                               TCP(sport=random.randint(1024, 65535), dport=443, flags="S")
-                    
-                    self._send(pkt_https, protocol="bad_pan_url", verbose=0)
-                    self.log("warning", f"💀 [pan_test] URL Filter HTTPS: {host}{path} → {pan_url_ip}:443")
-                    
-                    time.sleep(2)
-                    
-                    # HTTP (80)
-                    pkt_http = IP(src=self.ip, dst=pan_url_ip) / \
-                              TCP(sport=random.randint(1024, 65535), dport=80, flags="S")
-                    
-                    self._send(pkt_http, protocol="bad_pan_url", verbose=0)
-                    self.log("warning", f"💀 [pan_test] URL Filter HTTP: {host}{path} → {pan_url_ip}:80")
-                    
-                    time.sleep(2)
-                
-            except Exception as e:
-                self.log("error", f"❌ PAN test domains error: {e}")
-            
-            time.sleep(20)  # Repeat every 20s
-    
-    def _bad_random_mix(self):
-        """Random mix of all bad behaviors"""
-        self.log("warning", "💀 RANDOM MIX behavior started")
-        
-        behaviors = [
-            self._bad_dns_suspicious_single,
-            self._bad_port_scan_single,
-            self._bad_beacon_single,
-        ]
-        
-        while self.running:
-            try:
-                behavior = random.choice(behaviors)
-                behavior()
-                
-            except Exception as e:
-                self.log("error", f"❌ Bad random behavior error: {e}")
-            
-            time.sleep(random.randint(5, 15))
-    
-    def _bad_dns_suspicious_single(self):
-        """Send one suspicious DNS query"""
-        domain = random.choice(self.SUSPICIOUS_DOMAINS)
-        dns_server = random.choice(self.PUBLIC_SERVICES["dns"])
-        
-        pkt = IP(src=self.ip, dst=dns_server) / \
-              UDP(sport=random.randint(50000, 60000), dport=53) / \
-              DNS(rd=1, qd=DNSQR(qname=domain, qtype="A"))
-        
-        self._send(pkt, protocol="bad_dns", verbose=0)
-        self.log("warning", f"💀 [random] DNS: {domain}")
-    
-    def _bad_port_scan_single(self):
-        """Send one port scan probe"""
-        target = self.gateway
-        port = random.choice([22, 23, 445, 3389, 8080])
-        
-        pkt = IP(src=self.ip, dst=target) / \
-              TCP(sport=random.randint(1024, 65535), dport=port, flags="S")
-        
-        self._send(pkt, protocol="bad_scan", verbose=0)
-        self.log("warning", f"💀 [random] Scan: {target}:{port}")
-    
-    def _bad_beacon_single(self):
-        """Send one C2 beacon"""
-        beacon_domain = "c2.malware-test.org"
-        dns_server = self.PUBLIC_SERVICES["dns"][0]
-        
-        pkt = IP(src=self.ip, dst=dns_server) / \
-              UDP(sport=53000, dport=53) / \
-              DNS(rd=1, qd=DNSQR(qname=beacon_domain, qtype="A"))
-        
-        self._send(pkt, protocol="bad_beacon", verbose=0)
-        self.log("warning", f"💀 [random] Beacon: {beacon_domain}")
-    
-    # ========================================================================
-    # DHCP / NORMAL PROTOCOL HANDLERS (unchanged)
-    # ========================================================================
-    
     def parse_dhcp_options(self, packet):
         """Parse DHCP options and return as dict"""
         options = {}
@@ -647,22 +291,37 @@ class IoTDevice:
         return options
 
     def build_dhcp_options(self, msg_type="discover"):
-        """Build DHCP options with optional fingerprint from JSON."""
+        """
+        Build DHCP options with optional fingerprint from JSON.
+        If fingerprint.dhcp is not provided or incomplete, fall back to safe defaults.
+        """
         fp = self.dhcp_fingerprint or {}
+
+        # hostname: fingerprint override -> device name
         hostname = fp.get("hostname", self.name or self.id or "iot-device")
+
+        # vendor_class_id (Option 60)
         default_vendor_class = f"{self.vendor} {self.device_type}".strip() if (self.vendor or self.device_type) else "Generic IoT Device"
         vendor_class_id = fp.get("vendor_class_id", default_vendor_class)
-        param_req_list = fp.get("param_req_list", [1, 3, 6, 15, 28, 51, 54])
-        client_id_type = fp.get("client_id_type", 1)
 
+        # param_req_list (Option 55)
+        # Default: simple but slightly richer than [1,3,6,15]
+        param_req_list = fp.get("param_req_list", [1, 3, 6, 15, 28, 51, 54])
+
+        # client_id_type (Option 61 type field)
+        client_id_type = fp.get("client_id_type", 1)  # 1 = Ethernet
+
+        # ✅ LOG FINGERPRINT DEBUG INFO
         if fp:
             self.log("info", f"🔐 Using DHCP fingerprint: hostname='{hostname}', vendor_class='{vendor_class_id}', param_req_list={param_req_list}")
         else:
             self.log("info", f"⚠️ No fingerprint provided, using defaults: hostname='{hostname}', vendor_class='{vendor_class_id}', param_req_list={param_req_list}")
 
+        # Client ID: type + MAC
         try:
             client_id = bytes([client_id_type]) + bytes.fromhex(self.mac.replace(":", ""))
         except Exception:
+            # Fallback: just type 1 with dummy MAC
             client_id = b"\x01\x00\x00\x00\x00\x00\x00"
 
         options = [
@@ -680,7 +339,9 @@ class IoTDevice:
         try:
             self.log("info", f"🔄 Starting DHCP sequence (mode: {self.dhcp_mode})...")
             
+            # Step 1: Send DHCP Discover
             self.dhcp_xid = random.randint(1, 0xFFFFFFFF)
+            
             discover_options = self.build_dhcp_options("discover")
             
             discover = Ether(dst="ff:ff:ff:ff:ff:ff", src=self.mac) / \
@@ -694,6 +355,7 @@ class IoTDevice:
                 emit_json("dhcp_discover", device_id=self.id, xid=hex(self.dhcp_xid), mac=self.mac)
             sendp(discover, iface=self.interface, verbose=0)
             
+            # Step 2: Wait and capture DHCP OFFER
             self.log("info", f"⏳ Waiting for DHCP OFFER (timeout: 3s)...")
             
             try:
@@ -716,7 +378,7 @@ class IoTDevice:
                     options = self.parse_dhcp_options(offer_pkt)
                     msg_type = options.get('message-type')
                     
-                    if msg_type == 2:
+                    if msg_type == 2:  # OFFER
                         self.dhcp_offered_ip = offer_pkt[BOOTP].yiaddr
                         self.dhcp_server_ip = offer_pkt[BOOTP].siaddr or offer_pkt[IP].src
                         
@@ -733,7 +395,11 @@ class IoTDevice:
             
             time.sleep(0.5)
             
+            # Step 3: Send DHCP Request
+            # Start from fingerprinted options
             dhcp_options = self.build_dhcp_options("request")
+
+            # Remove final ("end") to insert requested_addr/server_id then re-add it
             if dhcp_options and dhcp_options[-1] == ("end"):
                 dhcp_options = dhcp_options[:-1]
             
@@ -762,6 +428,7 @@ class IoTDevice:
             
             sendp(request, iface=self.interface, verbose=0)
             
+            # Step 4: Wait and capture DHCP ACK
             self.log("info", f"⏳ Waiting for DHCP ACK (timeout: 3s)...")
             
             try:
@@ -778,10 +445,11 @@ class IoTDevice:
                     options = self.parse_dhcp_options(ack_pkt)
                     msg_type = options.get('message-type')
                     
-                    if msg_type == 5:
+                    if msg_type == 5:  # ACK
                         assigned_ip = ack_pkt[BOOTP].yiaddr
                         self.ip = assigned_ip
                         
+                        # Extract gateway from DHCP option 3 (router)
                         router = options.get('router')
                         if router:
                             self.gateway = router[0] if isinstance(router, list) else router
@@ -792,7 +460,7 @@ class IoTDevice:
                         self.log("info", f"✅ Received DHCP ACK from {ack_pkt[IP].src} (Assigned IP: {assigned_ip})")
                         if JSON_OUTPUT:
                             emit_json("dhcp_ack", device_id=self.id, assigned_ip=assigned_ip, server_id=ack_pkt[IP].src, gateway=self.gateway)
-                    elif msg_type == 6:
+                    elif msg_type == 6:  # NAK
                         self.log("error", "❌ Received DHCP NAK - request rejected by server")
                     else:
                         self.log("warning", f"⚠️ Received DHCP packet but not ACK (type: {msg_type})")
@@ -810,28 +478,33 @@ class IoTDevice:
     def dhcp_renewal_loop(self):
         """Periodic DHCP renewal"""
         self.log("debug", "DHCP renewal thread started")
+        
         time.sleep(self.traffic_interval * 5)
         
         while self.running:
             try:
                 logger.info(f"🔄 {self.id}: Performing DHCP renewal...")
                 self.do_dhcp_sequence()
+                
             except Exception as e:
                 self.log("error", f"❌ DHCP renewal error: {e}")
+            
             time.sleep(self.traffic_interval * 5)
     
     def send_lldp(self):
-        """Send LLDP advertisements periodically"""
+        """Send LLDP advertisements periodically (for switch/router discovery)"""
         self.log("info", "📡 LLDP thread started")
         
         while self.running:
             try:
+                # Wait for valid IP if using DHCP
                 if "dhcp" in self.protocols:
                     wait_count = 0
                     while (not self.ip or self.ip == "0.0.0.0") and wait_count < 20:
                         time.sleep(0.5)
                         wait_count += 1
                 
+                # Build LLDP frame
                 lldp_frame = Ether(dst=LLDP_NEAREST_BRIDGE_MAC, src=self.mac) / \
                              LLDPDUChassisID(subtype=4, id=self.mac.encode()) / \
                              LLDPDUPortID(subtype=3, id=self.mac.encode()) / \
@@ -848,10 +521,11 @@ class IoTDevice:
             except Exception as e:
                 self.log("error", f"❌ LLDP error: {e}")
             
-            time.sleep(30)
+            time.sleep(30)  # LLDP advertisement every 30 seconds
+    
     
     def send_arp(self):
-        """Send ARP requests"""
+        """Send ARP requests (device discovery)"""
         self.log("debug", "🔍 ARP thread started")
         
         while self.running:
@@ -871,7 +545,7 @@ class IoTDevice:
             time.sleep(self.traffic_interval)
     
     def send_http(self):
-        """Send HTTP requests"""
+        """Send HTTP requests (configuration/status check)"""
         self.log("debug", "🌐 HTTP thread started")
         
         while self.running:
@@ -888,8 +562,9 @@ class IoTDevice:
             time.sleep(self.traffic_interval)
     
     def send_mqtt(self):
-        """Send MQTT publish packets"""
+        """Send MQTT publish packets (for sensors)"""
         self.log("debug", "💬 MQTT thread started")
+        
         mqtt_broker = "192.168.207.150"
         
         while self.running:
@@ -899,6 +574,7 @@ class IoTDevice:
                 
                 self._send(pkt, protocol="mqtt", verbose=0)
                 self.log("debug", f"📤 MQTT Connect sent to {mqtt_broker}:1883")
+                
                 time.sleep(5)
                 
             except Exception as e:
@@ -907,7 +583,7 @@ class IoTDevice:
             time.sleep(self.traffic_interval)
     
     def send_rtsp(self):
-        """Send RTSP requests"""
+        """Send RTSP requests (for cameras)"""
         self.log("debug", "🎥 RTSP thread started")
         
         while self.running:
@@ -924,7 +600,7 @@ class IoTDevice:
             time.sleep(self.traffic_interval)
     
     def send_mdns(self):
-        """Send mDNS requests"""
+        """Send mDNS requests (for discovery)"""
         self.log("debug", "🔎 mDNS thread started")
         
         while self.running:
@@ -959,6 +635,7 @@ class IoTDevice:
                     
                     self._send(pkt, protocol="cloud", verbose=0)
                     self.log("info", f"☁️ Cloud HTTPS sent to {server}:443")
+                    
                     time.sleep(2)
                     
                     pkt_http = IP(src=self.ip, dst=server) / \
@@ -966,6 +643,7 @@ class IoTDevice:
                     
                     self._send(pkt_http, protocol="cloud", verbose=0)
                     self.log("info", f"☁️ Cloud HTTP sent to {server}:80")
+                    
                     time.sleep(3)
                 
             except Exception as e:
@@ -979,6 +657,7 @@ class IoTDevice:
         
         cloud_config = self.CLOUD_DESTINATIONS.get(self.vendor, {"domains": []})
         domains = cloud_config.get("domains", ["www.google.com"])
+        
         dns_servers = self.PUBLIC_SERVICES["dns"]
         
         while self.running:
@@ -991,6 +670,7 @@ class IoTDevice:
                         
                         self._send(pkt, protocol="dns", verbose=0)
                         self.log("info", f"🌐 DNS query sent: {domain} → {dns_server}")
+                        
                         time.sleep(1)
                 
             except Exception as e:
@@ -1001,6 +681,7 @@ class IoTDevice:
     def send_ntp(self):
         """Send NTP time sync requests"""
         self.log("debug", "🕐 NTP thread started")
+        
         ntp_servers = self.PUBLIC_SERVICES["ntp"]
         
         while self.running:
@@ -1011,6 +692,7 @@ class IoTDevice:
                     
                     self._send(pkt, protocol="ntp", verbose=0)
                     self.log("info", f"🕐 NTP request sent to {ntp_server}")
+                    
                     time.sleep(2)
                 
             except Exception as e:
@@ -1045,10 +727,7 @@ class IoTEmulator:
         logger.info("=" * 60)
         logger.info("🚀 IoT Emulator for Palo Alto SD-WAN/IoT Security Lab")
         logger.info(f"   DHCP Mode: {dhcp_mode.upper()}")
-        if ENABLE_BAD_BEHAVIOR:
-            logger.warning("⚠️  BAD BEHAVIOR MODE ENABLED (alert testing)")
         logger.info(f"   Features: DHCP Fingerprint, ARP, LLDP, HTTP, MQTT, RTSP, Cloud")
-        logger.info(f"   Multi-Behavior + PAN Test Domains Support")
         logger.info("=" * 60)
     
     def load_config(self):
@@ -1062,6 +741,8 @@ class IoTEmulator:
             if self.interface:
                 logger.info(f"📡 Current Interface: {self.interface}")
             
+            # The network config in JSON is now ignored for interface selection 
+            # to ensure the Dashboard/Installer remains the source of truth.
             network = config.get("network", {})
             self.gateway = network.get("gateway", "192.168.207.1")
             
@@ -1077,10 +758,7 @@ class IoTEmulator:
             for device in self.devices:
                 status = "✅ enabled" if device.enabled else "⏸️  disabled"
                 protocols_str = ", ".join(device.protocols)
-                bad_marker = ""
-                if ENABLE_BAD_BEHAVIOR and device.bad_behavior:
-                    bad_marker = f" 💀 BAD[{', '.join(device.behavior_types)}]"
-                logger.info(f"   {device} - {status} [{protocols_str}]{bad_marker}")
+                logger.info(f"   {device} - {status} [{protocols_str}]")
             
         except FileNotFoundError:
             logger.error(f"❌ Config file not found: {self.config_file}")
@@ -1114,17 +792,12 @@ class IoTEmulator:
         print("\n" + "=" * 60)
         print(f"📊 IoT Emulator Status - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"   DHCP Mode: {self.dhcp_mode.upper()}")
-        if ENABLE_BAD_BEHAVIOR:
-            print("   ⚠️  BAD BEHAVIOR ENABLED")
         print("=" * 60)
         
         for device in self.devices:
             status = "🟢 RUNNING" if device.running else "🔴 STOPPED"
             protocols = ", ".join(device.protocols)
-            bad_marker = ""
-            if device.bad_behavior and device.stats.get("bad_behavior_active"):
-                bad_marker = f" 💀[{', '.join(device.behavior_types)}]"
-            print(f"{status} | {str(device):45} | {protocols}{bad_marker}")
+            print(f"{status} | {str(device):45} | {protocols}")
         
         print("=" * 60 + "\n")
     
@@ -1167,34 +840,27 @@ DHCP Modes:
   auto   - Accept any IP assigned by DHCP server (recommended)
   static - Request specific IP from JSON config (ip_start field)
 
-Bad Behavior Mode (Multi-Behavior + PAN Test Domains Support):
-  --enable-bad-behavior   Activate bad behavior for devices marked with "security": {"bad_behavior": true}
-  
-  Behavior types (set in JSON "behavior_type" - can be string or array):
-    - dns_flood: Flood DNS with suspicious/random domains
-    - port_scan: Scan common ports on gateway + internal IPs
-    - beacon: Simulate C2 beacon (regular DNS/HTTP to same suspicious domain)
-    - data_exfil: Simulate data exfiltration (large uploads to external IPs)
-    - pan_test_domains: Use official PAN test domains (DNS Security + URL Filtering) - GUARANTEED DETECTION
-    - random: Mix of all above (default)
-    
-  Multi-behavior example in JSON:
-    "security": {
-      "bad_behavior": true,
-      "behavior_type": ["pan_test_domains", "beacon", "port_scan"]
-    }
+Protocols Supported:
+  - dhcp: DHCP client (Discover/Offer/Request/ACK) with fingerprinting
+  - arp: ARP requests for gateway discovery
+  - lldp: LLDP advertisements (Layer 2 discovery)
+  - http: HTTP traffic to gateway
+  - mqtt: MQTT traffic to broker
+  - rtsp: RTSP traffic (cameras)
+  - cloud: HTTPS traffic to vendor cloud servers
+  - dns: DNS queries to public resolvers
+  - ntp: NTP time sync requests
+  - mdns: mDNS service discovery
 
 Examples:
-  # Normal mode
-  sudo python3 iot_emulator.py -i eth0 --dhcp-mode auto
+  sudo python3 iot_emulator.py -i ens4 --dhcp-mode auto
+  sudo python3 iot_emulator.py -c custom_devices.json -i eth0 --dhcp-mode static
   
-  # PAN official test domains (guaranteed detection)
-  sudo python3 iot_emulator.py -c pan_test.json -i eth0 --enable-bad-behavior
+Test DHCP fingerprint:
+  sudo tcpdump -i ens4 -vvv port 67 or port 68
   
-  # Single device with multiple bad behaviors including PAN tests
-  sudo python3 iot_emulator.py --device-id pantest --mac 00:11:22:33:99:99 \\
-    --protocols dhcp,dns -i eth0 --enable-bad-behavior \\
-    --security '{"bad_behavior":true,"behavior_type":["pan_test_domains","beacon"]}'
+Test LLDP:
+  sudo tcpdump -i ens4 -vvv ether proto 0x88cc
         """
     )
     parser.add_argument(
@@ -1230,12 +896,6 @@ Examples:
         help="Enable JSON output for Node.js IPC"
     )
     
-    parser.add_argument(
-        "--enable-bad-behavior",
-        action="store_true",
-        help="Enable bad behavior for devices marked with security.bad_behavior=true"
-    )
-    
     # Single device mode arguments
     parser.add_argument("--device-id", help="Run in single device mode with this ID")
     parser.add_argument("--device-name", help="Device name for single device mode")
@@ -1247,13 +907,11 @@ Examples:
     parser.add_argument("--traffic-interval", type=int, default=60, help="Traffic interval in seconds")
     parser.add_argument("--gateway", default="192.168.207.1", help="Gateway IP")
     parser.add_argument("--fingerprint", type=str, help="JSON-encoded DHCP fingerprint for single device mode")
-    parser.add_argument("--security", type=str, help="JSON-encoded security config for single device mode")
 
     args = parser.parse_args()
     
-    global JSON_OUTPUT, ENABLE_BAD_BEHAVIOR
+    global JSON_OUTPUT
     JSON_OUTPUT = args.json_output
-    ENABLE_BAD_BEHAVIOR = args.enable_bad_behavior
 
     if args.device_id:
         # Single device mode
@@ -1270,6 +928,7 @@ Examples:
             "gateway": args.gateway
         }
         
+        # Parse fingerprint from CLI argument if provided
         if args.fingerprint:
             try:
                 config["fingerprint"] = json.loads(args.fingerprint)
@@ -1277,15 +936,9 @@ Examples:
             except json.JSONDecodeError as e:
                 logger.warning(f"⚠️ Failed to parse --fingerprint JSON: {e}. Continuing without fingerprint.")
         
-        if args.security:
-            try:
-                config["security"] = json.loads(args.security)
-                logger.info(f"✅ Loaded security config from CLI for device {args.device_id}")
-            except json.JSONDecodeError as e:
-                logger.warning(f"⚠️ Failed to parse --security JSON: {e}. Continuing without security config.")
-        
         device = IoTDevice(config, interface=args.interface, dhcp_mode=args.dhcp_mode)
         
+        # Handle SIGTERM for graceful exit
         import signal
         def handle_sigterm(signum, frame):
             device.stop()
@@ -1299,7 +952,7 @@ Examples:
         except KeyboardInterrupt:
             device.stop()
     else:
-        # Multi-device mode
+        # Multi-device mode (existing behavior)
         emulator = IoTEmulator(args.config, interface=args.interface, dhcp_mode=args.dhcp_mode)
         
         if args.status:

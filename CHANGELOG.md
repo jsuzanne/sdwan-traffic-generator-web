@@ -4,27 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.46] - 2026-02-17
+## [v1.2.1-patch.47] - 2026-02-17
 ### Fixed
-- **Convergence Lab History & PPS**: Optimized history persistence and PPS limit logic. 🧪
-  - Archived test results immediately on process exit (no more delay in results display).
-  - Excluded stopping probes from Global PPS limit calculation to allow immediate re-run.
-  - Improved frontend history polling reliability.
-
-## [v1.2.1-patch.46
-] - 2026-02-17
-### Fixed
-- **Convergence Lab Regression**: Fixed flickering "Stopping" status and inaccurate packet counts. 🛡️
-  - Synchronized status reporting between Python threads.
-  - Improved backend process lifecycle to prevent premature test cleanup.
-  - Ensured final packet capture is fully flushed before test termination.
-
-## [v1.2.1-patch.44] - 2026-02-16
-### Improved
-- **Convergence Lab Stop Sequence**: Optimized the "Stop Probe" UX to prevent UI freezing during the 5-second grace period. 🛑
-  - Added a "stopping" transient state in the Python orchestrator for better visual feedback.
-  - Refactored the backend to manage the full process lifecycle until completion.
-  - Added per-probe "Stopping..." UI indicators and glassmorphism overlays during capture finalization.
+- **Rollback to Stable**: Reverted to `v1.2.1-patch.43` logic for Convergence Lab. 🛡️
+  - Reverted recent stop sequence optimizations (patch.44, .45, .46) due to history reporting regressions.
+  - Restored stable baseline for further investigation.
 
 ## [v1.2.1-patch.43] - 2026-02-16
 ### Added
