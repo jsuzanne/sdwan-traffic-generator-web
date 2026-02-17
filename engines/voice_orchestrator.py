@@ -258,20 +258,24 @@ def main():
         # 1. Reset Counter
         with open(COUNTER_FILE, 'w') as f:
             json.dump({'counter': 0}, f)
-    # 2. Disable simulation by default
-    try:
-        config = load_voice_config()
-        if 'control' in config:
-            config['control']['enabled'] = False
-            with open(VOICE_CONFIG_FILE, 'w') as f:
-                json.dump(config, f, indent=2)
-    except Exception as e:
-        print(f"Warning during config reset: {e}")
+        # 2. Disable simulation by default
+        try:
+            config = load_voice_config()
+            if 'control' in config:
+                config['control']['enabled'] = False
+                with open(VOICE_CONFIG_FILE, 'w') as f:
+                    json.dump(config, f, indent=2)
+        except Exception as e:
+            print(f"Warning during config reset: {e}")
+
         # 3. Clear logs to stay perfectly synchronized with the UI
-        with open(STATS_FILE, 'w') as f:
-            f.write("")
+        try:
+            with open(STATS_FILE, 'w') as f:
+                f.write("")
+        except Exception as e:
+            print(f"Warning during log clearing: {e}")
     except Exception as e:
-        print(f"Warning during cleanup: {e}")
+        print(f"Warning during startup cleanup: {e}")
     sys.stdout.flush()
 
     # Log session start
