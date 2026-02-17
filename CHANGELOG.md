@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.54] - 2026-02-17
+### Fixed
+- **Voice Control**: Fixed state synchronization issue where UI toggles were not persisting to the unified configuration file. 🎙️🔄
+- **Backend**: Removed obsolete legacy configuration files (`voice-control.json`, `voice-servers.txt`) and updated all API endpoints to use `voice-config.json`.
+
 ## [v1.2.1-patch.53] - 2026-02-17
 ### Fixed
 - **Voice Orchestrator**: Fixed a critical Python syntax error (indentation) introduced in the voice consolidation refactor. 🛠️🐛

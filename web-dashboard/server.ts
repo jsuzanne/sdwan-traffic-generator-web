@@ -61,9 +61,9 @@ if (DEBUG) console.log(`Connectivity Logger initialized (DEM)`);
 
 // Test Counter - Persistent sequential ID for all tests
 const TEST_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'test-counter.json');
-const VOICE_CONTROL_FILE = path.join(APP_CONFIG.configDir, 'voice-control.json');
+// Obsolete files removed
 const VOICE_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'voice-counter.json');
-const VOICE_SERVERS_FILE = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
+// Obsolete files removed
 const VOICE_STATS_FILE = path.join(APP_CONFIG.logDir, 'voice-stats.jsonl');
 const CONVERGENCE_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'convergence-history.jsonl');
 const CONVERGENCE_STATS_FILE = '/tmp/convergence_stats.json';
@@ -1402,10 +1402,11 @@ app.post('/api/traffic/settings', authenticateToken, (req, res) => {
 // API: Voice Control - Status
 app.get('/api/voice/status', authenticateToken, (req, res) => {
     try {
-        let control = { enabled: false, max_simultaneous_calls: 3, interface: 'eth0' };
-        if (fs.existsSync(VOICE_CONTROL_FILE)) {
-            control = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+        if (!fs.existsSync(VOICE_CONFIG_FILE)) {
+            return res.json({ success: true, enabled: false, max_simultaneous_calls: 3, interface: getInterface() });
         }
+        const config = JSON.parse(fs.readFileSync(VOICE_CONFIG_FILE, 'utf8'));
+        const control = config.control || { enabled: false, max_simultaneous_calls: 3, interface: getInterface() };
         res.json({ success: true, ...control });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
@@ -1416,13 +1417,19 @@ app.get('/api/voice/status', authenticateToken, (req, res) => {
 app.post('/api/voice/control', authenticateToken, (req, res) => {
     try {
         const { enabled } = req.body;
-        let control = { enabled: false, max_simultaneous_calls: 3, interface: 'eth0' };
-        if (fs.existsSync(VOICE_CONTROL_FILE)) {
-            control = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+        let config: any = { servers: [], control: { enabled: false, max_simultaneous_calls: 3, interface: getInterface() } };
+
+        if (fs.existsSync(VOICE_CONFIG_FILE)) {
+            config = JSON.parse(fs.readFileSync(VOICE_CONFIG_FILE, 'utf8'));
         }
-        control.enabled = !!enabled;
-        fs.writeFileSync(VOICE_CONTROL_FILE, JSON.stringify(control, null, 2));
-        res.json({ success: true, enabled: control.enabled });
+
+        if (!config.control) {
+            config.control = { enabled: false, max_simultaneous_calls: 3, interface: getInterface() };
+        }
+
+        config.control.enabled = !!enabled;
+        fs.writeFileSync(VOICE_CONFIG_FILE, JSON.stringify(config, null, 2));
+        res.json({ success: true, enabled: config.control.enabled });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
     }
