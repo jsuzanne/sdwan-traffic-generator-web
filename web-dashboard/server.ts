@@ -4367,10 +4367,28 @@ app.get('/api/admin/system/dashboard-data', authenticateToken, async (req, res) 
                     convergenceResults.push({
                         ...cStats,
                         testId,
-                        running: convergenceProcesses.has(testId)
+                        running: convergenceProcesses.has(testId),
+                        // Force stopping status if process exists and file says stopping or process is exiting
+                        status: convergenceProcesses.has(testId) ? (cStats.status || 'running') : 'stopped'
                     });
                 } catch (e) { }
             }));
+
+            // Also include tests that ARE running but don't have a stats file yet
+            for (const [testId, proc] of convergenceProcesses.entries()) {
+                if (!convergenceResults.find(r => r.testId === testId)) {
+                    convergenceResults.push({
+                        testId,
+                        status: 'starting',
+                        running: true,
+                        sent: 0,
+                        received: 0,
+                        current_blackout_ms: 0,
+                        max_blackout_ms: 0,
+                        loss_pct: 0
+                    });
+                }
+            }
         } catch (e) { }
 
         // 6. Voice Status & Stats (Non-blocking)

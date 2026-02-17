@@ -287,7 +287,7 @@ def receiver_thread(sock, metrics: ConvergenceMetrics, stop_event):
 
 
 def stats_writer_thread(metrics: ConvergenceMetrics, stats_file: str, stop_event):
-    while not stop_event.is_set():
+    while not stop_event.is_set() and not graceful_shutdown.is_set():
         stats = metrics.get_stats(is_running=True)
         try:
             with open(stats_file, "w") as f:
@@ -476,8 +476,9 @@ if __name__ == "__main__":
         debug_log(f"{log_id} GRACE_START avg_rtt_ms={avg_rtt_ms} grace_ms={grace_ms} threads_active=True")
         
         # Periodic update during grace to keep UI alive
+        # Thread stats_writer is stopped because graceful_shutdown is set
         grace_start = time.time()
-        while time.time() - grace_start < (grace_ms / 1000.0):
+        while time.time() - grace_start < (grace_ms / 1000.0) and not stop_event.is_set():
             update_stopping_stats()
             time.sleep(0.5)
         
@@ -518,12 +519,18 @@ if __name__ == "__main__":
         print(f"[{log_id}] ✓ Capture complete (grace: {total_grace_time:.0f}ms, rcvd={last_rcvd})", flush=True)
         debug_log(f"{log_id} GRACE_END total_grace_ms={total_grace_time} final_rcvd={last_rcvd}")
 
+        # STOP ALL THREADS BEFORE FINAL STATS
+        stop_event.set()
+        t_recv.join(1.0)
+        
         metrics.measurement_end_time = time.time()
 
         final_stats = metrics.get_stats(is_running=False, status_override="stopped")
         try:
             with open(args.stats_file, "w") as f:
                 json.dump(final_stats, f)
+            # Ensure it's flushed to disk
+            os.fsync(open(args.stats_file, "r").fileno())
         except Exception as e:
             debug_log(f"{log_id} STATS_WRITE_ERROR err={e}")
 

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.45] - 2026-02-17
+### Fixed
+- **Convergence Lab Regression**: Fixed flickering "Stopping" status and inaccurate packet counts. 🛡️
+  - Synchronized status reporting between Python threads.
+  - Improved backend process lifecycle to prevent premature test cleanup.
+  - Ensured final packet capture is fully flushed before test termination.
+
 ## [v1.2.1-patch.44] - 2026-02-16
 ### Improved
 - **Convergence Lab Stop Sequence**: Optimized the "Stop Probe" UX to prevent UI freezing during the 5-second grace period. 🛑
