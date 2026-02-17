@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.2.1--patch.38-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.1--patch.51-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -55,7 +55,7 @@ This project is my way to turn all that lab and demo experience into an open-sou
 - **Protocol & IP Flexibility** - Support for explicit `http://` or `https://` and full IP address identification
 - **Multi-interface Support** - Bind to specific network interfaces
 - **Voice Simulation (RTP)** - Simulate real-time voice calls (G.711, G.729) with Scapy-based packet forging. [Read more](docs/VOICE_SIMULATION.md)
-- **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence.  [Read more](docs/IOT_SIMULATION.md)
+- **IoT Simulation** - Simulate a variety of IoT devices (Cameras, Sensors) with Scapy-based DHCP and ARP support for "Real-on-the-Wire" physical network presence. Includes **Security Testing / Attack Mode** to validate malicious behavior detection (DNS Flood, C2 Beacon, Port Scan). [Read more](docs/IOT_SIMULATION.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
 - **VyOS Control ** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
@@ -95,7 +95,14 @@ This project is my way to turn all that lab and demo experience into an open-sou
 
 Recent improvements and features added to the SD-WAN Traffic Generator:
 
-### v1.2.1-patch.25 (Latest)
+### v1.2.1-patch.51 (Latest)
+- **IoT Security Testing**: Full implementation of "Bad Behavior" mode for IoT devices.
+- **Attack Profiles**: Support for DNS Flood, C2 Beacon, Port Scan, Data Exfiltration, and PAN Test Domains.
+- **IoT UI Improvements**: Added security toggles, attack mode badges, and hardware-style indicators in the dashboard.
+- **Generator Script**: Updated `generate_iot_devices.py` with `--enable-security` flags for automated lab creation.
+- **Bug Fix**: Corrected IoT emulator argument passing in the backend.
+
+### v1.2.1-patch.25
 
 ### v1.2.1-patch.24
 
@@ -217,7 +224,7 @@ Layer-2/3 device simulation with DHCP and ARP support.
 
 <img src="docs/screenshots/05 - IOT/18.png" alt="IoT Simulation" width="800">
 
-**[View all IoT screenshots →](docs/screenshots/05%20-%20IOT)** (4 images)
+**[View all IoT screenshots →](docs/screenshots/05%20-%20IOT)** (6 images)
 
 ---
 
