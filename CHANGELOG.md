@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.55] - 2026-02-17
+### Added
+- **Voice UI**: Added specialized **Import/Export** buttons for Voice configuration bundles. 📥📤
+### Changed
+- **Voice Architecture**: Finalized configuration consolidation by moving the call counter from a standalone file into the unified `voice-config.json`. 🎙️⚙️
+- **Version Sync**: Synchronized versioning across all components (`engines`, `web-dashboard`, root).
+
 ## [v1.2.1-patch.54] - 2026-02-17
 ### Fixed
 - **Voice Control**: Fixed state synchronization issue where UI toggles were not persisting to the unified configuration file. 🎙️🔄

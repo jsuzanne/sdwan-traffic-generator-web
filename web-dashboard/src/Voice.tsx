@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi, Search, CheckSquare, AlertCircle, Hash } from 'lucide-react';
+import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi, Search, CheckSquare, AlertCircle, Hash, Download, Upload } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -136,6 +136,42 @@ export default function Voice(props: VoiceProps) {
             const data = await r.json();
             if (data.success) {
                 setCalls(data.stats);
+            }
+        } catch (e) { }
+    };
+
+    const handleExport = async () => {
+        try {
+            const r = await fetch('/api/voice/config/export', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const blob = await r.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `voice-config-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch (e) { }
+    };
+
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('config', file);
+
+        try {
+            const r = await fetch('/api/voice/config/import', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            const data = await r.json();
+            if (data.success) {
+                fetchConfig();
             }
         } catch (e) { }
     };
@@ -650,6 +686,18 @@ export default function Voice(props: VoiceProps) {
                                 <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">Configure RTP stream attributes and target endpoints</p>
                             </div>
                             <div className="flex items-center gap-3">
+                                <label className="cursor-pointer text-blue-600 dark:text-blue-400 hover:bg-blue-600/10 p-2.5 rounded-xl border border-blue-500/20 transition-all shadow-sm flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                                    <Upload size={14} />
+                                    Import
+                                    <input type="file" className="hidden" accept=".json" onChange={handleImport} />
+                                </label>
+                                <button
+                                    onClick={handleExport}
+                                    className="text-blue-600 dark:text-blue-400 hover:bg-blue-600/10 p-2.5 rounded-xl border border-blue-500/20 transition-all shadow-sm flex items-center gap-2 text-[9px] font-black uppercase tracking-widest"
+                                >
+                                    <Download size={14} />
+                                    Export
+                                </button>
                                 {isDirty && (
                                     <button
                                         onClick={handleResetToCurrent}

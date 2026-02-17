@@ -62,7 +62,7 @@ if (DEBUG) console.log(`Connectivity Logger initialized (DEM)`);
 // Test Counter - Persistent sequential ID for all tests
 const TEST_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'test-counter.json');
 // Obsolete files removed
-const VOICE_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'voice-counter.json');
+const VOICE_COUNTER_FILE_LEGACY = path.join(APP_CONFIG.configDir, 'voice-counter.json');
 // Obsolete files removed
 const VOICE_STATS_FILE = path.join(APP_CONFIG.logDir, 'voice-stats.jsonl');
 const CONVERGENCE_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'convergence-history.jsonl');
@@ -174,22 +174,26 @@ const getInterface = (): string => {
 const migrateVoiceConfig = () => {
     if (fs.existsSync(VOICE_CONFIG_FILE)) return;
 
-    if (!fs.existsSync(VOICE_CONTROL_FILE) && !fs.existsSync(VOICE_SERVERS_FILE)) return;
+    const legacyControlFile = path.join(APP_CONFIG.configDir, 'voice-control.json');
+    const legacyServersFile = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
+    if (!fs.existsSync(legacyControlFile) && !fs.existsSync(legacyServersFile)) return;
 
     console.log('[SYSTEM] 📦 Migrating legacy Voice configuration to unified format...');
 
     let control: any = { enabled: false, max_simultaneous_calls: 3, sleep_between_calls: 5, interface: getInterface() };
-    if (fs.existsSync(VOICE_CONTROL_FILE)) {
+    const legacyControlFile = path.join(APP_CONFIG.configDir, 'voice-control.json');
+    if (fs.existsSync(legacyControlFile)) {
         try {
-            const data = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
+            const data = JSON.parse(fs.readFileSync(legacyControlFile, 'utf8'));
             control = { ...control, ...data };
         } catch (e) { console.error('Voice control migration failed', e); }
     }
 
     let servers: any[] = [];
-    if (fs.existsSync(VOICE_SERVERS_FILE)) {
+    const legacyServersFile = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
+    if (fs.existsSync(legacyServersFile)) {
         try {
-            const content = fs.readFileSync(VOICE_SERVERS_FILE, 'utf8');
+            const content = fs.readFileSync(legacyServersFile, 'utf8');
             servers = content.split('\n')
                 .map(line => line.trim())
                 .filter(line => line && !line.startsWith('#'))
@@ -206,9 +210,9 @@ const migrateVoiceConfig = () => {
     }
 
     let state = { counter: 0 };
-    if (fs.existsSync(VOICE_COUNTER_FILE)) {
+    if (fs.existsSync(VOICE_COUNTER_FILE_LEGACY)) {
         try {
-            state = JSON.parse(fs.readFileSync(VOICE_COUNTER_FILE, 'utf8'));
+            state = JSON.parse(fs.readFileSync(VOICE_COUNTER_FILE_LEGACY, 'utf8'));
         } catch (e) { console.error('Voice counter migration failed', e); }
     }
 
@@ -218,9 +222,11 @@ const migrateVoiceConfig = () => {
 
     // Cleanup old files
     try {
-        if (fs.existsSync(VOICE_CONTROL_FILE)) fs.renameSync(VOICE_CONTROL_FILE, VOICE_CONTROL_FILE + '.migrated');
-        if (fs.existsSync(VOICE_SERVERS_FILE)) fs.renameSync(VOICE_SERVERS_FILE, VOICE_SERVERS_FILE + '.migrated');
-        if (fs.existsSync(VOICE_COUNTER_FILE)) fs.renameSync(VOICE_COUNTER_FILE, VOICE_COUNTER_FILE + '.migrated');
+        const legacyControlFile = path.join(APP_CONFIG.configDir, 'voice-control.json');
+        const legacyServersFile = path.join(APP_CONFIG.configDir, 'voice-servers.txt');
+        if (fs.existsSync(legacyControlFile)) fs.renameSync(legacyControlFile, legacyControlFile + '.migrated');
+        if (fs.existsSync(legacyServersFile)) fs.renameSync(legacyServersFile, legacyServersFile + '.migrated');
+        if (fs.existsSync(VOICE_COUNTER_FILE_LEGACY)) fs.renameSync(VOICE_COUNTER_FILE_LEGACY, VOICE_COUNTER_FILE_LEGACY + '.migrated');
     } catch (e) { console.log('[SYSTEM] ⚠️ Failed to rename legacy voice files, but migration succeeded.'); }
 };
 
@@ -895,18 +901,17 @@ try {
 // Global interface for other services
 const GLOBAL_INTERFACE = getInterface();
 
-// Sync Voice interface with interfaces.txt if it doesn't exist
+// Sync Voice interface with unified config if needed
 try {
-    let voiceControl = { enabled: false, max_simultaneous_calls: 3, interface: GLOBAL_INTERFACE };
-    if (fs.existsSync(VOICE_CONTROL_FILE)) {
-        voiceControl = JSON.parse(fs.readFileSync(VOICE_CONTROL_FILE, 'utf8'));
-        if (!voiceControl.interface || voiceControl.interface === 'eth0') {
-            voiceControl.interface = GLOBAL_INTERFACE;
-            fs.writeFileSync(VOICE_CONTROL_FILE, JSON.stringify(voiceControl, null, 2));
-            console.log(`[VOICE-INIT] Synced interface to: ${GLOBAL_INTERFACE}`);
+    if (fs.existsSync(VOICE_CONFIG_FILE)) {
+        const config = JSON.parse(fs.readFileSync(VOICE_CONFIG_FILE, 'utf8'));
+        if (config.control) {
+            if (!config.control.interface || config.control.interface === 'eth0') {
+                config.control.interface = GLOBAL_INTERFACE;
+                fs.writeFileSync(VOICE_CONFIG_FILE, JSON.stringify(config, null, 2));
+                console.log(`[VOICE-INIT] Synced interface to: ${GLOBAL_INTERFACE}`);
+            }
         }
-    } else {
-        fs.writeFileSync(VOICE_CONTROL_FILE, JSON.stringify(voiceControl, null, 2));
     }
 } catch (e) {
     console.warn('[VOICE-INIT] Failed to sync voice interface', e);
@@ -1559,8 +1564,16 @@ app.delete('/api/voice/stats', authenticateToken, (req, res) => {
 // API: Reset Voice Counter
 app.delete('/api/voice/counter', authenticateToken, (req, res) => {
     try {
-        // Write 9999 so the next call is CALL-0000
-        fs.writeFileSync(VOICE_COUNTER_FILE, JSON.stringify({ counter: 9999 }));
+        if (fs.existsSync(VOICE_CONFIG_FILE)) {
+            const config = JSON.parse(fs.readFileSync(VOICE_CONFIG_FILE, 'utf8'));
+            if (!config.state) config.state = {};
+            config.state.counter = 9999; // Write 9999 so the next call is CALL-0000
+            fs.writeFileSync(VOICE_CONFIG_FILE, JSON.stringify(config, null, 2));
+        } else {
+            // If config doesn't exist, create it with just the counter
+            const config = { servers: [], control: {}, state: { counter: 9999 } };
+            fs.writeFileSync(VOICE_CONFIG_FILE, JSON.stringify(config, null, 2));
+        }
         res.json({ success: true });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });

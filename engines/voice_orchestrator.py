@@ -23,26 +23,25 @@ def get_version():
 
 VOICE_CONFIG_FILE = os.path.join(CONFIG_DIR, 'voice-config.json')
 STATS_FILE = os.path.join(LOG_DIR, 'voice-stats.jsonl')
-COUNTER_FILE = os.path.join(CONFIG_DIR, 'voice-counter.json')
 active_calls = []
 current_session_id = str(int(time.time()))
-
 def get_next_call_id():
-    counter = 0
-    try:
-        if os.path.exists(COUNTER_FILE):
-            with open(COUNTER_FILE, 'r') as f:
-                data = json.load(f)
-                counter = data.get('counter', 0)
-    except: pass
+    config = load_voice_config()
+    state = config.get('state', {})
+    counter = state.get('counter', 0)
     
     # Implementation of cyclic counter (0-9999) for deterministic port mapping
     counter = (counter + 1) % 10000
     
+    # Update state and save back to config
+    state['counter'] = counter
+    config['state'] = state
+    
     try:
-        with open(COUNTER_FILE, 'w') as f:
-            json.dump({'counter': counter}, f)
-    except: pass
+        with open(VOICE_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+    except Exception as e:
+        if DEBUG_MODE: print(f"⚠️ Failed to save counter: {e}")
     
     return f"CALL-{counter:04d}"
 
@@ -255,9 +254,12 @@ def main():
     # CLEAN SLATE : Reset everything on startup
     print("🧹 Cleaning slate for new session...")
     try:
-        # 1. Reset Counter
-        with open(COUNTER_FILE, 'w') as f:
-            json.dump({'counter': 0}, f)
+        # 1. Reset Counter in unified config
+        config = load_voice_config()
+        if 'state' not in config: config['state'] = {}
+        config['state']['counter'] = 0
+        with open(VOICE_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
         # 2. Disable simulation by default
         try:
             config = load_voice_config()
