@@ -2808,9 +2808,18 @@ app.get('/api/config/applications/export', (req, res) => {
             return res.status(404).json({ error: 'Applications config not found' });
         }
 
-        const config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
-        const applications = config.applications || [];
+        const format = req.query.format === 'json' ? 'json' : 'txt';
+        const configContent = fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8');
 
+        if (format === 'json') {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', 'attachment; filename="applications-config.json"');
+            return res.send(configContent);
+        }
+
+        // Legacy .txt format
+        const config = JSON.parse(configContent);
+        const applications = config.applications || [];
         const lines: string[] = [];
         let currentCategory = '';
 
@@ -2829,7 +2838,6 @@ app.get('/api/config/applications/export', (req, res) => {
         });
 
         const content = lines.join('\n');
-
         res.setHeader('Content-Type', 'text/plain');
         res.setHeader('Content-Disposition', 'attachment; filename="applications.txt"');
         res.send(content);

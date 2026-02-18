@@ -641,14 +641,14 @@ export default function Config({ token }: ConfigProps) {
                         <button
                             onClick={async () => {
                                 try {
-                                    const res = await fetch('/api/config/applications/export', {
+                                    const res = await fetch('/api/config/applications/export?format=json', {
                                         headers: { 'Authorization': `Bearer ${token}` }
                                     });
                                     const blob = await res.blob();
                                     const url = window.URL.createObjectURL(blob);
                                     const a = document.createElement('a');
                                     a.href = url;
-                                    a.download = 'applications.txt';
+                                    a.download = 'applications-config.json';
                                     document.body.appendChild(a);
                                     a.click();
                                     window.URL.revokeObjectURL(url);
@@ -669,7 +669,7 @@ export default function Config({ token }: ConfigProps) {
                             onClick={() => {
                                 const input = document.createElement('input');
                                 input.type = 'file';
-                                input.accept = '.txt';
+                                input.accept = '.json,.txt';
                                 input.onchange = async (e) => {
                                     const file = (e.target as HTMLInputElement).files?.[0];
                                     if (!file) return;
