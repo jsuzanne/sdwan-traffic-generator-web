@@ -1,7 +1,6 @@
 # SD-WAN Traffic Generator - Technical Specification
 
-**Repository**: [jsuzanne/sdwan-traffic-generator-web](https://github.com/jsuzanne/sdwan-traffic-generator-web)  [![Version](https://img.shields.io/badge/Version-1.2.1--patch.43-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
-**Version**: 1.2.1-patch.43
+**Version**: 1.2.1-patch.65
 **Last Updated**: January 2026
 
 ---
@@ -79,11 +78,12 @@ graph TB
 - **Host Path**: `./config`
 - **Container Path**: `/opt/sdwan-traffic-gen/config` (traffic-gen), `/app/config` (web-ui)
 - **Contents**:
-  - `applications.txt` - Application list with weights
+  - `applications-config.json` - Unified app list, weights, and traffic control
+  - `vyos-config.json` - Consolidated VyOS routers and sequences
+  - `security-config.json` - Security testing settings and history
+  - `voice-config.json` - Voice simulation profiles and settings
   - `interfaces.txt` - **"One Truth"** file for network interface selection (Physical Host Port)
-  - `iot-devices.json` - List of simulated IoT devices and their profiles
   - `user_agents.txt` - User agent strings for requests
-  - `traffic-control.json` - Start/stop control file
   - `users.json` - Authentication credentials (bcrypt hashed)
 
 ---
@@ -147,16 +147,25 @@ Backoff is tracked per `interface_application` combination, allowing other route
 
 ##### Configuration Files
 
-**applications.txt** - Format: `domain|weight|endpoint`
-```
-# Microsoft 365 Suite
-outlook.office365.com|67|/
-teams.microsoft.com|67|/api/mt/emea/beta/users/
-login.microsoftonline.com|67|/
-
-# Google Workspace
-mail.google.com|72|/mail/
-drive.google.com|72|/
+**applications-config.json** - Unified JSON format
+```json
+{
+  "traffic_control": {
+    "enabled": true,
+    "interval_ms": 1000,
+    "mode": "random"
+  },
+  "applications": [
+    {
+      "id": "teams",
+      "name": "Microsoft Teams",
+      "domain": "teams.microsoft.com",
+      "endpoint": "/api/mt/emea/beta/users/",
+      "weight": 67,
+      "category": "Communication"
+    }
+  ]
+}
 ```
 
 **interfaces.txt** - One interface per line
@@ -424,12 +433,12 @@ sequenceDiagram
     participant Internet
 
     User->>WebUI: Click "Start Traffic"
-    WebUI->>Config: Write traffic-control.json<br/>{enabled: true}
+    WebUI->>Config: Update applications-config.json<br/>{traffic_control.enabled: true}
     
-    loop Every 1 second
-        TrafficGen->>Config: Read traffic-control.json
+    loop Every loop cycle
+        TrafficGen->>Config: Read applications-config.json
         alt Traffic Enabled
-            TrafficGen->>Config: Read applications.txt<br/>interfaces.txt<br/>user_agents.txt
+            TrafficGen->>Config: Parse apps & weights
             TrafficGen->>TrafficGen: Select weighted app
             TrafficGen->>Internet: HTTPS Request
             Internet-->>TrafficGen: HTTP Response
@@ -457,12 +466,12 @@ sequenceDiagram
 
     User->>Frontend: Adjust app weight slider
     Frontend->>Backend: POST /api/config/apps<br/>{domain, weight}
-    Backend->>ConfigFile: Read applications.txt
-    Backend->>Backend: Update weight for domain
-    Backend->>ConfigFile: Write applications.txt
+    Backend->>ConfigFile: Read applications-config.json
+    Backend->>Backend: Update weight in JSON
+    Backend->>ConfigFile: Write applications-config.json
     Backend-->>Frontend: {success: true}
     Frontend->>Backend: GET /api/config/apps
-    Backend->>ConfigFile: Read applications.txt
+    Backend->>ConfigFile: Read applications-config.json
     Backend-->>Frontend: Return categorized apps
     Frontend-->>User: Update UI
     
@@ -672,7 +681,7 @@ Potential improvements for future versions:
 1. Check `config/traffic-control.json` contains `{"enabled": true}`
 2. Verify `config/interfaces.txt` has valid network interfaces
 3. Check traffic-gen container logs: `docker-compose logs traffic-gen`
-4. Ensure `config/applications.txt` has valid entries
+4. Ensure `config/applications-config.json` has valid entries
 
 ### No Statistics Displayed
 

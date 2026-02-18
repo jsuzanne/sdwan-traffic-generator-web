@@ -567,7 +567,7 @@ export default function Config({ token }: ConfigProps) {
                                                         "px-1.5 py-0.5 rounded-[4px] text-[7px] font-black uppercase tracking-widest flex items-center gap-1",
                                                         (probe as any).stale ? "bg-orange-500/20 text-orange-500" : "bg-blue-500/20 text-blue-500"
                                                     )}>
-                                                        <Globe size={8} /> {(probe as any).stale ? "STALE" : "DISCOVERED"}
+                                                        <Globe size={8} /> {(probe as any).stale && "STALE"}
                                                     </span>
                                                 )}
                                             </div>

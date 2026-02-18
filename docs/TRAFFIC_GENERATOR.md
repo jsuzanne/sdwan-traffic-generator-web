@@ -12,7 +12,7 @@ The Traffic Generator is a **separate component** from Security Tests. It genera
 |---------|------------------|----------------|------------------|
 | **Purpose** | Simulate user traffic | Test security policies | Test QoS / Voice QoS |
 | **Port** | 80/443 (HTTP/S) | 80/443 (HTTP/S) | 6100 (Voice) / 6101 (CONV) |
-| **Source** | `config/applications.txt` | Hardcoded test URLs | `config/voice-servers.txt` |
+| **Source** | `config/applications-config.json` | Hardcoded test URLs | `config/voice-config.json` |
 | **Execution** | Continuous background | On-demand or scheduled | Continuous background |
 | **Logs** | `traffic.log` | `test-results.jsonl` | `voice-stats.jsonl` |
 | **Stats** | `stats.json` | Test history | Voice Tab / Dashboard |
@@ -24,20 +24,33 @@ The Traffic Generator is a **separate component** from Security Tests. It genera
 
 ---
 
-## applications.txt Format
+## Configuration Format
 
-The `config/applications.txt` file defines which applications to simulate.
+The `config/applications-config.json` file is the unified configuration for all applications and traffic control settings.
 
-### File Format
+### File Format (JSON)
 
-```
-# Comment lines start with #
-domain|weight|endpoint
-
-# Example:
-google.com|100|/search
-outlook.office365.com|68|/
-zoom.us|60|/
+```json
+{
+  "control": {
+    "enabled": true,
+    "sleep_interval": 1.0
+  },
+  "applications": [
+    {
+      "domain": "google.com",
+      "weight": 100,
+      "endpoint": "/search",
+      "category": "Google Workspace"
+    },
+    {
+      "domain": "outlook.office365.com",
+      "weight": 68,
+      "endpoint": "/",
+      "category": "Microsoft 365 Suite"
+    }
+  ]
+}
 ```
 
 ### Fields
@@ -47,6 +60,7 @@ zoom.us|60|/
 | **domain** | Domain or IP (optionally prefixed with `http://`) | `http://192.168.1.1` |
 | **weight** | Traffic probability (balanced by UI) | `100` |
 | **endpoint** | URL path to request | `/cgi-bin/test.sh` |
+| **category** | Grouping for UI organization | `Microsoft 365 Suite` |
 
 ### Example Entry
 
@@ -176,40 +190,16 @@ zoom.us|50|/
 
 ---
 
-### Example 3: Balanced Profile
+### Example: Balanced Profile (JSON)
 
-Mix of business and consumer apps for realistic demos.
-
-```
-# Microsoft 365 - Moderate
-outlook.office365.com|70|/
-teams.microsoft.com|65|/
-onedrive.live.com|55|/
-
-# Google Workspace - Moderate
-mail.google.com|75|/mail/
-drive.google.com|65|/
-docs.google.com|55|/document/
-
-# Collaboration
-zoom.us|60|/
-slack.com|55|/api/api.test
-discord.com|50|/api/v9/gateway
-
-# Social Media - Moderate
-facebook.com|80|/robots.txt
-linkedin.com|75|/
-twitter.com|70|/robots.txt
-instagram.com|65|/robots.txt
-
-# Streaming
-youtube.com|90|/feed/trending
-spotify.com|60|/
-netflix.com|50|/robots.txt
-
-# Gaming - Light
-steampowered.com|70|/
-twitch.tv|65|/
+```json
+{
+  "applications": [
+    { "domain": "outlook.office365.com", "weight": 70, "endpoint": "/", "category": "Microsoft 365" },
+    { "domain": "mail.google.com", "weight": 75, "endpoint": "/mail/", "category": "Google Workspace" },
+    { "domain": "youtube.com", "weight": 90, "endpoint": "/feed/trending", "category": "Streaming" }
+  ]
+}
 ```
 
 **Traffic Distribution:**
@@ -436,7 +426,7 @@ Add applications gradually and verify they're reachable before adding more.
 
 ### No Traffic Generated
 
-1. Check `applications.txt` exists and has valid entries
+1. Check `applications-config.json` exists and has valid entries
 2. Verify traffic generation is started (Dashboard → Active)
 3. Check logs: `docker compose logs -f sdwan-traffic-gen`
 
@@ -464,5 +454,5 @@ Add applications gradually and verify they're reachable before adding more.
 
 ---
 
-**Last Updated:** 2026-01-23  
-**Version:** 1.1.0-patch.41
+**Last Updated:** 2026-02-18  
+**Version:** 1.2.1-patch.65

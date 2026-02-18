@@ -287,13 +287,37 @@ const migrateApplicationsConfig = () => {
         } catch (e) { console.error('Traffic control migration failed', e); }
     }
 
-    let applications: string[] = [];
+    let applications: any[] = [];
     if (fs.existsSync(legacyAppsFile)) {
         try {
-            applications = fs.readFileSync(legacyAppsFile, 'utf8')
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line && !line.startsWith('#'));
+            const content = fs.readFileSync(legacyAppsFile, 'utf8');
+            const lines = content.split('\n');
+            let currentCategory = 'Uncategorized';
+
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+
+                if (trimmedLine.startsWith('#')) {
+                    const comment = trimmedLine.substring(1).trim();
+                    // Simple heuristic: if it doesn't contain strict "Format:" or "Weight:" meta info
+                    if (!comment.toLowerCase().startsWith('format:') && !comment.toLowerCase().startsWith('weight:')) {
+                        currentCategory = comment;
+                    }
+                    return;
+                }
+
+                const parts = trimmedLine.split('|');
+                if (parts.length >= 2) {
+                    const [domain, weight, endpoint] = parts;
+                    applications.push({
+                        domain,
+                        weight: parseInt(weight) || 50,
+                        endpoint: endpoint || '/',
+                        category: currentCategory
+                    });
+                }
+            });
         } catch (e) { console.error('Applications migration failed', e); }
     }
 

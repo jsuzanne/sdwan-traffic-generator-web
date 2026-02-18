@@ -26,19 +26,31 @@ This guide covers all configuration options for the SD-WAN Traffic Generator.
 
 ### File Location
 
-/opt/sdwan-traffic-gen/config/applications.txt
+`/opt/sdwan-traffic-gen/config/applications-config.json`
 
-text
+### Format (JSON)
 
-### Format
-
-domain|weight|endpoint
-
-text
+```json
+{
+  "control": {
+    "enabled": true,
+    "sleep_interval": 1.0
+  },
+  "applications": [
+    {
+      "domain": "teams.microsoft.com",
+      "weight": 95,
+      "endpoint": "/api/mt/emea/beta/users/",
+      "category": "Microsoft 365"
+    }
+  ]
+}
+```
 
 - **domain**: Target application domain or IP (e.g., `teams.microsoft.com` or `http://192.168.1.1`)
 - **weight**: Relative frequency (automatically managed as percentages in the Web UI)
 - **endpoint**: Specific URL path (e.g., `/api/v1/users`)
+- **category**: Functional grouping for the Dashboard UI
 
 > [!TIP]
 > **Protocol Support**: By default, the engine uses `https://`. To force HTTP (useful for internal servers), prefix the domain with `http://`.
@@ -216,16 +228,10 @@ text
 
 ### Applying Custom Profiles
 
-Save your profile
-sudo cp profile-microsoft-heavy.txt /opt/sdwan-traffic-gen/config/applications.txt
+Replace the configuration file:
+`sudo cp custom-config.json /opt/sdwan-traffic-gen/config/applications-config.json`
 
-Restart service
-sudo systemctl restart sdwan-traffic-gen
-
-Verify it's working
-tail -f /var/log/sdwan-traffic-gen/traffic.log
-
-text
+The backend and engine will automatically detect changes within 1-5 seconds. No restart required.
 
 ---
 
@@ -233,17 +239,7 @@ text
 
 ### File Location
 
-/opt/sdwan-traffic-gen/config/interfaces.txt
-
-text
-
-### Format
-
-One interface per line:
-
-eth0
-eth1
-ens192
+`/opt/sdwan-traffic-gen/config/interfaces.txt`
 
 text
 
@@ -310,7 +306,7 @@ text
 
 ### File Location
 
-/opt/sdwan-traffic-gen/config/user_agents.txt
+`/opt/sdwan-traffic-gen/config/user_agents.txt`
 
 text
 
@@ -578,7 +574,12 @@ text
 
 ---
 
+---
+
 **Related Documentation:**
 - [Installation Guide](../README.md#installation)
-- [Usage Guide](USAGE.md)
+- [Traffic Generator Guide](TRAFFIC_GENERATOR.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
+
+**Last Updated:** 2026-02-18  
+**Version:** 1.2.1-patch.65

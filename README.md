@@ -79,7 +79,7 @@ This project is my way to turn all that lab and demo experience into an open-sou
 
 ### 🔧 Zero-Config Deployment
 - **Auto-detection** - Automatically detects network interfaces on first start
-- **Auto-generated Config** - Creates applications.txt with 67 apps automatically
+- **Auto-generated Config** - Creates `applications-config.json` with 67 apps automatically
 - **One-liner Install** - Ready in 30 seconds with single command (Linux/macOS). Supports **Dashboard** or **Target Site** modes.
 - **Docker-based** - Pre-built multi-platform images (AMD64 + ARM64).
 - **One-Click Upgrade (Beta)** - Built-in maintenance UI to pull latest images and restart services with a single click.
@@ -438,7 +438,7 @@ curl http://localhost:8080/api/health
 # Check auto-generated config
 ls -la config/
 cat config/interfaces.txt  # Your auto-detected interface
-cat config/applications.txt | head -5  # 67 applications
+jq '.applications[]' config/applications-config.json | head -5  # 67 applications
 ```
 
 **Expected:** No `[ERROR]` messages in logs ✅
@@ -449,7 +449,7 @@ cat config/applications.txt | head -5  # 67 applications
 
 The system auto-generates everything you need:
 
-1. **`config/applications.txt`** - 67 popular SaaS applications (Google, Microsoft 365, Salesforce, etc.)
+1. **`config/applications-config.json`** - 67 popular SaaS applications (Google, Microsoft 365, Salesforce, etc.) and traffic control settings.
 2. **`config/interfaces.txt`** - Auto-detected network interface (eth0, en0, ens4, etc.)
 3. **`config/users.json`** - Default admin user with bcrypt-hashed password
 
@@ -633,7 +633,7 @@ docker compose logs --no-color > logs-export.txt
         └────────────────────────────────────────┘
 
 Shared Volumes:
-  • config/  - Configuration files (applications.txt, interfaces.txt)
+  • config/  - Unified configuration files (applications-config.json, vyos-config.json, etc.)
   • logs/    - Traffic logs, test results, statistics
 ```
 
@@ -767,7 +767,7 @@ The SD-WAN Traffic Generator has **two separate systems**:
 | Feature | Traffic Generator | Security Tests |
 |---------|------------------|----------------|
 | **Purpose** | Simulate user traffic | Test security policies |
-| **Source** | `config/applications.txt` | Hardcoded test URLs |
+| **Source** | `config/applications-config.json` | Hardcoded test URLs |
 | **Execution** | Continuous background | On-demand or scheduled |
 | **Logs** | `/var/log/sdwan-traffic-gen/traffic.log` | `test-results.jsonl` |
 | **Examples** | google.com, office365.com | urlfiltering.paloaltonetworks.com |
@@ -801,7 +801,7 @@ Comprehensive guides organized by your journey with the SD-WAN Traffic Generator
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Advanced configuration options
 
 ### 🎯 Core Features
-- **[Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md)** - Configure applications.txt and traffic weights
+- **[Traffic Generator Guide](docs/TRAFFIC_GENERATOR.md)** - Configure `applications-config.json` and traffic weights.
 - **[Security Testing Guide](docs/SECURITY_TESTING.md)** - Comprehensive security testing documentation
   - [Security Quick Reference](docs/SECURITY_QUICK_REFERENCE.md) - Quick reference for security tests
   - [Security FAQ](docs/SECURITY_TESTING_FAQ.md) - Frequently asked questions

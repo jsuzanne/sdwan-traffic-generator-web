@@ -73,31 +73,20 @@ networks:
 mkdir -p config logs
 ```
 
-**Step 4: Create applications.txt**
+**Step 4: Configure Applications**
 
-Create `config/applications.txt` with your desired applications:
+The system automatically generates a default `config/applications-config.json` on first start. You can also create it manually with your desired applications and categories:
 
 ```bash
-cat > config/applications.txt << 'EOF'
-# Microsoft 365 Suite
-outlook.office365.com|68|/
-teams.microsoft.com|68|/api/mt/emea/beta/users/
-login.microsoftonline.com|68|/
-
-# Google Workspace
-mail.google.com|100|/mail/
-drive.google.com|80|/
-docs.google.com|72|/document/
-
-# Collaboration Tools
-zoom.us|60|/
-slack.com|50|/api/api.test
-webex.com|55|/
-
-# Social Media
-linkedin.com|72|/
-twitter.com|72|/robots.txt
-facebook.com|55|/robots.txt
+cat > config/applications-config.json << 'EOF'
+{
+  "control": { "enabled": true, "sleep_interval": 1.0 },
+  "applications": [
+    { "domain": "outlook.office365.com", "weight": 68, "endpoint": "/", "category": "Microsoft 365" },
+    { "domain": "teams.microsoft.com", "weight": 68, "endpoint": "/api/mt/emea/beta/users/", "category": "Microsoft 365" },
+    { "domain": "mail.google.com", "weight": 100, "endpoint": "/mail/", "category": "Google Workspace" }
+  ]
+}
 EOF
 ```
 
@@ -185,7 +174,7 @@ Go to **Dashboard** tab:
 
 - **Dashboard Tab**: Real-time statistics and charts
 - **Logs Tab**: Live traffic logs
-- **Configuration Tab**: Adjust application weights
+- **Configuration Tab**: Adjust application weights and categories
 
 ### 5. Test Security Features
 
@@ -280,7 +269,7 @@ docker compose up -d --build
 1. Check network interface is configured
 2. Verify traffic generation is started (green status)
 3. Check logs: `docker compose logs -f sdwan-traffic-gen`
-4. Verify `applications.txt` exists and has valid entries
+4. Verify `applications-config.json` exists and has valid entries
 
 ### Can't Access Dashboard
 
@@ -293,7 +282,7 @@ docker compose up -d --build
 
 ## Next Steps
 
-- **[Traffic Generator Guide](TRAFFIC_GENERATOR.md)** - Learn about applications.txt and weights
+- **[Traffic Generator Guide](TRAFFIC_GENERATOR.md)** - Learn about `applications-config.json` and categories.
 - **[Security Testing](SECURITY_TESTING.md)** - Comprehensive security testing guide
 - **[Configuration Guide](CONFIGURATION.md)** - Advanced configuration options
 - **[Troubleshooting](TROUBLESHOOTING.md)** - Detailed troubleshooting guide
