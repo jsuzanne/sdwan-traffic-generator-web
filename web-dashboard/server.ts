@@ -1812,30 +1812,43 @@ app.get('/api/config/apps', extractUserMiddleware, (req, res) => {
         }
     };
 
-    lines.forEach((line: string) => {
-        line = line.trim();
-        if (!line) return;
+    lines.forEach((item: any) => {
+        if (typeof item === 'string') {
+            const line = item.trim();
+            if (!line) return;
 
-        if (line.startsWith('#')) {
-            // It's a comment, might be a category header
-            const comment = line.substring(1).trim();
-            // Simple heuristic: if it doesn't contain strict "Format:" or "Weight:" meta info
-            if (!comment.startsWith('Format:') && !comment.startsWith('Weight:')) {
-                // If previous category had apps, push it
+            if (line.startsWith('#')) {
+                const comment = line.substring(1).trim();
+                if (!comment.toLowerCase().startsWith('format:') && !comment.toLowerCase().startsWith('weight:')) {
+                    pushCategory();
+                    currentCategory = comment;
+                }
+            } else {
+                const parts = line.split('|');
+                if (parts.length >= 2) {
+                    const [domain, weight, endpoint] = parts;
+                    currentApps.push({
+                        domain,
+                        weight: parseInt(weight) || 0,
+                        endpoint: endpoint || '/'
+                    });
+                }
+            }
+        } else if (typeof item === 'object' && item !== null) {
+            // Already an object, use its category if it exists
+            const app = item;
+            const appCategory = app.category || 'Uncategorized';
+
+            if (appCategory !== currentCategory) {
                 pushCategory();
-                currentCategory = comment;
+                currentCategory = appCategory;
             }
-        } else {
-            // App line
-            const parts = line.split('|');
-            if (parts.length >= 2) {
-                const [domain, weight, endpoint] = parts;
-                currentApps.push({
-                    domain,
-                    weight: parseInt(weight) || 0,
-                    endpoint: endpoint || '/'
-                });
-            }
+
+            currentApps.push({
+                domain: app.domain,
+                weight: app.weight,
+                endpoint: app.endpoint || '/'
+            });
         }
     });
     pushCategory(); // Push last
@@ -2799,7 +2812,26 @@ app.get('/api/config/applications/export', (req, res) => {
         }
 
         const config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
-        const content = (config.applications || []).join('\n');
+        const applications = config.applications || [];
+
+        const lines: string[] = [];
+        let currentCategory = '';
+
+        applications.forEach((app: any) => {
+            if (typeof app === 'string') {
+                lines.push(app);
+            } else {
+                const appCategory = app.category || 'Uncategorized';
+                if (appCategory !== currentCategory) {
+                    if (lines.length > 0) lines.push('');
+                    lines.push(`# ${appCategory}`);
+                    currentCategory = appCategory;
+                }
+                lines.push(`${app.domain}|${app.weight}|${app.endpoint || '/'}`);
+            }
+        });
+
+        const content = lines.join('\n');
 
         res.setHeader('Content-Type', 'text/plain');
         res.setHeader('Content-Disposition', 'attachment; filename="applications.txt"');
@@ -2818,16 +2850,61 @@ app.post('/api/config/applications/import', (req, res) => {
             return res.status(400).json({ error: 'Invalid file content' });
         }
 
-        const applications = content.split('\n')
-            .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#'));
+        let applications: any[] = [];
+
+        // Check if content is JSON
+        try {
+            const jsonData = JSON.parse(content);
+            if (jsonData.applications && Array.isArray(jsonData.applications)) {
+                applications = jsonData.applications;
+                // If it's a full config with control, we might want to preserve it
+                if (jsonData.control) {
+                    // Handled below when merging with existing config
+                }
+            } else if (Array.isArray(jsonData)) {
+                applications = jsonData;
+            }
+        } catch (e) {
+            // Not JSON, parse as text
+            const lines = content.split('\n');
+            let currentCategory = 'Uncategorized';
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+
+                if (trimmed.startsWith('#')) {
+                    const comment = trimmed.substring(1).trim();
+                    if (!comment.toLowerCase().startsWith('format:') && !comment.toLowerCase().startsWith('weight:')) {
+                        currentCategory = comment;
+                    }
+                } else {
+                    const parts = trimmed.split('|');
+                    if (parts.length >= 2) {
+                        applications.push({
+                            domain: parts[0],
+                            weight: parseInt(parts[1]) || 50,
+                            endpoint: parts[2] || '/',
+                            category: currentCategory
+                        });
+                    }
+                }
+            });
+        }
 
         let config: any = { control: { enabled: false, sleep_interval: 1.0 }, applications: [] };
         if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
             try {
-                config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+                const existing = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+                config.control = existing.control || config.control;
             } catch (e) { }
         }
+
+        // If direct JSON import had control, use it
+        try {
+            const jsonData = JSON.parse(content);
+            if (jsonData.control) config.control = jsonData.control;
+        } catch (e) { }
 
         config.applications = applications;
         fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(config, null, 2));
