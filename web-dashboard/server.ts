@@ -272,7 +272,17 @@ migrateSecurityConfig();
  * MIGRATION: Consolidate Applications configuration
  */
 const migrateApplicationsConfig = () => {
-    if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) return;
+    // Force migration if file missing OR if it's an old version without categories
+    if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
+        try {
+            const current = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+            const hasCategories = current.applications && current.applications.some((app: any) => app.category && app.category !== 'Uncategorized');
+            if (hasCategories) return;
+            console.log('[SYSTEM] 🔄 Force-recreating Applications config to apply categorization...');
+        } catch (e) {
+            console.error('Failed to check existing applications config', e);
+        }
+    }
 
     const legacyAppsFile = path.join(APP_CONFIG.configDir, 'applications.txt');
     const legacyControlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');

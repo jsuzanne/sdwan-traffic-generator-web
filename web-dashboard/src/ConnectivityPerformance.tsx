@@ -557,7 +557,7 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
                                                     "px-1.5 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest flex items-center gap-1",
                                                     e.stale ? "bg-orange-500/20 text-orange-500" : "bg-blue-500/20 text-blue-500"
                                                 )}>
-                                                    <Globe size={10} /> {e.stale ? "STALE" : "DISCOVERED"}
+                                                    <Globe size={10} /> {e.stale && "STALE"}
                                                 </span>
                                             )}
                                         </div>

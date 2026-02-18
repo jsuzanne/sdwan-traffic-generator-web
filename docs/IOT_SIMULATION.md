@@ -156,10 +156,60 @@ When **Bad Behavior** is enabled, the simulated device will generate traffic pat
 - **PAN Test Domains**: Generates traffic to official Palo Alto test domains for guaranteed detection.
 
 ### JSON Security Configuration
+
+To enable bad behavior, include the `security` object in your device configuration.
+
+#### 1. Palo Alto Networks Test Domains (Recommended for Validation)
+Guaranteed to be detected by PAN-OS DNS Security and URL Filtering.
 ```json
 "security": {
   "bad_behavior": true,
-  "behavior_type": ["beacon", "dns_flood", "pan_test_domains"]
+  "behavior_type": ["pan_test_domains"]
+}
+```
+
+#### 2. C2 Beaconing
+Simulates a classic malware heartbeat every 10 seconds.
+```json
+"security": {
+  "bad_behavior": true,
+  "behavior_type": ["beacon"]
+}
+```
+
+#### 3. DNS Flood
+Rapid burst of DNS queries for malicious domains.
+```json
+"security": {
+  "bad_behavior": true,
+  "behavior_type": ["dns_flood"]
+}
+```
+
+#### 4. Port Scan
+Internal reconnaissance scanning local gateway and neighbors.
+```json
+"security": {
+  "bad_behavior": true,
+  "behavior_type": ["port_scan"]
+}
+```
+
+#### 5. Data Exfiltration
+Large TCP uploads to known malicious external IPs.
+```json
+"security": {
+  "bad_behavior": true,
+  "behavior_type": ["data_exfil"]
+}
+```
+
+#### 6. Parallel Attack (Random Mix)
+Launches multiple attack threads simultaneously for high complexity.
+```json
+"security": {
+  "bad_behavior": true,
+  "behavior_type": ["random", "dns_flood", "beacon"]
 }
 ```
 
