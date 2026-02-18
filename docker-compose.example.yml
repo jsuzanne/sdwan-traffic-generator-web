@@ -53,7 +53,7 @@ services:
 
       # Volume Mounts
     volumes:
-      # Configuration directory (applications.txt, interfaces.txt, etc.)
+      # Configuration directory (applications-config.json, interfaces.txt, etc.)
       - ./config:/app/config
 
       # Logs directory (traffic.log, test-results.jsonl, stats.json)
@@ -65,7 +65,7 @@ services:
     # Health Check
     # ✅ NEW: Checks if config file exists before marking as healthy
     healthcheck:
-      test: [ "CMD", "test", "-f", "/app/config/applications.txt" ]
+      test: [ "CMD", "test", "-f", "/app/config/applications-config.json" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -244,7 +244,7 @@ networks:
 #    ✓ Restrict access with firewall rules
 #
 # 2. Configuration
-#    ✓ [OPTIONAL] Create config/applications.txt with your applications
+#    ✓ [OPTIONAL] Create config/applications-config.json with your applications
 #       (Auto-generated with 67 popular SaaS apps if not present)
 #    ✓ [OPTIONAL] Create config/interfaces.txt with your network interfaces
 #       (Auto-detected on first start: eth0 for Docker, en0 for macOS)
@@ -274,7 +274,7 @@ networks:
 # 1. Create directories:
 #    mkdir -p config logs
 #
-# 2. [OPTIONAL] Create config/applications.txt:
+# 2. [OPTIONAL] Create config/applications-config.json:
 #    See docs/TRAFFIC_GENERATOR.md for examples
 #    If not created, a default list of 67 popular SaaS apps will be generated
 #
