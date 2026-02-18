@@ -1,0 +1,416 @@
+{
+  "control": {
+    "enabled": true,
+    "sleep_interval": 1
+  },
+  "applications": [
+    {
+      "domain": "outlook.office365.com",
+      "weight": 81,
+      "endpoint": "/",
+      "category": "Microsoft 365 Suite"
+    },
+    {
+      "domain": "teams.microsoft.com",
+      "weight": 76,
+      "endpoint": "/api/mt/emea/beta/users/",
+      "category": "Microsoft 365 Suite"
+    },
+    {
+      "domain": "login.microsoftonline.com",
+      "weight": 71,
+      "endpoint": "/",
+      "category": "Microsoft 365 Suite"
+    },
+    {
+      "domain": "graph.microsoft.com",
+      "weight": 69,
+      "endpoint": "/v1.0/me",
+      "category": "Microsoft 365 Suite"
+    },
+    {
+      "domain": "onedrive.live.com",
+      "weight": 66,
+      "endpoint": "/",
+      "category": "Microsoft 365 Suite"
+    },
+    {
+      "domain": "sharepoint.com",
+      "weight": 59,
+      "endpoint": "/",
+      "category": "Microsoft 365 Suite"
+    },
+    {
+      "domain": "mail.google.com",
+      "weight": 29,
+      "endpoint": "/mail/",
+      "category": "Google Workspace"
+    },
+    {
+      "domain": "drive.google.com",
+      "weight": 22,
+      "endpoint": "/",
+      "category": "Google Workspace"
+    },
+    {
+      "domain": "docs.google.com",
+      "weight": 21,
+      "endpoint": "/document/",
+      "category": "Google Workspace"
+    },
+    {
+      "domain": "meet.google.com",
+      "weight": 21,
+      "endpoint": "/",
+      "category": "Google Workspace"
+    },
+    {
+      "domain": "calendar.google.com",
+      "weight": 11,
+      "endpoint": "/",
+      "category": "Google Workspace"
+    },
+    {
+      "domain": "zoom.us",
+      "weight": 29,
+      "endpoint": "/",
+      "category": "Communication & Collaboration"
+    },
+    {
+      "domain": "slack.com",
+      "weight": 22,
+      "endpoint": "/api/api.test",
+      "category": "Communication & Collaboration"
+    },
+    {
+      "domain": "webex.com",
+      "weight": 11,
+      "endpoint": "/",
+      "category": "Communication & Collaboration"
+    },
+    {
+      "domain": "discord.com",
+      "weight": 5,
+      "endpoint": "/api/v9/gateway",
+      "category": "Communication & Collaboration"
+    },
+    {
+      "domain": "salesforce.com",
+      "weight": 21,
+      "endpoint": "/",
+      "category": "CRM & Sales"
+    },
+    {
+      "domain": "hubspot.com",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "CRM & Sales"
+    },
+    {
+      "domain": "dynamics.microsoft.com",
+      "weight": 7,
+      "endpoint": "/",
+      "category": "CRM & Sales"
+    },
+    {
+      "domain": "monday.com",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "Project Management"
+    },
+    {
+      "domain": "asana.com",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "Project Management"
+    },
+    {
+      "domain": "trello.com",
+      "weight": 7,
+      "endpoint": "/",
+      "category": "Project Management"
+    },
+    {
+      "domain": "jira.atlassian.com",
+      "weight": 11,
+      "endpoint": "/",
+      "category": "Project Management"
+    },
+    {
+      "domain": "confluence.atlassian.com",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "Project Management"
+    },
+    {
+      "domain": "dropbox.com",
+      "weight": 21,
+      "endpoint": "/",
+      "category": "Cloud Storage & File Sharing"
+    },
+    {
+      "domain": "box.com",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "Cloud Storage & File Sharing"
+    },
+    {
+      "domain": "wetransfer.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Cloud Storage & File Sharing"
+    },
+    {
+      "domain": "github.com",
+      "weight": 21,
+      "endpoint": "/",
+      "category": "Development & DevOps"
+    },
+    {
+      "domain": "gitlab.com",
+      "weight": 7,
+      "endpoint": "/",
+      "category": "Development & DevOps"
+    },
+    {
+      "domain": "bitbucket.org",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Development & DevOps"
+    },
+    {
+      "domain": "stackoverflow.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Development & DevOps"
+    },
+    {
+      "domain": "portal.azure.com",
+      "weight": 11,
+      "endpoint": "/",
+      "category": "Cloud Providers"
+    },
+    {
+      "domain": "console.aws.amazon.com",
+      "weight": 11,
+      "endpoint": "/",
+      "category": "Cloud Providers"
+    },
+    {
+      "domain": "console.cloud.google.com",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "Cloud Providers"
+    },
+    {
+      "domain": "tableau.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Business Intelligence"
+    },
+    {
+      "domain": "powerbi.microsoft.com",
+      "weight": 7,
+      "endpoint": "/",
+      "category": "Business Intelligence"
+    },
+    {
+      "domain": "looker.com",
+      "weight": 5,
+      "endpoint": "/",
+      "category": "Business Intelligence"
+    },
+    {
+      "domain": "workday.com",
+      "weight": 7,
+      "endpoint": "/",
+      "category": "HR & Productivity"
+    },
+    {
+      "domain": "bamboohr.com",
+      "weight": 5,
+      "endpoint": "/",
+      "category": "HR & Productivity"
+    },
+    {
+      "domain": "zenefits.com",
+      "weight": 5,
+      "endpoint": "/",
+      "category": "HR & Productivity"
+    },
+    {
+      "domain": "adp.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "HR & Productivity"
+    },
+    {
+      "domain": "linkedin.com",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "Marketing & Social"
+    },
+    {
+      "domain": "twitter.com",
+      "weight": 6,
+      "endpoint": "/robots.txt",
+      "category": "Marketing & Social"
+    },
+    {
+      "domain": "facebook.com",
+      "weight": 7,
+      "endpoint": "/robots.txt",
+      "category": "Marketing & Social"
+    },
+    {
+      "domain": "instagram.com",
+      "weight": 6,
+      "endpoint": "/robots.txt",
+      "category": "Marketing & Social"
+    },
+    {
+      "domain": "figma.com",
+      "weight": 7,
+      "endpoint": "/",
+      "category": "Design & Creative"
+    },
+    {
+      "domain": "canva.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Design & Creative"
+    },
+    {
+      "domain": "adobe.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Design & Creative"
+    },
+    {
+      "domain": "zendesk.com",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "Customer Support"
+    },
+    {
+      "domain": "intercom.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Customer Support"
+    },
+    {
+      "domain": "freshdesk.com",
+      "weight": 5,
+      "endpoint": "/",
+      "category": "Customer Support"
+    },
+    {
+      "domain": "quickbooks.intuit.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Finance & Accounting"
+    },
+    {
+      "domain": "expensify.com",
+      "weight": 5,
+      "endpoint": "/",
+      "category": "Finance & Accounting"
+    },
+    {
+      "domain": "stripe.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Finance & Accounting"
+    },
+    {
+      "domain": "okta.com",
+      "weight": 7,
+      "endpoint": "/",
+      "category": "Security & IT Tools"
+    },
+    {
+      "domain": "duo.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Security & IT Tools"
+    },
+    {
+      "domain": "1password.com",
+      "weight": 5,
+      "endpoint": "/",
+      "category": "Security & IT Tools"
+    },
+    {
+      "domain": "lastpass.com",
+      "weight": 5,
+      "endpoint": "/",
+      "category": "Security & IT Tools"
+    },
+    {
+      "domain": "youtube.com",
+      "weight": 8,
+      "endpoint": "/feed/trending",
+      "category": "Video & Media"
+    },
+    {
+      "domain": "vimeo.com",
+      "weight": 5,
+      "endpoint": "/",
+      "category": "Video & Media"
+    },
+    {
+      "domain": "netflix.com",
+      "weight": 4,
+      "endpoint": "/robots.txt",
+      "category": "Video & Media"
+    },
+    {
+      "domain": "shopify.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "E-commerce"
+    },
+    {
+      "domain": "amazon.com",
+      "weight": 8,
+      "endpoint": "/robots.txt",
+      "category": "E-commerce"
+    },
+    {
+      "domain": "ebay.com",
+      "weight": 5,
+      "endpoint": "/robots.txt",
+      "category": "E-commerce"
+    },
+    {
+      "domain": "rakuten.com",
+      "weight": 5,
+      "endpoint": "/robots.txt",
+      "category": "E-commerce"
+    },
+    {
+      "domain": "notion.so",
+      "weight": 8,
+      "endpoint": "/",
+      "category": "Popular SaaS"
+    },
+    {
+      "domain": "airtable.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Popular SaaS"
+    },
+    {
+      "domain": "miro.com",
+      "weight": 7,
+      "endpoint": "/",
+      "category": "Popular SaaS"
+    },
+    {
+      "domain": "docusign.com",
+      "weight": 6,
+      "endpoint": "/",
+      "category": "Popular SaaS"
+    }
+  ]
+}

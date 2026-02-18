@@ -1,0 +1,38 @@
+{
+  "control": {
+    "enabled": false,
+    "max_simultaneous_calls": 6,
+    "sleep_between_calls": 1,
+    "interface": "enp2s2",
+    "success": true
+  },
+  "servers": [
+    {
+      "target": "192.168.203.100:6100",
+      "codec": "G.711-ulaw",
+      "weight": 100,
+      "duration": 15
+    },
+    {
+      "target": "192.168.203.101:6100",
+      "codec": "G.711-ulaw",
+      "weight": 100,
+      "duration": 30
+    },
+    {
+      "target": "192.168.217.5:6100",
+      "codec": "G.711-ulaw",
+      "weight": 100,
+      "duration": 15
+    },
+    {
+      "target": "142.132.193.157:6100",
+      "codec": "G.711-ulaw",
+      "weight": 100,
+      "duration": 15
+    }
+  ],
+  "state": {
+    "counter": 0
+  }
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "name": "teams microsoft",
+    "type": "HTTPS",
+    "target": "https://teams.microsoft.com",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "Slow App DC1",
+    "type": "HTTP",
+    "target": "http://192.168.203.100/cgi-bin/hw.sh",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "Slow App DC1 TEST",
+    "type": "HTTP",
+    "target": "http://192.168.203.100/cgi-bin/hw.sh",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "Slow App DC1 v2",
+    "type": "HTTP",
+    "target": "http://192.168.203.100:8082/slow",
+    "timeout": 10000,
+    "enabled": true
+  },
+  {
+    "name": "DC1",
+    "type": "UDP",
+    "target": "192.168.203.100",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "ash.speedtest",
+    "type": "UDP",
+    "target": "ash.speedtest.clouvider.net",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "142.132.193.157",
+    "type": "UDP",
+    "target": "142.132.193.157",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "OVHcloud France",
+    "type": "HTTPS",
+    "target": "https://www.ovhcloud.com",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "PayFit",
+    "type": "HTTPS",
+    "target": "https://payfit.com",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "Aircall",
+    "type": "HTTPS",
+    "target": "https://aircall.io",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "Salesforce France",
+    "type": "HTTPS",
+    "target": "https://www.salesforce.com/fr/",
+    "timeout": 5000,
+    "enabled": true
+  },
+  {
+    "name": "Google Workspace FR",
+    "type": "HTTPS",
+    "target": "https://workspace.google.com",
+    "timeout": 5000,
+    "enabled": true
+  }
+]

@@ -1,0 +1,903 @@
+{
+  "devices": [
+    {
+      "id": "lifx_smart_lighting_01",
+      "name": "LIFX Mini Color",
+      "vendor": "LIFX",
+      "type": "Smart Lighting",
+      "mac": "d0:73:d5:00:00:00",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "dns",
+        "cloud",
+        "ntp",
+        "lldp",
+        "snmp",
+        "http",
+        "mqtt",
+        "rtsp"
+      ],
+      "enabled": true,
+      "traffic_interval": 103,
+      "description": "LIFX Mini Color - Smart Lighting",
+      "running": false,
+      "status": {
+        "running": false,
+        "stats": null,
+        "logs": []
+      },
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "philip_smart_lighting_02",
+      "name": "Philips Hue GU10 Spot",
+      "vendor": "Philips",
+      "type": "Smart Lighting",
+      "mac": "ec:b5:fa:01:00:01",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 187,
+      "description": "Philips Hue GU10 Spot - Smart Lighting",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "lifx_smart_lighting_03",
+      "name": "LIFX Beam",
+      "vendor": "LIFX",
+      "type": "Smart Lighting",
+      "mac": "d0:73:d5:02:00:02",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "cloud",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 251,
+      "description": "LIFX Beam - Smart Lighting",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "yeelig_smart_lighting_04",
+      "name": "Yeelight Smart LED Bulb",
+      "vendor": "Yeelight",
+      "type": "Smart Lighting",
+      "mac": "34:ce:00:03:00:03",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 103,
+      "description": "Yeelight Smart LED Bulb - Smart Lighting",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "yeelig_smart_lighting_05",
+      "name": "Yeelight Smart LED Bulb",
+      "vendor": "Yeelight",
+      "type": "Smart Lighting",
+      "mac": "34:ce:00:04:00:04",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 214,
+      "description": "Yeelight Smart LED Bulb - Smart Lighting",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "tp-lin_smart_plugs__switches_01",
+      "name": "TP-Link Kasa Smart Power Strip KP303",
+      "vendor": "TP-Link",
+      "type": "Smart Plugs & Switche",
+      "mac": "50:c7:bf:05:00:05",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "cloud",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 66,
+      "description": "TP-Link Kasa Smart Power Strip KP303 - Smart Plugs & Switches",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "meross_smart_plugs__switches_02",
+      "name": "Meross Smart Power Strip MSS425",
+      "vendor": "Meross",
+      "type": "Smart Plugs & Switche",
+      "mac": "44:65:0d:06:00:06",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 211,
+      "description": "Meross Smart Power Strip MSS425 - Smart Plugs & Switches",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "meross_smart_plugs__switches_03",
+      "name": "Meross Smart Outlet",
+      "vendor": "Meross",
+      "type": "Smart Plugs & Switche",
+      "mac": "44:65:0d:07:00:07",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 197,
+      "description": "Meross Smart Outlet - Smart Plugs & Switches",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "sonoff_smart_plugs__switches_04",
+      "name": "Sonoff S31",
+      "vendor": "Sonoff",
+      "type": "Smart Plugs & Switche",
+      "mac": "34:94:54:08:00:08",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "mqtt",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 297,
+      "description": "Sonoff S31 - Smart Plugs & Switches",
+      "mqtt_topic": "iot/smart_plugs__switches/sonoff_smart_plugs__switches_04",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "sonoff_smart_plugs__switches_05",
+      "name": "Sonoff Basic R3",
+      "vendor": "Sonoff",
+      "type": "Smart Plugs & Switche",
+      "mac": "34:94:54:09:00:09",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "mqtt",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 146,
+      "description": "Sonoff Basic R3 - Smart Plugs & Switches",
+      "mqtt_topic": "iot/smart_plugs__switches/sonoff_smart_plugs__switches_05",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "dahua_security_cameras_01",
+      "name": "Dahua IPC-HFW4831E-SE",
+      "vendor": "Dahua",
+      "type": "Security Camera",
+      "mac": "00:12:16:0a:00:0a",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "rtsp",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 151,
+      "description": "Dahua IPC-HFW4831E-SE - Security Cameras",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "axis_security_cameras_02",
+      "name": "Axis Q1615 Mk III",
+      "vendor": "Axis",
+      "type": "Security Camera",
+      "mac": "00:40:8c:0b:00:0b",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "https",
+        "rtsp",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 220,
+      "description": "Axis Q1615 Mk III - Security Cameras",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "hikvis_security_cameras_03",
+      "name": "Hikvision DS-2CD2385FWD-I",
+      "vendor": "Hikvision",
+      "type": "Security Camera",
+      "mac": "00:12:34:0c:00:0c",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "rtsp",
+        "cloud",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 263,
+      "description": "Hikvision DS-2CD2385FWD-I - Security Cameras",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "amazon_smart_speakers__displays_01",
+      "name": "Amazon Echo Flex",
+      "vendor": "Amazon",
+      "type": "Smart Speakers & Display",
+      "mac": "50:f5:da:0d:00:0d",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "https",
+        "mdns",
+        "cloud",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 270,
+      "description": "Amazon Echo Flex - Smart Speakers & Displays",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "google_smart_speakers__displays_02",
+      "name": "Google Nest Mini",
+      "vendor": "Google",
+      "type": "Smart Speakers & Display",
+      "mac": "18:b4:30:0e:00:0e",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "https",
+        "mdns",
+        "cloud",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 208,
+      "description": "Google Nest Mini - Smart Speakers & Displays",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "amazon_smart_speakers__displays_03",
+      "name": "Amazon Echo Show 8",
+      "vendor": "Amazon",
+      "type": "Smart Speakers & Display",
+      "mac": "50:f5:da:0f:00:0f",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "https",
+        "mdns",
+        "cloud",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 265,
+      "description": "Amazon Echo Show 8 - Smart Speakers & Displays",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "samsun_sensors_01",
+      "name": "Samsung SmartThings Motion",
+      "vendor": "Samsung",
+      "type": "Sensor",
+      "mac": "d0:52:a8:10:00:10",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 179,
+      "description": "Samsung SmartThings Motion - Sensors",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "aqara_sensors_02",
+      "name": "Aqara Temperature Sensor",
+      "vendor": "Aqara",
+      "type": "Sensor",
+      "mac": "54:ef:44:11:00:11",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "mqtt",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 98,
+      "description": "Aqara Temperature Sensor - Sensors",
+      "mqtt_topic": "iot/sensors/aqara_sensors_02",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "xiaomi_sensors_03",
+      "name": "Xiaomi RTCGQ01LM Motion",
+      "vendor": "Xiaomi",
+      "type": "Sensor",
+      "mac": "4c:65:a8:12:00:12",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "mqtt",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 110,
+      "description": "Xiaomi RTCGQ01LM Motion - Sensors",
+      "mqtt_topic": "iot/sensors/xiaomi_sensors_03",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "aqara_sensors_04",
+      "name": "Aqara Temperature Sensor",
+      "vendor": "Aqara",
+      "type": "Sensor",
+      "mac": "54:ef:44:13:00:13",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "mqtt",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 192,
+      "description": "Aqara Temperature Sensor - Sensors",
+      "mqtt_topic": "iot/sensors/aqara_sensors_04",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "xiaomi_sensors_05",
+      "name": "Xiaomi MCCGQ01LM Door",
+      "vendor": "Xiaomi",
+      "type": "Sensor",
+      "mac": "4c:65:a8:14:00:14",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "mqtt",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 221,
+      "description": "Xiaomi MCCGQ01LM Door - Sensors",
+      "mqtt_topic": "iot/sensors/xiaomi_sensors_05",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "honeyw_thermostats__hvac_01",
+      "name": "Honeywell T9 Smart Thermostat",
+      "vendor": "Honeywell",
+      "type": "Thermostats & HVAC",
+      "mac": "00:d0:2d:15:00:15",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 235,
+      "description": "Honeywell T9 Smart Thermostat - Thermostats & HVAC",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "honeyw_thermostats__hvac_02",
+      "name": "Honeywell T6 Pro",
+      "vendor": "Honeywell",
+      "type": "Thermostats & HVAC",
+      "mac": "00:d0:2d:16:00:16",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 105,
+      "description": "Honeywell T6 Pro - Thermostats & HVAC",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "apple_smart_tvs__streaming_01",
+      "name": "Apple Apple TV HD",
+      "vendor": "Apple",
+      "type": "Smart TVs & Streaming",
+      "mac": "a4:d1:8c:17:00:17",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "https",
+        "mdns",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 61,
+      "description": "Apple Apple TV HD - Smart TVs & Streaming",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "lg_smart_tvs__streaming_02",
+      "name": "LG NanoCell 90",
+      "vendor": "LG",
+      "type": "Smart TVs & Streaming",
+      "mac": "b8:bb:af:18:00:18",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "https",
+        "mdns",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 196,
+      "description": "LG NanoCell 90 - Smart TVs & Streaming",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "canon_printers__office_01",
+      "name": "Canon PIXMA TR8620",
+      "vendor": "Canon",
+      "type": "Printers & Office",
+      "mac": "00:1e:8f:19:00:19",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "mdns",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 277,
+      "description": "Canon PIXMA TR8620 - Printers & Office",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "hp_printers__office_02",
+      "name": "HP DeskJet 3755",
+      "vendor": "HP",
+      "type": "Printers & Office",
+      "mac": "00:1e:0b:1a:00:1a",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "https",
+        "mdns",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 60,
+      "description": "HP DeskJet 3755 - Printers & Office",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "samsun_hubs__bridges_01",
+      "name": "Samsung SmartThings Hub",
+      "vendor": "Samsung",
+      "type": "Hubs & Bridge",
+      "mac": "d0:52:a8:1b:00:1b",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "http",
+        "https",
+        "cloud",
+        "dns"
+      ],
+      "enabled": true,
+      "traffic_interval": 104,
+      "description": "Samsung SmartThings Hub - Hubs & Bridges",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    },
+    {
+      "id": "philip_hubs__bridges_02",
+      "name": "Philips Hue Bridge v3",
+      "vendor": "Philips",
+      "type": "Hubs & Bridge",
+      "mac": "ec:b5:fa:1c:00:1c",
+      "protocols": [
+        "dhcp",
+        "arp",
+        "lldp",
+        "snmp",
+        "http",
+        "https",
+        "cloud",
+        "dns",
+        "ntp"
+      ],
+      "enabled": true,
+      "traffic_interval": 85,
+      "description": "Philips Hue Bridge v3 - Hubs & Bridges",
+      "security": {
+        "bad_behavior": true,
+        "behavior_type": [
+          "pan_test_domains",
+          "dns_flood",
+          "beacon",
+          "port_scan",
+          "data_exfil",
+          "random"
+        ]
+      }
+    }
+  ]
+}

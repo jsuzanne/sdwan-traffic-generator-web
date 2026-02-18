@@ -1,0 +1,617 @@
+{
+  "routers": [
+    {
+      "id": "vyosrouter",
+      "name": "vyosrouter",
+      "host": "192.168.122.254",
+      "apiKey": "SUPERSECRET",
+      "version": "1.4",
+      "location": "Vyosrouter underlay",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "description": "MPLS190",
+          "address": [
+            "192.168.190.254/24"
+          ]
+        },
+        {
+          "name": "eth1",
+          "description": "MPLS197",
+          "address": [
+            "192.168.197.254/24"
+          ]
+        },
+        {
+          "name": "eth10",
+          "description": "DC1-INET221",
+          "address": [
+            "192.168.221.254/24"
+          ]
+        },
+        {
+          "name": "eth11",
+          "description": "DC1-MPLS191",
+          "address": [
+            "192.168.191.254/24"
+          ]
+        },
+        {
+          "name": "eth12",
+          "description": "DC2-INET222",
+          "address": [
+            "192.168.222.254/24"
+          ]
+        },
+        {
+          "name": "eth13",
+          "description": "DC2-MPLS192",
+          "address": [
+            "192.168.192.254/24"
+          ]
+        },
+        {
+          "name": "eth2",
+          "description": "Internet220",
+          "address": [
+            "192.168.220.254/24"
+          ]
+        },
+        {
+          "name": "eth3",
+          "description": "Internet227",
+          "address": [
+            "192.168.227.254/24"
+          ]
+        },
+        {
+          "name": "eth4",
+          "description": "Management",
+          "address": [
+            "192.168.122.254/24"
+          ]
+        },
+        {
+          "name": "eth5",
+          "description": "LAN80",
+          "address": [
+            "192.168.80.254/24"
+          ]
+        },
+        {
+          "name": "eth6",
+          "description": "WAN170",
+          "address": [
+            "192.168.170.254/24"
+          ]
+        },
+        {
+          "name": "eth7",
+          "description": "Internet226",
+          "address": [
+            "192.168.226.254/24"
+          ]
+        },
+        {
+          "name": "eth8",
+          "description": "MPLS196",
+          "address": [
+            "192.168.196.254/24"
+          ]
+        },
+        {
+          "name": "eth9",
+          "description": "Internet228",
+          "address": [
+            "192.168.228.254/24"
+          ]
+        }
+      ],
+      "enabled": true,
+      "status": "online",
+      "lastSeen": 1771424624626
+    },
+    {
+      "id": "vyoslandc1",
+      "name": "vyoslandc1",
+      "host": "192.168.122.210",
+      "apiKey": "SUPERSECRET",
+      "version": "1.5",
+      "location": "Vyos DC1",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "description": "MGMT",
+          "address": [
+            "192.168.122.210/24"
+          ]
+        },
+        {
+          "name": "eth1",
+          "description": "DC1 LAN",
+          "address": [
+            "192.168.201.10/24"
+          ]
+        },
+        {
+          "name": "eth2",
+          "description": "DC1 Legacy MPLS",
+          "address": [
+            "192.168.170.10/24"
+          ]
+        },
+        {
+          "name": "eth3",
+          "description": "DC1 INTERNET EXIT",
+          "address": [
+            "192.168.81.254/24"
+          ]
+        },
+        {
+          "name": "eth4",
+          "description": "DC1 DCI to DC2",
+          "address": [
+            "192.168.200.3/24"
+          ]
+        },
+        {
+          "name": "eth5",
+          "description": "DC1 Slow APP LAN",
+          "address": [
+            "192.168.203.10/24"
+          ]
+        },
+        {
+          "name": "eth6",
+          "description": "LAN 201",
+          "address": [
+            "10.10.201.3/24"
+          ]
+        }
+      ],
+      "enabled": true,
+      "status": "online",
+      "lastSeen": 1771424626807
+    },
+    {
+      "id": "vyoslandc2new",
+      "name": "vyoslandc2new",
+      "host": "192.168.122.211",
+      "apiKey": "SUPERSECRET",
+      "version": "1.5",
+      "location": "VYOS DC2",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "description": "DC2 MGMT",
+          "address": [
+            "192.168.122.211/24"
+          ]
+        },
+        {
+          "name": "eth1",
+          "description": "DC2 DCI to DC1",
+          "address": [
+            "192.168.200.4/24"
+          ]
+        },
+        {
+          "name": "eth2",
+          "description": null,
+          "address": []
+        },
+        {
+          "name": "eth3",
+          "description": "DC2 INTERNET EXIT",
+          "address": [
+            "192.168.81.253/24"
+          ]
+        },
+        {
+          "name": "eth4",
+          "description": "DC2 LAN",
+          "address": [
+            "192.168.202.10/24"
+          ]
+        }
+      ],
+      "enabled": true,
+      "status": "online",
+      "lastSeen": 1771424628946
+    },
+    {
+      "id": "vyosbranch206",
+      "name": "VyosBranch206",
+      "host": "192.168.122.64",
+      "apiKey": "SUPERSECRET",
+      "version": "1.4",
+      "location": "Branch 206",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "description": "AWS Branch express route",
+          "address": [
+            "10.10.206.6/24"
+          ]
+        },
+        {
+          "name": "eth3",
+          "description": "Connection to BR2",
+          "address": [
+            "192.168.216.2/24"
+          ]
+        },
+        {
+          "name": "eth4",
+          "description": "MGMT",
+          "address": [
+            "dhcp"
+          ]
+        },
+        {
+          "name": "eth5",
+          "description": "Lan206",
+          "address": [
+            "192.168.206.1/24"
+          ]
+        }
+      ],
+      "enabled": true,
+      "status": "online",
+      "lastSeen": 1771424630863
+    }
+  ],
+  "sequences": [
+    {
+      "id": "seq-1769972185529",
+      "name": "shut BRanch1 INET",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1769972193088",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth3",
+          "command": "interface-down",
+          "parameters": {}
+        }
+      ],
+      "lastRun": 1770371391151
+    },
+    {
+      "id": "seq-1769976651174",
+      "name": "no shut BRANCH1 INET",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1769976671655",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth3",
+          "command": "interface-up",
+          "parameters": {}
+        }
+      ],
+      "lastRun": 1771101522112
+    },
+    {
+      "id": "seq-1769976816752",
+      "name": "SET Latency BR1 MPLS",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1769976830394",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth1",
+          "command": "set-qos",
+          "parameters": {
+            "latency": 50
+          }
+        }
+      ],
+      "lastRun": 1770104416006
+    },
+    {
+      "id": "seq-1769981126833",
+      "name": "set LOSS BR1 MPLS",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1769981132525",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth0",
+          "command": "set-qos",
+          "parameters": {
+            "latency": 0,
+            "loss": 3,
+            "rate": ""
+          }
+        }
+      ],
+      "lastRun": 1770104433582
+    },
+    {
+      "id": "seq-1769981276457",
+      "name": "ClEAR Latency&LOSS BR1 MPLS",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1769981283268",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth0",
+          "command": "clear-qos",
+          "parameters": {}
+        }
+      ],
+      "lastRun": 1770766375923
+    },
+    {
+      "id": "seq-1769983556126",
+      "name": "Wan Scenario",
+      "enabled": true,
+      "cycle_duration": 60,
+      "actions": [
+        {
+          "id": "act-1769983563808",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth3",
+          "command": "interface-down",
+          "parameters": {}
+        },
+        {
+          "id": "act-1769983577395",
+          "offset_minutes": 10,
+          "router_id": "vyosrouter",
+          "interface": "eth3",
+          "command": "interface-up",
+          "parameters": {}
+        },
+        {
+          "id": "act-1769983592101",
+          "offset_minutes": 15,
+          "router_id": "vyoslandc1",
+          "interface": "eth0",
+          "command": "deny-traffic",
+          "parameters": {
+            "latency": 5,
+            "loss": null,
+            "ip": "142.132.193.158/32"
+          }
+        },
+        {
+          "id": "act-1769983620197",
+          "offset_minutes": 20,
+          "router_id": "vyosrouter",
+          "interface": "eth3",
+          "command": "interface-up",
+          "parameters": {}
+        },
+        {
+          "id": "act-1769983828788",
+          "offset_minutes": 25,
+          "router_id": "vyoslandc1",
+          "interface": "eth0",
+          "command": "allow-traffic",
+          "parameters": {
+            "loss": 5,
+            "ip": "142.132.193.158/32"
+          }
+        },
+        {
+          "id": "act-1769983889777",
+          "offset_minutes": 30,
+          "router_id": "vyosrouter",
+          "interface": "eth3",
+          "command": "set-qos",
+          "parameters": {
+            "loss": 5
+          }
+        },
+        {
+          "id": "act-1769985787266",
+          "offset_minutes": 35,
+          "router_id": "vyoslandc1",
+          "interface": "eth0",
+          "command": "deny-traffic",
+          "parameters": {
+            "ip": "10.1.1.1"
+          }
+        },
+        {
+          "id": "act-1769985875264",
+          "offset_minutes": 40,
+          "router_id": "vyosrouter",
+          "interface": "eth3",
+          "command": "clear-qos",
+          "parameters": {}
+        },
+        {
+          "id": "act-1770768845884",
+          "offset_minutes": 45,
+          "router_id": "vyoslandc1",
+          "interface": "eth0",
+          "command": "allow-traffic",
+          "parameters": {
+            "ip": "10.1.1.1"
+          }
+        },
+        {
+          "id": "act-1770768954040",
+          "offset_minutes": 50,
+          "router_id": "vyosrouter",
+          "interface": "eth0",
+          "command": "set-qos",
+          "parameters": {
+            "latency": 250
+          }
+        }
+      ],
+      "lastRun": 1771421976715,
+      "paused": false
+    },
+    {
+      "id": "seq-1770108142694",
+      "name": "unblock on DC1 192.168.203.100",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1770108150904",
+          "offset_minutes": 0,
+          "router_id": "vyoslandc1",
+          "interface": "eth0",
+          "command": "allow-traffic",
+          "parameters": {
+            "ip": "192.168.203.100"
+          }
+        }
+      ],
+      "lastRun": 1770813614750
+    },
+    {
+      "id": "seq-1770395575888",
+      "name": "blocK 192.168.203.100 on DC1",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1770395595029",
+          "offset_minutes": 0,
+          "router_id": "vyoslandc1",
+          "interface": "eth0",
+          "command": "deny-traffic",
+          "parameters": {
+            "ip": "192.168.203.102/24"
+          }
+        }
+      ],
+      "lastRun": 1770398805693
+    },
+    {
+      "id": "seq-1770749876889",
+      "name": "set bw to 10 mbs",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1770749890760",
+          "offset_minutes": 0,
+          "router_id": "vyosbranch206",
+          "interface": "eth0",
+          "command": "set-qos",
+          "parameters": {
+            "rate": "5000"
+          }
+        }
+      ],
+      "lastRun": 1770750385582
+    },
+    {
+      "id": "seq-1771091191204",
+      "name": "Shut DC1 inet",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1771091202864",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth2",
+          "command": "interface-down",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "seq-1771091220547",
+      "name": "unshut DC1 inet",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1771091232718",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth2",
+          "command": "interface-up",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "seq-1771196163200",
+      "name": "etst",
+      "enabled": false,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1771196166320",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth0",
+          "command": "interface-down",
+          "parameters": {}
+        }
+      ],
+      "lastRun": 1771196184676
+    },
+    {
+      "id": "seq-1771234396602",
+      "name": "shut internet BR1",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1771234412510",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth0",
+          "command": "interface-down",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "seq-1771409438497",
+      "name": "test",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1771409441671",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth0",
+          "command": "interface-down",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "seq-1771409462241",
+      "name": "TEST27",
+      "enabled": true,
+      "cycle_duration": 0,
+      "actions": [
+        {
+          "id": "act-1771409470069",
+          "offset_minutes": 0,
+          "router_id": "vyosrouter",
+          "interface": "eth0",
+          "command": "interface-down",
+          "parameters": {}
+        }
+      ]
+    }
+  ],
+  "runCounter": 3991
+}
