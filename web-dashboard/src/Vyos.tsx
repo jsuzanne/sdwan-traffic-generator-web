@@ -114,6 +114,7 @@ export default function Vyos(props: VyosProps) {
     const [discovering, setDiscovering] = useState(false);
     const [discoveryResult, setDiscoveryResult] = useState<VyosRouter | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
     // Confirmation Modal State
     const [confirmModal, setConfirmModal] = useState<{
@@ -523,6 +524,92 @@ export default function Vyos(props: VyosProps) {
         event.target.value = '';
     };
 
+    const exportUnifiedConfig = async () => {
+        const toastId = toast.loading('Exporting VyOS configuration...');
+        try {
+            const res = await fetch('/api/vyos/config/export', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!res.ok) throw new Error('Export failed');
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vyos-config-full-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success('✓ Configuration exported', { id: toastId });
+        } catch (e: any) {
+            toast.error(`❌ Export failed: ${e.message}`, { id: toastId });
+        }
+        setShowSettingsMenu(false);
+    };
+
+    const importUnifiedConfig = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const toastId = toast.loading('Importing VyOS configuration...');
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            const res = await fetch('/api/vyos/config/import', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Import failed');
+            }
+
+            fetchData();
+            toast.success('✓ Configuration imported successfully', { id: toastId });
+        } catch (e: any) {
+            toast.error(`❌ Import failed: ${e.message}`, { id: toastId });
+        }
+
+        setShowSettingsMenu(false);
+        // Reset file input
+        event.target.value = '';
+    };
+
+    const resetUnifiedConfig = async () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Factory Reset VyOS Configuration',
+            message: 'This will delete ALL routers and sequences. This action cannot be undone. Are you sure?',
+            confirmText: 'YES, RESET ALL',
+            onConfirm: async () => {
+                const toastId = toast.loading('Resetting configuration...');
+                try {
+                    const res = await fetch('/api/vyos/config/reset', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!res.ok) throw new Error('Reset failed');
+
+                    fetchData();
+                    toast.success('✓ Configuration reset successfully', { id: toastId });
+                } catch (e: any) {
+                    toast.error(`❌ Reset failed: ${e.message}`, { id: toastId });
+                }
+                setShowSettingsMenu(false);
+            }
+        });
+    };
+
     const toggleSequenceEnabled = async (seq: VyosSequence) => {
         const toastId = toast.loading(seq.enabled ? 'Disabling sequence...' : 'Enabling sequence...');
         try {
@@ -568,8 +655,52 @@ export default function Vyos(props: VyosProps) {
                         <div className="p-3 bg-purple-600/10 rounded-xl">
                             <Shield size={24} className="text-purple-500" />
                         </div>
-                        <div>
-                            <h2 className="text-2xl font-black text-text-primary uppercase tracking-tight">VyOS Control</h2>
+                        <div className="relative">
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-2xl font-black text-text-primary uppercase tracking-tight">VyOS Control</h2>
+                                <button
+                                    onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                                    className="p-1.5 text-text-muted hover:text-text-primary hover:bg-card-hover rounded-lg transition-all"
+                                    title="Configuration Settings"
+                                >
+                                    <Settings size={20} className={cn("transition-transform duration-300", showSettingsMenu && "rotate-90 text-purple-500")} />
+                                </button>
+
+                                {showSettingsMenu && (
+                                    <div className="absolute top-full left-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left">
+                                        <div className="p-3 border-b border-border bg-card-hover/50">
+                                            <h4 className="text-[10px] font-black uppercase text-text-muted tracking-widest">Global Configuration</h4>
+                                        </div>
+                                        <div className="p-1">
+                                            <button
+                                                onClick={exportUnifiedConfig}
+                                                className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-text-secondary hover:text-white hover:bg-green-600/20 rounded-lg transition-colors group"
+                                            >
+                                                <Download size={16} className="text-green-500 group-hover:scale-110 transition-transform" />
+                                                EXPORT FULL CONFIG
+                                            </button>
+                                            <label className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-text-secondary hover:text-white hover:bg-blue-600/20 rounded-lg transition-colors group cursor-pointer">
+                                                <Upload size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                                                IMPORT FULL CONFIG
+                                                <input
+                                                    type="file"
+                                                    accept=".json"
+                                                    onChange={importUnifiedConfig}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                            <div className="h-px bg-border my-1 mx-2" />
+                                            <button
+                                                onClick={resetUnifiedConfig}
+                                                className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-red-500 hover:text-white hover:bg-red-600/20 rounded-lg transition-colors group"
+                                            >
+                                                <AlertCircle size={16} className="text-red-500 group-hover:scale-110 transition-transform" />
+                                                FACTORY RESET ALL
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <div className="flex items-center gap-4 mt-1">
                                 <button onClick={() => setView('routers')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'routers' ? 'text-blue-500 border-b-2 border-blue-500 pb-1' : 'text-text-muted hover:text-text-secondary'}`}>Routers</button>
                                 <button onClick={() => setView('sequences')} className={`text-xs font-bold uppercase tracking-wider transition-colors ${view === 'sequences' ? 'text-purple-500 border-b-2 border-purple-500 pb-1' : 'text-text-muted hover:text-text-secondary'}`}>Sequences</button>
@@ -590,30 +721,12 @@ export default function Vyos(props: VyosProps) {
                             </button>
                         )}
                         {view === 'sequences' && (
-                            <>
-                                <button
-                                    onClick={exportSequences}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-green-900/20"
-                                    title="Export all sequences as JSON"
-                                >
-                                    <Download size={16} /> EXPORT
-                                </button>
-                                <label className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-orange-900/20 cursor-pointer">
-                                    <Upload size={16} /> IMPORT
-                                    <input
-                                        type="file"
-                                        accept=".json"
-                                        onChange={importSequences}
-                                        className="hidden"
-                                    />
-                                </label>
-                                <button
-                                    onClick={() => openSeqModal()}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-purple-900/20"
-                                >
-                                    <Plus size={18} /> NEW SEQUENCE
-                                </button>
-                            </>
+                            <button
+                                onClick={() => openSeqModal()}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-purple-600/10 hover:bg-purple-600/20 text-purple-500 rounded-lg font-bold transition-all border border-purple-500/20"
+                            >
+                                <Plus size={18} /> NEW SEQUENCE
+                            </button>
                         )}
                     </div>
                 </div>

@@ -1188,6 +1188,37 @@ app.get('/api/vyos/history', authenticateToken, (req, res) => {
     res.json(vyosScheduler.getHistory(limit));
 });
 
+// VyOS Unified Configuration Management
+app.get('/api/vyos/config/export', authenticateToken, (req, res) => {
+    try {
+        const config = vyosManager.getFullConfig();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename="vyos-config.json"');
+        res.send(JSON.stringify(config, null, 2));
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/vyos/config/import', authenticateToken, (req, res) => {
+    try {
+        const config = req.body;
+        vyosManager.setFullConfig(config);
+        res.json({ success: true, message: 'VyOS configuration imported successfully' });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/vyos/config/reset', authenticateToken, (req, res) => {
+    try {
+        vyosManager.resetConfig();
+        res.json({ success: true, message: 'VyOS configuration reset successfully' });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // API: Get UI Configuration (Public endpoint)
 app.get('/api/config/ui', (req, res) => {
     res.json({

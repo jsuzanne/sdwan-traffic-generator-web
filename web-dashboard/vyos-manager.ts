@@ -412,4 +412,50 @@ export class VyosManager extends EventEmitter {
             });
         });
     }
+
+    /**
+     * Get the full unified configuration
+     */
+    getFullConfig(): any {
+        if (fs.existsSync(this.routersFile)) {
+            try {
+                return JSON.parse(fs.readFileSync(this.routersFile, 'utf8'));
+            } catch (e: any) {
+                log('VYOS', `Failed to read config file: ${e.message}`, 'error');
+            }
+        }
+        return { routers: [], sequences: [] };
+    }
+
+    /**
+     * Overwrite the full unified configuration
+     */
+    setFullConfig(config: any) {
+        try {
+            // Validation: Ensure basic structure
+            if (!config.routers || !Array.isArray(config.routers)) {
+                throw new Error('Invalid config: missing routers array');
+            }
+
+            fs.writeFileSync(this.routersFile, JSON.stringify(config, null, 2));
+
+            // Reload internal state
+            this.routers.clear();
+            config.routers.forEach((r: VyosRouter) => this.routers.set(r.id, r));
+
+            log('VYOS', `Full configuration updated manually. ${config.routers.length} routers, ${config.sequences?.length || 0} sequences.`);
+            this.emit('config-updated');
+        } catch (e: any) {
+            log('VYOS', `Failed to set full config: ${e.message}`, 'error');
+            throw e;
+        }
+    }
+
+    /**
+     * Reset configuration to empty state
+     */
+    resetConfig() {
+        const emptyConfig = { routers: [], sequences: [] };
+        this.setFullConfig(emptyConfig);
+    }
 }
