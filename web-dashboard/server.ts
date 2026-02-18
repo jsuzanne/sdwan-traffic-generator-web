@@ -298,6 +298,9 @@ const migrateApplicationsConfig = () => {
     }
 
     let applications: any[] = [];
+    let categoriesMigrated = false;
+
+    // Source 1: Legacy Text File (includes comments/categories)
     if (fs.existsSync(legacyAppsFile)) {
         try {
             const content = fs.readFileSync(legacyAppsFile, 'utf8');
@@ -310,7 +313,6 @@ const migrateApplicationsConfig = () => {
 
                 if (trimmedLine.startsWith('#')) {
                     const comment = trimmedLine.substring(1).trim();
-                    // Simple heuristic: if it doesn't contain strict "Format:" or "Weight:" meta info
                     if (!comment.toLowerCase().startsWith('format:') && !comment.toLowerCase().startsWith('weight:')) {
                         currentCategory = comment;
                     }
@@ -328,7 +330,37 @@ const migrateApplicationsConfig = () => {
                     });
                 }
             });
-        } catch (e) { console.error('Applications migration failed', e); }
+            categoriesMigrated = true;
+        } catch (e) { console.error('Applications migration from .txt failed', e); }
+    }
+
+    // Source 2: Existing JSON (if it was string-based and Source 1 was missing)
+    if (!categoriesMigrated && fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
+        try {
+            const current = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+            if (current.applications && Array.isArray(current.applications)) {
+                current.applications.forEach((app: any) => {
+                    if (typeof app === 'string') {
+                        const parts = app.split('|');
+                        if (parts.length >= 2) {
+                            applications.push({
+                                domain: parts[0],
+                                weight: parseInt(parts[1]) || 50,
+                                endpoint: parts[2] || '/',
+                                category: 'Uncategorized'
+                            });
+                        }
+                    } else if (app && typeof app === 'object') {
+                        applications.push({
+                            domain: app.domain,
+                            weight: app.weight || 50,
+                            endpoint: app.endpoint || '/',
+                            category: app.category || 'Uncategorized'
+                        });
+                    }
+                });
+            }
+        } catch (e) { console.error('Applications modernization from JSON failed', e); }
     }
 
     const unifiedConfig = { control, applications };
@@ -788,108 +820,73 @@ const initializeDefaultConfigs = () => {
     // Create default applications-config.json if it doesn't exist
     if (!fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
         const defaultApps = [
-            "# Microsoft 365 Suite",
-            "outlook.office365.com|100|/",
-            "teams.microsoft.com|95|/api/mt/emea/beta/users/",
-            "login.microsoftonline.com|90|/",
-            "graph.microsoft.com|85|/v1.0/me",
-            "onedrive.live.com|80|/",
-            "sharepoint.com|75|/",
-            "",
-            "# Google Workspace",
-            "mail.google.com|90|/mail/",
-            "drive.google.com|85|/",
-            "docs.google.com|80|/document/",
-            "meet.google.com|75|/",
-            "calendar.google.com|70|/",
-            "",
-            "# Communication & Collaboration",
-            "zoom.us|90|/",
-            "slack.com|85|/api/api.test",
-            "webex.com|70|/",
-            "discord.com|40|/api/v9/gateway",
-            "",
-            "# CRM & Sales",
-            "salesforce.com|80|/",
-            "hubspot.com|60|/",
-            "dynamics.microsoft.com|55|/",
-            "",
-            "# Project Management",
-            "monday.com|65|/",
-            "asana.com|60|/",
-            "trello.com|55|/",
-            "jira.atlassian.com|70|/",
-            "confluence.atlassian.com|65|/",
-            "",
-            "# Cloud Storage & File Sharing",
-            "dropbox.com|75|/",
-            "box.com|60|/",
-            "wetransfer.com|45|/",
-            "",
-            "# Development & DevOps",
-            "github.com|75|/",
-            "gitlab.com|55|/",
-            "bitbucket.org|45|/",
-            "stackoverflow.com|50|/",
-            "",
-            "# Cloud Providers",
-            "portal.azure.com|70|/",
-            "console.aws.amazon.com|70|/",
-            "console.cloud.google.com|65|/",
-            "",
-            "# Business Intelligence",
-            "tableau.com|50|/",
-            "powerbi.microsoft.com|55|/",
-            "looker.com|40|/",
-            "",
-            "# HR & Productivity",
-            "workday.com|55|/",
-            "bamboohr.com|40|/",
-            "zenefits.com|35|/",
-            "adp.com|45|/",
-            "",
-            "# Marketing & Social",
-            "linkedin.com|60|/",
-            "twitter.com|50|/robots.txt",
-            "facebook.com|55|/robots.txt",
-            "instagram.com|45|/robots.txt",
-            "",
-            "# Design & Creative",
-            "figma.com|55|/",
-            "canva.com|50|/",
-            "adobe.com|45|/",
-            "",
-            "# Customer Support",
-            "zendesk.com|60|/",
-            "intercom.com|50|/",
-            "freshdesk.com|40|/",
-            "",
-            "# Finance & Accounting",
-            "quickbooks.intuit.com|50|/",
-            "expensify.com|40|/",
-            "stripe.com|45|/",
-            "",
-            "# Security & IT Tools",
-            "okta.com|55|/",
-            "duo.com|45|/",
-            "1password.com|40|/",
-            "lastpass.com|35|/",
-            "",
-            "# Video & Media",
-            "youtube.com|65|/feed/trending",
-            "vimeo.com|40|/",
-            "netflix.com|30|/robots.txt",
-            "",
-            "# E-commerce",
-            "shopify.com|50|/",
-            "amazon.com|60|/robots.txt",
-            "ebay.com|35|/robots.txt",
-            "",
-            "# Popular SaaS",
-            "notion.so|65|/",
-            "airtable.com|50|/",
-            "miro.com|55|/",
-            "docusign.com|50|/"
+            { domain: "outlook.office365.com", weight: 100, endpoint: "/", category: "Microsoft 365 Suite" },
+            { domain: "teams.microsoft.com", weight: 95, endpoint: "/api/mt/emea/beta/users/", category: "Microsoft 365 Suite" },
+            { domain: "login.microsoftonline.com", weight: 90, endpoint: "/", category: "Microsoft 365 Suite" },
+            { domain: "graph.microsoft.com", weight: 85, endpoint: "/v1.0/me", category: "Microsoft 365 Suite" },
+            { domain: "onedrive.live.com", weight: 80, endpoint: "/", category: "Microsoft 365 Suite" },
+            { domain: "sharepoint.com", weight: 75, endpoint: "/", category: "Microsoft 365 Suite" },
+            { domain: "mail.google.com", weight: 90, endpoint: "/mail/", category: "Google Workspace" },
+            { domain: "drive.google.com", weight: 85, endpoint: "/", category: "Google Workspace" },
+            { domain: "docs.google.com", weight: 80, endpoint: "/document/", category: "Google Workspace" },
+            { domain: "meet.google.com", weight: 75, endpoint: "/", category: "Google Workspace" },
+            { domain: "calendar.google.com", weight: 70, endpoint: "/", category: "Google Workspace" },
+            { domain: "zoom.us", weight: 90, endpoint: "/", category: "Communication & Collaboration" },
+            { domain: "slack.com", weight: 85, endpoint: "/api/api.test", category: "Communication & Collaboration" },
+            { domain: "webex.com", weight: 70, endpoint: "/", category: "Communication & Collaboration" },
+            { domain: "discord.com", weight: 40, endpoint: "/api/v9/gateway", category: "Communication & Collaboration" },
+            { domain: "salesforce.com", weight: 80, endpoint: "/", category: "CRM & Sales" },
+            { domain: "hubspot.com", weight: 60, endpoint: "/", category: "CRM & Sales" },
+            { domain: "dynamics.microsoft.com", weight: 55, endpoint: "/", category: "CRM & Sales" },
+            { domain: "monday.com", weight: 65, endpoint: "/", category: "Project Management" },
+            { domain: "asana.com", weight: 60, endpoint: "/", category: "Project Management" },
+            { domain: "trello.com", weight: 55, endpoint: "/", category: "Project Management" },
+            { domain: "jira.atlassian.com", weight: 70, endpoint: "/", category: "Project Management" },
+            { domain: "confluence.atlassian.com", weight: 65, endpoint: "/", category: "Project Management" },
+            { domain: "dropbox.com", weight: 75, endpoint: "/", category: "Cloud Storage & File Sharing" },
+            { domain: "box.com", weight: 60, endpoint: "/", category: "Cloud Storage & File Sharing" },
+            { domain: "wetransfer.com", weight: 45, endpoint: "/", category: "Cloud Storage & File Sharing" },
+            { domain: "github.com", weight: 75, endpoint: "/", category: "Development & DevOps" },
+            { domain: "gitlab.com", weight: 55, endpoint: "/", category: "Development & DevOps" },
+            { domain: "bitbucket.org", weight: 45, endpoint: "/", category: "Development & DevOps" },
+            { domain: "stackoverflow.com", weight: 50, endpoint: "/", category: "Development & DevOps" },
+            { domain: "portal.azure.com", weight: 70, endpoint: "/", category: "Cloud Providers" },
+            { domain: "console.aws.amazon.com", weight: 70, endpoint: "/", category: "Cloud Providers" },
+            { domain: "console.cloud.google.com", weight: 65, endpoint: "/", category: "Cloud Providers" },
+            { domain: "tableau.com", weight: 50, endpoint: "/", category: "Business Intelligence" },
+            { domain: "powerbi.microsoft.com", weight: 55, endpoint: "/", category: "Business Intelligence" },
+            { domain: "looker.com", weight: 40, endpoint: "/", category: "Business Intelligence" },
+            { domain: "workday.com", weight: 55, endpoint: "/", category: "HR & Productivity" },
+            { domain: "bamboohr.com", weight: 40, endpoint: "/", category: "HR & Productivity" },
+            { domain: "zenefits.com", weight: 35, endpoint: "/", category: "HR & Productivity" },
+            { domain: "adp.com", weight: 45, endpoint: "/", category: "HR & Productivity" },
+            { domain: "linkedin.com", weight: 60, endpoint: "/", category: "Marketing & Social" },
+            { domain: "twitter.com", weight: 50, endpoint: "/robots.txt", category: "Marketing & Social" },
+            { domain: "facebook.com", weight: 55, endpoint: "/robots.txt", category: "Marketing & Social" },
+            { domain: "instagram.com", weight: 45, endpoint: "/robots.txt", category: "Marketing & Social" },
+            { domain: "figma.com", weight: 55, endpoint: "/", category: "Design & Creative" },
+            { domain: "canva.com", weight: 50, endpoint: "/", category: "Design & Creative" },
+            { domain: "adobe.com", weight: 45, endpoint: "/", category: "Design & Creative" },
+            { domain: "zendesk.com", weight: 60, endpoint: "/", category: "Customer Support" },
+            { domain: "intercom.com", weight: 50, endpoint: "/", category: "Customer Support" },
+            { domain: "freshdesk.com", weight: 40, endpoint: "/", category: "Customer Support" },
+            { domain: "quickbooks.intuit.com", weight: 50, endpoint: "/", category: "Finance & Accounting" },
+            { domain: "expensify.com", weight: 40, endpoint: "/", category: "Finance & Accounting" },
+            { domain: "stripe.com", weight: 45, endpoint: "/", category: "Finance & Accounting" },
+            { domain: "okta.com", weight: 55, endpoint: "/", category: "Security & IT Tools" },
+            { domain: "duo.com", weight: 45, endpoint: "/", category: "Security & IT Tools" },
+            { domain: "1password.com", weight: 40, endpoint: "/", category: "Security & IT Tools" },
+            { domain: "lastpass.com", weight: 35, endpoint: "/", category: "Security & IT Tools" },
+            { domain: "youtube.com", weight: 65, endpoint: "/feed/trending", category: "Video & Media" },
+            { domain: "vimeo.com", weight: 40, endpoint: "/", category: "Video & Media" },
+            { domain: "netflix.com", weight: 30, endpoint: "/robots.txt", category: "Video & Media" },
+            { domain: "shopify.com", weight: 50, endpoint: "/", category: "E-commerce" },
+            { domain: "amazon.com", weight: 60, endpoint: "/robots.txt", category: "E-commerce" },
+            { domain: "ebay.com", weight: 35, endpoint: "/robots.txt", category: "E-commerce" },
+            { domain: "notion.so", weight: 65, endpoint: "/", category: "Popular SaaS" },
+            { domain: "airtable.com", weight: 50, endpoint: "/", category: "Popular SaaS" },
+            { domain: "miro.com", weight: 55, endpoint: "/", category: "Popular SaaS" },
+            { domain: "docusign.com", weight: 50, endpoint: "/", category: "Popular SaaS" }
         ];
 
         const config = {
