@@ -62,11 +62,12 @@ This project is my way to turn all that lab and demo experience into an open-sou
 - **VyOS Control** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
 - **Target Site Mode** - Standalone container acting as a branch/hub target with HTTP, Voice, and Bandwidth services. [Read more](docs/TARGET_CAPABILITIES.md)
 
-### 🛡️ Security Testing (v1.1.0)
+### 🛡️ Security
 - **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)
 - **DNS Security Tests** - Test DNS security policies with 24 domains (malware, phishing, DGA, etc.)
 - **Threat Prevention** - EICAR file download testing for IPS validation
 - **Scheduled Testing** - Automated security tests at configurable intervals
+- **EDL** - IP, URL, DNS urls with sequential or random execution
 - **Test Results History** - Persistent logging with search, filtering, and export
 
 ### 📊 Monitoring & Analytics
