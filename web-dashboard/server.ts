@@ -898,7 +898,7 @@ const initializeDefaultConfigs = () => {
         };
 
         fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
-        console.log(`Created default applications-config.json with ${defaultApps.filter(l => l && !l.startsWith('#')).length} applications`);
+        console.log(`Created default applications-config.json with ${defaultApps.length} applications`);
     }
 
     // ✅ Unified Initialization: Use the same logic as the runtime
@@ -2782,15 +2782,23 @@ const updateAppsWeigth = (updates: Record<string, number>, res: any) => {
         const config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
         const applications = config.applications || [];
 
-        const newApps = applications.map((line: string) => {
-            for (const [domain, weight] of Object.entries(updates)) {
-                if (line.startsWith(domain + '|')) {
-                    const parts = line.split('|');
-                    parts[1] = weight.toString();
-                    return parts.join('|');
+        const newApps = applications.map((app: any) => {
+            if (typeof app === 'string') {
+                for (const [domain, weight] of Object.entries(updates)) {
+                    if (app.startsWith(domain + '|')) {
+                        const parts = app.split('|');
+                        parts[1] = weight.toString();
+                        return parts.join('|');
+                    }
+                }
+            } else if (app && typeof app === 'object') {
+                for (const [domain, weight] of Object.entries(updates)) {
+                    if (app.domain === domain) {
+                        return { ...app, weight: weight };
+                    }
                 }
             }
-            return line;
+            return app;
         });
 
         config.applications = newApps;
