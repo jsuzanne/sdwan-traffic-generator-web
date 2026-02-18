@@ -4,6 +4,72 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.72] - 2026-02-18
+### Fixed
+- **Voice & VyOS**: Fixed configuration import processes by switching to JSON payloads and implementing real-time scheduler reloads in the backend. 📥🔄
+
+## [v1.2.1-patch.71] - 2026-02-18
+### Fixed
+- **Dashboard**: Fixed weight persistence for object-based configurations in `server.ts`, ensuring UI changes are correctly saved and applied to traffic generation. ⚖️💾
+
+## [v1.2.1-patch.70] - 2026-02-18
+### Changed
+- **Import/Export**: Modernized application configuration export/import to use structured JSON format by default, replacing legacy text formats. 📥📤
+
+## [v1.2.1-patch.69] - 2026-02-18
+### Added
+- **Configuration**: Implemented robust migration logic for application configurations and standardized object-based defaults for new installations. 📦⚙️
+
+## [v1.2.1-patch.68] - 2026-02-18
+### Fixed
+- **Traffic Engine**: Fixed `jq` parsing for legacy string formats in `traffic-generator.sh` to prevent script crashes. 🛠️🐚
+
+## [v1.2.1-patch.67] - 2026-02-18
+### Changed
+- **Maintenance**: General stability updates and version alignment across all engine components. 🔢
+
+## [v1.2.1-patch.66] - 2026-02-18
+### Fixed
+- **Traffic Engine**: Resolved parsing issues in the traffic generator and forced categorical migration for application configurations. 🚦⚙️
+### Changed
+- **UI**: General cleanup and refinement of dashboard components for better visual consistency. ✨
+
+## [v1.2.1-patch.65] - 2026-02-18
+### Fixed
+- **Migration**: Refined categorized configuration migration logic and performed UI styling updates in the dashboard. 🛠️🎨
+
+## [v1.2.1-patch.64] - 2026-02-18
+### Changed
+- **VyOS**: Unified VyOS configuration management and improved UI component interaction for sequences and routers. 🛡️⚙️
+
+## [v1.2.1-patch.63] - 2026-02-18
+### Fixed
+- **Traffic Generator**: Fixed `jq` raw output handling in `traffic-generator.sh` to ensure correct application matching. 🛠️🐚
+
+## [v1.2.1-patch.62] - 2026-02-18
+### Added
+- **Traffic Generator**: Added support for reading `applications-config.json` directly in the shell-based traffic generator. 🚦📦
+
+## [v1.2.1-patch.61] - 2026-02-18
+### Changed
+- **Healthcheck**: Synchronized healthcheck syntax with user preferences and standard system requirements. 🩺🔄
+
+## [v1.2.1-patch.60] - 2026-02-18
+### Fixed
+- **Healthcheck**: Improved healthcheck resilience during configuration migrations to prevent false positives. 🩺🛡️
+
+## [v1.2.1-patch.59] - 2026-02-18
+### Fixed
+- **Deployment**: Fixed Docker healthcheck configuration and synchronized version strings across all service components. 🐳🔢
+
+## [v1.2.1-patch.58] - 2026-02-18
+### Fixed
+- **Orchestrator**: Resolved `interfacesFile` ReferenceError and updated IoT device types for better simulation accuracy. 🛠️🤖
+
+## [v1.2.1-patch.57] - 2026-02-18
+### Added
+- **Convergence & VyOS**: Implemented convergence testing fixes, configuration consolidation, and VyOS pre-flight connectivity checks. 📉🛡️
+
 ## [v1.2.1-patch.56] - 2026-02-17
 ### Fixed
 - **Backend**: Resolved critical `TransformError` (variable redeclaration) causing container startup failure. 🛠️🔥
