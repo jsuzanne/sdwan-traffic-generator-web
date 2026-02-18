@@ -1187,6 +1187,16 @@ app.post('/api/vyos/sequences/run/:id', authenticateToken, async (req, res) => {
     }
 });
 
+app.post('/api/vyos/sequences/step/:id', authenticateToken, async (req, res) => {
+    try {
+        const { stepIndex } = req.body;
+        await vyosScheduler.runSequenceStep(req.params.id, parseInt(stepIndex));
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.post('/api/vyos/sequences/pause/:id', authenticateToken, async (req, res) => {
     try {
         vyosScheduler.pauseSequence(req.params.id);

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.74] - 2026-02-18
+### Added
+- **VyOS Control**: Implemented "Step-by-Step" sequence mode, allowing manual advancement of actions via "Next", "Rewind", and "Restart" controls in the timeline. ⏯️🪜
+- **UI**: Added conditional Mission Parameters and interactive manual control bar for sequential demonstrations. 📊🕹️
+
+## [v1.2.1-patch.73] - 2026-02-18
+### Changed
+- **Logs**: Enhanced server-side debug logging for Voice and VyOS import/export workflows to facilitate troubleshooting in production environments. 📝🔍
+
 ## [v1.2.1-patch.72] - 2026-02-18
 ### Fixed
 - **Voice & VyOS**: Fixed configuration import processes by switching to JSON payloads and implementing real-time scheduler reloads in the backend. 📥🔄

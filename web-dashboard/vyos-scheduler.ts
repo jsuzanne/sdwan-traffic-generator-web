@@ -20,6 +20,8 @@ export interface VyosAction {
     };
     duration_ms?: number;          // Measured execution time
     run_id?: string;               // Sequence run identifier
+    status?: 'running' | 'success' | 'failed'; // NEW: Status for step tracking
+    error?: string;                // NEW: Error message for step tracking
 }
 
 export interface VyosSequence {
@@ -27,6 +29,8 @@ export interface VyosSequence {
     name: string;
     enabled: boolean;
     paused?: boolean;  // NEW: Paused state for running sequences
+    executionMode: 'CYCLE' | 'STEP_BY_STEP'; // NEW: Execution mode
+    currentStep?: number; // NEW: Pointer for Step-by-Step mode
     cycle_duration: number; // Cycle duration in minutes (replaces cycleMinutes)
     actions: VyosAction[];
     lastRun?: number;
@@ -80,6 +84,14 @@ export class VyosScheduler extends EventEmitter {
                             s.actions.forEach((a: VyosAction) => {
                                 a.offset_minutes = Math.min(s.cycle_duration, Math.max(0, a.offset_minutes));
                             });
+                        }
+
+                        // Initialize executionMode if missing
+                        if (s.executionMode === undefined) {
+                            s.executionMode = 'CYCLE';
+                        }
+                        if (s.currentStep === undefined) {
+                            s.currentStep = 0;
                         }
 
                         this.sequences.set(s.id, s);
@@ -377,6 +389,49 @@ export class VyosScheduler extends EventEmitter {
 
         seq.lastRun = Date.now();
         this.saveSequences();
+    }
+
+    async runSequenceStep(id: string, stepIndex: number): Promise<void> {
+        const seq = this.sequences.get(id);
+        if (!seq) throw new Error('Sequence not found');
+        if (seq.executionMode !== 'STEP_BY_STEP') throw new Error('Sequence is not in Step-by-Step mode');
+
+        const action = seq.actions[stepIndex];
+        if (!action) throw new Error(`Action at index ${stepIndex} not found`);
+
+        log('VYOS-SCHED', `Step-by-Step execution: ${seq.name} - Step ${stepIndex + 1} (${action.command})`);
+
+        const runId = `STEP-${(++this.runCounter).toString().padStart(4, '0')}`;
+        seq.currentStep = stepIndex;
+        this.saveSequences();
+
+        const startTime = performance.now();
+        try {
+            this.emit('sequence:step', { sequenceId: seq.id, stepIndex, step: action.command, status: 'running' });
+
+            await this.manager.executeAction(action.router_id, {
+                id: action.id,
+                offset_minutes: action.offset_minutes,
+                router_id: action.router_id,
+                command: action.command,
+                params: { ...action.parameters, interface: action.interface }
+            });
+
+            const duration = Math.round(performance.now() - startTime);
+            this.logActionExecution(seq.id, action, 'success', undefined, runId, duration);
+            this.emit('sequence:step', { sequenceId: seq.id, stepIndex, step: action.command, status: 'success' });
+
+            // Move pointer to next step automatically if successful
+            if (stepIndex < seq.actions.length - 1) {
+                seq.currentStep = stepIndex + 1;
+                this.saveSequences();
+            }
+        } catch (error: any) {
+            const duration = Math.round(performance.now() - startTime);
+            this.logActionExecution(seq.id, action, 'failed', error.message, runId, duration);
+            this.emit('sequence:step', { sequenceId: seq.id, stepIndex, step: action.command, status: 'failed', error: error.message });
+            throw error;
+        }
     }
 
     getHistory(limit: number = 50): any[] {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2, Play, Download, Upload, Pause, Square } from 'lucide-react';
+import { Activity, Plus, Trash2, RefreshCw, Shield, Server, Wifi, Layout, CheckCircle, XCircle, AlertCircle, ChevronRight, ChevronUp, Search, Monitor, Cpu, Zap, Clock, Terminal, MapPin, Globe, ExternalLink, Info, Settings, Edit2, Play, Download, Upload, Pause, Square, SkipBack, RotateCcw, PlayCircle } from 'lucide-react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { twMerge } from 'tailwind-merge';
@@ -69,6 +69,8 @@ export interface VyosAction {
     interface: string;
     command: string;
     parameters?: any;
+    status?: 'running' | 'success' | 'failed'; // NEW: Status for step tracking
+    error?: string;                // NEW: Error message for step tracking
 }
 
 export interface VyosSequence {
@@ -76,6 +78,8 @@ export interface VyosSequence {
     name: string;
     enabled: boolean;
     paused?: boolean;  // Paused state for running sequences
+    executionMode: 'CYCLE' | 'STEP_BY_STEP'; // NEW: Execution mode
+    currentStep?: number; // NEW: Pointer for Step-by-Step mode
     cycle_duration: number;
     actions: VyosAction[];
     lastRun?: number;
@@ -379,6 +383,8 @@ export default function Vyos(props: VyosProps) {
             id: `seq-${Date.now()}`,
             name: '',
             enabled: true,
+            executionMode: 'CYCLE',
+            currentStep: 0,
             cycle_duration: 0,  // Default to Manual Trigger Only
             actions: []
         });
@@ -864,12 +870,14 @@ export default function Vyos(props: VyosProps) {
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className={cn(
                                             "flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md border transition-colors",
-                                            seq.cycle_duration > 0
-                                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-                                                : "bg-card-secondary text-text-muted border-border"
+                                            seq.executionMode === 'STEP_BY_STEP'
+                                                ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+                                                : seq.cycle_duration > 0
+                                                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                                                    : "bg-card-secondary text-text-muted border-border"
                                         )}>
-                                            <Clock size={10} />
-                                            {seq.cycle_duration > 0 ? `${seq.cycle_duration}M CRON` : 'MANUAL'}
+                                            {seq.executionMode === 'STEP_BY_STEP' ? <Terminal size={10} /> : <Clock size={10} />}
+                                            {seq.executionMode === 'STEP_BY_STEP' ? 'STEP-BY-STEP' : seq.cycle_duration > 0 ? `${seq.cycle_duration}M CRON` : 'MANUAL'}
                                         </span>
                                         <span className="text-[10px] text-text-muted font-mono opacity-50">#{seq.id.split('-').pop()?.substring(0, 4)}</span>
                                     </div>
@@ -960,27 +968,35 @@ export default function Vyos(props: VyosProps) {
                                             }
                                         </span>
                                         <span className="text-[8px] text-text-muted font-bold uppercase tracking-widest mt-0.5 opacity-60">
-                                            {seq.cycle_duration > 0 ? 'Last Pulse' : 'Manual Trigger'}
+                                            {seq.executionMode === 'STEP_BY_STEP' ? 'Interactive Mode' : seq.cycle_duration > 0 ? 'Last Pulse' : 'Manual Trigger'}
                                         </span>
                                     </div>
                                 </div>
 
                                 <button
-                                    onClick={() => runSequence(seq.id)}
+                                    onClick={() => {
+                                        if (seq.executionMode === 'STEP_BY_STEP') {
+                                            setView('timeline');
+                                        } else {
+                                            runSequence(seq.id);
+                                        }
+                                    }}
                                     disabled={activeExecution !== null}
                                     className={cn(
                                         "flex items-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 disabled:opacity-30 disabled:grayscale",
                                         activeExecution?.sequenceId === seq.id
                                             ? "bg-card-secondary text-text-muted cursor-not-allowed"
-                                            : "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/30"
+                                            : seq.executionMode === 'STEP_BY_STEP'
+                                                ? "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30"
+                                                : "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/30"
                                     )}
                                 >
                                     {activeExecution?.sequenceId === seq.id ? (
                                         <Activity size={14} className="animate-spin text-purple-400" />
                                     ) : (
-                                        <Play size={14} fill="currentColor" />
+                                        seq.executionMode === 'STEP_BY_STEP' ? <ChevronRight size={14} /> : <Play size={14} fill="currentColor" />
                                     )}
-                                    Run
+                                    {seq.executionMode === 'STEP_BY_STEP' ? 'Open Steps' : 'Run'}
                                 </button>
                             </div>
                         </div>
@@ -1193,7 +1209,7 @@ export default function Vyos(props: VyosProps) {
             {view === 'timeline' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-300">
                     <div className="lg:col-span-2 space-y-6">
-                        {sequences.filter(s => s.enabled && s.cycle_duration > 0).map(seq => (
+                        {sequences.filter(s => s.enabled && (s.cycle_duration > 0 || s.executionMode === 'STEP_BY_STEP')).map(seq => (
                             <ExecutionTimeline
                                 key={seq.id}
                                 sequence={seq}
@@ -1203,11 +1219,11 @@ export default function Vyos(props: VyosProps) {
                             />
                         ))}
 
-                        {sequences.filter(s => s.enabled && s.cycle_duration > 0).length === 0 && (
+                        {sequences.filter(s => s.enabled && (s.cycle_duration > 0 || s.executionMode === 'STEP_BY_STEP')).length === 0 && (
                             <div className="py-20 flex flex-col items-center justify-center bg-card border border-dashed border-border rounded-3xl text-text-muted shadow-inner">
                                 <Activity size={64} className="mb-6 opacity-10" />
-                                <p className="text-lg font-bold uppercase tracking-wider opacity-40">No Active Scheduled Sequences</p>
-                                <p className="text-sm mt-2 opacity-30">Enable a sequence with cycling to see its execution timeline.</p>
+                                <p className="text-lg font-bold uppercase tracking-wider opacity-40">No Active Missions</p>
+                                <p className="text-sm mt-2 opacity-30">Enable a sequence to see its execution timeline.</p>
                             </div>
                         )}
                     </div>
@@ -1409,27 +1425,48 @@ export default function Vyos(props: VyosProps) {
                                     />
                                 </div>
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] pl-1">Cycle duration (Min)</label>
+                                    <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] pl-1">Execution Mode</label>
                                     <select
-                                        value={editingSeq.cycle_duration}
-                                        onChange={(e) => {
-                                            const val = Math.max(0, parseInt(e.target.value || '0'));
-                                            // CLAMPING: Proactively clamp all action offsets if duration is reduced
-                                            const updatedActions = editingSeq.actions.map(a => ({
-                                                ...a,
-                                                offset_minutes: Math.min(val, a.offset_minutes)
-                                            }));
-                                            setEditingSeq({ ...editingSeq, cycle_duration: val, actions: updatedActions });
-                                        }}
+                                        value={editingSeq.executionMode}
+                                        onChange={(e) => setEditingSeq({ ...editingSeq, executionMode: e.target.value as any })}
                                         className="w-full bg-card-secondary border border-border rounded-2xl px-5 py-4 text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-black uppercase tracking-tight text-sm appearance-none cursor-pointer shadow-inner transition-all"
                                     >
-                                        <option value={0}>Manual Trigger Only</option>
-                                        <option value={10}>10 Minute Cycle</option>
-                                        <option value={30}>30 Minute Cycle</option>
-                                        <option value={60}>60 Minute Cycle</option>
-                                        <option value={120}>2 Hour Cycle</option>
-                                        <option value={1440}>24 Hour Cycle</option>
+                                        <option value="CYCLE">Timed Cycle</option>
+                                        <option value="STEP_BY_STEP">Step-by-Step Sequence</option>
                                     </select>
+                                </div>
+                                <div className="space-y-3">
+                                    {editingSeq.executionMode === 'CYCLE' ? (
+                                        <>
+                                            <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] pl-1">Cycle duration (Min)</label>
+                                            <select
+                                                value={editingSeq.cycle_duration}
+                                                onChange={(e) => {
+                                                    const val = Math.max(0, parseInt(e.target.value || '0'));
+                                                    // CLAMPING: Proactively clamp all action offsets if duration is reduced
+                                                    const updatedActions = editingSeq.actions.map(a => ({
+                                                        ...a,
+                                                        offset_minutes: Math.min(val, a.offset_minutes)
+                                                    }));
+                                                    setEditingSeq({ ...editingSeq, cycle_duration: val, actions: updatedActions });
+                                                }}
+                                                className="w-full bg-card-secondary border border-border rounded-2xl px-5 py-4 text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-black uppercase tracking-tight text-sm appearance-none cursor-pointer shadow-inner transition-all"
+                                            >
+                                                <option value={0}>Manual Trigger Only</option>
+                                                <option value={10}>10 Minute Cycle</option>
+                                                <option value={30}>30 Minute Cycle</option>
+                                                <option value={60}>60 Minute Cycle</option>
+                                                <option value={120}>2 Hour Cycle</option>
+                                                <option value={1440}>24 Hour Cycle</option>
+                                            </select>
+                                        </>
+                                    ) : (
+                                        <div className="p-4 bg-purple-600/5 border border-purple-500/10 rounded-2xl h-full flex flex-col justify-center">
+                                            <p className="text-[10px] text-text-muted font-bold leading-tight uppercase">
+                                                Manual Control: Actions run only when you click Next. Ideal for live POCs and design walkthroughs.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -1437,7 +1474,11 @@ export default function Vyos(props: VyosProps) {
                                 <div className="flex items-center justify-between bg-purple-600/5 p-4 rounded-2xl border border-purple-500/20 shadow-sm">
                                     <div className="flex flex-col">
                                         <h4 className="text-[11px] font-black text-text-primary uppercase tracking-[0.3em]">Operational Flow</h4>
-                                        <span className="text-[10px] text-text-muted font-bold uppercase">ACTIONS WILL TRIGGER AT DEFINED OFFSETS WITHIN THE CYCLE</span>
+                                        <span className="text-[10px] text-text-muted font-bold uppercase">
+                                            {editingSeq.executionMode === 'CYCLE'
+                                                ? 'ACTIONS WILL TRIGGER AT DEFINED OFFSETS WITHIN THE CYCLE'
+                                                : 'ACTIONS ARE ORDERED FOR STEP-BY-STEP MANUAL EXECUTION'}
+                                        </span>
                                     </div>
                                     <button
                                         onClick={() => {
@@ -1787,6 +1828,7 @@ function ExecutionTimeline({
 }) {
     const [countdown, setCountdown] = useState('');
     const [currentOffset, setCurrentOffset] = useState(-1);
+    const [isStepRunning, setIsStepRunning] = useState(false);
 
     const getNextCycleTime = (seq: VyosSequence) => {
         if (!seq.lastRun || seq.cycle_duration === 0) return null;
@@ -1803,7 +1845,14 @@ function ExecutionTimeline({
             .sort((a, b) => b.timestamp - a.timestamp)[0];
     };
 
-    const getDotState = (actionOffset: number, current: number): 'past' | 'current' | 'future' => {
+    const getDotState = (actionOffset: number, current: number, index: number): 'past' | 'current' | 'future' => {
+        if (sequence.executionMode === 'STEP_BY_STEP') {
+            const currentStep = sequence.currentStep || 0;
+            if (index < currentStep) return 'past';
+            if (index === currentStep) return 'current';
+            return 'future';
+        }
+
         if (!sequence.enabled || current === -1) return 'past';
         const epsilon = 0.5; // 30s window
         if (current < actionOffset - epsilon) return 'future';
@@ -1827,7 +1876,7 @@ function ExecutionTimeline({
     // Update countdown and current offset every second
     useEffect(() => {
         const interval = setInterval(() => {
-            if (sequence.cycle_duration > 0) {
+            if (sequence.executionMode === 'CYCLE' && sequence.cycle_duration > 0) {
                 setCountdown(getNextCycleTime(sequence) || 'WAITING...');
                 if (sequence.enabled && sequence.lastRun) {
                     const elapsed = (Date.now() - sequence.lastRun) / 60000;
@@ -1901,6 +1950,75 @@ function ExecutionTimeline({
         }
     };
 
+    const handleNextStep = async () => {
+        if (isStepRunning) return;
+        const currentStep = sequence.currentStep || 0;
+        if (currentStep >= sequence.actions.length) {
+            toast.success('Sequence completed');
+            return;
+        }
+
+        setIsStepRunning(true);
+        const toastId = toast.loading(`Executing step ${currentStep + 1}...`);
+        try {
+            const res = await fetch(`/api/vyos/sequences/step/${sequence.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ stepIndex: currentStep })
+            });
+
+            if (res.ok) {
+                toast.success(`✓ Step ${currentStep + 1} completed`, { id: toastId });
+                await onRefresh();
+            } else {
+                const data = await res.json();
+                toast.error(`❌ Step ${currentStep + 1} failed: ${data.error}`, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('❌ Network error', { id: toastId });
+        } finally {
+            setIsStepRunning(false);
+        }
+    };
+
+    const handlePrevStep = async () => {
+        const currentStep = sequence.currentStep || 0;
+        if (currentStep <= 0) return;
+
+        // Note: This only moves the UI pointer, it doesn't "undo" the previous command
+        // This matches our design for "Rewind" in POCs
+        try {
+            const updatedSeq = { ...sequence, currentStep: currentStep - 1 };
+            const res = await fetch('/api/vyos/sequences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify(updatedSeq)
+            });
+            if (res.ok) {
+                await onRefresh();
+            }
+        } catch (e) {
+            toast.error('Failed to move pointer');
+        }
+    };
+
+    const handleRestartStep = async () => {
+        try {
+            const updatedSeq = { ...sequence, currentStep: 0 };
+            const res = await fetch('/api/vyos/sequences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify(updatedSeq)
+            });
+            if (res.ok) {
+                toast.success('Sequence reset to first step');
+                await onRefresh();
+            }
+        } catch (e) {
+            toast.error('Failed to reset sequence');
+        }
+    };
+
     return (
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             {/* Header with sequence name and status */}
@@ -1911,55 +2029,94 @@ function ExecutionTimeline({
                     </h3>
                     <div className="flex items-center gap-3">
                         <span className="text-xs text-text-muted uppercase tracking-widest">
-                            Cycle: {sequence.cycle_duration}min
+                            {sequence.executionMode === 'CYCLE'
+                                ? `Cycle: ${sequence.cycle_duration}min`
+                                : `Step-by-Step Mode`}
                         </span>
-                        {currentOffset !== -1 && (
+                        {sequence.executionMode === 'CYCLE' && currentOffset !== -1 && (
                             <span className="text-[10px] bg-card-secondary text-text-secondary px-2 py-0.5 rounded font-mono border border-border">
                                 POSITION: T+{currentOffset.toFixed(1)}m
+                            </span>
+                        )}
+                        {sequence.executionMode === 'STEP_BY_STEP' && (
+                            <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded font-black border border-purple-500/20 uppercase">
+                                Step {(sequence.currentStep || 0) + 1} of {sequence.actions.length}
                             </span>
                         )}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {sequence.enabled && (
-                        <>
-                            {sequence.paused ? (
-                                <>
-                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                                        <Pause size={12} className="text-orange-400" />
-                                        <span className="text-xs font-black text-orange-400 uppercase">PAUSED</span>
-                                    </div>
-                                    <button
-                                        onClick={handleResume}
-                                        className="p-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-all shadow-sm"
-                                        title="Resume sequence"
-                                    >
-                                        <Play size={14} />
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg">
-                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-xs font-black text-green-400 uppercase">ACTIVE</span>
-                                    </div>
-                                    <button
-                                        onClick={handlePause}
-                                        className="p-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-all shadow-sm"
-                                        title="Pause sequence"
-                                    >
-                                        <Pause size={14} />
-                                    </button>
-                                </>
-                            )}
+                    {sequence.executionMode === 'STEP_BY_STEP' ? (
+                        <div className="flex items-center gap-2 bg-card-secondary p-1 rounded-xl border border-border">
                             <button
-                                onClick={handleStop}
-                                className="p-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-all shadow-sm"
-                                title="Stop and reset sequence"
+                                onClick={handleRestartStep}
+                                className="p-2 hover:bg-white/5 text-text-muted hover:text-text-primary rounded-lg transition-all"
+                                title="Restart sequence"
                             >
-                                <Square size={14} />
+                                <RotateCcw size={16} />
                             </button>
-                        </>
+                            <button
+                                onClick={handlePrevStep}
+                                disabled={isStepRunning || (sequence.currentStep || 0) <= 0}
+                                className="p-2 hover:bg-white/5 text-text-muted hover:text-text-primary rounded-lg transition-all disabled:opacity-30"
+                                title="Previous step"
+                            >
+                                <SkipBack size={16} />
+                            </button>
+                            <button
+                                onClick={handleNextStep}
+                                disabled={isStepRunning || (sequence.currentStep || 0) >= sequence.actions.length}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white rounded-lg transition-all shadow-lg font-black uppercase text-[10px] tracking-widest"
+                            >
+                                {isStepRunning ? (
+                                    <RefreshCw size={14} className="animate-spin" />
+                                ) : (
+                                    <Play size={14} />
+                                )}
+                                Next Step
+                            </button>
+                        </div>
+                    ) : (
+                        sequence.enabled && (
+                            <>
+                                {sequence.paused ? (
+                                    <>
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                                            <Pause size={12} className="text-orange-400" />
+                                            <span className="text-xs font-black text-orange-400 uppercase">PAUSED</span>
+                                        </div>
+                                        <button
+                                            onClick={handleResume}
+                                            className="p-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-all shadow-sm"
+                                            title="Resume sequence"
+                                        >
+                                            <Play size={14} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg">
+                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                            <span className="text-xs font-black text-green-400 uppercase">ACTIVE</span>
+                                        </div>
+                                        <button
+                                            onClick={handlePause}
+                                            className="p-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-all shadow-sm"
+                                            title="Pause sequence"
+                                        >
+                                            <Pause size={14} />
+                                        </button>
+                                    </>
+                                )}
+                                <button
+                                    onClick={handleStop}
+                                    className="p-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-all shadow-sm"
+                                    title="Stop and reset sequence"
+                                >
+                                    <Square size={14} />
+                                </button>
+                            </>
+                        )
                     )}
                 </div>
             </div>
@@ -1969,15 +2126,17 @@ function ExecutionTimeline({
                 {sequence.actions.map((action, idx) => {
                     const lastExec = getLastExecution(action.id, sequence.id);
                     const router = routers.find(r => r.id === action.router_id);
-                    const state = getDotState(action.offset_minutes, currentOffset);
+                    const state = getDotState(action.offset_minutes, currentOffset, idx);
 
                     return (
                         <div key={idx} className={`flex items-start gap-4 transition-all duration-500 ${state === 'future' ? 'opacity-40 grayscale-[0.5]' : ''}`}>
-                            {/* T+ Offset Label */}
+                            {/* T+ Offset Label or Step Number */}
                             <div className="flex flex-col items-center justify-center w-16">
-                                <span className="text-[8px] text-text-muted font-black uppercase tracking-tighter">T+MIN</span>
+                                <span className="text-[8px] text-text-muted font-black uppercase tracking-tighter">
+                                    {sequence.executionMode === 'CYCLE' ? 'T+MIN' : 'STEP'}
+                                </span>
                                 <span className={`font-black text-lg transition-colors ${state === 'current' ? 'text-blue-500' : 'text-purple-500'}`}>
-                                    {action.offset_minutes}
+                                    {sequence.executionMode === 'CYCLE' ? action.offset_minutes : idx + 1}
                                 </span>
                             </div>
 
