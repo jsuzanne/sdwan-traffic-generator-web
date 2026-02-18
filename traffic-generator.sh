@@ -138,18 +138,44 @@ function getRandomUserAgent() {
 
 # Weighted random selection for applications
 function getWeightedApp() {
+    local config_file="${CONFIG_DIR}/applications-config.json"
+    local legacy_file="${CONFIG_DIR}/applications.txt"
+    
     local total=0
     local -a apps weights endpoints
     
-    while IFS='|' read -r app weight endpoint; do
-        # Skip comments and empty lines
-        [[ "$app" =~ ^#.*$ || -z "$app" ]] && continue
+    if [[ -f "$config_file" ]]; then
+        # Parse JSON config
+        local apps_json=$(jq -c '.applications[]' "$config_file" 2>/dev/null)
+        if [[ -z "$apps_json" ]]; then
+            log_error "Failed to parse applications from $config_file"
+            echo "google.com|/"
+            return
+        fi
         
-        apps+=("$app")
-        weights+=("$weight")
-        endpoints+=("$endpoint")
-        ((total += weight))
-    done < "${CONFIG_DIR}/applications.txt"
+        while read -r line; do
+            local app=$(echo "$line" | cut -d'|' -f1)
+            local weight=$(echo "$line" | cut -d'|' -f2)
+            local endpoint=$(echo "$line" | cut -d'|' -f3)
+            
+            # Skip comments and empty lines
+            [[ "$app" =~ ^#.*$ || -z "$app" ]] && continue
+            
+            apps+=("$app")
+            weights+=("$weight")
+            endpoints+=("$endpoint")
+            ((total += weight))
+        done <<< "$apps_json"
+    elif [[ -f "$legacy_file" ]]; then
+        # Fallback to legacy format
+        while IFS='|' read -r app weight endpoint; do
+            [[ "$app" =~ ^#.*$ || -z "$app" ]] && continue
+            apps+=("$app")
+            weights+=("$weight")
+            endpoints+=("$endpoint")
+            ((total += weight))
+        done < "$legacy_file"
+    fi
     
     if [[ $total -eq 0 ]]; then
         log_error "No valid applications found in config"
@@ -168,7 +194,6 @@ function getWeightedApp() {
         fi
     done
     
-    # Fallback to first app
     echo "${apps[0]}|${endpoints[0]}"
 }
 
@@ -357,27 +382,30 @@ function main() {
     log_info "📡 [TRAFFIC] System Interface: $iface (Source: dynamic selection)"
     
     # Ensure config exists
-    if [[ ! -f "${CONFIG_DIR}/applications.txt" ]]; then
-        log_error "Configuration file ${CONFIG_DIR}/applications.txt not found!"
+    if [[ ! -f "${CONFIG_DIR}/applications-config.json" && ! -f "${CONFIG_DIR}/applications.txt" ]]; then
+        log_error "Configuration file not found (checked applications-config.json and applications.txt)!"
         exit 1
     fi
     
     # Main loop
     while true; do
         # Check if traffic generation is enabled
-        local control_file="${CONFIG_DIR}/traffic-control.json"
-        if [[ -f "$control_file" ]]; then
-            local control_data=$(cat "$control_file" 2>/dev/null)
-            local enabled=$(echo "$control_data" | jq -r '.enabled // false' 2>/dev/null)
+        local config_file="${CONFIG_DIR}/applications-config.json"
+        local legacy_control_file="${CONFIG_DIR}/traffic-control.json"
+        local enabled="false"
+        
+        if [[ -f "$config_file" ]]; then
+            local control_data=$(jq -r '.control' "$config_file" 2>/dev/null)
+            enabled=$(echo "$control_data" | jq -r '.enabled // false' 2>/dev/null)
             SLEEP_BETWEEN_REQUESTS=$(echo "$control_data" | jq -r '.sleep_interval // 1' 2>/dev/null)
-            
-            if [[ "$enabled" != "true" ]]; then
-                # Traffic is paused, sleep and check again
-                sleep 5
-                continue
-            fi
-        else
-            # No control file means paused (wait for user to start)
+        elif [[ -f "$legacy_control_file" ]]; then
+            local control_data=$(cat "$legacy_control_file" 2>/dev/null)
+            enabled=$(echo "$control_data" | jq -r '.enabled // false' 2>/dev/null)
+            SLEEP_BETWEEN_REQUESTS=$(echo "$control_data" | jq -r '.sleep_interval // 1' 2>/dev/null)
+        fi
+        
+        if [[ "$enabled" != "true" ]]; then
+            # Traffic is paused, sleep and check again
             sleep 5
             continue
         fi
