@@ -107,6 +107,18 @@ export class VyosScheduler extends EventEmitter {
         }
     }
 
+    reload() {
+        log('VYOS-SCHED', 'Force reloading sequences from file...');
+        // Stop all active timers
+        for (const id of this.sequences.keys()) {
+            this.stopScheduled(id);
+        }
+        this.sequences.clear();
+        this.loadSequences();
+        this.startAllScheduled();
+        log('VYOS-SCHED', `Reloaded ${this.sequences.size} sequences.`);
+    }
+
     getSequences(): VyosSequence[] {
         return Array.from(this.sequences.values());
     }

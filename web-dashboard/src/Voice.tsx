@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Phone, Play, Pause, Server, BarChart2, Save, Plus, Trash2, Clock, Activity, Wifi, Search, CheckSquare, AlertCircle, Hash, Download, Upload } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import toast from 'react-hot-toast';
 
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -160,20 +161,26 @@ export default function Voice(props: VoiceProps) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const formData = new FormData();
-        formData.append('config', file);
-
         try {
+            const text = await file.text();
+            const config = JSON.parse(text);
+
             const r = await fetch('/api/voice/config/import', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ config })
             });
             const data = await r.json();
             if (data.success) {
                 fetchConfig();
+                toast.success('✓ Voice configuration imported');
             }
-        } catch (e) { }
+        } catch (e: any) {
+            toast.error(`❌ Import failed: ${e.message}`);
+        }
     };
 
     const handleToggle = async () => {

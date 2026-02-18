@@ -1235,6 +1235,7 @@ app.post('/api/vyos/config/import', authenticateToken, (req, res) => {
     try {
         const config = req.body;
         vyosManager.setFullConfig(config);
+        vyosScheduler.reload();
         res.json({ success: true, message: 'VyOS configuration imported successfully' });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
