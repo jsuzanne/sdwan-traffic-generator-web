@@ -750,6 +750,7 @@ const saveUsers = (users: any[]) => {
 // --- Initialize Default Configuration Files ---
 const initializeDefaultConfigs = () => {
     const configDir = APP_CONFIG.configDir;
+    const interfacesFile = path.join(configDir, 'interfaces.txt');
     // Create default applications-config.json if it doesn't exist
     if (!fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
         const defaultApps = [
@@ -919,7 +920,7 @@ if (getUsers().length === 0) {
 initializeDefaultConfigs();
 
 // --- IoT Helpers ---
-const getIoTConfig = (): { devices: IoTDeviceConfig[] } => {
+const getIoTConfig = (): { devices: IoTDeviceConfig[], network?: any } => {
     try {
         if (!fs.existsSync(IOT_DEVICES_FILE)) {
             log('IOT', `Config file NOT found: ${IOT_DEVICES_FILE}`, 'warn');
@@ -947,7 +948,7 @@ const getIoTDevices = (): IoTDeviceConfig[] => {
     return getIoTConfig().devices;
 };
 
-const saveIoTConfig = (config: { devices: IoTDeviceConfig[] }) => {
+const saveIoTConfig = (config: { devices: IoTDeviceConfig[], network?: any }) => {
     // We strictly ONLY save devices. No more network block.
     fs.writeFileSync(IOT_DEVICES_FILE, JSON.stringify({ devices: config.devices }, null, 2));
 
@@ -1746,7 +1747,7 @@ app.get('/api/config/apps', extractUserMiddleware, (req, res) => {
         }
     };
 
-    lines.forEach(line => {
+    lines.forEach((line: string) => {
         line = line.trim();
         if (!line) return;
 
