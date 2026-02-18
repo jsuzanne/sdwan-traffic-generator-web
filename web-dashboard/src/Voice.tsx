@@ -173,10 +173,13 @@ export default function Voice(props: VoiceProps) {
                 },
                 body: JSON.stringify({ config })
             });
+
             const data = await r.json();
-            if (data.success) {
+            if (r.ok && data.success) {
                 fetchConfig();
                 toast.success('✓ Voice configuration imported');
+            } else {
+                toast.error(`❌ Import failed: ${data.error || 'Server error'}`);
             }
         } catch (e: any) {
             toast.error(`❌ Import failed: ${e.message}`);
