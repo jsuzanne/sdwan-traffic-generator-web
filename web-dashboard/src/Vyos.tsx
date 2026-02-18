@@ -298,14 +298,20 @@ export default function Vyos(props: VyosProps) {
             confirmText: 'Delete Router',
             onConfirm: async () => {
                 try {
-                    await fetch(`/api/vyos/routers/${id}`, {
+                    const res = await fetch(`/api/vyos/routers/${id}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    toast.success('✓ Router deleted');
-                    fetchData();
-                } catch (e) {
-                    toast.error('Failed to delete router');
+
+                    if (res.ok) {
+                        toast.success('✓ Router deleted');
+                        fetchData();
+                    } else {
+                        const data = await res.json();
+                        toast.error(`❌ ${data.error || 'Failed to delete router'}`);
+                    }
+                } catch (e: any) {
+                    toast.error(`❌ Network error: ${e.message}`);
                 }
                 setConfirmModal(prev => ({ ...prev, isOpen: false }));
             }
@@ -323,6 +329,22 @@ export default function Vyos(props: VyosProps) {
                 toast.error(`❌ Connection failed: ${data.status}`, { id: toastId });
             }
             fetchData();
+        } catch (e: any) {
+            toast.error(`❌ Error: ${e.message}`, { id: toastId });
+        }
+    };
+
+    const refreshRouterInfo = async (id: string) => {
+        const toastId = toast.loading('Refreshing node info...');
+        try {
+            const res = await fetch(`/api/vyos/routers/refresh/${id}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('✓ Node information updated (interfaces, version, hostname)', { id: toastId });
+                fetchData();
+            } else {
+                toast.error(`❌ Refresh failed: ${data.error}`, { id: toastId });
+            }
         } catch (e: any) {
             toast.error(`❌ Error: ${e.message}`, { id: toastId });
         }
@@ -825,7 +847,7 @@ export default function Vyos(props: VyosProps) {
                                     <button
                                         className="p-2 bg-card-secondary hover:bg-purple-600/10 text-text-muted hover:text-purple-500 rounded-lg transition-all border border-border/50"
                                         title="Refresh Info"
-                                        onClick={() => testRouter(router.id)}
+                                        onClick={() => refreshRouterInfo(router.id)}
                                     >
                                         <RefreshCw size={16} />
                                     </button>
@@ -2073,7 +2095,7 @@ function ExecutionTimeline({
                                 ) : (
                                     <Play size={14} />
                                 )}
-                                Next Step
+                                Execute
                             </button>
                         </div>
                     ) : (

@@ -1141,8 +1141,29 @@ app.post('/api/vyos/routers/:id', authenticateToken, (req, res) => {
 });
 
 app.delete('/api/vyos/routers/:id', authenticateToken, (req, res) => {
-    vyosManager.deleteRouter(req.params.id);
+    const routerId = req.params.id;
+
+    // Safety check: is this router used in any sequence?
+    const sequences = vyosScheduler.getSequences();
+    const isUsed = sequences.some(s => s.actions.some(a => a.router_id === routerId));
+
+    if (isUsed) {
+        return res.status(400).json({
+            error: 'Cannot delete router: it is still referenced in one or more mission sequences. Delete or update the sequences first.'
+        });
+    }
+
+    vyosManager.deleteRouter(routerId);
     res.json({ success: true });
+});
+
+app.post('/api/vyos/routers/refresh/:id', authenticateToken, async (req, res) => {
+    try {
+        const updatedRouter = await vyosManager.refreshRouter(req.params.id);
+        res.json({ success: true, router: updatedRouter });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.post('/api/vyos/routers/test/:id', authenticateToken, async (req, res) => {

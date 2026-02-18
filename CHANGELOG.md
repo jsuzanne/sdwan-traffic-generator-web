@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.75] - 2026-02-18
+### Added
+- **VyOS Control**: Implemented manual "Refresh Info" for routers, enabling real-time detection of interface changes, hostname updates, and version changes. 🔄📡
+- **VyOS Control**: Added safety dependency checks to prevent deleting routers that are still referenced by mission sequences. 🛡️🚫
+
 ## [v1.2.1-patch.74] - 2026-02-18
 ### Added
 - **VyOS Control**: Implemented "Step-by-Step" sequence mode, allowing manual advancement of actions via "Next", "Rewind", and "Restart" controls in the timeline. ⏯️🪜

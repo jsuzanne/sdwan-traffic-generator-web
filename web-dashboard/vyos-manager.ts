@@ -168,6 +168,26 @@ export class VyosManager extends EventEmitter {
         this.emit('router:updated', this.routers.get(router.id)!);
     }
 
+    /**
+     * Incrementally refresh router info (hostname, version, interfaces)
+     */
+    async refreshRouter(id: string): Promise<VyosRouter> {
+        const router = this.routers.get(id);
+        if (!router) throw new Error('Router not found');
+
+        log('VYOS', `Refreshing router ${router.name} (${router.host})...`);
+        const info = await this.discoverRouter(router.host, router.apiKey);
+
+        router.name = info.hostname;
+        router.version = info.version;
+        router.interfaces = info.interfaces;
+        router.status = 'online';
+        router.lastSeen = Date.now();
+
+        this.saveRouter(router);
+        return router;
+    }
+
     deleteRouter(id: string) {
         if (this.routers.delete(id)) {
             this.saveRouters();
