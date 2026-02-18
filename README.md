@@ -59,7 +59,7 @@ This project is my way to turn all that lab and demo experience into an open-sou
 - **Prisma SD-WAN Integration** - Automatic discovery of sites and LAN interfaces via API for "Zero-Config" connectivity probes and path validation. [Read more](docs/PRISMA-SDWAN_INTEGRATION.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
-- **VyOS Control ** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
+- **VyOS Control** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
 - **Target Site Mode** - Standalone container acting as a branch/hub target with HTTP, Voice, and Bandwidth services. [Read more](docs/TARGET_CAPABILITIES.md)
 
 ### 🛡️ Security Testing (v1.1.0)
