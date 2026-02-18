@@ -1653,8 +1653,16 @@ app.get('/api/voice/config/export', authenticateToken, (req, res) => {
 app.post('/api/voice/config/import', authenticateToken, (req, res) => {
     try {
         const { config } = req.body;
+        console.log('[VOICE] Incoming import request');
+        if (DEBUG) console.log('[VOICE] Import Payload:', JSON.stringify(config, null, 2));
+
         if (!config || !config.control || !config.servers) {
-            return res.status(400).json({ error: 'Invalid voice configuration' });
+            console.error('[VOICE] Import failed: Invalid configuration structure', {
+                hasConfig: !!config,
+                hasControl: config ? !!config.control : false,
+                hasServers: config ? !!config.servers : false
+            });
+            return res.status(400).json({ success: false, error: 'Invalid voice configuration: Missing control or servers' });
         }
         // Preserve state if possible
         if (fs.existsSync(VOICE_CONFIG_FILE)) {
