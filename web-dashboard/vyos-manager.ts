@@ -44,7 +44,7 @@ export class VyosManager extends EventEmitter {
 
     constructor(configDir: string) {
         super();
-        this.routersFile = path.join(configDir, 'vyos-routers.json');
+        this.routersFile = path.join(configDir, 'vyos-config.json');
 
         // Target path: Option B (process.cwd()) as recommended in Plan v2
         this.pythonScriptPath = path.join(process.cwd(), 'vyos/vyos_sdwan_ctl.py');
@@ -58,7 +58,7 @@ export class VyosManager extends EventEmitter {
         }
 
         this.loadRouters();
-        log('VYOS', `Manager initialized. Script: ${this.pythonScriptPath}`);
+        log('VYOS', `Manager initialized. File: ${this.routersFile}`);
     }
 
     private loadRouters() {
@@ -71,15 +71,16 @@ export class VyosManager extends EventEmitter {
             } catch (e: any) {
                 log('VYOS', `Failed to load routers: ${e.message}`, 'error');
             }
-        } else {
-            // Initialize empty config if missing
-            this.saveRouters();
         }
     }
 
     private saveRouters() {
         try {
-            const data = { routers: Array.from(this.routers.values()) };
+            let data: any = { routers: [] };
+            if (fs.existsSync(this.routersFile)) {
+                data = JSON.parse(fs.readFileSync(this.routersFile, 'utf8'));
+            }
+            data.routers = Array.from(this.routers.values());
             fs.writeFileSync(this.routersFile, JSON.stringify(data, null, 2));
         } catch (e: any) {
             log('VYOS', `Failed to save routers: ${e.message}`, 'error');
@@ -90,12 +91,14 @@ export class VyosManager extends EventEmitter {
      * Discover a router's hardware and software info.
      * Uses: python3 vyos/vyos_sdwan_ctl.py --host <host> --key <key> get-info
      */
-    async discoverRouter(host: string, apiKey: string): Promise<{
-        hostname: string;
-        version: string;
-        location?: string;
-    }> {
+    async discoverRouter(host: string, apiKey: string): Promise<any> {
         log('VYOS', `Discovering router at ${host}...`);
+
+        // 1. Pre-flight Ping check
+        const isUp = await this.pingHost(host);
+        if (!isUp) {
+            throw new Error(`Router Unreachable: No ping response from ${host}`);
+        }
 
         // Configurable timeout (default 30s, was hardcoded 15s with wrong error message)
         const DISCOVERY_TIMEOUT_MS = parseInt(
@@ -351,19 +354,22 @@ export class VyosManager extends EventEmitter {
     /**
      * Simple ping for fast connectivity check
      */
-    async testConnection(routerId: string): Promise<boolean> {
-        const router = this.routers.get(routerId);
-        if (!router) return false;
-
+    private async pingHost(host: string): Promise<boolean> {
         try {
             const cmd = (process.platform === 'win32')
-                ? `ping -n 1 -w 1000 ${router.host}`
-                : `ping -c 1 -W 1 ${router.host}`;
+                ? `ping -n 1 -w 1000 ${host}`
+                : `ping -c 1 -W 1 ${host}`;
             await execPromise(cmd);
             return true;
         } catch {
             return false;
         }
+    }
+
+    async testConnection(routerId: string): Promise<boolean> {
+        const router = this.routers.get(routerId);
+        if (!router) return false;
+        return this.pingHost(router.host);
     }
 
     /**

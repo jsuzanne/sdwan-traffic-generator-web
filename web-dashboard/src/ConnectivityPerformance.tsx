@@ -266,7 +266,9 @@ export default function ConnectivityPerformance({ token, onManage }: Connectivit
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
             setSortField(field);
-            setSortDirection('asc');
+            // Default to descending for metrics (highest first), ascending for names/types
+            const isMetric = ['score', 'reliability', 'latency'].includes(field);
+            setSortDirection(isMetric ? 'desc' : 'asc');
         }
     };
 

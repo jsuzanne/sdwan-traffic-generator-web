@@ -55,9 +55,9 @@ export class VyosScheduler extends EventEmitter {
     private pausedTimers: Map<string, NodeJS.Timeout[]> = new Map();  // NEW: Store paused timers
     private runCounter: number = 0;
 
-    constructor(private manager: VyosManager, configDir: string, logDir: string) {
+    constructor(private manager: VyosManager, configDir: string, private logDir: string) {
         super();
-        this.sequencesFile = path.join(configDir, 'vyos-sequences.json');
+        this.sequencesFile = path.join(configDir, 'vyos-config.json');
         this.logFile = path.join(logDir, 'vyos-history.jsonl');
 
         this.loadSequences();
@@ -94,10 +94,13 @@ export class VyosScheduler extends EventEmitter {
 
     private saveSequences() {
         try {
-            const data = {
-                sequences: Array.from(this.sequences.values()),
-                runCounter: this.runCounter
-            };
+            let data: any = { routers: [], sequences: [], runCounter: 0 };
+            if (fs.existsSync(this.sequencesFile)) {
+                data = JSON.parse(fs.readFileSync(this.sequencesFile, 'utf8'));
+            }
+            data.sequences = Array.from(this.sequences.values());
+            data.runCounter = this.runCounter;
+
             fs.writeFileSync(this.sequencesFile, JSON.stringify(data, null, 2));
         } catch (e: any) {
             log('VYOS-SCHED', `Failed to save sequences: ${e.message}`, 'error');

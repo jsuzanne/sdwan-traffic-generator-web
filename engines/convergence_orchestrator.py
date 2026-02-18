@@ -189,12 +189,19 @@ class ConvergenceMetrics:
         has_seq_gap = (seq > rcvd)
         is_blackout = (outage > threshold_ms) and has_seq_gap
 
-        max_blackout = max_blackout_copy
+        # Persistence: Update the instance variable so we don't lose the peak value
         if is_blackout:
-            max_blackout = max(max_blackout_copy, round(outage))
+            current_max = max(max_blackout_copy, round(outage))
+            if current_max > max_blackout_copy:
+                self.max_blackout = current_max
+                max_blackout = current_max
+            else:
+                max_blackout = max_blackout_copy
+        else:
+            max_blackout = max_blackout_copy
 
         if not is_running and rcvd >= seq:
-            max_blackout = 0
+            # We keep the max_blackout even if test stopped, to show it in results
             history = [1] * 100
 
         total_loss_pct = 0.0

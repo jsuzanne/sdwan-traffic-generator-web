@@ -81,6 +81,10 @@ const SECURITY_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'security-history.jso
 // IoT Devices
 const IOT_DEVICES_FILE = path.join(APP_CONFIG.configDir, 'iot-devices.json');
 
+// NEW Unified Configurations (v1.2.1-patch.57)
+const APPLICATIONS_CONFIG_FILE = path.join(APP_CONFIG.configDir, 'applications-config.json');
+const VYOS_CONFIG_FILE = path.join(APP_CONFIG.configDir, 'vyos-config.json');
+
 // Upgrade Status tracking
 interface UpgradeStatus {
     inProgress: boolean;
@@ -263,6 +267,90 @@ const migrateSecurityConfig = () => {
 // Run Migrations
 migrateVoiceConfig();
 migrateSecurityConfig();
+
+/**
+ * MIGRATION: Consolidate Applications configuration
+ */
+const migrateApplicationsConfig = () => {
+    if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) return;
+
+    const legacyAppsFile = path.join(APP_CONFIG.configDir, 'applications.txt');
+    const legacyControlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
+    if (!fs.existsSync(legacyAppsFile) && !fs.existsSync(legacyControlFile)) return;
+
+    console.log('[SYSTEM] 📦 Migrating legacy Applications configuration to unified format...');
+
+    let control: any = { enabled: false, sleep_interval: 1.0 };
+    if (fs.existsSync(legacyControlFile)) {
+        try {
+            control = JSON.parse(fs.readFileSync(legacyControlFile, 'utf8'));
+        } catch (e) { console.error('Traffic control migration failed', e); }
+    }
+
+    let applications: string[] = [];
+    if (fs.existsSync(legacyAppsFile)) {
+        try {
+            applications = fs.readFileSync(legacyAppsFile, 'utf8')
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#'));
+        } catch (e) { console.error('Applications migration failed', e); }
+    }
+
+    const unifiedConfig = { control, applications };
+    fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(unifiedConfig, null, 2));
+    console.log('[SYSTEM] ✅ Applications configuration consolidated.');
+
+    // Cleanup
+    try {
+        if (fs.existsSync(legacyAppsFile)) fs.renameSync(legacyAppsFile, legacyAppsFile + '.migrated');
+        if (fs.existsSync(legacyControlFile)) fs.renameSync(legacyControlFile, legacyControlFile + '.migrated');
+    } catch (e) { console.log('[SYSTEM] ⚠️ Failed to rename legacy application files.'); }
+};
+
+/**
+ * MIGRATION: Consolidate VyOS configuration
+ */
+const migrateVyosConfig = () => {
+    if (fs.existsSync(VYOS_CONFIG_FILE)) return;
+
+    const legacyRoutersFile = path.join(APP_CONFIG.configDir, 'vyos-routers.json');
+    const legacySequencesFile = path.join(APP_CONFIG.configDir, 'vyos-sequences.json');
+    if (!fs.existsSync(legacyRoutersFile) && !fs.existsSync(legacySequencesFile)) return;
+
+    console.log('[SYSTEM] 📦 Migrating VyOS configuration to unified format...');
+
+    let routers: any[] = [];
+    if (fs.existsSync(legacyRoutersFile)) {
+        try {
+            const data = JSON.parse(fs.readFileSync(legacyRoutersFile, 'utf8'));
+            routers = data.routers || [];
+        } catch (e) { console.error('VyOS routers migration failed', e); }
+    }
+
+    let sequences: any[] = [];
+    let runCounter = 0;
+    if (fs.existsSync(legacySequencesFile)) {
+        try {
+            const data = JSON.parse(fs.readFileSync(legacySequencesFile, 'utf8'));
+            sequences = data.sequences || [];
+            runCounter = data.runCounter || 0;
+        } catch (e) { console.error('VyOS sequences migration failed', e); }
+    }
+
+    const unifiedConfig = { routers, sequences, runCounter };
+    fs.writeFileSync(VYOS_CONFIG_FILE, JSON.stringify(unifiedConfig, null, 2));
+    console.log('[SYSTEM] ✅ VyOS configuration consolidated.');
+
+    // Cleanup
+    try {
+        if (fs.existsSync(legacyRoutersFile)) fs.renameSync(legacyRoutersFile, legacyRoutersFile + '.migrated');
+        if (fs.existsSync(legacySequencesFile)) fs.renameSync(legacySequencesFile, legacySequencesFile + '.migrated');
+    } catch (e) { console.log('[SYSTEM] ⚠️ Failed to rename legacy VyOS files.'); }
+};
+
+migrateApplicationsConfig();
+migrateVyosConfig();
 
 // --- Hot-Reload: Watch for interfaces.txt changes ---
 const INTERFACES_FILE = path.join(APP_CONFIG.configDir, 'interfaces.txt');
@@ -662,125 +750,123 @@ const saveUsers = (users: any[]) => {
 // --- Initialize Default Configuration Files ---
 const initializeDefaultConfigs = () => {
     const configDir = APP_CONFIG.configDir;
-    const appsFile = path.join(configDir, 'applications.txt');
-    const interfacesFile = path.join(configDir, 'interfaces.txt');
+    // Create default applications-config.json if it doesn't exist
+    if (!fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
+        const defaultApps = [
+            "# Microsoft 365 Suite",
+            "outlook.office365.com|100|/",
+            "teams.microsoft.com|95|/api/mt/emea/beta/users/",
+            "login.microsoftonline.com|90|/",
+            "graph.microsoft.com|85|/v1.0/me",
+            "onedrive.live.com|80|/",
+            "sharepoint.com|75|/",
+            "",
+            "# Google Workspace",
+            "mail.google.com|90|/mail/",
+            "drive.google.com|85|/",
+            "docs.google.com|80|/document/",
+            "meet.google.com|75|/",
+            "calendar.google.com|70|/",
+            "",
+            "# Communication & Collaboration",
+            "zoom.us|90|/",
+            "slack.com|85|/api/api.test",
+            "webex.com|70|/",
+            "discord.com|40|/api/v9/gateway",
+            "",
+            "# CRM & Sales",
+            "salesforce.com|80|/",
+            "hubspot.com|60|/",
+            "dynamics.microsoft.com|55|/",
+            "",
+            "# Project Management",
+            "monday.com|65|/",
+            "asana.com|60|/",
+            "trello.com|55|/",
+            "jira.atlassian.com|70|/",
+            "confluence.atlassian.com|65|/",
+            "",
+            "# Cloud Storage & File Sharing",
+            "dropbox.com|75|/",
+            "box.com|60|/",
+            "wetransfer.com|45|/",
+            "",
+            "# Development & DevOps",
+            "github.com|75|/",
+            "gitlab.com|55|/",
+            "bitbucket.org|45|/",
+            "stackoverflow.com|50|/",
+            "",
+            "# Cloud Providers",
+            "portal.azure.com|70|/",
+            "console.aws.amazon.com|70|/",
+            "console.cloud.google.com|65|/",
+            "",
+            "# Business Intelligence",
+            "tableau.com|50|/",
+            "powerbi.microsoft.com|55|/",
+            "looker.com|40|/",
+            "",
+            "# HR & Productivity",
+            "workday.com|55|/",
+            "bamboohr.com|40|/",
+            "zenefits.com|35|/",
+            "adp.com|45|/",
+            "",
+            "# Marketing & Social",
+            "linkedin.com|60|/",
+            "twitter.com|50|/robots.txt",
+            "facebook.com|55|/robots.txt",
+            "instagram.com|45|/robots.txt",
+            "",
+            "# Design & Creative",
+            "figma.com|55|/",
+            "canva.com|50|/",
+            "adobe.com|45|/",
+            "",
+            "# Customer Support",
+            "zendesk.com|60|/",
+            "intercom.com|50|/",
+            "freshdesk.com|40|/",
+            "",
+            "# Finance & Accounting",
+            "quickbooks.intuit.com|50|/",
+            "expensify.com|40|/",
+            "stripe.com|45|/",
+            "",
+            "# Security & IT Tools",
+            "okta.com|55|/",
+            "duo.com|45|/",
+            "1password.com|40|/",
+            "lastpass.com|35|/",
+            "",
+            "# Video & Media",
+            "youtube.com|65|/feed/trending",
+            "vimeo.com|40|/",
+            "netflix.com|30|/robots.txt",
+            "",
+            "# E-commerce",
+            "shopify.com|50|/",
+            "amazon.com|60|/robots.txt",
+            "ebay.com|35|/robots.txt",
+            "",
+            "# Popular SaaS",
+            "notion.so|65|/",
+            "airtable.com|50|/",
+            "miro.com|55|/",
+            "docusign.com|50|/"
+        ];
 
-    // Ensure config directory exists
-    if (!fs.existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
-        console.log(`Created config directory: ${configDir}`);
-    }
+        const config = {
+            control: {
+                enabled: process.env.AUTO_START_TRAFFIC === 'true',
+                sleep_interval: parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0')
+            },
+            applications: defaultApps
+        };
 
-    // Create default applications.txt if it doesn't exist
-    if (!fs.existsSync(appsFile)) {
-        const defaultApps = `# Format: domain|weight|endpoint
-# Weight: Higher = more traffic generated
-
-# Microsoft 365 Suite
-outlook.office365.com|100|/
-teams.microsoft.com|95|/api/mt/emea/beta/users/
-login.microsoftonline.com|90|/
-graph.microsoft.com|85|/v1.0/me
-onedrive.live.com|80|/
-sharepoint.com|75|/
-
-# Google Workspace
-mail.google.com|90|/mail/
-drive.google.com|85|/
-docs.google.com|80|/document/
-meet.google.com|75|/
-calendar.google.com|70|/
-
-# Communication & Collaboration
-zoom.us|90|/
-slack.com|85|/api/api.test
-webex.com|70|/
-discord.com|40|/api/v9/gateway
-
-# CRM & Sales
-salesforce.com|80|/
-hubspot.com|60|/
-dynamics.microsoft.com|55|/
-
-# Project Management
-monday.com|65|/
-asana.com|60|/
-trello.com|55|/
-jira.atlassian.com|70|/
-confluence.atlassian.com|65|/
-
-# Cloud Storage & File Sharing
-dropbox.com|75|/
-box.com|60|/
-wetransfer.com|45|/
-
-# Development & DevOps
-github.com|75|/
-gitlab.com|55|/
-bitbucket.org|45|/
-stackoverflow.com|50|/
-
-# Cloud Providers
-portal.azure.com|70|/
-console.aws.amazon.com|70|/
-console.cloud.google.com|65|/
-
-# Business Intelligence
-tableau.com|50|/
-powerbi.microsoft.com|55|/
-looker.com|40|/
-
-# HR & Productivity
-workday.com|55|/
-bamboohr.com|40|/
-zenefits.com|35|/
-adp.com|45|/
-
-# Marketing & Social
-linkedin.com|60|/
-twitter.com|50|/robots.txt
-facebook.com|55|/robots.txt
-instagram.com|45|/robots.txt
-
-# Design & Creative
-figma.com|55|/
-canva.com|50|/
-adobe.com|45|/
-
-# Customer Support
-zendesk.com|60|/
-intercom.com|50|/
-freshdesk.com|40|/
-
-# Finance & Accounting
-quickbooks.intuit.com|50|/
-expensify.com|40|/
-stripe.com|45|/
-
-# Security & IT Tools
-okta.com|55|/
-duo.com|45|/
-1password.com|40|/
-lastpass.com|35|/
-
-# Video & Media
-youtube.com|65|/feed/trending
-vimeo.com|40|/
-netflix.com|30|/robots.txt
-
-# E-commerce
-shopify.com|50|/
-amazon.com|60|/robots.txt
-ebay.com|35|/robots.txt
-
-# Popular SaaS
-notion.so|65|/
-airtable.com|50|/
-miro.com|55|/
-docusign.com|50|/`;
-
-        fs.writeFileSync(appsFile, defaultApps, 'utf8');
-        console.log(`Created default applications.txt with ${defaultApps.split('\n').filter(l => !l.startsWith('#') && l.trim()).length} applications`);
+        fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+        console.log(`Created default applications-config.json with ${defaultApps.filter(l => l && !l.startsWith('#')).length} applications`);
     }
 
     // ✅ Unified Initialization: Use the same logic as the runtime
@@ -795,17 +881,7 @@ docusign.com|50|/`;
         log('INIT', `Found existing interfaces.txt: ${firstLine}`);
     }
 
-    // Initialize traffic control file (default: auto-start if enabled via env var)
-    const controlFile = path.join(configDir, 'traffic-control.json');
-    if (!fs.existsSync(controlFile)) {
-        const autoStart = process.env.AUTO_START_TRAFFIC === 'true';
-        const sleepInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1');
-        fs.writeFileSync(controlFile, JSON.stringify({
-            enabled: autoStart,
-            sleep_interval: sleepInterval
-        }, null, 2), 'utf8');
-        console.log(`Created traffic-control.json (default: ${autoStart ? 'running' : 'stopped'}, interval: ${sleepInterval}s)`);
-    }
+    // Traffic Control is now part of applications-config.json
 
     // Initialize IoT devices from default template if it exists
     if (!fs.existsSync(IOT_DEVICES_FILE)) {
@@ -1286,7 +1362,7 @@ app.use('/api/status', authenticateToken); // Protect status too
 const STATS_FILE = path.join(APP_CONFIG.logDir, 'stats.json');
 const TRAFFIC_HISTORY_FILE = path.join(APP_CONFIG.logDir, 'traffic-history.jsonl');
 const TRAFFIC_HISTORY_RETENTION = 10080; // 7 days in minutes
-const APPS_FILE = path.join(APP_CONFIG.configDir, 'applications.txt');
+// INTERFACES_FILE is already declared at the top of the file for the watcher
 // INTERFACES_FILE is already declared at the top of the file for the watcher
 
 console.log('Using config:', APP_CONFIG);
@@ -1329,13 +1405,14 @@ app.get('/api/status', (req, res) => {
 });
 
 // API: Traffic Control - Get Status
+// API: Traffic Control - Get Status
 app.get('/api/traffic/status', (req, res) => {
-    const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
     const defaultInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0');
 
-    if (fs.existsSync(controlFile)) {
+    if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
         try {
-            const control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
+            const config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+            const control = config.control || { enabled: false, sleep_interval: defaultInterval };
             res.json({
                 running: control.enabled || false,
                 sleep_interval: control.sleep_interval || defaultInterval
@@ -1350,34 +1427,38 @@ app.get('/api/traffic/status', (req, res) => {
 
 // API: Traffic Control - Start
 app.post('/api/traffic/start', (req, res) => {
-    const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
     const defaultInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0');
-    let control = { enabled: true, sleep_interval: defaultInterval };
-    if (fs.existsSync(controlFile)) {
+    let config: any = { control: { enabled: true, sleep_interval: defaultInterval }, applications: [] };
+
+    if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
         try {
-            control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
-            control.enabled = true;
+            config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+            if (!config.control) config.control = { enabled: true, sleep_interval: defaultInterval };
+            config.control.enabled = true;
         } catch (e) { }
     }
-    fs.writeFileSync(controlFile, JSON.stringify(control, null, 2), 'utf8');
+
+    fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
     console.log('Traffic generation started via API');
-    res.json({ success: true, running: true, sleep_interval: control.sleep_interval });
+    res.json({ success: true, running: true, sleep_interval: config.control.sleep_interval });
 });
 
 // API: Traffic Control - Stop
 app.post('/api/traffic/stop', (req, res) => {
-    const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
     const defaultInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0');
-    let control = { enabled: false, sleep_interval: defaultInterval };
-    if (fs.existsSync(controlFile)) {
+    let config: any = { control: { enabled: false, sleep_interval: defaultInterval }, applications: [] };
+
+    if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
         try {
-            control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
-            control.enabled = false;
+            config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+            if (!config.control) config.control = { enabled: false, sleep_interval: defaultInterval };
+            config.control.enabled = false;
         } catch (e) { }
     }
-    fs.writeFileSync(controlFile, JSON.stringify(control, null, 2), 'utf8');
+
+    fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
     console.log('Traffic generation stopped via API');
-    res.json({ success: true, running: false, sleep_interval: control.sleep_interval });
+    res.json({ success: true, running: false, sleep_interval: config.control.sleep_interval });
 });
 
 // API: Traffic Control - Settings
@@ -1385,19 +1466,20 @@ app.post('/api/traffic/settings', authenticateToken, (req, res) => {
     const { sleep_interval } = req.body;
     if (typeof sleep_interval !== 'number') return res.status(400).json({ error: 'Invalid sleep_interval' });
 
-    const controlFile = path.join(APP_CONFIG.configDir, 'traffic-control.json');
     const defaultInterval = parseFloat(process.env.SLEEP_BETWEEN_REQUESTS || '1.0');
-    let control = { enabled: false, sleep_interval: defaultInterval };
-    if (fs.existsSync(controlFile)) {
+    let config: any = { control: { enabled: false, sleep_interval: defaultInterval }, applications: [] };
+
+    if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
         try {
-            control = JSON.parse(fs.readFileSync(controlFile, 'utf8'));
+            config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+            if (!config.control) config.control = { enabled: false, sleep_interval: defaultInterval };
         } catch (e) { }
     }
 
-    control.sleep_interval = Math.max(0.01, Math.min(60, sleep_interval));
-    fs.writeFileSync(controlFile, JSON.stringify(control, null, 2), 'utf8');
-    console.log(`Traffic sleep_interval updated to ${control.sleep_interval}s`);
-    res.json({ success: true, settings: control });
+    config.control.sleep_interval = Math.max(0.01, Math.min(60, sleep_interval));
+    fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+    console.log(`Traffic sleep_interval updated to ${config.control.sleep_interval}s`);
+    res.json({ success: true, settings: config.control });
 });
 
 // API: Voice Control - Status
@@ -1641,11 +1723,11 @@ app.get('/api/traffic/history', authenticateToken, async (req, res) => {
 });
 
 // API: Get Applications (Categorized)
-app.get('/api/config/apps', extractUserMiddleware, (req, res) => { // Use token if available, but maybe public is fine? kept same auth logic
-    const content = readFile(APPS_FILE);
-    if (!content) return res.json({ error: 'Config not found' });
+app.get('/api/config/apps', extractUserMiddleware, (req, res) => {
+    if (!fs.existsSync(APPLICATIONS_CONFIG_FILE)) return res.json({ error: 'Config not found' });
 
-    const lines = content.split('\n');
+    const config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+    const lines = config.applications || [];
     const categories: { name: string, apps: any[] }[] = [];
     let currentCategory = 'Uncategorized';
     let currentApps: any[] = [];
@@ -2618,37 +2700,40 @@ app.post('/api/config/category', authenticateToken, (req, res) => {
 });
 
 const updateAppsWeigth = (updates: Record<string, number>, res: any) => {
-    const content = readFile(APPS_FILE);
-    if (!content) return res.status(500).json({ error: 'Read failed' });
-
-    const lines = content.split('\n');
-    const newLines = lines.map(line => {
-        // Build map for fast lookup? No, just check if line starts with any key
-        for (const [domain, weight] of Object.entries(updates)) {
-            if (line.startsWith(domain + '|')) {
-                const parts = line.split('|');
-                parts[1] = weight.toString();
-                return parts.join('|');
-            }
-        }
-        return line;
-    });
+    if (!fs.existsSync(APPLICATIONS_CONFIG_FILE)) return res.status(500).json({ error: 'Config missing' });
 
     try {
-        fs.writeFileSync(APPS_FILE, newLines.join('\n'));
+        const config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+        const applications = config.applications || [];
+
+        const newApps = applications.map((line: string) => {
+            for (const [domain, weight] of Object.entries(updates)) {
+                if (line.startsWith(domain + '|')) {
+                    const parts = line.split('|');
+                    parts[1] = weight.toString();
+                    return parts.join('|');
+                }
+            }
+            return line;
+        });
+
+        config.applications = newApps;
+        fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(config, null, 2));
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: 'Write failed', details: err });
+        res.status(500).json({ error: 'Operation failed', details: err });
     }
 };
 
-// API: Export Applications (Download applications.txt)
+// API: Export Applications (Download applications.txt format from JSON)
 app.get('/api/config/applications/export', (req, res) => {
     try {
-        const content = readFile(APPS_FILE);
-        if (!content) {
-            return res.status(404).json({ error: 'Applications file not found' });
+        if (!fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
+            return res.status(404).json({ error: 'Applications config not found' });
         }
+
+        const config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+        const content = (config.applications || []).join('\n');
 
         res.setHeader('Content-Type', 'text/plain');
         res.setHeader('Content-Disposition', 'attachment; filename="applications.txt"');
@@ -2658,7 +2743,7 @@ app.get('/api/config/applications/export', (req, res) => {
     }
 });
 
-// API: Import Applications (Upload applications.txt)
+// API: Import Applications (Upload applications.txt into JSON)
 app.post('/api/config/applications/import', (req, res) => {
     try {
         const { content } = req.body;
@@ -2667,43 +2752,21 @@ app.post('/api/config/applications/import', (req, res) => {
             return res.status(400).json({ error: 'Invalid file content' });
         }
 
-        // Basic validation: check if it has the expected format
-        const lines = content.split('\n');
-        let hasValidFormat = false;
+        const applications = content.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#'));
 
-        for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith('#')) continue;
-
-            // Check if line has domain|weight|endpoint format
-            const parts = trimmed.split('|');
-            if (parts.length >= 2) {
-                hasValidFormat = true;
-                break;
-            }
+        let config: any = { control: { enabled: false, sleep_interval: 1.0 }, applications: [] };
+        if (fs.existsSync(APPLICATIONS_CONFIG_FILE)) {
+            try {
+                config = JSON.parse(fs.readFileSync(APPLICATIONS_CONFIG_FILE, 'utf8'));
+            } catch (e) { }
         }
 
-        if (!hasValidFormat) {
-            return res.status(400).json({
-                error: 'Invalid file format',
-                message: 'File must contain lines in format: domain|weight|endpoint'
-            });
-        }
+        config.applications = applications;
+        fs.writeFileSync(APPLICATIONS_CONFIG_FILE, JSON.stringify(config, null, 2));
 
-        // Backup current file
-        const backupFile = APPS_FILE + '.backup';
-        if (fs.existsSync(APPS_FILE)) {
-            fs.copyFileSync(APPS_FILE, backupFile);
-        }
-
-        // Write new content
-        fs.writeFileSync(APPS_FILE, content, 'utf8');
-
-        res.json({
-            success: true,
-            message: 'Applications imported successfully',
-            backup: backupFile
-        });
+        res.json({ success: true, count: applications.length });
     } catch (err: any) {
         res.status(500).json({ error: 'Import failed', details: err?.message });
     }
