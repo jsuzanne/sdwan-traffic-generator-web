@@ -38,7 +38,7 @@ services:
       - CONNECTIVITY_PING_1=Branch-Router-ping:192.168.206.10
       - CONNECTIVITY_PING_2=Hetzner-Server-ping:142.132.193.157
     healthcheck:
-      test: [ "CMD", "test", "-f", "/app/config/applications-config.json" ]
+      test: [ "CMD-SHELL", "test -f /app/config/applications-config.json || test -f /app/config/applications.txt" ]
       interval: 5s
       timeout: 3s
       retries: 5
