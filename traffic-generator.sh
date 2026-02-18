@@ -146,7 +146,7 @@ function getWeightedApp() {
     
     if [[ -f "$config_file" ]]; then
         # Parse JSON config
-        local apps_json=$(jq -r '.applications[] | "\(.domain)|\(.weight)|\(.endpoint)"' "$config_file" 2>/dev/null)
+        local apps_json=$(jq -r '.applications[] | if type == "string" then . else "\(.domain)|\(.weight)|\(.endpoint)" end' "$config_file" 2>/dev/null)
         if [[ -z "$apps_json" ]]; then
             log_error "Failed to parse applications from $config_file"
             echo "google.com|/"
