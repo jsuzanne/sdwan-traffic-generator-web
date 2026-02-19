@@ -219,12 +219,40 @@ class XfrJobManager {
 
     private logToXfrFile(job: XfrJob, message: string) {
         const xfrLogFile = path.join(APP_CONFIG.logDir, 'xfr.log');
-        const ts = new Date().toLocaleString();
+        const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
         const logLine = `[${ts}] [${job.sequence_id}] ${message}\n`;
         try {
             fs.appendFileSync(xfrLogFile, logLine);
         } catch (e) {
             console.error('Failed to write to xfr.log', e);
+        }
+    }
+
+    private handleParsedXfrData(job: XfrJob, parsed: any) {
+        // Summary object has bytes_total, whereas intervals don't.
+        if (parsed.bytes_total !== undefined || parsed.type === 'summary') {
+            job.summary = this.mapSummary(parsed);
+        } else if (parsed.type === 'interval' || parsed.throughput_mbps !== undefined) {
+            const val = parsed.throughput_mbps || 0;
+            const interval: XfrTestResultInterval = {
+                timestamp: parsed.timestamp || new Date().toISOString(),
+                sent_mbps: job.params.direction === 'server-to-client' ? 0 : val,
+                received_mbps: job.params.direction === 'server-to-client' ? val : 0,
+                loss_percent: parsed.loss_percent || 0
+            };
+
+            // Handling bidirectional
+            if (job.params.direction === 'bidirectional') {
+                interval.sent_mbps = parsed.sent_mbps || val;
+                interval.received_mbps = parsed.received_mbps || val;
+            }
+
+            job.intervals.push(interval);
+            this.notifyListeners(job, { type: 'interval', data: interval });
+
+            // Log real-time interval to file
+            const mbps = interval.sent_mbps || interval.received_mbps;
+            this.logToXfrFile(job, `[Interval] ${mbps.toFixed(2)} Mbps (Loss: ${interval.loss_percent.toFixed(2)}%)`);
         }
     }
 
@@ -246,37 +274,35 @@ class XfrJobManager {
             let buffer = '';
             child.stdout.on('data', (data) => {
                 buffer += data.toString();
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
 
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    try {
-                        const parsed = JSON.parse(line);
-                        // xfr emits intervals in --json-stream mode
-                        // Summary object has bytes_total, whereas intervals don't.
-                        if (parsed.bytes_total !== undefined || parsed.type === 'summary') {
-                            job.summary = this.mapSummary(parsed);
-                        } else if (parsed.type === 'interval' || parsed.throughput_mbps !== undefined) {
-                            const val = parsed.throughput_mbps || 0;
-                            const interval: XfrTestResultInterval = {
-                                timestamp: parsed.timestamp || new Date().toISOString(),
-                                sent_mbps: job.params.direction === 'server-to-client' ? 0 : val,
-                                received_mbps: job.params.direction === 'server-to-client' ? val : 0,
-                                loss_percent: parsed.loss_percent || 0
-                            };
-
-                            // Handling bidirectional
-                            if (job.params.direction === 'bidirectional') {
-                                interval.sent_mbps = parsed.sent_mbps || val;
-                                interval.received_mbps = parsed.received_mbps || val;
+                // Robust JSON stream parsing for potentially multi-line objects
+                let startIdx = buffer.indexOf('{');
+                while (startIdx !== -1) {
+                    let depth = 0;
+                    let endIdx = -1;
+                    for (let i = startIdx; i < buffer.length; i++) {
+                        if (buffer[i] === '{') depth++;
+                        else if (buffer[i] === '}') {
+                            depth--;
+                            if (depth === 0) {
+                                endIdx = i;
+                                break;
                             }
-
-                            job.intervals.push(interval);
-                            this.notifyListeners(job, { type: 'interval', data: interval });
                         }
-                    } catch (e) {
-                        // Not JSON or partial
+                    }
+
+                    if (endIdx !== -1) {
+                        const jsonStr = buffer.substring(startIdx, endIdx + 1);
+                        try {
+                            const parsed = JSON.parse(jsonStr);
+                            this.handleParsedXfrData(job, parsed);
+                        } catch (e) {
+                            // Invalid or partial JSON, just log it as raw for debug if needed
+                        }
+                        buffer = buffer.substring(endIdx + 1);
+                        startIdx = buffer.indexOf('{');
+                    } else {
+                        break; // Wait for more data to close the brace
                     }
                 }
             });

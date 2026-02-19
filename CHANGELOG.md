@@ -4,11 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.87] - 2026-02-19
+## [v1.2.1-patch.88] - 2026-02-19
 ### Fixed
-- **Speedtest (xfr)**: Refined JSON parsing to correctly identify the summary object and map throughput metrics for live charts and history. 🛠️
+- **Speedtest (xfr)**: Improved `xfr.log` verbosity by adding real-time interval logging. 📜
+- **Speedtest (xfr)**: Implemented robust JSON stream parsing to correctly handle pretty-printed summaries, fixing the "Unknown error" status. 🛠️
+- **Speedtest (xfr)**: Standardized logging timestamp format for better readability. 🕒
 
-## [v1.2.1-patch.86] - 2026-02-19
+## [v1.2.1-patch.87] - 2026-02-19
 ### Fixed
 - **System Maintenance**: Further improved restart reliability by explicitly installing `docker-compose` in the container and adding robust binary detection (checking both standalone and plugin versions). 🛡️
 - **System Maintenance**: Increased reliability of GitHub version detection by adding retries and a 10s timeout to the API fetch. 📡
