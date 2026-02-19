@@ -4780,7 +4780,21 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
 
         try {
             // Use /tags endpoint as user might not have created official releases
-            const { stdout } = await execPromise('curl -s --connect-timeout 5 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/tags');
+            // Increased timeout and added retry for reliability
+            let stdout = '';
+            let retries = 2;
+            while (retries > 0) {
+                try {
+                    const res = await execPromise('curl -sL --connect-timeout 10 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/tags');
+                    stdout = res.stdout;
+                    if (stdout.trim()) break;
+                } catch (e) {
+                    retries--;
+                    if (retries === 0) throw e;
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+
             const tags = JSON.parse(stdout);
             if (Array.isArray(tags) && tags.length > 0) {
                 // Get the latest tag name, strip 'v' prefix
@@ -4790,7 +4804,7 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
             }
         } catch (e) {
             if (!githubFetchErrorLogged) {
-                log('MAINTENANCE', '⚠️ Failed to fetch latest version from GitHub tags', 'warn');
+                log('MAINTENANCE', '⚠️ Failed to fetch latest version from GitHub tags (after retries)', 'warn');
                 githubFetchErrorLogged = true;
             }
         }
@@ -5049,9 +5063,16 @@ app.post('/api/admin/maintenance/restart', authenticateToken, async (req, res) =
             // Try 'docker compose' first, then 'docker-compose'
             let baseCmd = 'docker compose';
             try {
-                await promisify(exec)('docker compose version');
-            } catch (e) {
+                // 'which' is a reliable way to check for binary existence
+                await promisify(exec)('which docker-compose');
                 baseCmd = 'docker-compose';
+            } catch (e) {
+                try {
+                    await promisify(exec)('docker compose version');
+                    baseCmd = 'docker compose';
+                } catch (e2) {
+                    throw new Error('Neither "docker-compose" nor "docker compose" were found in the container.');
+                }
             }
 
             const cmd = type === 'redeploy'
