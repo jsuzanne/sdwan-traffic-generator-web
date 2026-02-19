@@ -4779,20 +4779,18 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
         let updateAvailable = false;
 
         try {
-            // Use /releases endpoint instead of /tags to get chronological order (latest first)
-            const { stdout } = await execPromise('curl -s --connect-timeout 5 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/releases');
-            const releases = JSON.parse(stdout);
-            if (Array.isArray(releases) && releases.length > 0) {
-                // Get the latest non-draft, non-prerelease version
-                const latestRelease = releases.find((r: any) => !r.draft && !r.prerelease);
-                if (latestRelease) {
-                    latestVersion = latestRelease.tag_name.replace(/^v/, '');
-                    updateAvailable = (latestVersion !== currentVersion);
-                }
+            // Use /tags endpoint as user might not have created official releases
+            const { stdout } = await execPromise('curl -s --connect-timeout 5 https://api.github.com/repos/jsuzanne/sdwan-traffic-generator-web/tags');
+            const tags = JSON.parse(stdout);
+            if (Array.isArray(tags) && tags.length > 0) {
+                // Get the latest tag name, strip 'v' prefix
+                const latestTag = tags[0].name;
+                latestVersion = latestTag.replace(/^v/, '');
+                updateAvailable = (latestVersion !== currentVersion);
             }
         } catch (e) {
             if (!githubFetchErrorLogged) {
-                log('MAINTENANCE', '⚠️ Failed to fetch latest version from GitHub releases', 'warn');
+                log('MAINTENANCE', '⚠️ Failed to fetch latest version from GitHub tags', 'warn');
                 githubFetchErrorLogged = true;
             }
         }
@@ -4801,8 +4799,16 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
         if (updateAvailable) {
             try {
                 // Check if the specific tag is already available on Docker Hub
-                const { stdout: dockerStatus } = await execPromise(`curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/jsuzanne/sdwan-traffic-gen/tags/${latestVersion}/`);
+                // Note: Image name might be different from repo name, use a common one or check config
+                const dockerRepo = 'jsuzanne/sdwan-traffic-gen';
+                const { stdout: dockerStatus } = await execPromise(`curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/${dockerRepo}/tags/v${latestVersion}/`);
+
+                // If 200, it's definitely ready. If 404, it might not be a public image or sync is slow.
+                // We'll trust 200, but if it's 404 we keep dockerReady=false to show the spinner.
                 dockerReady = (dockerStatus.trim() === '200');
+
+                // Fallback: if we get a 403 (Forbidden) or other non-404 error, assume it's private and ready
+                if (dockerStatus.trim() === '403') dockerReady = true;
             } catch (e) {
                 console.warn('[MAINTENANCE] ⚠️ Docker Hub verification failed, assuming ready.');
             }
@@ -5037,13 +5043,22 @@ app.post('/api/admin/maintenance/restart', authenticateToken, async (req, res) =
 
     const runRestart = async () => {
         try {
-            const cmd = type === 'redeploy' ? 'docker compose up -d' : 'docker compose restart';
+            // First check if /app/docker-compose.yml exists (mounted in prod)
+            const composeFile = fs.existsSync('/app/docker-compose.yml') ? '/app/docker-compose.yml' : path.join(rootDir, 'docker-compose.yml');
+
+            // Try 'docker compose' first, then 'docker-compose'
+            let baseCmd = 'docker compose';
+            try {
+                await promisify(exec)('docker compose version');
+            } catch (e) {
+                baseCmd = 'docker-compose';
+            }
+
+            const cmd = type === 'redeploy'
+                ? `${baseCmd} -f ${composeFile} up -d`
+                : `${baseCmd} -f ${composeFile} restart`;
 
             G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] Executing: ${cmd}`);
-
-            // If we are in the container, we need to ensure we are executing this correctly.
-            // Assuming the same environment as 'upgrade' which seems to rely on host docker socket.
-            // For 'restart' verify if we can simply spawn it.
 
             const restartProcess = spawn('sh', ['-c', cmd], { cwd: rootDir });
 
@@ -5054,7 +5069,10 @@ app.post('/api/admin/maintenance/restart', authenticateToken, async (req, res) =
 
             restartProcess.stderr.on('data', (data: any) => {
                 const line = data.toString().trim();
-                if (line) G_UPGRADE_STATUS.logs.push(`[INFO] ${line}`);
+                if (line) {
+                    G_UPGRADE_STATUS.logs.push(`[INFO] ${line}`);
+                    console.log(`[MAINTENANCE-INFO] ${line}`);
+                }
             });
 
             const exitCode = await new Promise((resolve) => {
@@ -5062,7 +5080,7 @@ app.post('/api/admin/maintenance/restart', authenticateToken, async (req, res) =
             });
 
             if (exitCode !== 0) {
-                throw new Error(`Command failed with exit code ${exitCode}`);
+                throw new Error(`Command failed with exit code ${exitCode}. Check logs for details.`);
             }
 
             G_UPGRADE_STATUS.logs.push(`[${new Date().toISOString()}] ✅ Sequence complete.`);

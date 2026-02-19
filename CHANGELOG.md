@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.77] - 2026-02-19
+## [v1.2.1-patch.78] - 2026-02-19
 ### Fixed
-- **Convergence Lab**: Fixed a bug where outage duration and max blackout were over-reported if packets were lost at the very end of a test. The calculation now correctly caps the outage duration once the sending phase is complete, ignoring the idle grace period. ⏱️🎯
+- **System Maintenance**: Improved version detection logic by switching to GitHub Tags API. 🔍
+- **System Maintenance**: Fixed service restart and reload failures (exit code 125) by mounting `docker-compose.yml` into the dashboard container and implementing command fallback logic. 🛠️🔄
 
-## [v1.2.1-patch.76] - 2026-02-19
+## [v1.2.1-patch.77] - 2026-02-19
 ### Changed
 - **Documentation**: Updated README.md with detailed macOS installation output example and platform-specific bridge mode notices. 🍎📦
 
