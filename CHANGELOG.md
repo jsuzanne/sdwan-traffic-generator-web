@@ -4,10 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.96] - 2026-02-19
+## [v1.2.1-patch.97] - 2026-02-19
 ### Fixed
-- **DevOps**: Updated `xfr-target/Dockerfile` to dynamically download architecture-specific binaries from GitHub during build, resolving the GitHub Actions `buildx` failure. 🏗️
+- **Speedtest (XFR)**: Fixed chart X-axis to display elapsed seconds (starting at 0) for clearer test progression. ⏱️
+### Added
+- **Speedtest (XFR)**: Support for `XFR_QUICK_TARGETS` environment variable to pre-populate targets in a convenient dropdown. 🎯
+- **Speedtest (XFR)**: XFR is now fully integrated and enabled by default (removed experimental feature flag). ✅
+- **DevOps**: Switched `voice-echo` and `xfr-target` to `network_mode: host` in Docker Compose for improved performance and measurement accuracy. 🏗️
+- **Documentation**: New [XFR Testing Guide](docs/XFR_TESTING.md) with configuration details and links to technical specifications. 📚
 
+## [v1.2.1-patch.96] - 2026-02-19
 ## [v1.2.1-patch.95] - 2026-02-19
 ## [v1.2.1-patch.94] - 2026-02-19
 ## [v1.2.1-patch.93] - 2026-02-19

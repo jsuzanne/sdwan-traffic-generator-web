@@ -64,7 +64,15 @@ const APP_CONFIG = {
 };
 
 const DEBUG = process.env.DEBUG === 'true';
-const FEATURE_FLAG_XFR = process.env.FEATURE_FLAG_XFR === 'true';
+
+// Quick Targets for XFR: "Label1:IP1,Label2:IP2"
+const QUICK_TARGETS_RAW = process.env.XFR_QUICK_TARGETS || '';
+const XFR_QUICK_TARGETS = QUICK_TARGETS_RAW.split(',')
+    .filter(x => x.includes(':'))
+    .map(x => {
+        const [label, host] = x.split(':');
+        return { label: label.trim(), host: host.trim() };
+    });
 
 if (DEBUG) {
     log('SYSTEM', `📂 Configuration Directory: ${APP_CONFIG.configDir}`);
@@ -1654,7 +1662,8 @@ app.post('/api/vyos/config/reset', authenticateToken, (req, res) => {
 // API: Get UI Configuration (Public endpoint)
 app.get('/api/features', (req, res) => {
     res.json({
-        xfr_enabled: FEATURE_FLAG_XFR
+        xfr_enabled: true,
+        xfr_targets: XFR_QUICK_TARGETS
     });
 });
 

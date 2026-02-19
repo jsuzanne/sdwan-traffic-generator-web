@@ -2,34 +2,25 @@
 # This is a slimmed-down configuration for site-to-site convergence testing.
 
 services:
-  # Voice/Convergence Echo Server
-  sdwan-voice-echo:
-    image: jsuzanne/sdwan-voice-echo:stable
+  # Voice Echo Server - Standalone Target (Unified with iperf3)
+  voice-echo:
+    image: jsuzanne/sdwan-voice-echo:latest
     container_name: sdwan-voice-echo
-    hostname: sdwan-voice-target
-    ports:
-      - "6100:6100/udp" # For Voice Calls
-      - "6200:6200/udp" # For Convergence tests
-      - "5201:5201/tcp" # For iperf3 (Bandwidth)
-      - "5201:5201/udp" # For iperf3 (Quality)
-      - "8082:8082" # HTTP Target Control
+    network_mode: host
     restart: unless-stopped
     environment:
       - DEBUG=True
-      - TARGET_HTTP_PORT=8082
-      - SLOW_DELAY_SECONDS=5
-      - LOOP_SLOW_SECONDS=60
-      - LOOP_NORMAL_SECONDS=60
-      - RANDOM_SLOW_PROBABILITY=0.5
-      - EICAR_FILE_PATH=/opt/sdwan-target/eicar.com.txt
+    # Ports are mapped via host network, but we list them for clarity
+    # 6100-6101/udp: Voice Calls
+    # 6200/udp: Convergence tests
+    # 5201/tcp: iperf3 (Bandwidth)
+    # 5201/udp: iperf3 (UDP Quality Probes)
+    # 8082/tcp: HTTP Target
 
-  # XFR Speedtest Target (Multi-arch)
-  sdwan-xfr-target:
+  xfr-target:
     image: jsuzanne/xfr-target:latest
-    container_name: sdwan-xfr-target
-    hostname: sdwan-xfr-target
-    ports:
-      - "9000:9000"
+    container_name: xfr-target
+    network_mode: "host"
     restart: unless-stopped
     environment:
       - XFR_PORT=9000

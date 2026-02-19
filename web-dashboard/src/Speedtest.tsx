@@ -78,14 +78,27 @@ export default function Speedtest({ token }: Props) {
 
     const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
+    const [quickTargets, setQuickTargets] = useState<{ label: string, host: string }[]>([]);
+
     useEffect(() => {
         fetchHistory();
+        fetchFeatures();
         const interval = setInterval(fetchHistory, 5000);
         return () => {
             if (sseRef.current) sseRef.current.close();
             clearInterval(interval);
         };
     }, []);
+
+    const fetchFeatures = async () => {
+        try {
+            const res = await fetch('/api/features', { headers: authHeaders });
+            const data = await res.json();
+            if (res.ok && data.xfr_targets) {
+                setQuickTargets(data.xfr_targets);
+            }
+        } catch (e) { }
+    };
 
     const fetchHistory = async () => {
         try {
@@ -158,8 +171,10 @@ export default function Speedtest({ token }: Props) {
 
         sse.addEventListener('interval', (e: any) => {
             const data = JSON.parse(e.data);
-            const timeStr = new Date(data.timestamp).toLocaleTimeString([], { second: '2-digit' });
-            setChartData(prev => [...prev, { ...data, time: timeStr }].slice(-60));
+            setChartData(prev => {
+                const next = [...prev, { ...data, time: prev.length }];
+                return next.slice(-60);
+            });
         });
 
         sse.addEventListener('done', (e: any) => {
@@ -226,15 +241,38 @@ export default function Speedtest({ token }: Props) {
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 block">Target Host</label>
-                                <div className="relative">
+                                <div className="relative group">
                                     <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/50" size={16} />
                                     <input
                                         type="text"
                                         value={targetHost}
                                         onChange={e => setTargetHost(e.target.value)}
                                         placeholder="e.g. 1.2.3.4"
-                                        className="w-full bg-card-secondary border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
+                                        className="w-full bg-card-secondary border border-border rounded-xl pl-10 pr-10 py-3 text-sm focus:border-blue-500 outline-none transition-all"
                                     />
+                                    {quickTargets.length > 0 && (
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                                            <div className="dropdown dropdown-end">
+                                                <button tabIndex={0} className="p-1.5 hover:bg-card rounded-lg text-text-muted transition-colors">
+                                                    <ChevronDown size={14} />
+                                                </button>
+                                                <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow-2xl bg-card border border-border rounded-xl w-52 mt-2">
+                                                    <li className="menu-title text-[9px] font-black uppercase text-text-muted mb-1 px-2 tracking-widest">Select Target</li>
+                                                    {quickTargets.map((t, i) => (
+                                                        <li key={i}>
+                                                            <button
+                                                                onClick={() => setTargetHost(t.host)}
+                                                                className="flex flex-col items-start px-3 py-2 hover:bg-blue-600/10 rounded-lg group"
+                                                            >
+                                                                <span className="text-xs font-black text-text-primary group-hover:text-blue-500">{t.label}</span>
+                                                                <span className="text-[9px] font-bold text-text-muted opacity-60 uppercase">{t.host}</span>
+                                                            </button>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
