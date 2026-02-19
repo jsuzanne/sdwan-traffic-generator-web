@@ -68,6 +68,8 @@ class ConvergenceMetrics:
         self.last_transit_time = None
         self.jitter = 0.0
         self.last_rcvd_time = start_time
+        self.last_send_time = start_time
+        self.sending_active = True
         self.max_blackout = 0
 
         self.tx_attempts = 0
@@ -83,6 +85,7 @@ class ConvergenceMetrics:
             self.sent_count += 1
             self.sent_seqs.add(seq)
             self.sent_times[seq] = timestamp
+            self.last_send_time = timestamp
 
     def mark_send_failed(self, seq: int) -> None:
         with self.lock:
@@ -166,7 +169,18 @@ class ConvergenceMetrics:
         now = time.time()
         rcvd = len(received_seqs_copy)
 
-        outage_base = now if is_running else last_rcvd_time_copy
+        # Calculate outage base carefully. 
+        # If sending is stopped, we cap the 'virtual time' at last_send_time + small buffer
+        # to avoid counting the idle grace period as an outage.
+        outage_base = now
+        if not is_running:
+            outage_base = last_rcvd_time_copy
+        elif not self.sending_active:
+            # We add a small buffer (e.g. 2 * interval) to allow for the very last packet to be late
+            # without triggering an immediate blackout timer jump
+            buffer = max(0.1, interval_copy * 2.0)
+            outage_base = min(now, self.last_send_time + buffer)
+
         outage = (outage_base - last_rcvd_time_copy) * 1000.0
 
         history = []
@@ -453,6 +467,9 @@ if __name__ == "__main__":
                 time.sleep(sleep_time)
             elif abs(sleep_time) > 0.5:
                 next_send = time.time()
+        
+        # Mark sending as inactive as soon as the loop completes
+        metrics.sending_active = False
 
     except KeyboardInterrupt:
         print(f"\n[{log_id}] KeyboardInterrupt received", flush=True)
