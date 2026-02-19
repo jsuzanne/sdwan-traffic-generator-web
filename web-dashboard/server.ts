@@ -254,8 +254,10 @@ class XfrJobManager {
                     try {
                         const parsed = JSON.parse(line);
                         // xfr emits intervals in --json-stream mode
-                        // Mapping throughput_mbps to sent/received based on direction
-                        if (parsed.type === 'interval' || parsed.throughput_mbps !== undefined) {
+                        // Summary object has bytes_total, whereas intervals don't.
+                        if (parsed.bytes_total !== undefined || parsed.type === 'summary') {
+                            job.summary = this.mapSummary(parsed);
+                        } else if (parsed.type === 'interval' || parsed.throughput_mbps !== undefined) {
                             const val = parsed.throughput_mbps || 0;
                             const interval: XfrTestResultInterval = {
                                 timestamp: parsed.timestamp || new Date().toISOString(),
@@ -272,8 +274,6 @@ class XfrJobManager {
 
                             job.intervals.push(interval);
                             this.notifyListeners(job, { type: 'interval', data: interval });
-                        } else if (parsed.type === 'summary') {
-                            job.summary = this.mapSummary(parsed);
                         }
                     } catch (e) {
                         // Not JSON or partial
@@ -324,11 +324,11 @@ class XfrJobManager {
     private mapSummary(p: any): XfrTestResultSummary {
         return {
             protocol: p.protocol || 'tcp',
-            duration_sec: p.duration_sec || 0,
-            sent_mbps: p.sent_mbps || 0,
-            received_mbps: p.received_mbps || 0,
+            duration_sec: p.duration_sec || (p.duration_ms ? p.duration_ms / 1000 : 0),
+            sent_mbps: p.throughput_mbps || p.sent_mbps || 0,
+            received_mbps: p.throughput_mbps || p.received_mbps || 0,
             loss_percent: p.loss_percent || 0,
-            rtt_ms_avg: p.rtt_ms_avg || 0,
+            rtt_ms_avg: p.rtt_ms_avg || (p.tcp_info?.rtt_us ? p.tcp_info.rtt_us / 1000 : 0),
             rtt_ms_min: p.rtt_ms_min || 0,
             rtt_ms_max: p.rtt_ms_max || 0,
             jitter_ms_avg: p.jitter_ms_avg || 0
