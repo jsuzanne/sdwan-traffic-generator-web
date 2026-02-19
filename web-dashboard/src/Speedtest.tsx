@@ -57,7 +57,7 @@ interface XfrJob {
 export default function Speedtest({ token }: Props) {
     const [mode, setMode] = useState<'default' | 'custom'>('default');
     const [targetHost, setTargetHost] = useState('');
-    const [targetPort, setTargetPort] = useState(5201);
+    const [targetPort, setTargetPort] = useState(9000);
     const [psk, setPsk] = useState('');
 
     // Custom params
