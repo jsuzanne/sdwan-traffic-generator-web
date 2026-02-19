@@ -4,9 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.99] - 2026-02-19
+### Fixed
+- **Backend**: Fixed `ReferenceError: FEATURE_FLAG_XFR is not defined` that caused the server to crash when accessing Speedtest endpoints. 🐛
+- **Frontend**: Removed the "Beta" label from the Speedtest menu item as the feature is now stable. ✅
+
 ## [v1.2.1-patch.98] - 2026-02-19
-### Changed
-- **Speedtest (XFR)**: Updated the default test port to **9000** to align with the `xfr-target` default configuration. 🔌
 
 ## [v1.2.1-patch.97] - 2026-02-19
 ### Added
