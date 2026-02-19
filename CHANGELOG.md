@@ -4,14 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.90] - 2026-02-19
+## [v1.2.1-patch.91] - 2026-02-19
 ### Added
-- **Speedtest (xfr)**: New searchable diagnostic history widget with filtering by Job ID, Target Host, or Status. 🔍
-- **Speedtest (xfr)**: Detailed results modal for past tests, including Loss Analysis, Jitter, and Min/Max/Avg RTT. 📊
+- **Speedtest (xfr)**: Support for `TARGET_IP` environment variable to set default test host. 🌍
+- **Logging**: Enhanced completion logs in `docker compose logs` with BW, Loss, and RTT metrics. 📝
 ### Fixed
-- **Speedtest (xfr)**: Fixed live stream delays by disabling server-side buffering with `X-Accel-Buffering: no`. 🚤
-- **Speedtest (xfr)**: Standardized UI components to match Failover and Security dashboards for a premium, unified experience. 🎨
+- **Speedtest (xfr)**: Fixed "Invalid Date" crash on chart X-axis by enforcing robust timestamping. ⏱️
+- **Speedtest (xfr)**: Fixed chart axis and label visibility in Light Mode for better accessibility. 🎨
 
+## [v1.2.1-patch.90] - 2026-02-19
 ## [v1.2.1-patch.89] - 2026-02-19
 
 ## [v1.2.1-patch.88] - 2026-02-19

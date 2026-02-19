@@ -419,12 +419,26 @@ export default function Speedtest({ token }: Props) {
                                             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                    <XAxis dataKey="time" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'rgba(255,255,255,0.3)' }} />
-                                    <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'rgba(255,255,255,0.3)' }} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(128,128,128,0.1)" />
+                                    <XAxis
+                                        dataKey="time"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        fontSize={10}
+                                        tick={{ fill: 'currentColor' }}
+                                        className="text-text-muted opacity-60"
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        fontSize={10}
+                                        tick={{ fill: 'currentColor' }}
+                                        className="text-text-muted opacity-60"
+                                    />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', fontSize: '10px' }}
+                                        contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '10px' }}
                                         itemStyle={{ fontWeight: 'black', textTransform: 'uppercase' }}
+                                        labelStyle={{ color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}
                                     />
                                     <Area type="monotone" dataKey="received_mbps" name="Received" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorMain)" />
                                     <Area type="monotone" dataKey="sent_mbps" name="Sent" stroke="#10b981" strokeWidth={3} fill="transparent" />

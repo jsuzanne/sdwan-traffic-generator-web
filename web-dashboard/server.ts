@@ -156,7 +156,7 @@ interface XfrJob {
 }
 
 const XFR_DEFAULTS: XfrTestParams = {
-    host: '',
+    host: process.env.TARGET_IP || '',
     port: 5201,
     protocol: 'tcp',
     duration_sec: 10,
@@ -278,8 +278,12 @@ class XfrJobManager {
             job.summary = this.mapSummary(parsed);
         } else if (parsed.type === 'interval' || parsed.throughput_mbps !== undefined) {
             const val = parsed.throughput_mbps || 0;
+            const timestamp = parsed.timestamp && !isNaN(Date.parse(parsed.timestamp))
+                ? parsed.timestamp
+                : new Date().toISOString();
+
             const interval: XfrTestResultInterval = {
-                timestamp: parsed.timestamp || new Date().toISOString(),
+                timestamp,
                 sent_mbps: job.params.direction === 'server-to-client' ? 0 : val,
                 received_mbps: job.params.direction === 'server-to-client' ? val : 0,
                 loss_percent: parsed.loss_percent || 0,
@@ -358,7 +362,13 @@ class XfrJobManager {
                 if (code !== 0 && !job.summary) job.error = `Process exited with code ${code}`;
 
                 this.notifyListeners(job, { type: 'done', data: { status: job.status } });
-                log('XFR', `[${job.sequence_id}] finished with status ${job.status}`);
+
+                if (job.status === 'completed' && job.summary) {
+                    const res = job.summary;
+                    log('XFR', `[${job.sequence_id}] completed: ${res.received_mbps.toFixed(2)} Mbps | Loss: ${res.loss_percent.toFixed(2)}% | RTT: ${res.rtt_ms_avg.toFixed(1)}ms`);
+                } else {
+                    log('XFR', `[${job.sequence_id}] finished with status ${job.status} ${job.error ? `(${job.error})` : ''}`);
+                }
 
                 if (job.status === 'completed' && job.summary) {
                     this.logToXfrFile(job, `Test completed: ${job.summary.received_mbps.toFixed(2)} Mbps, Loss: ${job.summary.loss_percent.toFixed(2)}%, Latency: ${job.summary.rtt_ms_avg.toFixed(1)}ms`);
