@@ -4,10 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.100] - 2026-02-19
+## [v1.2.1-patch.101] - 2026-02-19
 ### Fixed
-- **Backend**: definitive removal of `FEATURE_FLAG_XFR` references in `server.ts` to resolve `ReferenceError` crashes. 🛠️
-- **Frontend**: Removed the "Beta" tag from the Speedtest menu item. ✅
+- **Speedtest (XFR)**: Improved the Quick Targets dropdown UI with a more premium, glassmorphic look. ✨
+- **Speedtest (XFR)**: Fixed the dropdown staying open after selecting a target; it now closes automatically. 🔌
+- **Backend**: Updated Quick Targets parsing to correctly strip quotes from names and IPs. 🛠️
+
+## [v1.2.1-patch.100] - 2026-02-19
 
 ## [v1.2.1-patch.99] - 2026-02-19
 

@@ -256,16 +256,32 @@ export default function Speedtest({ token }: Props) {
                                                 <button tabIndex={0} className="p-1.5 hover:bg-card rounded-lg text-text-muted transition-colors">
                                                     <ChevronDown size={14} />
                                                 </button>
-                                                <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow-2xl bg-card border border-border rounded-xl w-52 mt-2">
-                                                    <li className="menu-title text-[9px] font-black uppercase text-text-muted mb-1 px-2 tracking-widest">Select Target</li>
+                                                <ul tabIndex={0} className="dropdown-content z-[200] menu p-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-card border border-border/50 backdrop-blur-xl rounded-2xl w-64 mt-3 animate-in fade-in zoom-in duration-200">
+                                                    <li className="menu-title px-3 py-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[9px] font-black uppercase text-text-muted tracking-widest">Select Quick Target</span>
+                                                            <Target size={10} className="text-blue-500 opacity-50" />
+                                                        </div>
+                                                    </li>
+                                                    <div className="h-px bg-border/30 my-1 mx-2"></div>
                                                     {quickTargets.map((t, i) => (
                                                         <li key={i}>
                                                             <button
-                                                                onClick={() => setTargetHost(t.host)}
-                                                                className="flex flex-col items-start px-3 py-2 hover:bg-blue-600/10 rounded-lg group"
+                                                                onClick={(e) => {
+                                                                    setTargetHost(t.host);
+                                                                    // Close dropdown by blurring
+                                                                    (e.currentTarget as HTMLElement).blur();
+                                                                    if (document.activeElement instanceof HTMLElement) {
+                                                                        document.activeElement.blur();
+                                                                    }
+                                                                }}
+                                                                className="flex flex-col items-start px-4 py-3 hover:bg-blue-600/10 rounded-xl group transition-all duration-200 active:scale-[0.98]"
                                                             >
-                                                                <span className="text-xs font-black text-text-primary group-hover:text-blue-500">{t.label}</span>
-                                                                <span className="text-[9px] font-bold text-text-muted opacity-60 uppercase">{t.host}</span>
+                                                                <span className="text-xs font-black text-text-primary group-hover:text-blue-500 mb-0.5">{t.label}</span>
+                                                                <div className="flex items-center gap-1.5 opacity-60">
+                                                                    <div className="w-1 h-1 rounded-full bg-blue-500"></div>
+                                                                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider font-mono">{t.host}</span>
+                                                                </div>
                                                             </button>
                                                         </li>
                                                     ))}
