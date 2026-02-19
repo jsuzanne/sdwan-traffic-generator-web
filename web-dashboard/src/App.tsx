@@ -814,6 +814,17 @@ export default function App() {
         >
           <Gauge size={18} /> Performance
         </button>
+        {features.xfr_enabled && (
+          <button
+            onClick={() => setView('speedtest')}
+            className={cn(
+              "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+              view === 'speedtest' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
+            )}
+          >
+            <Activity size={18} /> Speedtest (xfr) <span className="px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-600/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 ml-1">Beta</span>
+          </button>
+        )}
         <button
           onClick={() => setView('security')}
           className={cn(
@@ -841,17 +852,6 @@ export default function App() {
         >
           <Phone size={18} /> Voice
         </button>
-        {features.xfr_enabled && (
-          <button
-            onClick={() => setView('speedtest')}
-            className={cn(
-              "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
-              view === 'speedtest' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
-            )}
-          >
-            <Activity size={18} /> Speedtest (xfr)
-          </button>
-        )}
         <button
           onClick={() => setView('failover')}
           className={cn(

@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.84] - 2026-02-19
-### Fixed
-- **Speedtest (xfr)**: Fixed "ENOENT" error by adding robust binary detection. Corrected CLI flags for duration (added `s` suffix), QUIC (`-Q`), and bidirectional testing (`--bidir`) based on tool compatibility. 🛠️
+## [v1.2.1-patch.85] - 2026-02-19
+### Added
+- **Speedtest (xfr)**: Automated binary installation in Dockerfile. 🛠️
+- **UI**: Reordered "Speedtest" menu to appear after "Performance" and added a "Beta" label for clarity. ✨
 
-## [v1.2.1-patch.83] - 2026-02-19
+## [v1.2.1-patch.84] - 2026-02-19
 ### Fixed
 - **System Maintenance**: Further improved restart reliability by explicitly installing `docker-compose` in the container and adding robust binary detection (checking both standalone and plugin versions). 🛡️
 - **System Maintenance**: Increased reliability of GitHub version detection by adding retries and a 10s timeout to the API fetch. 📡

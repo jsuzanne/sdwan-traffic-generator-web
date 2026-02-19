@@ -36,6 +36,9 @@ RUN apt-get update && apt-get install -y \
     vim-tiny \
     && rm -rf /var/lib/apt/lists/*
 
+# Install xfr binary
+RUN curl -L https://github.com/lance0/xfr/releases/latest/download/xfr-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin xfr
+
 COPY web-dashboard/package*.json ./
 # Install production deps
 RUN npm ci --omit=dev --prefer-offline --no-audit
