@@ -138,6 +138,7 @@ interface XfrTestResultInterval {
     sent_mbps: number;
     received_mbps: number;
     loss_percent: number;
+    rtt_ms: number;
 }
 
 interface XfrJob {
@@ -183,8 +184,50 @@ function findXfrBinary(): string {
 const XFR_BINARY = findXfrBinary();
 
 class XfrJobManager {
-    private jobs = new Map<string, XfrJob>();
+    private jobs: Map<string, XfrJob> = new Map();
     private sequenceCounter: number = 0;
+    private historyFile: string;
+
+    constructor() {
+        this.historyFile = path.join(APP_CONFIG.configDir, 'xfr-history.json');
+        this.loadHistory();
+    }
+
+    private saveHistory() {
+        try {
+            const data = Array.from(this.jobs.values())
+                .sort((a, b) => b.sequence_id.localeCompare(a.sequence_id))
+                .slice(0, 50) // Keep last 50
+                .map(j => ({
+                    id: j.id,
+                    sequence_id: j.sequence_id,
+                    status: j.status,
+                    params: j.params,
+                    started_at: j.started_at,
+                    finished_at: j.finished_at,
+                    summary: j.summary,
+                    intervals: j.intervals,
+                    error: j.error
+                }));
+            fs.writeFileSync(this.historyFile, JSON.stringify({ jobs: data, counter: this.sequenceCounter }, null, 2));
+        } catch (e) {
+            console.error('Failed to save xfr history', e);
+        }
+    }
+
+    private loadHistory() {
+        try {
+            if (fs.existsSync(this.historyFile)) {
+                const raw = JSON.parse(fs.readFileSync(this.historyFile, 'utf8'));
+                this.sequenceCounter = raw.counter || 0;
+                (raw.jobs || []).forEach((j: any) => {
+                    this.jobs.set(j.id, { ...j, listeners: new Set() });
+                });
+            }
+        } catch (e) {
+            console.error('Failed to load xfr history', e);
+        }
+    }
 
     createJob(params: Partial<XfrTestParams>): string {
         this.sequenceCounter++;
@@ -206,6 +249,7 @@ class XfrJobManager {
         };
 
         this.jobs.set(id, job);
+        this.saveHistory();
         return id;
     }
 
@@ -238,7 +282,8 @@ class XfrJobManager {
                 timestamp: parsed.timestamp || new Date().toISOString(),
                 sent_mbps: job.params.direction === 'server-to-client' ? 0 : val,
                 received_mbps: job.params.direction === 'server-to-client' ? val : 0,
-                loss_percent: parsed.loss_percent || 0
+                loss_percent: parsed.loss_percent || 0,
+                rtt_ms: (parsed.rtt_us || parsed.tcp_info?.rtt_us || 0) / 1000
             };
 
             // Handling bidirectional
@@ -310,7 +355,7 @@ class XfrJobManager {
             child.on('close', (code) => {
                 job.status = code === 0 ? 'completed' : 'failed';
                 job.finished_at = new Date().toISOString();
-                if (code !== 0) job.error = `Process exited with code ${code}`;
+                if (code !== 0 && !job.summary) job.error = `Process exited with code ${code}`;
 
                 this.notifyListeners(job, { type: 'done', data: { status: job.status } });
                 log('XFR', `[${job.sequence_id}] finished with status ${job.status}`);
@@ -320,6 +365,7 @@ class XfrJobManager {
                 } else {
                     this.logToXfrFile(job, `Test failed: ${job.error || 'Unknown error'}`);
                 }
+                this.saveHistory();
             });
 
         } catch (e: any) {
@@ -327,6 +373,7 @@ class XfrJobManager {
             job.error = e.message;
             this.notifyListeners(job, { type: 'done', data: { status: 'failed', error: e.message } });
             this.logToXfrFile(job, `Execution error: ${e.message}`);
+            this.saveHistory();
         }
     }
 
@@ -1082,7 +1129,8 @@ if (DEBUG_API) {
 // --- Authentication Middleware ---
 const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // Allow token in query string for SSE (EventSource)
+    const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
 
     if (!token) return res.sendStatus(401);
 
