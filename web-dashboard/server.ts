@@ -4795,10 +4795,38 @@ app.get('/api/admin/maintenance/version', authenticateToken, async (req, res) =>
                 }
             }
 
-            const tags = JSON.parse(stdout);
-            if (Array.isArray(tags) && tags.length > 0) {
-                // Get the latest tag name, strip 'v' prefix
-                const latestTag = tags[0].name;
+            const tagsData = JSON.parse(stdout);
+            if (Array.isArray(tagsData) && tagsData.length > 0) {
+                // Heuristic sort: prefer -patch versions, then sort by name descending
+                const sortedTags = tagsData.map((t: any) => t.name).sort((a: string, b: string) => {
+                    const aPatch = a.includes('-patch.');
+                    const bPatch = b.includes('-patch.');
+
+                    if (aPatch && !bPatch) return -1;
+                    if (!aPatch && bPatch) return 1;
+
+                    // If both are patches or both aren't, sort by version string descending
+                    // This handles v1.2.1-patch.79 vs v1.2.1-patch.78
+                    // We split by '.' to do a proper numeric comparison if possible
+                    const aParts = a.split(/[-.]/);
+                    const bParts = b.split(/[-.]/);
+
+                    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+                        const aP = aParts[i] || '';
+                        const bP = bParts[i] || '';
+                        const aNum = parseInt(aP.replace(/^\D+/, ''));
+                        const bNum = parseInt(bP.replace(/^\D+/, ''));
+
+                        if (!isNaN(aNum) && !isNaN(bNum)) {
+                            if (bNum !== aNum) return bNum - aNum;
+                        } else {
+                            if (bP !== aP) return bP.localeCompare(aP);
+                        }
+                    }
+                    return 0;
+                });
+
+                const latestTag = sortedTags[0];
                 latestVersion = latestTag.replace(/^v/, '');
                 updateAvailable = (latestVersion !== currentVersion);
             }
