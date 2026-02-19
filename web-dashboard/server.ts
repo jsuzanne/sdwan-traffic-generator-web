@@ -71,7 +71,10 @@ const XFR_QUICK_TARGETS = QUICK_TARGETS_RAW.split(',')
     .filter(x => x.includes(':'))
     .map(x => {
         const [label, host] = x.split(':');
-        return { label: label.trim(), host: host.trim() };
+        // Strip quotes and trim
+        const cleanLabel = label.trim().replace(/^["']|["']$/g, '');
+        const cleanHost = host.trim().replace(/^["']|["']$/g, '');
+        return { label: cleanLabel, host: cleanHost };
     });
 
 if (DEBUG) {
