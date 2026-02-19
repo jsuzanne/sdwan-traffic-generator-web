@@ -392,8 +392,9 @@ class XfrJobManager {
         const args = [p.host, '-p', p.port.toString(), '--no-tui', '--json-stream'];
 
         // Deterministic source port: 40000 + (sequence sequence_id numeric)
+        // ONLY for UDP/QUIC as TCP doesn't support --cport in xfr engine
         const seqMatch = job.sequence_id.match(/\d+/);
-        if (seqMatch) {
+        if (seqMatch && (p.protocol === 'udp' || p.protocol === 'quic')) {
             const seqNum = parseInt(seqMatch[0], 10);
             const sourcePort = 40000 + (seqNum % 10000); // 40000-49999 range
             args.push('--cport', sourcePort.toString());

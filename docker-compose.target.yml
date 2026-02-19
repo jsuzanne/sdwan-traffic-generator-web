@@ -22,6 +22,20 @@ services:
       - LOOP_NORMAL_SECONDS=60
       - RANDOM_SLOW_PROBABILITY=0.5
       - EICAR_FILE_PATH=/opt/sdwan-target/eicar.com.txt
+
+  # XFR Speedtest Target (Multi-arch)
+  sdwan-xfr-target:
+    image: jsuzanne/xfr-target:latest
+    container_name: sdwan-xfr-target
+    hostname: sdwan-xfr-target
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
+    environment:
+      - XFR_PORT=9000
+      - XFR_MAX_DURATION=60
+      - XFR_RATE_LIMIT=2
+      - XFR_ALLOW_CIDR=0.0.0.0/0
     logging:
       driver: "json-file"
       options:

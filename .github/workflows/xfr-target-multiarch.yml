@@ -28,6 +28,10 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Get version
+        id: version
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_OUTPUT
+
       - name: Build and push xfr-target
         uses: docker/build-push-action@v6
         with:
@@ -35,5 +39,7 @@ jobs:
           file: ./xfr-target/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: jsuzanne/xfr-target:latest
+          tags: |
+            jsuzanne/xfr-target:latest
+            jsuzanne/xfr-target:${{ steps.version.outputs.VERSION }}
 
