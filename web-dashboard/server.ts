@@ -1670,9 +1670,6 @@ app.get('/api/features', (req, res) => {
 // --- XFR Speedtest Endpoints ---
 
 app.post('/api/tests/xfr', authenticateToken, (req, res) => {
-    if (!FEATURE_FLAG_XFR) {
-        return res.status(404).json({ error: 'xfr feature disabled' });
-    }
 
     const { mode, target, protocol, direction, duration_sec, bitrate, parallel_streams, psk } = req.body;
 
@@ -1710,9 +1707,6 @@ app.post('/api/tests/xfr', authenticateToken, (req, res) => {
 });
 
 app.get('/api/tests/xfr', authenticateToken, (req, res) => {
-    if (!FEATURE_FLAG_XFR) {
-        return res.status(404).json({ error: 'xfr feature disabled' });
-    }
     const jobs = xfrManager.getAllJobs().map(j => ({
         id: j.id,
         sequence_id: j.sequence_id,
@@ -1727,9 +1721,6 @@ app.get('/api/tests/xfr', authenticateToken, (req, res) => {
 });
 
 app.get('/api/tests/xfr/:id', authenticateToken, (req, res) => {
-    if (!FEATURE_FLAG_XFR) {
-        return res.status(404).json({ error: 'xfr feature disabled' });
-    }
 
     const job = xfrManager.getJob(req.params.id);
     if (!job) {
@@ -1751,9 +1742,6 @@ app.get('/api/tests/xfr/:id', authenticateToken, (req, res) => {
 });
 
 app.get('/api/tests/xfr/:id/stream', authenticateToken, (req, res) => {
-    if (!FEATURE_FLAG_XFR) {
-        return res.status(404).json({ error: 'xfr feature disabled' });
-    }
 
     const job = xfrManager.getJob(req.params.id);
     if (!job) {
