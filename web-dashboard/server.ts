@@ -312,9 +312,9 @@ class XfrJobManager {
         job.status = 'running';
         job.started_at = new Date().toISOString();
 
-        const args = this.buildArgs(job.params);
+        const args = this.buildArgs(job);
         log('XFR', `[${job.sequence_id}] Launching: ${XFR_BINARY} ${args.join(' ')}`);
-        this.logToXfrFile(job, `Test started: ${job.params.protocol.toUpperCase()} ${job.params.direction} to ${job.params.host}:${job.params.port} (${job.params.duration_sec}s, ${job.params.bitrate})`);
+        this.logToXfrFile(job, `Test started: ${job.params.protocol.toUpperCase()} ${job.params.direction} to ${job.params.host}:${job.params.port} (${job.params.duration_sec}s, ${job.params.bitrate || 'Max BW'})`);
 
         try {
             const child = spawn(XFR_BINARY, args);
@@ -387,14 +387,29 @@ class XfrJobManager {
         }
     }
 
-    private buildArgs(p: XfrTestParams): string[] {
+    private buildArgs(job: XfrJob): string[] {
+        const p = job.params;
         const args = [p.host, '-p', p.port.toString(), '--no-tui', '--json-stream'];
+
+        // Deterministic source port: 40000 + (sequence sequence_id numeric)
+        const seqMatch = job.sequence_id.match(/\d+/);
+        if (seqMatch) {
+            const seqNum = parseInt(seqMatch[0], 10);
+            const sourcePort = 40000 + (seqNum % 10000); // 40000-49999 range
+            args.push('--cport', sourcePort.toString());
+        }
 
         if (p.protocol === 'udp') args.push('-u');
         if (p.protocol === 'quic') args.push('-Q');
 
         if (p.duration_sec > 0) args.push('-t', `${p.duration_sec}s`);
-        if (p.bitrate && p.bitrate !== '0') args.push('-b', p.bitrate);
+
+        // Bitrate: omit if empty, "0", or "max" (case insensitive)
+        const b = p.bitrate ? p.bitrate.toString().trim() : "";
+        if (b && b !== '0' && b.toLowerCase() !== 'max') {
+            args.push('-b', b);
+        }
+
         if (p.parallel_streams > 1) args.push('-P', p.parallel_streams.toString());
         if (p.psk) args.push('--psk', p.psk);
 

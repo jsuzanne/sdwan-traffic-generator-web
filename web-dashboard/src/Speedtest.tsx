@@ -264,12 +264,25 @@ export default function Speedtest({ token }: Props) {
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 block">Bitrate</label>
+                                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 block">Direction</label>
+                                        <select
+                                            value={direction}
+                                            onChange={e => setDirection(e.target.value as any)}
+                                            className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500"
+                                        >
+                                            <option value="client-to-server">Upload (Client to Server)</option>
+                                            <option value="server-to-client">Download (Reverse)</option>
+                                            <option value="bidirectional">Bidirectional</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 block">Bitrate (e.g. 100M, 0=Max)</label>
                                         <input
                                             type="text"
                                             value={bitrate}
                                             onChange={e => setBitrate(e.target.value)}
-                                            placeholder="e.g. 100M, 1G, 0"
+                                            placeholder="e.g. 100M, Max, 0"
                                             className="w-full bg-card-secondary border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500"
                                         />
                                     </div>

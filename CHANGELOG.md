@@ -4,11 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.92] - 2026-02-19
-### Fixed
-- **DevOps**: Fixed `xfr-target` multi-arch build by updating `Dockerfile` to support architecture-specific binaries (`xfr-amd64` and `xfr-arm64`). 🏗️
-- **DevOps**: Cleaned up accidental `.swp` and platform-specific binaries from the repository. 🧹
+## [v1.2.1-patch.93] - 2026-02-19
+### Added
+- **Speedtest (xfr)**: Deterministic source port mapping (`40000 + sequence`) for easier traffic identification. 🔢
+- **Speedtest (xfr)**: Support for "Max Bandwidth" detection by making bitrate optional in Custom tests. 🚀
+- **Speedtest (xfr)**: Full support for Reverse (Download) and Bidirectional modes in the Custom test form. 🔄
 
+## [v1.2.1-patch.92] - 2026-02-19
 ## [v1.2.1-patch.91] - 2026-02-19
 ## [v1.2.1-patch.90] - 2026-02-19
 ## [v1.2.1-patch.89] - 2026-02-19
