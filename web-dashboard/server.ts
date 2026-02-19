@@ -660,20 +660,20 @@ const initializeCommands = async () => {
 let iperfServerProcess: any = null;
 const startIperfServer = () => {
     try {
-        if (DEBUG) console.log('[IPERF] Starting iperf3 server on port 5201...');
-        iperfServerProcess = spawn('iperf3', ['-s', '-p', '5201']);
+        if (DEBUG) log('IPERF', 'Starting iperf3 server on port 5201...', 'debug');
+        const iperfServer = spawn('iperf3', ['-s', '-p', '5201']);
 
-        iperfServerProcess.on('error', (err: any) => {
-            console.error('[IPERF] Server failed to start:', err.message);
+        iperfServer.on('error', (err: any) => {
+            log('IPERF', `Server failed to start: ${err.message}`, 'error');
         });
 
-        iperfServerProcess.stdout.on('data', (data: any) => {
+        iperfServer.stdout.on('data', (data: any) => {
             // Optional: log or ignore
         });
 
         process.on('exit', () => iperfServerProcess?.kill());
     } catch (e: any) {
-        console.error('[IPERF] Error starting server:', e.message);
+        log('IPERF', `Error starting server: ${e.message}`, 'error');
     }
 };
 
@@ -1394,7 +1394,7 @@ app.post('/api/connectivity/iperf/client', async (req, res) => {
         return res.status(503).json({ error: 'iperf3 not installed on server' });
     }
 
-    console.log(`[IPERF] Starting client test to ${target} (duration=${duration}s)...`);
+    log('IPERF', `Starting client test to ${target} (duration=${duration}s)...`);
 
     try {
         // Basic sanitization for target
@@ -1440,7 +1440,7 @@ app.post('/api/connectivity/iperf/client', async (req, res) => {
             throw execError;
         }
     } catch (e: any) {
-        console.error('[IPERF] Client test failed:', e.message);
+        log('IPERF', `Client test failed: ${e.message}`, 'error');
         res.status(500).json({ error: 'Iperf connection failed', message: e.message });
     }
 });
