@@ -4,14 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.91] - 2026-02-19
-### Added
-- **Speedtest (xfr)**: Support for `TARGET_IP` environment variable to set default test host. 🌍
-- **Logging**: Enhanced completion logs in `docker compose logs` with BW, Loss, and RTT metrics. 📝
+## [v1.2.1-patch.92] - 2026-02-19
 ### Fixed
-- **Speedtest (xfr)**: Fixed "Invalid Date" crash on chart X-axis by enforcing robust timestamping. ⏱️
-- **Speedtest (xfr)**: Fixed chart axis and label visibility in Light Mode for better accessibility. 🎨
+- **DevOps**: Fixed `xfr-target` multi-arch build by updating `Dockerfile` to support architecture-specific binaries (`xfr-amd64` and `xfr-arm64`). 🏗️
+- **DevOps**: Cleaned up accidental `.swp` and platform-specific binaries from the repository. 🧹
 
+## [v1.2.1-patch.91] - 2026-02-19
 ## [v1.2.1-patch.90] - 2026-02-19
 ## [v1.2.1-patch.89] - 2026-02-19
 
