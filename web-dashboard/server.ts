@@ -33,12 +33,34 @@ const upload = multer({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Robust project root detection.
+ * Handles both containerized (flattened) and local (hierarchical) environments.
+ */
+function findProjectRoot() {
+    // 1. Check current directory (Flattened layout in container: /app/server.ts)
+    if (fs.existsSync(path.join(__dirname, 'VERSION')) && fs.existsSync(path.join(__dirname, 'engines'))) {
+        return __dirname;
+    }
+    // 2. Check parent directory (Standard layout in dev: web-dashboard/server.ts)
+    const parent = path.join(__dirname, '..');
+    if (fs.existsSync(path.join(parent, 'VERSION')) && fs.existsSync(path.join(parent, 'engines'))) {
+        return parent;
+    }
+    // Fallback: Default to parent but log warning
+    console.warn(`[SYSTEM] ⚠️ Could not clearly identify project root, falling back to: ${parent}`);
+    return parent;
+}
+
+const PROJECT_ROOT = findProjectRoot();
+log('SYSTEM', `🚀 Project Root: ${PROJECT_ROOT}`);
+
 // Configuration Paths - Environment aware
 const APP_CONFIG = {
-    // In development, assume config is in ../config relative to web-dashboard
-    configDir: path.resolve(process.env.CONFIG_DIR || path.join(__dirname, '../config')),
+    // Check for config in PROJECT_ROOT/config
+    configDir: path.resolve(process.env.CONFIG_DIR || path.join(PROJECT_ROOT, 'config')),
     // Fallback to local logs if /var/log is not accessible (dev mode)
-    logDir: path.resolve(process.env.LOG_DIR || (fs.existsSync('/var/log/sdwan-traffic-gen') ? '/var/log/sdwan-traffic-gen' : path.join(__dirname, '../logs')))
+    logDir: path.resolve(process.env.LOG_DIR || (fs.existsSync('/var/log/sdwan-traffic-gen') ? '/var/log/sdwan-traffic-gen' : path.join(PROJECT_ROOT, 'logs')))
 };
 
 const DEBUG = process.env.DEBUG === 'true';
@@ -4993,7 +5015,7 @@ app.post('/api/admin/maintenance/upgrade', authenticateToken, async (req, res) =
 
     const pullTarget = version || 'stable';
 
-    const rootDir = path.join(__dirname, '..');
+    const rootDir = PROJECT_ROOT;
 
     res.json({ success: true, message: 'Upgrade started in background' });
 
@@ -5079,7 +5101,7 @@ app.post('/api/admin/maintenance/restart', authenticateToken, async (req, res) =
     };
 
 
-    const rootDir = path.join(__dirname, '..');
+    const rootDir = PROJECT_ROOT;
 
     res.json({ success: true, message: 'Restart sequence initiated' });
 

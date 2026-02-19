@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.80] - 2026-02-19
+## [v1.2.1-patch.81] - 2026-02-19
 ### Fixed
-- **System Maintenance**: Fixed version detection sorting to ensure patch versions (e.g., `patch.80`) are correctly prioritized over the base version (`1.2.1`) in the "Latest Available" display. 📈
+- **System Maintenance**: Implemented robust project root detection (`PROJECT_ROOT`) to correctly locate `docker-compose.yml` and configuration directories in both containerized and local environments. Fixed the `FileNotFoundError: /docker-compose.yml` error. 📂
+- **System Robustness**: Standardized all internal paths to use detected project root instead of brittle relative paths.
 
-## [v1.2.1-patch.79] - 2026-02-19
+## [v1.2.1-patch.80] - 2026-02-19
 ### Fixed
 - **System Maintenance**: Further improved restart reliability by explicitly installing `docker-compose` in the container and adding robust binary detection (checking both standalone and plugin versions). 🛡️
 - **System Maintenance**: Increased reliability of GitHub version detection by adding retries and a 10s timeout to the API fetch. 📡
