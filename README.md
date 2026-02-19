@@ -343,7 +343,7 @@ curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web
 ```
 
 **What to expect (macOS Example):**
-```bash
+```text
 🚀 SD-WAN Traffic Generator - Installation
 ==========================================
 ✅ Docker is running.
@@ -354,14 +354,20 @@ curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web
 📦 Downloading configuration (docker-compose.example.yml)...
 🔧 Pulling images and starting services...
 [+] pull 61/61
+ ✔ Image jsuzanne/sdwan-voice-gen:stable   Pulled                                        22.9s
+ ✔ Image jsuzanne/sdwan-voice-echo:stable  Pulled                                        21.1s
+ ✔ Image jsuzanne/sdwan-web-ui:stable      Pulled                                        29.0s
+ ✔ Image jsuzanne/sdwan-traffic-gen:stable Pulled                                        21.2s
 ✅ Created .env with auto-start traffic enabled
 🔧 Starting services...
 [+] up 5/5
- ✔ Network sdwan-traffic-gen_sdwan-network Created
- ✔ Container sdwan-voice-echo              Created
- ✔ Container sdwan-web-ui                  Healthy
- ✔ Container sdwan-voice-gen               Created
- ✔ Container sdwan-traffic-gen             Created
+ ✔ Network sdwan-traffic-gen_sdwan-network Created                                        0.0s
+ ✔ Container sdwan-voice-echo              Created                                        0.3s
+ ✔ Container sdwan-web-ui                  Healthy                                        5.9s
+ ✔ Container sdwan-voice-gen               Created                                        0.0s
+ ✔ Container sdwan-traffic-gen             Created                                        0.0s
+⏳ Waiting for containers to be ready...
+🔍 [INSTALLER] Detecting network interface from container...
 ✅ Installation complete! Access dashboard at: http://localhost:8080
 ```
 
