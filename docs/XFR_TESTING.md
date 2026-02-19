@@ -3,7 +3,7 @@
 The XFR tool is a high-performance throughput and latency testing engine integrated into the SD-WAN Traffic Generator. It is designed for validating path quality, detecting maximum bandwidth, and performing bidirectional diagnostic tests.
 
 ## Features
-- **Deterministic Port Mapping**: Source ports are mapped as `40000 + sequence_id` for easy identification in firewall/flow logs.
+- **Deterministic Port Mapping**: Source ports are mapped as `40000 + sequence_id` for easy identification in firewall/flow logs (Only UDP Tests).
 - **Micro-Interval Telemetry**: Real-time throughput (Mbps), RTT (ms), and Packet Loss (%) tracking.
 - **Directional Modes**: Supports Upload (Client to Server), Download (Reverse), and Bidirectional testing.
 - **Protocol Support**: TCP, UDP, and QUIC testing capabilities.
