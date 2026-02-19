@@ -164,6 +164,23 @@ const XFR_DEFAULTS: XfrTestParams = {
     mode: 'default'
 };
 
+/**
+ * Robust binary detection for xfr
+ */
+function findXfrBinary(): string {
+    const commonPaths = ['/usr/bin/xfr', '/usr/local/bin/xfr', '/app/xfr'];
+    for (const p of commonPaths) {
+        if (fs.existsSync(p)) return p;
+    }
+    try {
+        const whichRes = execSync('which xfr', { encoding: 'utf8' }).trim();
+        if (whichRes) return whichRes;
+    } catch (e) { }
+    return 'xfr'; // Fallback to path
+}
+
+const XFR_BINARY = findXfrBinary();
+
 class XfrJobManager {
     private jobs = new Map<string, XfrJob>();
 
@@ -199,10 +216,10 @@ class XfrJobManager {
         job.started_at = new Date().toISOString();
 
         const args = this.buildArgs(job.params);
-        log('XFR', `Launching: xfr ${args.join(' ')}`);
+        log('XFR', `Launching: ${XFR_BINARY} ${args.join(' ')}`);
 
         try {
-            const child = spawn('xfr', args);
+            const child = spawn(XFR_BINARY, args);
             job.process = child;
 
             let buffer = '';
@@ -253,18 +270,15 @@ class XfrJobManager {
         const args = [p.host, '-p', p.port.toString(), '--no-tui', '--json-stream'];
 
         if (p.protocol === 'udp') args.push('-u');
-        // TODO: confirm QUIC flag for xfr. Assuming --quic for now.
-        if (p.protocol === 'quic') args.push('--quic');
+        if (p.protocol === 'quic') args.push('-Q');
 
-        if (p.duration_sec > 0) args.push('-t', p.duration_sec.toString());
+        if (p.duration_sec > 0) args.push('-t', `${p.duration_sec}s`);
         if (p.bitrate && p.bitrate !== '0') args.push('-b', p.bitrate);
         if (p.parallel_streams > 1) args.push('-P', p.parallel_streams.toString());
         if (p.psk) args.push('--psk', p.psk);
 
-        // Reverse mapping for server-to-client if supported
-        // TODO: confirm reverse flag for xfr.
-        if (p.direction === 'server-to-client') args.push('--reverse');
-        else if (p.direction === 'bidirectional') args.push('--bidirectional');
+        if (p.direction === 'server-to-client') args.push('-R');
+        else if (p.direction === 'bidirectional') args.push('--bidir');
 
         return args;
     }
