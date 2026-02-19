@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.89] - 2026-02-19
+## [v1.2.1-patch.90] - 2026-02-19
 ### Added
-- **Speedtest (xfr)**: Persistent test history that survives server restarts. 💾
-- **Speedtest (xfr)**: Real-time Latency (RTT) tracking in live charts and UI. ⏱️
+- **Speedtest (xfr)**: New searchable diagnostic history widget with filtering by Job ID, Target Host, or Status. 🔍
+- **Speedtest (xfr)**: Detailed results modal for past tests, including Loss Analysis, Jitter, and Min/Max/Avg RTT. 📊
 ### Fixed
-- **Speedtest (xfr)**: Fixed empty live charts by allowing authentication via query tokens for SSE. 🔌
-- **Speedtest (xfr)**: Improved UI layout with dedicated cards for Throughput, Latency, and Loss. 🎨
+- **Speedtest (xfr)**: Fixed live stream delays by disabling server-side buffering with `X-Accel-Buffering: no`. 🚤
+- **Speedtest (xfr)**: Standardized UI components to match Failover and Security dashboards for a premium, unified experience. 🎨
+
+## [v1.2.1-patch.89] - 2026-02-19
 
 ## [v1.2.1-patch.88] - 2026-02-19
 ### Fixed

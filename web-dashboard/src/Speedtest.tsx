@@ -1,7 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from 'recharts';
-import { Activity, Gauge, Play, Pause, AlertCircle, Clock, Zap, Target, Network, Shield, Cpu, ChevronRight, BarChart3, Info, CheckCircle2, XCircle } from 'lucide-react';
+import {
+    Activity, Gauge, Play, Pause, AlertCircle, Clock, Zap, Target, Network,
+    Shield, Cpu, ChevronRight, BarChart3, Info, CheckCircle2, XCircle,
+    Search, Filter, Download, Trash2, ChevronDown, ChevronUp, Share2,
+    ShieldAlert, ExternalLink, ArrowUpRight, ShieldOff, Copy, RefreshCw,
+    History as HistoryIcon, X
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+/**
+ * Utility for Tailwind class merging
+ */
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface Props {
     token: string;
@@ -12,6 +27,7 @@ interface XfrInterval {
     sent_mbps: number;
     received_mbps: number;
     loss_percent: number;
+    rtt_ms: number;
 }
 
 interface XfrSummary {
@@ -53,7 +69,11 @@ export default function Speedtest({ token }: Props) {
 
     const [activeJob, setActiveJob] = useState<XfrJob | null>(null);
     const [history, setHistory] = useState<XfrJob[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [chartData, setChartData] = useState<any[]>([]);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedJob, setSelectedJob] = useState<XfrJob | null>(null);
+    const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
     const sseRef = useRef<EventSource | null>(null);
 
     const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -133,10 +153,6 @@ export default function Speedtest({ token }: Props) {
         if (sseRef.current) sseRef.current.close();
         setChartData([]);
 
-        // We can't set headers on EventSource, so we rely on the session/token in query if needed.
-        // Our server expects authenticateToken (Bearer). 
-        // Usually we'd use a cookie-based auth or a signed URL for SSE.
-        // For now, let's just use the URL directly, assuming the server might allow token in query.
         const sse = new EventSource(`/api/tests/xfr/${id}/stream?token=${token}`);
         sseRef.current = sse;
 
@@ -158,6 +174,17 @@ export default function Speedtest({ token }: Props) {
         };
     };
 
+    const viewJobDetails = (job: XfrJob) => {
+        setSelectedJob(job);
+        setShowDetailModal(true);
+    };
+
+    const filteredHistory = history.filter(j =>
+        j.sequence_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        j.params?.host?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        j.status?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const isRunning = activeJob?.status === 'running' || activeJob?.status === 'queued';
 
     return (
@@ -178,13 +205,19 @@ export default function Speedtest({ token }: Props) {
                         <div className="flex p-1 bg-card-secondary rounded-xl mb-6 border border-border/50">
                             <button
                                 onClick={() => setMode('default')}
-                                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${mode === 'default' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-text-muted hover:text-text-primary'}`}
+                                className={cn(
+                                    "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                                    mode === 'default' ? 'bg-blue-600 text-white shadow-lg' : 'text-text-muted hover:text-text-primary'
+                                )}
                             >
                                 Default
                             </button>
                             <button
                                 onClick={() => setMode('custom')}
-                                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${mode === 'custom' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-text-muted hover:text-text-primary'}`}
+                                className={cn(
+                                    "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                                    mode === 'custom' ? 'bg-blue-600 text-white shadow-lg' : 'text-text-muted hover:text-text-primary'
+                                )}
                             >
                                 Custom
                             </button>
@@ -277,11 +310,14 @@ export default function Speedtest({ token }: Props) {
                             <button
                                 onClick={runTest}
                                 disabled={isRunning || !targetHost}
-                                className={`w-full py-4 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl ${isRunning ? 'bg-card-secondary text-text-muted cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 shadow-blue-900/30'}`}
+                                className={cn(
+                                    "w-full py-4 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl",
+                                    isRunning ? "bg-card-secondary text-text-muted cursor-not-allowed" : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:opacity-90 active:scale-[0.98]"
+                                )}
                             >
                                 {isRunning ? (
                                     <>
-                                        <Activity size={20} className="animate-spin" />
+                                        <RefreshCw size={20} className="animate-spin" />
                                         Running Test...
                                     </>
                                 ) : (
@@ -295,144 +331,307 @@ export default function Speedtest({ token }: Props) {
                     </div>
 
                     {/* Info Card */}
-                    <div className="bg-blue-600/5 border border-blue-500/20 rounded-2xl p-5">
-                        <div className="flex gap-3">
-                            <Info className="text-blue-500 shrink-0" size={20} />
-                            <div>
-                                <h4 className="text-xs font-black text-blue-500 uppercase tracking-widest mb-1">About xfr</h4>
-                                <p className="text-[10px] text-text-muted leading-relaxed">
-                                    xfr is a high-performance transport testing tool supporting TCP, UDP, and QUIC.
-                                    In Default mode, it runs a 10s TCP test with 4 parallel streams at 200 Mbps.
-                                </p>
-                            </div>
+                    <div className="p-4 bg-blue-600/5 border border-blue-500/10 rounded-2xl flex gap-3">
+                        <Info className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                        <div>
+                            <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Testing Note</h4>
+                            <p className="text-[10px] text-text-muted leading-relaxed uppercase font-bold opacity-60">
+                                This tool sends bidirectional traffic to validate path throughput and latency.
+                                Ensure the target host has `xfr` running in server mode.
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Live Metrics & Results */}
+                {/* Main Results & Chart */}
                 <div className="flex-1 space-y-6">
-                    {/* Chart Card */}
-                    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col">
-                        <div className="flex items-center justify-between mb-6">
+                    {/* Live Results Panel */}
+                    <div className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none rotate-12">
+                            <Zap size={200} className="text-blue-500" />
+                        </div>
+
+                        <div className="flex items-center justify-between mb-8 relative z-10">
                             <div>
-                                <h3 className="text-lg font-black text-text-primary uppercase tracking-tight flex items-center gap-2">
-                                    <BarChart3 className="text-blue-500" size={20} />
-                                    Live Throughput
-                                </h3>
-                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-0.5">
-                                    {isRunning ? 'Real-time analysis in progress' : 'Waiting for test session'}
+                                <h2 className="text-2xl font-black text-text-primary tracking-tight uppercase">
+                                    {isRunning ? 'Live Performance' : 'Session Ready'}
+                                </h2>
+                                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] opacity-60">
+                                    {isRunning ? `Analyzing sequence ${activeJob?.sequence_id}` : 'Select target and launch test'}
                                 </p>
                             </div>
-
-                            {activeJob && (
-                                <div className="flex items-center gap-2 px-3 py-1 bg-card-secondary rounded-full border border-border">
-                                    <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-text-muted'}`} />
-                                    <span className="text-[10px] font-black text-text-muted uppercase tracking-tighter">
-                                        Job: {activeJob.id.slice(-8)}
-                                    </span>
+                            {isRunning && (
+                                <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full animate-pulse text-[10px] font-black text-blue-500 uppercase">
+                                    Live Stream
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex-1 min-h-[300px]">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 relative z-10">
+                            <div className="bg-card-secondary/50 border border-border/50 rounded-2xl p-5 group hover:border-blue-500/30 transition-all">
+                                <label className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-60 flex items-center gap-2 mb-2">
+                                    <ArrowUpRight size={14} className="text-blue-500" /> Throughput
+                                </label>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-3xl font-black text-text-primary tracking-tighter">
+                                        {activeJob?.summary ? Math.round(activeJob.summary.received_mbps) :
+                                            (chartData.length > 0 ? Math.round(chartData[chartData.length - 1].received_mbps || chartData[chartData.length - 1].sent_mbps) : '0')}
+                                    </span>
+                                    <span className="text-[10px] font-black text-text-muted italic opacity-40 uppercase">Mbps</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-card-secondary/50 border border-border/50 rounded-2xl p-5 group hover:border-cyan-500/30 transition-all">
+                                <label className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-60 flex items-center gap-2 mb-2">
+                                    <Clock size={14} className="text-cyan-500" /> Latency (RTT)
+                                </label>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-3xl font-black text-text-primary tracking-tighter">
+                                        {activeJob?.summary ? activeJob.summary.rtt_ms_avg.toFixed(1) :
+                                            (chartData.length > 0 ? chartData[chartData.length - 1].rtt_ms?.toFixed(1) : '0.0')}
+                                    </span>
+                                    <span className="text-[10px] font-black text-text-muted italic opacity-40 uppercase">ms</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-card-secondary/50 border border-border/50 rounded-2xl p-5 group hover:border-red-500/30 transition-all">
+                                <label className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-60 flex items-center gap-2 mb-2">
+                                    <ShieldOff size={14} className="text-red-500" /> Packet Loss
+                                </label>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-3xl font-black text-text-primary tracking-tighter text-red-500">
+                                        {activeJob?.summary ? activeJob.summary.loss_percent.toFixed(2) :
+                                            (chartData.length > 0 ? chartData[chartData.length - 1].loss_percent?.toFixed(2) : '0.00')}
+                                    </span>
+                                    <span className="text-[10px] font-black text-text-muted italic opacity-40 uppercase">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Chart Area */}
+                        <div className="h-64 mt-4 relative z-10">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={chartData}>
                                     <defs>
-                                        <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
+                                        <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
                                             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                         </linearGradient>
-                                        <linearGradient id="colorRecv" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                                        </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} />
-                                    <XAxis
-                                        dataKey="time"
-                                        stroke="#64748b"
-                                        fontSize={10}
-                                        tickLine={false}
-                                        axisLine={false}
-                                    />
-                                    <YAxis
-                                        stroke="#64748b"
-                                        fontSize={10}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickFormatter={(val) => `${val}M`}
-                                    />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                    <XAxis dataKey="time" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'rgba(255,255,255,0.3)' }} />
+                                    <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'rgba(255,255,255,0.3)' }} />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', fontSize: '10px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)' }}
-                                        itemStyle={{ color: '#f8fafc' }}
+                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', fontSize: '10px' }}
+                                        itemStyle={{ fontWeight: 'black', textTransform: 'uppercase' }}
                                     />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '20px' }} />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="sent_mbps"
-                                        name="Sent (Mbps)"
-                                        stroke="#3b82f6"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorSent)"
-                                        animationDuration={300}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="received_mbps"
-                                        name="Received (Mbps)"
-                                        stroke="#06b6d4"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorRecv)"
-                                        animationDuration={300}
-                                    />
+                                    <Area type="monotone" dataKey="received_mbps" name="Received" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorMain)" />
+                                    <Area type="monotone" dataKey="sent_mbps" name="Sent" stroke="#10b981" strokeWidth={3} fill="transparent" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Results Summary */}
-                    {activeJob?.status === 'completed' && activeJob.summary && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in zoom-in-95 duration-500">
-                            <ResultCard label="Throughput" value={activeJob.summary.received_mbps.toFixed(1)} unit="Mbps" icon={<Gauge size={20} />} color="blue" />
-                            <ResultCard label="Packet Loss" value={activeJob.summary.loss_percent.toFixed(2)} unit="%" icon={<AlertCircle size={20} />} color="red" />
-                            <ResultCard label="Latency (Avg)" value={activeJob.summary.rtt_ms_avg.toFixed(1)} unit="ms" icon={<Clock size={20} />} color="cyan" />
-                            <ResultCard label="Jitter" value={activeJob.summary.jitter_ms_avg.toFixed(2)} unit="ms" icon={<Activity size={20} />} color="purple" />
-                        </div>
-                    )}
-
-                    {activeJob?.status === 'failed' && (
-                        <div className="bg-red-600/10 border border-red-500/20 rounded-2xl p-6 flex items-center gap-4 animate-in slide-in-from-top-4">
-                            <XCircle className="text-red-500" size={32} />
-                            <div>
-                                <h3 className="font-black text-red-500 uppercase tracking-widest text-sm">Test Failed</h3>
-                                <p className="text-xs text-text-muted mt-1">{activeJob.error || 'The xfr process exited with an error.'}</p>
+                    {/* History Table Widget */}
+                    <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                        <div className="px-6 py-4 flex items-center justify-between bg-card-secondary transition-colors border-b border-border">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500 border border-blue-500/20">
+                                    <HistoryIcon size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">Diagnostic History</h3>
+                                    <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest opacity-60">Past Telemetry Log</p>
+                                </div>
                             </div>
+                            <button
+                                onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                                className="p-2 hover:bg-card rounded-lg transition-colors border border-transparent hover:border-border text-text-muted"
+                            >
+                                {isHistoryExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            </button>
                         </div>
-                    )}
+
+                        {isHistoryExpanded && (
+                            <div className="p-6 space-y-6">
+                                <div className="relative group">
+                                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-500 transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder="Filter results by Job ID, Target Host, or Status..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-3 bg-card-secondary border border-border text-text-primary rounded-xl text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner transition-all uppercase tracking-widest placeholder:opacity-50"
+                                    />
+                                </div>
+
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b border-border">
+                                                <th className="px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-[0.2em]">Sequence ID</th>
+                                                <th className="px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-[0.2em]">Target / Params</th>
+                                                <th className="px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-[0.2em] text-center">Disposition</th>
+                                                <th className="px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-[0.2em] text-right">Throughput</th>
+                                                <th className="px-4 py-4 text-[9px] font-black text-text-muted uppercase tracking-[0.2em] text-right">Diagnostic</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/50">
+                                            {filteredHistory.map((job) => (
+                                                <tr key={job.id} className="group hover:bg-card-secondary/30 transition-all">
+                                                    <td className="px-4 py-4">
+                                                        <div className="text-xs font-black text-text-primary uppercase">{job.sequence_id}</div>
+                                                        <div className="text-[9px] text-text-muted font-bold opacity-60">
+                                                            {job.started_at ? new Date(job.started_at).toLocaleString() : 'N/A'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-4">
+                                                        <div className="text-xs font-black text-text-primary">{job.params.host}:{job.params.port}</div>
+                                                        <div className="text-[9px] text-text-muted uppercase font-bold opacity-60">
+                                                            {job.params.protocol.toUpperCase()} • {job.params.direction.replace(/-/g, ' ')}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-4 text-center">
+                                                        <span className={cn(
+                                                            "px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
+                                                            job.status === 'completed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                                                job.status === 'failed' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                                                    'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                        )}>
+                                                            {job.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right">
+                                                        {job.summary ? (
+                                                            <div className="flex flex-col items-end">
+                                                                <div className="text-xs font-black text-text-primary">{Math.round(job.summary.received_mbps)} Mbps</div>
+                                                                <div className="text-[9px] text-red-500 font-bold uppercase tracking-tighter">{job.summary.loss_percent.toFixed(2)}% Loss</div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs font-bold text-text-muted italic">No results</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right">
+                                                        <button
+                                                            onClick={() => viewJobDetails(job)}
+                                                            className="p-2 border border-border bg-card-secondary rounded-lg hover:bg-card transition-all text-blue-500 hover:shadow-lg group"
+                                                        >
+                                                            <ExternalLink size={16} className="group-hover:scale-110 transition-transform" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {filteredHistory.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={5} className="px-4 py-12 text-center text-text-muted italic uppercase text-[10px] font-bold tracking-widest opacity-40">
+                                                        No telemetry matches found
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
-    );
-}
 
-function ResultCard({ label, value, unit, icon, color }: { label: string, value: string, unit: string, icon: any, color: 'blue' | 'red' | 'cyan' | 'purple' }) {
-    const colors = {
-        blue: 'text-blue-500 bg-blue-500/10 border-blue-500/20 shadow-blue-900/10',
-        red: 'text-red-500 bg-red-500/10 border-red-500/20 shadow-red-900/10',
-        cyan: 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20 shadow-cyan-900/10',
-        purple: 'text-purple-500 bg-purple-500/10 border-purple-500/20 shadow-purple-900/10'
-    };
+            {/* Results Detail Modal */}
+            {showDetailModal && selectedJob && (
+                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-card border border-border rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-6 z-10">
+                            <button
+                                onClick={() => setShowDetailModal(false)}
+                                className="p-2 hover:bg-card-secondary rounded-xl transition-all border border-transparent hover:border-border text-text-muted"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
 
-    return (
-        <div className={`bg-card border rounded-2xl p-4 shadow-sm flex flex-col items-center text-center ${colors[color]}`}>
-            <div className="mb-2 opacity-80">{icon}</div>
-            <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black tabular-nums">{value}</span>
-                <span className="text-[10px] font-bold uppercase opacity-60">{unit}</span>
-            </div>
-            <div className="text-[10px] font-black uppercase tracking-widest opacity-40 mt-1">{label}</div>
+                        <div className="p-8 border-b border-border bg-card-secondary/50">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="p-3 bg-blue-600 rounded-2xl shadow-xl shadow-blue-900/30">
+                                    <BarChart3 className="text-white" size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-text-primary uppercase tracking-tight">Job Analysis</h3>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-text-muted bg-card px-2 py-0.5 rounded border border-border">{selectedJob.sequence_id}</span>
+                                        <span className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-60">
+                                            {selectedJob.started_at ? new Date(selectedJob.started_at).toLocaleString() : 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="bg-card border border-border rounded-2xl p-4">
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-2 block opacity-60 tracking-[0.2em]">Avg RTT</label>
+                                    <div className="text-xl font-black text-cyan-500">{selectedJob.summary?.rtt_ms_avg.toFixed(1) || '0.0'} ms</div>
+                                </div>
+                                <div className="bg-card border border-border rounded-2xl p-4">
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-2 block opacity-60 tracking-[0.2em]">Jitter</label>
+                                    <div className="text-xl font-black text-purple-500">{selectedJob.summary?.jitter_ms_avg.toFixed(2) || '0.00'} ms</div>
+                                </div>
+                                <div className="bg-card border border-border rounded-2xl p-4">
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-2 block opacity-60 tracking-[0.2em]">Min Latency</label>
+                                    <div className="text-xl font-black text-text-primary">{selectedJob.summary?.rtt_ms_min.toFixed(1) || '0.0'} ms</div>
+                                </div>
+                                <div className="bg-card border border-border rounded-2xl p-4">
+                                    <label className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-2 block opacity-60 tracking-[0.2em]">Max Latency</label>
+                                    <div className="text-xl font-black text-text-secondary">{selectedJob.summary?.rtt_ms_max.toFixed(1) || '0.0'} ms</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 space-y-8">
+                            <div>
+                                <h4 className="flex items-center gap-2 text-[10px] font-black text-text-muted uppercase tracking-widest mb-4">
+                                    <ShieldOff size={14} className="text-red-500" /> Loss Analysis
+                                </h4>
+                                <div className="bg-card-secondary p-5 rounded-2xl border border-border flex items-center justify-between">
+                                    <div>
+                                        <div className="text-3xl font-black text-red-500">{selectedJob.summary?.loss_percent.toFixed(4)}%</div>
+                                        <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1">Average Packet Loss across all streams</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xl font-black text-text-primary">{selectedJob.params.protocol.toUpperCase()}</div>
+                                        <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1">{selectedJob.params.parallel_streams} PARALLEL STREAMS</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {selectedJob.error && (
+                                <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/20 flex flex-col gap-2">
+                                    <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">Diagnostic Error Signature</span>
+                                    <pre className="text-xs font-mono text-red-500 whitespace-pre-wrap">{selectedJob.error}</pre>
+                                </div>
+                            )}
+
+                            <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                                <button
+                                    onClick={() => setShowDetailModal(false)}
+                                    className="flex-1 py-3 bg-card-secondary border border-border hover:bg-card rounded-xl text-[10px] font-black text-text-primary uppercase tracking-widest transition-all"
+                                >
+                                    Dismiss Diagnostic
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        toast.success("Telemetry report exported to clipboard");
+                                        navigator.clipboard.writeText(JSON.stringify(selectedJob, null, 2));
+                                    }}
+                                    className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:shadow-lg shadow-blue-900/40"
+                                >
+                                    Export JSON Log
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
