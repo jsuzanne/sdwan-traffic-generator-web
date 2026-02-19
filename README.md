@@ -2,7 +2,7 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.2.1--patch.51-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.1--patch.76-blue.svg)](https://github.com/jsuzanne/sdwan-traffic-generator-web/releases)
 
 A modern web-based SD-WAN traffic generator with real-time monitoring, customizable traffic patterns, and comprehensive security testing. Perfect for testing SD-WAN deployments, network QoS policies, and application performance.
 
@@ -340,6 +340,29 @@ curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web
 **Target Site Only:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/jsuzanne/sdwan-traffic-generator-web/main/install.sh | bash -s -- --target
+```
+
+**What to expect (macOS Example):**
+```bash
+🚀 SD-WAN Traffic Generator - Installation
+==========================================
+✅ Docker is running.
+🍎 Platform: macOS detected. (Host Mode has limitations on macOS)
+📌 Installing Full Dashboard (use --target flag for Target Site only)
+🖥️  Mode: Full Dashboard
+🍎 macOS detected - Using bridge mode (Host mode not supported on macOS)
+📦 Downloading configuration (docker-compose.example.yml)...
+🔧 Pulling images and starting services...
+[+] pull 61/61
+✅ Created .env with auto-start traffic enabled
+🔧 Starting services...
+[+] up 5/5
+ ✔ Network sdwan-traffic-gen_sdwan-network Created
+ ✔ Container sdwan-voice-echo              Created
+ ✔ Container sdwan-web-ui                  Healthy
+ ✔ Container sdwan-voice-gen               Created
+ ✔ Container sdwan-traffic-gen             Created
+✅ Installation complete! Access dashboard at: http://localhost:8080
 ```
 
 This will:
