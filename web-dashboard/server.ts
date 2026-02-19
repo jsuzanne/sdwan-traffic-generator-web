@@ -64,6 +64,7 @@ const APP_CONFIG = {
 };
 
 const DEBUG = process.env.DEBUG === 'true';
+const FEATURE_FLAG_XFR = process.env.FEATURE_FLAG_XFR === 'true';
 
 if (DEBUG) {
     log('SYSTEM', `📂 Configuration Directory: ${APP_CONFIG.configDir}`);
@@ -107,7 +108,201 @@ const IOT_DEVICES_FILE = path.join(APP_CONFIG.configDir, 'iot-devices.json');
 const APPLICATIONS_CONFIG_FILE = path.join(APP_CONFIG.configDir, 'applications-config.json');
 const VYOS_CONFIG_FILE = path.join(APP_CONFIG.configDir, 'vyos-config.json');
 
-// Upgrade Status tracking
+// --- XFR Speedtest Models & Manager ---
+interface XfrTestParams {
+    host: string;
+    port: number;
+    protocol: 'tcp' | 'udp' | 'quic';
+    duration_sec: number;
+    bitrate: string;
+    parallel_streams: number;
+    direction: 'client-to-server' | 'server-to-client' | 'bidirectional';
+    psk?: string;
+    mode: 'default' | 'custom';
+}
+
+interface XfrTestResultSummary {
+    protocol: string;
+    duration_sec: number;
+    sent_mbps: number;
+    received_mbps: number;
+    loss_percent: number;
+    rtt_ms_avg: number;
+    rtt_ms_min: number;
+    rtt_ms_max: number;
+    jitter_ms_avg: number;
+}
+
+interface XfrTestResultInterval {
+    timestamp: string;
+    sent_mbps: number;
+    received_mbps: number;
+    loss_percent: number;
+}
+
+interface XfrJob {
+    id: string;
+    status: 'queued' | 'running' | 'completed' | 'failed';
+    params: XfrTestParams;
+    started_at: string | null;
+    finished_at: string | null;
+    summary: XfrTestResultSummary | null;
+    intervals: XfrTestResultInterval[];
+    error: string | null;
+    process?: any;
+    listeners: Set<(data: any) => void>;
+}
+
+const XFR_DEFAULTS: XfrTestParams = {
+    host: '',
+    port: 5201,
+    protocol: 'tcp',
+    duration_sec: 10,
+    bitrate: '200M',
+    parallel_streams: 4,
+    direction: 'client-to-server',
+    mode: 'default'
+};
+
+class XfrJobManager {
+    private jobs = new Map<string, XfrJob>();
+
+    createJob(params: Partial<XfrTestParams>): string {
+        const id = `xfr_${new Date().toISOString().replace(/[:.]/g, '').replace('T', '_').slice(0, 15)}_${Math.floor(Math.random() * 10000)}`;
+        const mergedParams: XfrTestParams = { ...XFR_DEFAULTS, ...params };
+
+        const job: XfrJob = {
+            id,
+            status: 'queued',
+            params: mergedParams,
+            started_at: null,
+            finished_at: null,
+            summary: null,
+            intervals: [],
+            error: null,
+            listeners: new Set()
+        };
+
+        this.jobs.set(id, job);
+        return id;
+    }
+
+    getJob(id: string): XfrJob | undefined {
+        return this.jobs.get(id);
+    }
+
+    startJob(id: string) {
+        const job = this.jobs.get(id);
+        if (!job || job.status !== 'queued') return;
+
+        job.status = 'running';
+        job.started_at = new Date().toISOString();
+
+        const args = this.buildArgs(job.params);
+        log('XFR', `Launching: xfr ${args.join(' ')}`);
+
+        try {
+            const child = spawn('xfr', args);
+            job.process = child;
+
+            let buffer = '';
+            child.stdout.on('data', (data) => {
+                buffer += data.toString();
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const parsed = JSON.parse(line);
+                        // xfr emits intervals in --json-stream mode
+                        if (parsed.type === 'interval' || parsed.sent_mbps !== undefined) {
+                            const interval: XfrTestResultInterval = {
+                                timestamp: parsed.timestamp || new Date().toISOString(),
+                                sent_mbps: parsed.sent_mbps || 0,
+                                received_mbps: parsed.received_mbps || 0,
+                                loss_percent: parsed.loss_percent || 0
+                            };
+                            job.intervals.push(interval);
+                            this.notifyListeners(job, { type: 'interval', data: interval });
+                        } else if (parsed.type === 'summary') {
+                            job.summary = this.mapSummary(parsed);
+                        }
+                    } catch (e) {
+                        // Not JSON or partial
+                    }
+                }
+            });
+
+            child.on('close', (code) => {
+                job.status = code === 0 ? 'completed' : 'failed';
+                job.finished_at = new Date().toISOString();
+                if (code !== 0) job.error = `Process exited with code ${code}`;
+                this.notifyListeners(job, { type: 'done', data: { status: job.status } });
+                log('XFR', `Job ${id} finished with status ${job.status}`);
+            });
+
+        } catch (e: any) {
+            job.status = 'failed';
+            job.error = e.message;
+            this.notifyListeners(job, { type: 'done', data: { status: 'failed', error: e.message } });
+        }
+    }
+
+    private buildArgs(p: XfrTestParams): string[] {
+        const args = [p.host, '-p', p.port.toString(), '--no-tui', '--json-stream'];
+
+        if (p.protocol === 'udp') args.push('-u');
+        // TODO: confirm QUIC flag for xfr. Assuming --quic for now.
+        if (p.protocol === 'quic') args.push('--quic');
+
+        if (p.duration_sec > 0) args.push('-t', p.duration_sec.toString());
+        if (p.bitrate && p.bitrate !== '0') args.push('-b', p.bitrate);
+        if (p.parallel_streams > 1) args.push('-P', p.parallel_streams.toString());
+        if (p.psk) args.push('--psk', p.psk);
+
+        // Reverse mapping for server-to-client if supported
+        // TODO: confirm reverse flag for xfr.
+        if (p.direction === 'server-to-client') args.push('--reverse');
+        else if (p.direction === 'bidirectional') args.push('--bidirectional');
+
+        return args;
+    }
+
+    private mapSummary(p: any): XfrTestResultSummary {
+        return {
+            protocol: p.protocol || 'tcp',
+            duration_sec: p.duration_sec || 0,
+            sent_mbps: p.sent_mbps || 0,
+            received_mbps: p.received_mbps || 0,
+            loss_percent: p.loss_percent || 0,
+            rtt_ms_avg: p.rtt_ms_avg || 0,
+            rtt_ms_min: p.rtt_ms_min || 0,
+            rtt_ms_max: p.rtt_ms_max || 0,
+            jitter_ms_avg: p.jitter_ms_avg || 0
+        };
+    }
+
+    private notifyListeners(job: XfrJob, data: any) {
+        job.listeners.forEach(l => l(data));
+    }
+
+    addListener(id: string, listener: (data: any) => void) {
+        const job = this.jobs.get(id);
+        if (job) job.listeners.add(listener);
+    }
+
+    removeListener(id: string, listener: (data: any) => void) {
+        const job = this.jobs.get(id);
+        if (job) job.listeners.delete(listener);
+    }
+}
+
+const xfrManager = new XfrJobManager();
+
+// End of XFR Models & Manager
+
+// --- Upgrade Status tracking ---
 interface UpgradeStatus {
     inProgress: boolean;
     version: string | null;
@@ -1302,6 +1497,107 @@ app.post('/api/vyos/config/reset', authenticateToken, (req, res) => {
     } catch (e: any) {
         res.status(500).json({ error: e.message });
     }
+});
+
+// API: Get UI Configuration (Public endpoint)
+app.get('/api/features', (req, res) => {
+    res.json({
+        xfr_enabled: FEATURE_FLAG_XFR
+    });
+});
+
+// --- XFR Speedtest Endpoints ---
+
+app.post('/api/tests/xfr', authenticateToken, (req, res) => {
+    if (!FEATURE_FLAG_XFR) {
+        return res.status(404).json({ error: 'xfr feature disabled' });
+    }
+
+    const { mode, target, protocol, direction, duration_sec, bitrate, parallel_streams, psk } = req.body;
+
+    if (!mode || !target || !target.host || !target.port) {
+        return res.status(400).json({ error: 'mode and target (host/port) are required' });
+    }
+
+    if (mode === 'custom') {
+        if (protocol && !['tcp', 'udp', 'quic'].includes(protocol)) {
+            return res.status(400).json({ error: 'protocol must be tcp, udp, or quic' });
+        }
+        if (duration_sec !== undefined && duration_sec <= 0) {
+            return res.status(400).json({ error: 'duration_sec must be > 0' });
+        }
+        if (parallel_streams !== undefined && parallel_streams < 1) {
+            return res.status(400).json({ error: 'parallel_streams must be >= 1' });
+        }
+    }
+
+    const id = xfrManager.createJob({
+        mode,
+        host: target.host,
+        port: target.port,
+        psk,
+        protocol: protocol || (mode === 'default' ? 'tcp' : undefined),
+        direction: direction || (mode === 'default' ? 'client-to-server' : undefined),
+        duration_sec: duration_sec || (mode === 'default' ? 10 : undefined),
+        bitrate: bitrate || (mode === 'default' ? '200M' : undefined),
+        parallel_streams: parallel_streams || (mode === 'default' ? 4 : undefined),
+    });
+
+    xfrManager.startJob(id);
+
+    res.json({ id, status: 'queued' });
+});
+
+app.get('/api/tests/xfr/:id', authenticateToken, (req, res) => {
+    if (!FEATURE_FLAG_XFR) {
+        return res.status(404).json({ error: 'xfr feature disabled' });
+    }
+
+    const job = xfrManager.getJob(req.params.id);
+    if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+    }
+
+    res.json({
+        id: job.id,
+        status: job.status,
+        started_at: job.started_at,
+        finished_at: job.finished_at,
+        params: job.params,
+        results: job.status === 'completed' || job.status === 'failed' ? {
+            summary: job.summary,
+            intervals: job.intervals
+        } : null,
+        error: job.error
+    });
+});
+
+app.get('/api/tests/xfr/:id/stream', authenticateToken, (req, res) => {
+    if (!FEATURE_FLAG_XFR) {
+        return res.status(404).json({ error: 'xfr feature disabled' });
+    }
+
+    const job = xfrManager.getJob(req.params.id);
+    if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Set headers for SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const listener = (event: any) => {
+        res.write(`event: ${event.type}\n`);
+        res.write(`data: ${JSON.stringify(event.data)}\n\n`);
+    };
+
+    xfrManager.addListener(job.id, listener);
+
+    req.on('close', () => {
+        xfrManager.removeListener(job.id, listener);
+    });
 });
 
 // API: Get UI Configuration (Public endpoint)

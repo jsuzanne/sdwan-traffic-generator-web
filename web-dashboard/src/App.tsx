@@ -10,6 +10,7 @@ import Failover from './Failover';
 import System from './System';
 import Iot from './Iot';
 import Vyos from './Vyos';
+import Speedtest from './Speedtest';
 import { Activity, Server, AlertCircle, LayoutDashboard, Settings, LogOut, Key, UserPlus, BarChart3, Wifi, Shield, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Play, Pause, Phone, Gauge, Network, Plus, Zap, Monitor, Cpu, Sun, Moon, Globe } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -52,9 +53,11 @@ interface SiteInfo {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
-  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt' | 'iot' | 'vyos'>(
+  const [view, setView] = useState<'dashboard' | 'config' | 'statistics' | 'security' | 'voice' | 'performance' | 'failover' | 'system' | 'srt' | 'iot' | 'vyos' | 'speedtest'>(
     (localStorage.getItem('activeView') as any) || 'performance'
   );
+
+  const [features, setFeatures] = useState<{ xfr_enabled: boolean }>({ xfr_enabled: false });
 
   // --- Theme Management ---
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -442,6 +445,16 @@ export default function App() {
     }
   }
 
+  const fetchFeatures = async () => {
+    try {
+      const res = await fetch('/api/features');
+      const data = await res.json();
+      setFeatures(data);
+    } catch (e) {
+      console.error("Failed to fetch features");
+    }
+  };
+
   const fetchAppConfig = async () => {
     if (!token) return;
     try {
@@ -547,6 +560,7 @@ export default function App() {
     fetchPublicIp();
     fetchSiteInfo();
     fetchHistory();
+    fetchFeatures();
 
 
     // The "Single Clock" - Everything high-freq (1s baseline)
@@ -827,6 +841,17 @@ export default function App() {
         >
           <Phone size={18} /> Voice
         </button>
+        {features.xfr_enabled && (
+          <button
+            onClick={() => setView('speedtest')}
+            className={cn(
+              "px-4 py-3 flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] border-b-2 transition-all",
+              view === 'speedtest' ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-text-muted hover:text-text-primary"
+            )}
+          >
+            <Activity size={18} /> Speedtest (xfr)
+          </button>
+        )}
         <button
           onClick={() => setView('failover')}
           className={cn(
@@ -1331,6 +1356,8 @@ export default function App() {
         <Iot token={token!} />
       ) : view === 'vyos' ? (
         <Vyos token={token!} />
+      ) : view === 'speedtest' && features.xfr_enabled ? (
+        <Speedtest token={token!} />
       ) : (
         <Config token={token!} />
       )}
