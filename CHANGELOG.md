@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.82] - 2026-02-19
-### Fixed
-- **Logging**: Standardized `iperf` client and server logs to include timestamps using the centralized logging system. 🕒
+## [v1.2.1-patch.83] - 2026-02-19
+### Added
+- **Speedtest (xfr)**: New high-performance bandwidth testing tool hidden behind the `FEATURE_FLAG_XFR` environment variable. Features real-time SSE throughput streaming and live charting. ⚡📊
 
-## [v1.2.1-patch.81] - 2026-02-19
+## [v1.2.1-patch.82] - 2026-02-19
 ### Fixed
 - **System Maintenance**: Further improved restart reliability by explicitly installing `docker-compose` in the container and adding robust binary detection (checking both standalone and plugin versions). 🛡️
 - **System Maintenance**: Increased reliability of GitHub version detection by adding retries and a 10s timeout to the API fetch. 📡
