@@ -4,10 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.95] - 2026-02-19
+## [v1.2.1-patch.96] - 2026-02-19
 ### Fixed
-- **CI/CD**: Aligned GitHub Action secrets with existing repository settings (`DOCKER_USERNAME` / `DOCKER_PASSWORD`). 🔐
+- **DevOps**: Updated `xfr-target/Dockerfile` to dynamically download architecture-specific binaries from GitHub during build, resolving the GitHub Actions `buildx` failure. 🏗️
 
+## [v1.2.1-patch.95] - 2026-02-19
 ## [v1.2.1-patch.94] - 2026-02-19
 ## [v1.2.1-patch.93] - 2026-02-19
 ## [v1.2.1-patch.92] - 2026-02-19

@@ -1,12 +1,15 @@
 FROM debian:12-slim
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
   && rm -rf /var/lib/apt/lists/*
 
 ARG TARGETARCH
-COPY xfr-${TARGETARCH} /usr/local/bin/xfr
-RUN chmod +x /usr/local/bin/xfr
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        curl -L https://github.com/lance0/xfr/releases/download/v0.8.0/xfr-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin xfr; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        curl -L https://github.com/lance0/xfr/releases/download/v0.8.0/xfr-aarch64-unknown-linux-gnu.tar.gz | tar xz -C /usr/local/bin xfr; \
+    fi && chmod +x /usr/local/bin/xfr
 
 ENV XFR_PORT=9000
 ENV XFR_MAX_DURATION=60
