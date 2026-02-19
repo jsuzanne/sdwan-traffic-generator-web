@@ -142,6 +142,7 @@ interface XfrTestResultInterval {
 
 interface XfrJob {
     id: string;
+    sequence_id: string;
     status: 'queued' | 'running' | 'completed' | 'failed';
     params: XfrTestParams;
     started_at: string | null;
@@ -183,13 +184,17 @@ const XFR_BINARY = findXfrBinary();
 
 class XfrJobManager {
     private jobs = new Map<string, XfrJob>();
+    private sequenceCounter: number = 0;
 
     createJob(params: Partial<XfrTestParams>): string {
+        this.sequenceCounter++;
+        const seqId = `XFR-${this.sequenceCounter.toString().padStart(4, '0')}`;
         const id = `xfr_${new Date().toISOString().replace(/[:.]/g, '').replace('T', '_').slice(0, 15)}_${Math.floor(Math.random() * 10000)}`;
         const mergedParams: XfrTestParams = { ...XFR_DEFAULTS, ...params };
 
         const job: XfrJob = {
             id,
+            sequence_id: seqId,
             status: 'queued',
             params: mergedParams,
             started_at: null,
@@ -208,6 +213,21 @@ class XfrJobManager {
         return this.jobs.get(id);
     }
 
+    getAllJobs(): XfrJob[] {
+        return Array.from(this.jobs.values()).sort((a, b) => b.sequence_id.localeCompare(a.sequence_id));
+    }
+
+    private logToXfrFile(job: XfrJob, message: string) {
+        const xfrLogFile = path.join(APP_CONFIG.logDir, 'xfr.log');
+        const ts = new Date().toLocaleString();
+        const logLine = `[${ts}] [${job.sequence_id}] ${message}\n`;
+        try {
+            fs.appendFileSync(xfrLogFile, logLine);
+        } catch (e) {
+            console.error('Failed to write to xfr.log', e);
+        }
+    }
+
     startJob(id: string) {
         const job = this.jobs.get(id);
         if (!job || job.status !== 'queued') return;
@@ -216,7 +236,8 @@ class XfrJobManager {
         job.started_at = new Date().toISOString();
 
         const args = this.buildArgs(job.params);
-        log('XFR', `Launching: ${XFR_BINARY} ${args.join(' ')}`);
+        log('XFR', `[${job.sequence_id}] Launching: ${XFR_BINARY} ${args.join(' ')}`);
+        this.logToXfrFile(job, `Test started: ${job.params.protocol.toUpperCase()} ${job.params.direction} to ${job.params.host}:${job.params.port} (${job.params.duration_sec}s, ${job.params.bitrate})`);
 
         try {
             const child = spawn(XFR_BINARY, args);
@@ -233,13 +254,22 @@ class XfrJobManager {
                     try {
                         const parsed = JSON.parse(line);
                         // xfr emits intervals in --json-stream mode
-                        if (parsed.type === 'interval' || parsed.sent_mbps !== undefined) {
+                        // Mapping throughput_mbps to sent/received based on direction
+                        if (parsed.type === 'interval' || parsed.throughput_mbps !== undefined) {
+                            const val = parsed.throughput_mbps || 0;
                             const interval: XfrTestResultInterval = {
                                 timestamp: parsed.timestamp || new Date().toISOString(),
-                                sent_mbps: parsed.sent_mbps || 0,
-                                received_mbps: parsed.received_mbps || 0,
+                                sent_mbps: job.params.direction === 'server-to-client' ? 0 : val,
+                                received_mbps: job.params.direction === 'server-to-client' ? val : 0,
                                 loss_percent: parsed.loss_percent || 0
                             };
+
+                            // Handling bidirectional
+                            if (job.params.direction === 'bidirectional') {
+                                interval.sent_mbps = parsed.sent_mbps || val;
+                                interval.received_mbps = parsed.received_mbps || val;
+                            }
+
                             job.intervals.push(interval);
                             this.notifyListeners(job, { type: 'interval', data: interval });
                         } else if (parsed.type === 'summary') {
@@ -255,14 +285,22 @@ class XfrJobManager {
                 job.status = code === 0 ? 'completed' : 'failed';
                 job.finished_at = new Date().toISOString();
                 if (code !== 0) job.error = `Process exited with code ${code}`;
+
                 this.notifyListeners(job, { type: 'done', data: { status: job.status } });
-                log('XFR', `Job ${id} finished with status ${job.status}`);
+                log('XFR', `[${job.sequence_id}] finished with status ${job.status}`);
+
+                if (job.status === 'completed' && job.summary) {
+                    this.logToXfrFile(job, `Test completed: ${job.summary.received_mbps.toFixed(2)} Mbps, Loss: ${job.summary.loss_percent.toFixed(2)}%, Latency: ${job.summary.rtt_ms_avg.toFixed(1)}ms`);
+                } else {
+                    this.logToXfrFile(job, `Test failed: ${job.error || 'Unknown error'}`);
+                }
             });
 
         } catch (e: any) {
             job.status = 'failed';
             job.error = e.message;
             this.notifyListeners(job, { type: 'done', data: { status: 'failed', error: e.message } });
+            this.logToXfrFile(job, `Execution error: ${e.message}`);
         }
     }
 
@@ -1560,6 +1598,23 @@ app.post('/api/tests/xfr', authenticateToken, (req, res) => {
     xfrManager.startJob(id);
 
     res.json({ id, status: 'queued' });
+});
+
+app.get('/api/tests/xfr', authenticateToken, (req, res) => {
+    if (!FEATURE_FLAG_XFR) {
+        return res.status(404).json({ error: 'xfr feature disabled' });
+    }
+    const jobs = xfrManager.getAllJobs().map(j => ({
+        id: j.id,
+        sequence_id: j.sequence_id,
+        status: j.status,
+        started_at: j.started_at,
+        finished_at: j.finished_at,
+        params: j.params,
+        summary: j.summary,
+        error: j.error
+    }));
+    res.json(jobs);
 });
 
 app.get('/api/tests/xfr/:id', authenticateToken, (req, res) => {

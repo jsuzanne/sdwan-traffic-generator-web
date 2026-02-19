@@ -28,6 +28,7 @@ interface XfrSummary {
 
 interface XfrJob {
     id: string;
+    sequence_id: string;
     status: 'queued' | 'running' | 'completed' | 'failed';
     params: any;
     started_at: string | null;
@@ -51,16 +52,28 @@ export default function Speedtest({ token }: Props) {
     const [streams, setStreams] = useState(4);
 
     const [activeJob, setActiveJob] = useState<XfrJob | null>(null);
+    const [history, setHistory] = useState<XfrJob[]>([]);
     const [chartData, setChartData] = useState<any[]>([]);
     const sseRef = useRef<EventSource | null>(null);
 
     const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
     useEffect(() => {
+        fetchHistory();
+        const interval = setInterval(fetchHistory, 5000);
         return () => {
             if (sseRef.current) sseRef.current.close();
+            clearInterval(interval);
         };
     }, []);
+
+    const fetchHistory = async () => {
+        try {
+            const res = await fetch('/api/tests/xfr', { headers: authHeaders });
+            const data = await res.json();
+            if (res.ok) setHistory(data);
+        } catch (e) { }
+    };
 
     const runTest = async () => {
         if (!targetHost) {
@@ -92,6 +105,7 @@ export default function Speedtest({ token }: Props) {
                 toast.success(`Test started: ${data.id}`);
                 pollJob(data.id);
                 subscribeToStream(data.id);
+                fetchHistory();
             } else {
                 toast.error(data.error || 'Failed to start test');
             }
@@ -108,6 +122,8 @@ export default function Speedtest({ token }: Props) {
                 setActiveJob(data);
                 if (data.status === 'running' || data.status === 'queued') {
                     setTimeout(() => pollJob(id), 2000);
+                } else {
+                    fetchHistory();
                 }
             }
         } catch (e) { }
@@ -117,10 +133,10 @@ export default function Speedtest({ token }: Props) {
         if (sseRef.current) sseRef.current.close();
         setChartData([]);
 
-        // SSE doesn't support custom headers natively, but our server expects Bearer token.
-        // However, our authenticateToken might be configured to check cookies or we can pass it in query if we want.
-        // For now, let's assume standard auth, potentially we'd need a token-in-url if we didn't have cookies.
-        // Assuming our server supports token in query for SSE:
+        // We can't set headers on EventSource, so we rely on the session/token in query if needed.
+        // Our server expects authenticateToken (Bearer). 
+        // Usually we'd use a cookie-based auth or a signed URL for SSE.
+        // For now, let's just use the URL directly, assuming the server might allow token in query.
         const sse = new EventSource(`/api/tests/xfr/${id}/stream?token=${token}`);
         sseRef.current = sse;
 
@@ -134,6 +150,7 @@ export default function Speedtest({ token }: Props) {
             const data = JSON.parse(e.data);
             toast.success(`Test ${data.status}`);
             sse.close();
+            fetchHistory();
         });
 
         sse.onerror = () => {
@@ -147,7 +164,7 @@ export default function Speedtest({ token }: Props) {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Configuration Side */}
-                <div className="w-full md:w-96 space-y-4">
+                <div className="w-full md:w-96 space-y-6">
                     <div className="bg-card border border-border rounded-2xl p-6 shadow-sm overflow-hidden relative">
                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                             <Gauge size={120} />
