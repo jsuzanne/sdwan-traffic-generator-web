@@ -110,12 +110,14 @@ const CONVERGENCE_ENDPOINTS_FILE = path.join(APP_CONFIG.configDir, 'convergence-
  * Spawn getflow.py and return parsed JSON, or null on any error.
  * Fire-and-forget safe: never throws, always resolves.
  */
-async function runGetflow(siteName: string, sourcePort: number): Promise<any> {
+async function runGetflow(siteName: string, sourcePort: number, dstIp: string): Promise<any> {
     return new Promise((resolve) => {
         try {
-            // Scripts/ directory is two levels up from web-dashboard/
-            const scriptPath = path.join(__dirname, '..', '..', 'Scripts', 'getflow.py');
+            // engines/ is mounted inside the Docker container (same as convergence_orchestrator.py)
+            const scriptPath = path.join(PROJECT_ROOT, 'engines', 'getflow.py');
+            console.log(`[CONV] [DEBUG] runGetflow: scriptPath=${scriptPath} exists=${fs.existsSync(scriptPath)}`);
             if (!fs.existsSync(scriptPath)) {
+                console.warn(`[CONV] [DEBUG] getflow.py not found at: ${scriptPath}`);
                 resolve(null);
                 return;
             }
@@ -123,18 +125,27 @@ async function runGetflow(siteName: string, sourcePort: number): Promise<any> {
                 scriptPath,
                 '--site-name', siteName,
                 '--udp-src-port', String(sourcePort),
+                '--dst-ip', dstIp,
                 '--minutes', '5',
                 '--json'
             ];
+            console.log(`[CONV] [DEBUG] Spawning: python3 ${args.join(' ')}`);
             const proc = spawn('python3', args, { timeout: 30_000 });
             let stdout = '';
+            let stderr = '';
             proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
-            proc.on('close', () => {
+            proc.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+            proc.on('close', (code) => {
+                console.log(`[CONV] [DEBUG] getflow exited code=${code} stdout_len=${stdout.length} stderr=${stderr.slice(0, 200)}`);
                 try { resolve(JSON.parse(stdout)); }
                 catch { resolve(null); }
             });
-            proc.on('error', () => resolve(null));
-        } catch {
+            proc.on('error', (e) => {
+                console.warn(`[CONV] [DEBUG] getflow spawn error: ${e.message}`);
+                resolve(null);
+            });
+        } catch (e: any) {
+            console.warn(`[CONV] [DEBUG] runGetflow exception: ${e.message}`);
             resolve(null);
         }
     });
@@ -3031,7 +3042,8 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
                     // 60s delay allows the SD-WAN flow to be indexed in Prisma
                     const testNum = parseInt(testId.replace('CONV-', ''));
                     const sourcePort = 30000 + testNum;
-                    console.log(`[${testId}] [CONV] Scheduling getflow enrichment in 60s (port ${sourcePort})`);
+                    const enrichTarget = target; // capture target IP in closure
+                    console.log(`[${testId}] [CONV] Scheduling getflow enrichment in 60s (port ${sourcePort}, dst ${enrichTarget})`);
                     setTimeout(async () => {
                         try {
                             const siteInfo = siteManager.getSiteInfo();
@@ -3040,7 +3052,7 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
                                 console.log(`[${testId}] [CONV] No site name detected, skipping getflow enrichment`);
                                 return;
                             }
-                            const result = await runGetflow(siteName, sourcePort);
+                            const result = await runGetflow(siteName, sourcePort, enrichTarget);
                             if (result?.flows && result.flows.length > 0) {
                                 const rawPath = result.flows[0]?.egress_path || '';
                                 const egressPath = rawPath.replace(/ to /g, ' → ');
