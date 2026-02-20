@@ -106,6 +106,10 @@ const CONVERGENCE_ENDPOINTS_FILE = path.join(APP_CONFIG.configDir, 'convergence-
 
 // ─── Egress Path Enrichment Helpers ────────────────────────────────────────
 
+// Debug mode: set DEBUG=true in .env or docker-compose env to enable verbose logging
+const debugMode = process.env.DEBUG === 'true';
+const dbg = (...args: any[]) => { if (debugMode) console.log(...args); };
+
 /**
  * Spawn getflow.py and return parsed JSON, or null on any error.
  * Fire-and-forget safe: never throws, always resolves.
@@ -115,9 +119,9 @@ async function runGetflow(siteName: string, sourcePort: number, dstIp: string): 
         try {
             // engines/ is mounted inside the Docker container (same as convergence_orchestrator.py)
             const scriptPath = path.join(PROJECT_ROOT, 'engines', 'getflow.py');
-            console.log(`[CONV] [DEBUG] runGetflow: scriptPath=${scriptPath} exists=${fs.existsSync(scriptPath)}`);
+            dbg(`[CONV] [DEBUG] runGetflow: scriptPath=${scriptPath} exists=${fs.existsSync(scriptPath)}`);
             if (!fs.existsSync(scriptPath)) {
-                console.warn(`[CONV] [DEBUG] getflow.py not found at: ${scriptPath}`);
+                console.warn(`[CONV] getflow.py not found at: ${scriptPath}`);
                 resolve(null);
                 return;
             }
@@ -129,23 +133,23 @@ async function runGetflow(siteName: string, sourcePort: number, dstIp: string): 
                 '--minutes', '5',
                 '--json'
             ];
-            console.log(`[CONV] [DEBUG] Spawning: python3 ${args.join(' ')}`);
+            dbg(`[CONV] [DEBUG] Spawning: python3 ${args.join(' ')}`);
             const proc = spawn('python3', args, { timeout: 30_000 });
             let stdout = '';
             let stderr = '';
             proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
             proc.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
             proc.on('close', (code) => {
-                console.log(`[CONV] [DEBUG] getflow exited code=${code} stdout_len=${stdout.length} stderr=${stderr.slice(0, 200)}`);
+                dbg(`[CONV] [DEBUG] getflow exited code=${code} stdout_len=${stdout.length} stderr=${stderr.slice(0, 200)}`);
                 try { resolve(JSON.parse(stdout)); }
                 catch { resolve(null); }
             });
             proc.on('error', (e) => {
-                console.warn(`[CONV] [DEBUG] getflow spawn error: ${e.message}`);
+                dbg(`[CONV] [DEBUG] getflow spawn error: ${e.message}`);
                 resolve(null);
             });
         } catch (e: any) {
-            console.warn(`[CONV] [DEBUG] runGetflow exception: ${e.message}`);
+            dbg(`[CONV] [DEBUG] runGetflow exception: ${e.message}`);
             resolve(null);
         }
     });
@@ -158,7 +162,7 @@ async function runGetflow(siteName: string, sourcePort: number, dstIp: string): 
 async function enrichConvergenceHistory(testId: string, extra: Record<string, any>): Promise<boolean> {
     try {
         if (!fs.existsSync(CONVERGENCE_HISTORY_FILE)) {
-            console.warn(`[CONV] [DEBUG] enrichConvergenceHistory: history file not found`);
+            dbg(`[CONV] [DEBUG] enrichConvergenceHistory: history file not found`);
             return false;
         }
         const raw = await fs.promises.readFile(CONVERGENCE_HISTORY_FILE, 'utf-8');
@@ -172,7 +176,7 @@ async function enrichConvergenceHistory(testId: string, extra: Record<string, an
                 const recordId: string = obj.test_id || obj.testId || '';
                 if (recordId === testId || recordId.startsWith(testId + ' ') || recordId.startsWith(testId + '(')) {
                     found = true;
-                    console.log(`[CONV] [DEBUG] enrichConvergenceHistory: matched record id="${recordId}" for testId="${testId}"`);
+                    dbg(`[CONV] [DEBUG] enrichConvergenceHistory: matched record id="${recordId}" for testId="${testId}"`);
                     return JSON.stringify({ ...obj, ...extra });
                 }
                 return line;
@@ -181,7 +185,7 @@ async function enrichConvergenceHistory(testId: string, extra: Record<string, an
             }
         });
         if (!found) {
-            console.warn(`[CONV] [DEBUG] enrichConvergenceHistory: no match for testId="${testId}" in ${lines.length} records`);
+            dbg(`[CONV] [DEBUG] enrichConvergenceHistory: no match for testId="${testId}" in ${lines.length} records`);
             return false;
         }
         const tmp = CONVERGENCE_HISTORY_FILE + '.tmp';

@@ -901,7 +901,7 @@ export default function Vyos(props: VyosProps) {
                                             {seq.executionMode === 'STEP_BY_STEP' ? <Terminal size={10} /> : <Clock size={10} />}
                                             {seq.executionMode === 'STEP_BY_STEP' ? 'STEP-BY-STEP' : seq.cycle_duration > 0 ? `${seq.cycle_duration}M CRON` : 'MANUAL'}
                                         </span>
-                                        <span className="text-[10px] text-text-muted font-mono opacity-50">#{seq.id.split('-').pop()?.substring(0, 4)}</span>
+                                        <span className="text-[10px] text-text-muted font-mono opacity-50">#{seq.id.split('-').pop()?.slice(-4)}</span>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -1975,8 +1975,21 @@ function ExecutionTimeline({
     const handleNextStep = async () => {
         if (isStepRunning) return;
         const currentStep = sequence.currentStep || 0;
+
+        // Wrap-around: after last step, loop back to step 1
         if (currentStep >= sequence.actions.length) {
-            toast.success('Sequence completed');
+            try {
+                const updatedSeq = { ...sequence, currentStep: 0 };
+                await fetch('/api/vyos/sequences', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify(updatedSeq)
+                });
+                toast.success('🔁 Sequence looped — back to Step 1', { duration: 3000 });
+                await onRefresh();
+            } catch (e) {
+                toast.error('Failed to reset sequence');
+            }
             return;
         }
 
