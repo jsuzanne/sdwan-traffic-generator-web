@@ -155,17 +155,24 @@ async function runGetflow(siteName: string, sourcePort: number, dstIp: string): 
  * Find a convergence history entry by testId and merge extra fields.
  * Uses atomic .tmp + rename write to prevent file corruption.
  */
-async function enrichConvergenceHistory(testId: string, extra: Record<string, any>): Promise<void> {
+async function enrichConvergenceHistory(testId: string, extra: Record<string, any>): Promise<boolean> {
     try {
-        if (!fs.existsSync(CONVERGENCE_HISTORY_FILE)) return;
+        if (!fs.existsSync(CONVERGENCE_HISTORY_FILE)) {
+            console.warn(`[CONV] [DEBUG] enrichConvergenceHistory: history file not found`);
+            return false;
+        }
         const raw = await fs.promises.readFile(CONVERGENCE_HISTORY_FILE, 'utf-8');
         const lines = raw.split('\n').filter(Boolean);
         let found = false;
         const updated = lines.map(line => {
             try {
                 const obj = JSON.parse(line);
-                if (obj.testId === testId) {
+                // Orchestrator writes `test_id` (snake_case), may include label: "CONV-0075 (DC1)"
+                // JS handler writes `testId` (camelCase). Check both with startsWith for label tolerance.
+                const recordId: string = obj.test_id || obj.testId || '';
+                if (recordId === testId || recordId.startsWith(testId + ' ') || recordId.startsWith(testId + '(')) {
                     found = true;
+                    console.log(`[CONV] [DEBUG] enrichConvergenceHistory: matched record id="${recordId}" for testId="${testId}"`);
                     return JSON.stringify({ ...obj, ...extra });
                 }
                 return line;
@@ -173,12 +180,17 @@ async function enrichConvergenceHistory(testId: string, extra: Record<string, an
                 return line;
             }
         });
-        if (!found) return; // Don't write if entry not found
+        if (!found) {
+            console.warn(`[CONV] [DEBUG] enrichConvergenceHistory: no match for testId="${testId}" in ${lines.length} records`);
+            return false;
+        }
         const tmp = CONVERGENCE_HISTORY_FILE + '.tmp';
         await fs.promises.writeFile(tmp, updated.join('\n') + '\n', 'utf-8');
         await fs.promises.rename(tmp, CONVERGENCE_HISTORY_FILE);
+        return true;
     } catch (e: any) {
         console.warn(`[CONV] enrichConvergenceHistory failed: ${e.message}`);
+        return false;
     }
 }
 

@@ -64,13 +64,13 @@ export default function Failover(props: FailoverProps) {
     useEffect(() => {
         fetchEndpoints();
         fetchHistory();
-        // We only poll endpoints and history occasionally now
+        // Poll endpoints every 5s. Always poll history to pick up async enrichments (egress path).
         const interval = setInterval(() => {
             fetchEndpoints();
-            if (activeTests.length === 0) fetchHistory();
+            fetchHistory();
         }, 5000);
         return () => clearInterval(interval);
-    }, [activeTests.length === 0]);
+    }, []);
 
     const addEndpoint = async () => {
         if (!newTarget.label || !newTarget.target) return;
