@@ -95,95 +95,17 @@ This project is my way to turn all that lab and demo experience into an open-sou
 
 ---
 
-## 🆕 What's New in v1.2.1
+## 🆕 What's New
 
-Recent improvements and features added to the SD-WAN Traffic Generator:
+The project is evolving rapidly with new features and refinements added in every release.
 
-### v1.2.1-patch.51 (Latest)
-- **IoT Security Testing**: Full implementation of "Bad Behavior" mode for IoT devices including DNS Flood, C2 Beacon, and Port Scan.
-- **UI/UX**: Added hardware-style visual badges, security toggles, and improved argument passing for the scapy engine.
+### Highlights in v1.2.1
+- **Speedtest (XFR)**: High-performance throughput and latency validation with real-time telemetry and searchable history.
+- **IoT Security Testing**: Bad behavior simulation for IoT devices (DNS Flood, C2 Beacon, Port Scan).
+- **Site Discovery**: Automatic discovery of Prisma SD-WAN LAN interfaces for path validation.
+- **Traffic Volume History**: Persistent metrics storage and historical visualization in the dashboard.
 
-### v1.2.1-patch.43
-- **Traffic Volume History**: Persistent metrics storage and historical visualization in the main dashboard.
-- **Premium UI**: Upgraded charts with monotone area gradients, glassmorphism effects, and better time range selectors (1h/6h/24h).
-
-### v1.2.1-patch.39
-- **Site Discovery (DEM)**: Automatic discovery of Prisma SD-WAN LAN interfaces for "Zero-Config" connectivity probes.
-- **DC Cluster Discovery**: Support for discovering multiple LAN IPs per site for high-availability cluster monitoring.
-
-### v1.2.1-patch.35
-- **Security**: Added Advanced URL Filtering (Malware, Phishing, Grayware, C2) categories with real-time detection validation.
-
-### v1.2.1-patch.30
-- **Performance Trends**: Redesigned performance dashboard with separate metrics per endpoint type (HTTP, ICMP, DNS, UDP).
-
-### v1.2.1-patch.26
-- **VyOS Timeline**: Added interactive pause/resume/stop controls for impairment sequences.
-
-### v1.2.1-patch.29
-- **Connectivity Endpoints**: Added enable/disable toggle for probes and bulk management actions in Config/Performance tabs.
-- **Config UX**: Improved layout with better labels, wider target fields, and hardware-style edit icons.
-
-### v1.2.1-patch.26
-- **IoT Simulation**: Reorganized documentation into specialized guides and added DHCP fingerprint CLI support for single-device mode.
-
-### v1.2.1-patch.22
-- **Metrics**: Enriched directional loss monitoring with detailed TX/RX packet counters and ms duration in Convergence Lab.
-
-### v1.2.1-patch.18
-- **UI/UX**: Significantly enhanced Convergence History with visual loss indicators and detailed packet statistics.
-- **Networking**: Added Public IP detection and display in the main dashboard.
-- **Maintenance**: Added "Power & Restart" controls (Restart Services / Full System Reload).
-
-### v1.2.1-patch.17
-- **Networking**: Added Public IP detection and display in the main dashboard
-- **Maintenance**: Added "Power & Restart" controls (Restart Services / Full System Reload)
-- **UX**: Removed "Export" button from Connectivity Performance
-- **UI**: Fixed version display format (removed duplicate 'v')
-
-### v1.2.1-patch.15
-- **System Maintenance**: Fixed version detection using GitHub Releases API for correct ordering
-
-### v1.2.1-patch.14
-- **CRITICAL FIX**: Restored IoT emulator directory accidentally deleted in patch.9
-
-### v1.2.1-patch.13
-- **IoT Manager**: Added safety check to gracefully handle missing Python emulator
-
-### v1.2.1-patch.12
-- **Docker Build Fix**: Removed stale /iot directory references causing build failures
-
-### v1.2.1-patch.11
-- **VyOS Control**: New mission sequences default to "Manual Trigger Only" for better workflow
-
-### v1.2.1-patch.10
-- **VyOS Controller**: Made discovery timeout configurable (default 30s) and fixed error message
-- **Web UI Container**: Added vim-tiny editor for easier debugging
-
-### v1.2.1-patch.9
-- **Documentation**: Added table of contents, organized screenshot gallery (9 categories), What's New section, and reorganized documentation by user journey
-
-### v1.2.1-patch.8
-- **Voice Dashboard UI**: Renamed "Diagnostic Monitoring" to "Call Monitoring" for better clarity
-- **Configuration**: Simplified button labels ("Save" instead of "Commit Configuration")
-
-### v1.2.1-patch.7
-- **Build Fix**: Resolved Docker build failure in ConnectivityPerformance component
-
-### v1.2.1-patch.6
-- **Security Dashboard**: Added "Allowed" statistics column to DNS Protection card
-- **Connectivity Performance**: Fixed flaky endpoints filtering to respect "Show Deleted" toggle
-
-### v1.2.1-patch.5
-- **Synthetic Probes**: Full JSON configuration export/import in Configuration tab
-- **Voice MOS Score**: Real-time Average MOS Score display in Voice Dashboard
-- **Green Favicon**: New green digital globe favicon for Target App
-
-### v1.2.1-patch.4
-- **Security Configuration**: Fixed EICAR config persistence issue
-- **Help Integration**: Added documentation link to Security tab
-
-[View full changelog →](CHANGELOG.md)
+[View full changelog with all version details →](CHANGELOG.md)
 
 ---
 

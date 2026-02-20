@@ -1,0 +1,100 @@
+64889af (HEAD -> main, tag: v1.2.1-patch.102, origin/main, origin/HEAD) style: switch quick targets to pill-based layout for better reliability
+343c13f style: refine quick targets ui and fix auto-close
+6d8d769 fix: definitive removal of FEATURE_FLAG_XFR to fix server crash
+c427736 fix: remove FEATURE_FLAG_XFR checks causing ReferenceError and remove Beta UI tag
+29ca2e8 chore: update default xfr port to 9000
+dca0065 Update XFR_TESTING.md
+c21c69a (tag: v1.2.1-patch.101) style: refine quick targets ui and fix auto-close
+a2f0937 (tag: v1.2.1-patch.100) fix: definitive removal of FEATURE_FLAG_XFR to fix server crash
+6835fcf (tag: v1.2.1-patch.99) fix: remove FEATURE_FLAG_XFR checks causing ReferenceError and remove Beta UI tag
+475a728 (tag: v1.2.1-patch.98) chore: update default xfr port to 9000
+2702f4e (tag: v1.2.1-patch.97) feat: final xfr polish - chart time fix, quick targets, host network, and docs
+ca3e363 (tag: v1.2.1-patch.96) fix: dynamic xfr download in xfr-target Dockerfile for multi-arch support
+9319d8b (tag: v1.2.1-patch.95) fix: align workflow secrets with existing repo settings
+05bbc6f (tag: v1.2.1-patch.94) fix: cport protocol restriction and automate xfr-target build
+190298b (tag: v1.2.1-patch.93) feat: enhanced xfr custom options and deterministic source port
+a3a48fb (tag: v1.2.1-patch.92) fix: xfr-target multi-arch build logic and cleanup
+61cfac6 Add xfr-target multi-arch build workflow
+9aed23c (tag: v1.2.1-patch.91) feat: xfr refinements - target_ip defaults, chart fixes and enhanced logging
+dfce3ca (tag: v1.2.1-patch.90) feat: enhanced xfr ui with searchable history and sse buffering fix
+c413a56 (tag: v1.2.1-patch.89) feat: persistent xfr history, rtt tracking and sse auth fix
+63327e9 (tag: v1.2.1-patch.88) fix: robust xfr parsing and verbose interval logging
+93072dc (tag: v1.2.1-patch.87) fix: refine xfr summary detection and metric mapping
+f1a910b (tag: v1.2.1-patch.86) feat: enhance xfr with logging, sequence IDs and history UI
+8836e1d (tag: v1.2.1-patch.85) feat: install xfr in Docker and reorder UI menu
+92ec289 (tag: v1.2.1-patch.84) fix: xfr binary detection and argument formatting
+302b3eb (tag: v1.2.1-patch.83) chore: release v1.2.1-patch.83 with Speedtest feature
+5842f2a feat: implement Speedtest (xfr) with live SSE streaming and feature flags
+48fd5aa (tag: v1.2.1-patch.82) fix: standardize iperf logging with timestamps
+a16460a (tag: v1.2.1-patch.81) fix: robust project root detection and pathing for maintenance
+aeccaa6 (tag: v1.2.1-patch.80) fix: improve version tag sorting for patch releases
+d0e2576 (tag: v1.2.1-patch.79) fix: improve maintenance robustness with docker-compose install and fetch retries
+7afc91c (tag: v1.2.1-patch.78) fix: improve system maintenance version detection and restart robustness
+2b757fe (tag: v1.2.1-patch.77) fix: correct outage duration calculation in convergence lab
+97fac67 docs: sync version to v1.2.1-patch.76 after README update
+9008411 docs: reformat macOS install output in README.md
+b9458f8 docs: update README.md with macOS install output example and version badge
+010fad4 Update README.md
+daf3dc2 (tag: v1.2.1-patch.76) docs: sync version to v1.2.1-patch.76 after README update
+23bd8d4 docs: reformat macOS install output in README.md
+d8a321a docs: update README.md with macOS install output example and version badge
+b72226c (tag: v1.2.1-patch.75) feat: implement VyOS router refresh and deletion protection; sync version to v1.2.1-patch.75
+c29319c (tag: v1.2.1-patch.74) feat: implement VyOS Step-by-Step sequence mode and sync version to v1.2.1-patch.74
+d36cd1a docs: add sample configuration folder (force add ignored json)
+f52317c chore: release 1.2.1-patch.73 - add debug logging for Voice import
+8e143ae Update README.md
+1f2699e Delete HANDOVER.md
+fc22097 (tag: v1.2.1-patch.73) chore: release 1.2.1-patch.73 - add debug logging for Voice import
+b353366 docs: update CHANGELOG.md with recent release notes
+88d4ee6 Delete Slow app directory
+780b7b6 (tag: v1.2.1-patch.72) chore: release 1.2.1-patch.72 - fix Voice and VyOS configuration import
+30f3405 (tag: v1.2.1-patch.71) chore: release 1.2.1-patch.71 - fix weight persistence for object-based configs
+a38307e (tag: v1.2.1-patch.70) chore: release 1.2.1-patch.70 - modernize export/import to JSON format
+f17b968 (tag: v1.2.1-patch.69) chore: release 1.2.1-patch.69 - robust config migration and object-based defaults
+dc0f916 (tag: v1.2.1-patch.68) chore: release 1.2.1-patch.68 - fix JSON parsing for legacy formats
+130a816 (tag: v1.2.1-patch.67) chore: release 1.2.1-patch.67
+491f966 (tag: v1.2.1-patch.66) release: v1.2.1-patch.66 - fix traffic engine parsing, force categorical migration, and UI cleanup
+5c73c7c (tag: v1.2.1-patch.65) release: v1.2.1-patch.65 - fixed categorized migration and UI refinements
+cd20d06 (tag: v1.2.1-patch.64) release: v1.2.1-patch.64 - unified VyOS config management and UI refinement
+4d9e36d (tag: v1.2.1-patch.63) release: v1.2.1-patch.63 - fix jq raw output in traffic-generator.sh
+04e2d64 (tag: v1.2.1-patch.62) release: v1.2.1-patch.62 - support applications-config.json in traffic-generator.sh
+df0a58a (tag: v1.2.1-patch.61) release: v1.2.1-patch.61 - sync healthcheck syntax with user preference
+0da3b68 (tag: v1.2.1-patch.60) release: v1.2.1-patch.60 - migration-resilient healthcheck
+fefe5f8 (tag: v1.2.1-patch.59) release: v1.2.1-patch.59 - fix docker healthcheck and sync versions
+9cbcd49 (tag: v1.2.1-patch.58) release: v1.2.1-patch.58 - fix interfacesFile ReferenceError and IoT types
+ea52b69 (tag: v1.2.1-patch.57) release: v1.2.1-patch.57 - convergence fixes, config consolidation, vyos pre-flight
+e51e0f8 (tag: v1.2.1-patch.56) fix: resolve server.ts transform error and sync all version files to .56
+f4fc852 (tag: v1.2.1-patch.55) release: v1.2.1-patch.55 - Voice Import/Export and final counter consolidation
+0614bbd (tag: v1.2.1-patch.54) fix: resolve voice control state synchronization (patch.54)
+8a121bc (tag: v1.2.1-patch.53) fix: resolve syntax error in voice orchestrator (patch.53)
+9f5a341 (tag: v1.2.1-patch.52) release: v1.2.1-patch.52 - Voice consolidation and Security history refactor
+ae7b48d docs: integrate Prisma env vars into compose files and documentation
+43249c4 docs: backfill patches 18-51 and reformat Prisma integration guide
+6f374ed docs: finalize CHANGELOG and README with latest patch details
+50f156b docs: update README with IoT Security features and v1.2.1-patch.51 info
+2fd48b1 (tag: v1.2.1-patch.51) fix(iot): correct arguments for iot_emulator.py and bump to v1.2.1-patch.51
+f68af3d (tag: v1.2.1-patch.50) feat(iot): update documentation and generation script for security testing and bump to v1.2.1-patch.50
+cb2f285 (tag: v1.2.1-patch.49) feat(iot): include updated emulator and bump version to 1.2.1-patch.49
+57e8d47 (tag: v1.2.1-patch.48) feat(iot): add security testing / bad behavior features and update version to 1.2.1-patch.48
+bda886b (tag: v1.2.1-patch.47) fix: rollback Convergence Lab to stable patch.43 (v1.2.1-patch.47)
+4ba0313 (tag: v1.2.1-patch.46) fix: restore history persistence and optimize PPS limit in v1.2.1-patch.46
+a881160 (tag: v1.2.1-patch.45) fix: finalize Convergence Lab stop sequence and packet counts (v1.2.1-patch.45)
+bcff082 fix: resolve Convergence Lab regression in v1.2.1-patch.45
+8533d4c (tag: v1.2.1-patch.44) feat: optimize Convergence Lab stop sequence UX (v1.2.1-patch.44)
+ee4c90f Update CONVERGENCE_LAB.md
+143e324 (tag: v1.2.1-patch.43) feat: implement traffic volume history and premium dashboard UI (v1.2.1-patch.43)
+e0ff3f0 (tag: v1.2.1-patch.42) feat: support multiple IPs for DC cluster discovery (v1.2.1-patch.42)
+9a42711 (tag: v1.2.1-patch.41) feat: enhance site discovery UI with prisma branding and interface labels (v1.2.1-patch.41)
+1d4ef87 (tag: v1.2.1-patch.40) fix: include discovery-manager.ts in Dockerfile and bump version to v1.2.1-patch.40
+2a62605 (tag: v1.2.1-patch.39) feat: implement site discovery for connectivity probes and bump version to v1.2.1-patch.39
+6f9821d (tag: v1.2.1-patch.38) feat: support PRISMA_SDWAN_TSGID as fallback v1.2.1-patch.38
+8cb7a48 (tag: v1.2.1-patch.37) fix: add missing site-manager.ts to Dockerfile v1.2.1-patch.37
+23b8900 (tag: v1.2.1-patch.36) feat: Prisma SD-WAN site auto-detection integration v1.2.1-patch.36
+3f7c9a7 (tag: v1.2.1-patch.35) feat: add Advanced URL Filtering URLs and fix IoT documentation links
+8843fb8 (tag: v1.2.1-patch.34) chore: bump version to v1.2.1-patch.34
+81a237d feat: redesign Performance Trends with separate graphs per endpoint type
+bc42c9d fix: improve Timeline controls UX and add validation
+84023fc (tag: v1.2.1-patch.33) fix: add paused property to VyosSequence TypeScript interface
+a4d7140 fix: ensure VERSION file is correctly copied from web-dashboard directory
+b665792 feat: add pause/resume/stop controls in VyOS Timeline view
+069fe1b (tag: v1.2.1-patch.32) chore: bump version to v1.2.1-patch.32

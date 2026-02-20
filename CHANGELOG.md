@@ -11,26 +11,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v1.2.1-patch.101] - 2026-02-19
 ### Changed
 - **Speedtest (XFR)**: Attempted dropdown UI refinements and auto-close logic (superseded by .102). 🛠️
+- **Speedtest (XFR)**: Refined Quick Targets UI and improved auto-close behavior. ✨
+
+## [v1.2.1-patch.100] - 2026-02-19
+### Fixed
+- **Backend**: Definitive removal of `FEATURE_FLAG_XFR` references in `server.ts` to resolve `ReferenceError` crashes. 🛠️
+- **Frontend**: Removed the "Beta" tag from the Speedtest menu item. ✅
 
 ## [v1.2.1-patch.99] - 2026-02-19
+### Fixed
+- **XFR Phase 2 Cleanup**: Definitive removal of `FEATURE_FLAG_XFR` and "Beta" UI tags. ✅🛠️
 
 ## [v1.2.1-patch.98] - 2026-02-19
+### Changed
+- **DevOps**: Updated default XFR port to 9000 for consistency across environments. 🔢
 
 ## [v1.2.1-patch.97] - 2026-02-19
 ### Added
-- **Speedtest (XFR)**: Support for `XFR_QUICK_TARGETS` environment variable to pre-populate targets in a convenient dropdown. 🎯
+- **Speedtest (XFR)**: Support for `XFR_QUICK_TARGETS` environment variable to pre-populate targets. 🎯
 - **Speedtest (XFR)**: XFR is now fully integrated and enabled by default (removed experimental feature flag). ✅
 - **DevOps**: Switched `voice-echo` and `xfr-target` to `network_mode: host` in Docker Compose for improved performance and measurement accuracy. 🏗️
-- **Documentation**: New [XFR Testing Guide](docs/XFR_TESTING.md) with configuration details and links to technical specifications. 📚
+- **Documentation**: New [XFR Testing Guide](docs/XFR_TESTING.md) with configuration details. 📚
 
 ## [v1.2.1-patch.96] - 2026-02-19
+### Fixed
+- **DevOps**: Implemented dynamic XFR binary download in `xfr-target` Dockerfile to support multi-arch (AMD64/ARM64) builds. 🐳🏗️
+
 ## [v1.2.1-patch.95] - 2026-02-19
+### Fixed
+- **CI/CD**: Aligned GitHub Actions workflow secrets with existing repository settings for automated deployments. 🚀
+
 ## [v1.2.1-patch.94] - 2026-02-19
+### Fixed
+- **Connectivity**: Restricted `cport` protocol and automated `xfr-target` build process. 🛠️
+
 ## [v1.2.1-patch.93] - 2026-02-19
+### Added
+- **Speedtest (XFR)**: Enhanced custom options and implemented deterministic source port mapping. 🚀
+
 ## [v1.2.1-patch.92] - 2026-02-19
+### Fixed
+- **Speedtest (XFR)**: Refined XFR refinements including `target_ip` defaults, chart fixes, and enhanced logging. 📈📝
+
 ## [v1.2.1-patch.91] - 2026-02-19
+### Added
+- **DevOps**: Added multi-arch (AMD64/ARM64) build support for the `xfr-target` component. 🏗️
+
 ## [v1.2.1-patch.90] - 2026-02-19
+### Added
+- **Speedtest (XFR)**: Enhanced UI with searchable history widget and detailed results modal. 🔍📋
+- **Backend**: Implemented SSE buffering fix (`X-Accel-Buffering`) for more reliable real-time telemetry. 📡
+
 ## [v1.2.1-patch.89] - 2026-02-19
+### Added
+- **Speedtest (XFR)**: Persistent results history storage (`xfr-history.json`) and RTT tracking. 📈💾
+- **Backend**: Added robust authentication support via query string tokens for SSE metrics. 🛡️
 
 ## [v1.2.1-patch.88] - 2026-02-19
 ### Fixed
