@@ -61,8 +61,8 @@ This project is my way to turn all that lab and demo experience into an open-sou
 - **Prisma SD-WAN Integration** - Automatic discovery of sites and LAN interfaces via API for "Zero-Config" connectivity probes and path validation. [Read more](docs/PRISMA-SDWAN_INTEGRATION.md)
 - **Convergence Lab (Performance)** - High-precision UDP failover monitoring (up to 100 PPS) to measure SD-WAN tunnel transition times. [Read more](docs/CONVERGENCE_LAB.md)
 - **Smart Networking** - Auto-detection of default gateways and interfaces (enp2s0, eth0) for a "Zero-Config" experience on physical Linux boxes. [Read more](docs/SMART_NETWORKING.md)
-- **VyOS Control** - Orchestrate network events and perturbations (latency, loss, rate-limiting) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
-- **Target Site Mode** - Standalone container acting as a branch/hub target with HTTP, Voice, and Bandwidth services. [Read more](docs/TARGET_CAPABILITIES.md)
+- **VyOS Control** - Orchestrate network events and perturbations (latency, loss, rate-limiting, ip blocking) on VyOS routers via Vyos API. [Read more](docs/VYOS_CONTROL.md)
+- **Target Site Mode** - Standalone container acting as a branch/hub target with HTTP, Voice, Failover tests and Bandwidth services (IPerf AND XFR speedtest). [Read more](docs/TARGET_CAPABILITIES.md)
 
 ### 🛡️ Security
 - **URL Filtering Tests** - Validate 66 different URL categories (malware, phishing, gambling, adult content, etc.)
@@ -76,7 +76,6 @@ This project is my way to turn all that lab and demo experience into an open-sou
 - **Real-time Logs** - Live log streaming with WebSocket updates
 - **Statistics Dashboard** - Success/failure rates, latency metrics, bandwidth tracking
 - **Persistent Logging** - JSONL storage with 7-day retention and auto-rotation
-- **Resource Monitoring** - Real-time CPU and RAM usage tracking directly in the dashboard
 - **Search & Filter** - Find specific tests quickly with powerful search
 - **Export Capabilities** - Download results in JSON, CSV, or JSONL format
 
@@ -85,8 +84,10 @@ This project is my way to turn all that lab and demo experience into an open-sou
 - **Auto-generated Config** - Creates `applications-config.json` with 67 apps automatically
 - **One-liner Install** - Ready in 30 seconds with single command (Linux/macOS). Supports **Dashboard** or **Target Site** modes.
 - **Docker-based** - Pre-built multi-platform images (AMD64 + ARM64).
+- **Export/Import config capability** - to clone appplications, probes, IOT , Vyos configurations
 - **One-Click Upgrade (Beta)** - Built-in maintenance UI to pull latest images and restart services with a single click.
 
+  
 ### 🔒 Production Ready
 - **JWT Authentication** - Secure login with token-based auth
 - **Log Rotation** - Automatic cleanup with configurable retention
