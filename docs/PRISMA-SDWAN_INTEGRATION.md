@@ -3,7 +3,7 @@
 [![Docker Ready](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
 [![Prisma SASE](https://img.shields.io/badge/Prisma-SASE-005FA9)](https://pan.dev/sase/)
 
-This guide provides complete instructions for integrating **Prisma SD-WAN API** into the SD-WAN Traffic Generator application and using the `getflow.py` engine in standalone mode.
+This guide provides complete instructions for integrating **Prisma SD-WAN API** into the SD-WAN Traffic Generator and using the `getflow.py` engine in standalone mode.
 
 ---
 
@@ -14,14 +14,13 @@ This guide provides complete instructions for integrating **Prisma SD-WAN API** 
    - [How It Works](#how-it-works)
    - [Configuration (.env Setup)](#configuration-env-setup)
    - [Features Enabled](#features-enabled)
-   - [Auto-Detection Workflow](#auto-detection-workflow)
-   - [Probe Auto-Registration](#probe-auto-registration)
-3. [Standalone Usage](#part-2-standalone-usage)
+3. [Egress Path Enrichment for Convergence Tests](#egress-path-enrichment)
+4. [Standalone Usage](#part-2-standalone-usage)
    - [Installation](#installation)
    - [Command Reference](#command-reference)
-   - [Specific Use Cases](#use-cases)
-4. [Troubleshooting](#troubleshooting)
-5. [Security Best Practices](#security-best-practices)
+   - [Use Cases](#use-cases)
+5. [Troubleshooting](#troubleshooting)
+6. [Security Best Practices](#security-best-practices)
 
 ---
 
@@ -31,11 +30,11 @@ The SD-WAN Traffic Generator leverages the **Prisma SD-WAN API** (CloudGenix) to
 
 - **Site Auto-Detection**: Automatically identifies the local branch site name and ID.
 - **Dynamic Targets**: Discover all LAN interfaces across the tenant for convergence test targets.
-- **Path Validation**: Queries flow logs to verify traffic path selection (VPN, Internet, MPLS).
+- **Egress Path Enrichment**: After each convergence test, automatically queries the Flow Browser to display which SD-WAN path was used (e.g. `BR8-INET2 → DC2-INET`).
 - **Metadata Enrichment**: Enhances the UI with friendly interface names and site metadata.
 
 > [!NOTE]
-> The core engine for this integration is `getflow.py`, which uses the official Prisma SASE SDK.
+> The core engine for this integration is `engines/getflow.py`, which uses the official Prisma SASE SDK.
 
 ---
 
@@ -46,11 +45,11 @@ The SD-WAN Traffic Generator leverages the **Prisma SD-WAN API** (CloudGenix) to
 ```mermaid
 graph TD
     A["Frontend (React)"] -->|API| B["Backend (Node.js)"]
-    B -->|spawn| C["getflow.py (Python)"]
+    B -->|spawn| C["engines/getflow.py (Python)"]
     C -->|HTTPS| D["Prisma SASE Cloud API"]
     D -->|Site/Flow Data| C
     C -->|JSON| B
-    B -->|State| A
+    B -->|State / JSONL| A
 ```
 
 ### Configuration (.env Setup)
@@ -78,8 +77,11 @@ PRISMA_SDWAN_CLIENT_SECRET="your-secret"
 PRISMA_SDWAN_TSG_ID="1234567890"
 
 # Optional Settings
-PRISMA_SDWAN_REGION="de"  # de, us, uk, etc.
-PRISMA_SDWAN_CACHE_TTL=600  # Seconds (default 10 min)
+PRISMA_SDWAN_REGION="de"      # de, us, uk, etc.
+PRISMA_SDWAN_CACHE_TTL=600    # Cache in seconds (default 10 min)
+
+# Debug mode — enables verbose getflow.py logs in docker compose logs
+DEBUG=true
 ```
 
 ---
@@ -88,21 +90,111 @@ PRISMA_SDWAN_CACHE_TTL=600  # Seconds (default 10 min)
 
 When configured, the application unlocks:
 
-1.  **Site Badge**: Displays detected site name and network subnet in the header.
-2.  **Smart Target Selector**: In the Convergence Lab, targets are auto-populated from discovered DC interfaces.
-3.  **Path Name Resolution**: Test results show names like `BR8-Internet1 → DC1-MPLS` instead of generic IDs.
-4.  **Friendly Labels**: Interfaces show as `1 (Users VLAN)` instead of just `1`.
+| Feature | Description |
+|---|---|
+| **Site Badge** | Detected site name and subnet shown in the header |
+| **Smart Target Selector** | Convergence Lab targets auto-populated from DC LAN interfaces |
+| **Egress Path Enrichment** | Flow Browser queried post-test to show the active SD-WAN path |
+| **Friendly Labels** | Interfaces show as `eth0 (MPLS)` instead of raw IDs |
 
 ---
 
-### Probe Auto-Registration
+## 🛣️ Egress Path Enrichment
 
-The application can automatically register itself as a probe for its detected site. This is ideal for mass deployments across branches.
+### Overview
 
-1.  Container starts and runs `--auto-detect`.
-2.  Backend identifies site (e.g., `Branch-Paris`).
-3.  Backend creates a deterministic probe name and registers it in the system.
-4.  **Zero manual touch required.**
+After each convergence test completes, the backend **automatically enriches** the result with the SD-WAN path that was used, querying the Prisma Flow Browser 60 seconds later (to allow flow indexing in the API).
+
+The path is displayed in the **EGRESS PATH** widget in the Convergence History card:
+
+```
+UPLINK LOSS | DOWNLINK LOSS | AVG LATENCY | JITTER | EGRESS PATH
+    0%             0%          10.33ms      5.46ms   BR8-INET2 → DC2-INET
+```
+
+### How It Works
+
+```mermaid
+sequenceDiagram
+    participant C as Convergence Test
+    participant S as Server (Node.js)
+    participant G as engines/getflow.py
+    participant P as Prisma API
+    participant J as convergence-history.jsonl
+
+    C->>S: Test completes (exit code 0)
+    S->>J: Append result (no egress_path yet)
+    S->>S: Schedule fire-and-forget setTimeout(60s)
+    Note over S: Non-blocking — test result is visible immediately
+    S-->>G: python3 getflow.py --site-name BR8 --udp-src-port 30075 --dst-ip 192.168.203.100 --minutes 5 --json
+    G->>P: Query Flow Browser
+    P-->>G: Flow data with egress_path
+    G-->>S: JSON result
+    S->>J: Atomic update — merge egress_path into matching record
+    Note over J: UI polls every 5s and picks up the update
+```
+
+### Port Convention
+
+Each convergence test uses a **deterministic UDP source port** based on the test counter:
+
+```
+Source Port = 30000 + test_number
+```
+
+For example, `CONV-0075` uses UDP source port `30075`. This allows `getflow.py` to uniquely identify the flow without ambiguity.
+
+### Requirements
+
+| Requirement | Detail |
+|---|---|
+| Prisma credentials | `PRISMA_SDWAN_CLIENT_ID`, `CLIENT_SECRET`, `TSG_ID` in `.env` |
+| Site detection | The backend must have successfully auto-detected the local site name |
+| `getflow.py` | Must be present at `engines/getflow.py` (included in the Docker image) |
+
+### Graceful Degradation
+
+The enrichment is **fully non-blocking and silent on failure**:
+
+| Scenario | Behavior |
+|---|---|
+| No credentials configured | Site name `null` → skip silently |
+| `getflow.py` not found | Log warning → skip |
+| No flow returned | JSONL unchanged — widget shows `—` for older tests |
+| Test < 3 min old, no path yet | Widget shows `⏳ fetching...` |
+
+### Manual Query (Standalone Verification)
+
+To manually verify the path for a specific test:
+
+```bash
+# From the Docker container
+docker compose exec web-ui python3 /app/engines/getflow.py \
+  --site-name BR8 \
+  --udp-src-port 30075 \
+  --dst-ip 192.168.203.100 \
+  --minutes 5 \
+  --json
+```
+
+Expected output:
+```json
+{
+  "success": true,
+  "site_name": "BR8",
+  "flows": [
+    {
+      "source_ip": "192.168.219.1",
+      "source_port": 30075,
+      "egress_path": "BR8-INET2 to DC2-INET",
+      "path_type": "VPN"
+    }
+  ]
+}
+```
+
+> [!TIP]
+> Enable `DEBUG=true` in your environment to see verbose getflow logs in `docker compose logs -f | grep CONV`.
 
 ---
 
@@ -115,34 +207,45 @@ The application can automatically register itself as a probe for its detected si
 pip3 install prisma-sase
 
 # 2. Run the script
-./getflow.py --auto-detect --json
+./engines/getflow.py --auto-detect --json
 ```
 
 ### Command Reference
 
 | Command | Description |
-| :--- | :--- |
-| `--list-sites` | List all SD-WAN sites in the tenant. |
-| `--list-lan-interfaces` | List all LAN subnets across all branches. |
-| `--list-dc-lan-interfaces` | List only DC/Hub LAN interfaces (for targets). |
-| `--auto-detect` | Detect local site based on container IP. |
-| `--udp-src-port <port>` | Query flows for a specific UDP session. |
-| `--json` | Return output in machine-readable JSON format. |
+|---|---|
+| `--list-sites` | List all SD-WAN sites in the tenant |
+| `--list-lan-interfaces` | List all LAN subnets across all branches |
+| `--list-dc-lan-interfaces` | List only DC/Hub LAN interfaces (for targets) |
+| `--auto-detect` | Detect local site based on container IP |
+| `--site-name <name>` | Target a specific site by name |
+| `--udp-src-port <port>` | Filter flows by UDP source port |
+| `--dst-ip <ip>` | Filter flows by destination IP |
+| `--minutes <n>` | Flow history window in minutes (default 5) |
+| `--json` | Return output in machine-readable JSON format |
 
 ---
 
 ## 📈 Use Cases
 
-### 1. Verify Path Selection
-Query flows after a failover test to confirm the ION moved traffic to the backup circuit:
+### 1. Verify Active Path After a Convergence Test
 ```bash
-./getflow.py --auto-detect --udp-src-port 30030 --minutes 5 --json
+./engines/getflow.py \
+  --site-name BR8 \
+  --udp-src-port 30075 \
+  --dst-ip 192.168.203.100 \
+  --minutes 5 \
+  --json
 ```
 
-### 2. Bulk Target Discovery
-Retrieve all DC IP addresses to run a sweep test:
+### 2. Verify Path Selection After Failover (All Flows)
 ```bash
-./getflow.py --list-dc-lan-interfaces --json | jq -r '.dc_lan_interfaces[].ip'
+./engines/getflow.py --site-name BR8 --minutes 5 --json
+```
+
+### 3. Bulk Target Discovery
+```bash
+./engines/getflow.py --list-dc-lan-interfaces --json | jq -r '.dc_lan_interfaces[].ip'
 ```
 
 ---
@@ -150,18 +253,42 @@ Retrieve all DC IP addresses to run a sweep test:
 ## ❓ Troubleshooting
 
 ### Authentication Errors
-- **Symptom**: `401 Unauthorized` or `Invalid credentials`.
+- **Symptom**: `401 Unauthorized` or `Invalid credentials`
 - **Fix**: Verify `PRISMA_SDWAN_TSG_ID` matches the Client ID's tenant portion. Ensure no trailing spaces in `.env`.
 
 ### Site Detection Failure
-- **Symptom**: `Could not find site matching local IP`.
-- **Reason**: The container is running on a network NOT defined as a LAN subnet in Prisma SD-WAN.
-- **Fix**: Check `used_for=lan` configuration on the ION interface.
+- **Symptom**: `Could not find site matching local IP`
+- **Reason**: The container is on a network not defined as a LAN subnet in Prisma SD-WAN
+- **Fix**: Check `used_for=lan` configuration on the ION interface
 
-### No Flows Found
-- **Symptom**: Flow list is empty `[]`.
-- **Reason**: Prisma logs take 30-120 seconds to appear in the API.
-- **Fix**: Wait 2 minutes after a test before querying flows.
+### No Flows Found (Egress Path Shows `—`)
+- **Symptom**: `egress_path` never appears in the UI, flow list is empty
+- **Reasons**:
+  - Prisma logs take 30–120s to appear in the API → the 60s delay is intentional
+  - Traffic not going through SD-WAN (direct route)
+  - Wrong time range (`--minutes` too short)
+  - IP/port filter mismatch
+- **Fix**:
+  ```bash
+  # Increase time range
+  ./engines/getflow.py --site-name BR8 --udp-src-port 30075 --minutes 10 --json
+
+  # Remove IP filter to see all flows
+  ./engines/getflow.py --site-name BR8 --minutes 5 --json | jq '.flows | length'
+  ```
+
+### Region / Timeout Errors
+- **Symptom**: `Error: timeout of 30000ms exceeded`
+- **Fix**:
+  ```bash
+  # Try the correct region
+  ./engines/getflow.py --list-sites --region de   # Europe
+  ./engines/getflow.py --list-sites --region us   # Americas
+
+  # Test API reachability
+  curl -I https://api.sase.paloaltonetworks.com/sdwan/v3.6/api/sites
+  # 401 Unauthorized = API is reachable
+  ```
 
 ---
 
@@ -170,103 +297,13 @@ Retrieve all DC IP addresses to run a sweep test:
 > [!CAUTION]
 > Never commit your `.env` file containing Prisma credentials to public repositories.
 
-1. Use **Ephemeral Service Accounts** where possible.
-2. Apply **Principle of Least Privilege** (Read-Only access is sufficient).
-3. If using in Kubernetes, store credentials in **Secrets**.
-  "flows": []
-}
-Causes:
+1. **Least Privilege** — Grant `read` permissions only (`prisma-sdwan-config.read`, `prisma-sdwan-monitor.read`)
+2. **Environment Variables** — Use Docker Compose env or a secrets manager, never hardcode
+3. **Rotate Regularly** — Rotate service account credentials every 90 days
+4. **File Permissions** — `chmod 600 .env`
+5. **Debug Mode** — Only enable `DEBUG=true` when actively troubleshooting; disable in production
 
-Test hasn't started yet
-
-Traffic is not going through SD-WAN (direct route)
-
-Wrong time range (--minutes too short)
-
-Wrong filter (port/IP mismatch)
-
-Fix:
-
-bash
-# Increase time range
-./getflow.py --site-name BR8 --udp-src-port 30030 --minutes 10 --json
-
-# Remove filters to see all flows
-./getflow.py --site-name BR8 --minutes 5 --json | jq '.flows | length'
-# Should show total flow count
-
-# Check if traffic is using SD-WAN
-./getflow.py --site-name BR8 --src-ip 192.168.219.10 --dst-ip 192.168.207.5 --json
-Issue 4: Slow Performance
-Symptom:
-
-bash
-./getflow.py --list-lan-interfaces
-# Takes 10+ seconds
-Causes:
-
-Large number of sites (50+)
-
-High network latency to Prisma API
-
-Not using --fast mode for flow queries
-
-Fix:
-
-bash
-# Use --fast mode for flow queries (3x faster)
-./getflow.py --site-name BR8 --udp-src-port 30030 --json --fast
-
-# Cache results in backend (Node.js example)
-const cache = new Map();
-const CACHE_TTL = 600000; // 10 minutes
-
-app.get('/api/prisma/interfaces/lan', async (req, res) => {
-  const cached = cache.get('lan_interfaces');
-  if (cached && Date.now() < cached.expiry) {
-    return res.json(cached.data);
-  }
-
-  const { stdout } = await execPromise('./Scripts/getflow.py --list-lan-interfaces --json');
-  const data = JSON.parse(stdout);
-
-  cache.set('lan_interfaces', {
-    data,
-    expiry: Date.now() + CACHE_TTL
-  });
-
-  res.json(data);
-});
-Issue 5: "Region error" / Timeout
-Symptom:
-
-text
-Error: timeout of 30000ms exceeded
-Causes:
-
-Wrong region (using --region us in Europe or vice versa)
-
-Firewall blocking api.sase.paloaltonetworks.com
-
-Fix:
-
-bash
-# Try different region
-./getflow.py --list-sites --region de  # Europe
-./getflow.py --list-sites --region us  # Americas
-
-# Test connectivity
-curl -I https://api.sase.paloaltonetworks.com/sdwan/v3.6/api/sites
-# Should return 401 Unauthorized (means API is reachable)
-Security Best Practices
-1. Never Commit Credentials
-bash
-# .gitignore
-credentials.json
-.env
-docker-compose.override.yml
-2. Use Environment Variables in Production
-text
+```yaml
 # docker-compose.yml (production)
 services:
   sdwan-web-ui:
@@ -274,54 +311,14 @@ services:
       - PRISMA_SDWAN_CLIENT_ID=${PRISMA_SDWAN_CLIENT_ID}
       - PRISMA_SDWAN_CLIENT_SECRET=${PRISMA_SDWAN_CLIENT_SECRET}
       - PRISMA_SDWAN_TSG_ID=${PRISMA_SDWAN_TSG_ID}
-Then:
+      # - DEBUG=true  # Uncomment only for troubleshooting
+```
 
-bash
-# Export secrets before starting
-export PRISMA_SDWAN_CLIENT_ID="..."
-export PRISMA_SDWAN_CLIENT_SECRET="..."
-export PRISMA_SDWAN_TSG_ID="..."
+---
 
-docker compose up -d
-3. Restrict File Permissions
-bash
-chmod 600 credentials.json
-chmod 600 .env
-4. Use Read-Only Service Accounts
-When creating the service account in Prisma Access:
+## 📚 Resources
 
-Grant: read permissions only
-
-Deny: write, delete permissions
-
-Scope: Limit to SD-WAN resources only (not Prisma Access config)
-
-5. Rotate Credentials Regularly
-bash
-# Every 90 days
-1. Create new service account in Prisma Access
-2. Update .env file
-3. Restart containers: docker compose restart
-4. Delete old service account after 24h grace period
-6. Audit API Usage
-Enable logging in production:
-
-text
-services:
-  sdwan-web-ui:
-    environment:
-      - PRISMA_SDWAN_DEBUG=true  # Logs all API calls
-    volumes:
-      - ./logs:/var/log/sdwan
-Review logs weekly:
-
-bash
-grep "Prisma API" /var/log/sdwan/app.log | tail -100
-Support & Resources
-GitHub Issues: sdwan-traffic-generator-web/issues
-
-Prisma SASE API Docs: pan.dev/sase/
-
-SDK Reference: prisma-sase-sdk-python
-
-Community: Live Community SD-WAN Forum
+- [GitHub Issues](https://github.com/jsuzanne/sdwan-traffic-generator-web/issues)
+- [Prisma SASE API Docs](https://pan.dev/sase/)
+- [prisma-sase Python SDK](https://pypi.org/project/prisma-sase/)
+- [Live Community SD-WAN Forum](https://live.paloaltonetworks.com/t5/prisma-sd-wan/ct-p/Prisma_SD-WAN)
