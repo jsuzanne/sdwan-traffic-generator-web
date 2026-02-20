@@ -248,48 +248,31 @@ export default function Speedtest({ token }: Props) {
                                         value={targetHost}
                                         onChange={e => setTargetHost(e.target.value)}
                                         placeholder="e.g. 1.2.3.4"
-                                        className="w-full bg-card-secondary border border-border rounded-xl pl-10 pr-10 py-3 text-sm focus:border-blue-500 outline-none transition-all"
+                                        className="w-full bg-card-secondary border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
                                     />
-                                    {quickTargets.length > 0 && (
-                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                                            <div className="dropdown dropdown-end">
-                                                <button tabIndex={0} className="p-1.5 hover:bg-card rounded-lg text-text-muted transition-colors">
-                                                    <ChevronDown size={14} />
-                                                </button>
-                                                <ul tabIndex={0} className="dropdown-content z-[200] menu p-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-card border border-border/50 backdrop-blur-xl rounded-2xl w-64 mt-3 animate-in fade-in zoom-in duration-200">
-                                                    <li className="menu-title px-3 py-2">
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-[9px] font-black uppercase text-text-muted tracking-widest">Select Quick Target</span>
-                                                            <Target size={10} className="text-blue-500 opacity-50" />
-                                                        </div>
-                                                    </li>
-                                                    <div className="h-px bg-border/30 my-1 mx-2"></div>
-                                                    {quickTargets.map((t, i) => (
-                                                        <li key={i}>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    setTargetHost(t.host);
-                                                                    // Close dropdown by blurring
-                                                                    (e.currentTarget as HTMLElement).blur();
-                                                                    if (document.activeElement instanceof HTMLElement) {
-                                                                        document.activeElement.blur();
-                                                                    }
-                                                                }}
-                                                                className="flex flex-col items-start px-4 py-3 hover:bg-blue-600/10 rounded-xl group transition-all duration-200 active:scale-[0.98]"
-                                                            >
-                                                                <span className="text-xs font-black text-text-primary group-hover:text-blue-500 mb-0.5">{t.label}</span>
-                                                                <div className="flex items-center gap-1.5 opacity-60">
-                                                                    <div className="w-1 h-1 rounded-full bg-blue-500"></div>
-                                                                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider font-mono">{t.host}</span>
-                                                                </div>
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
+                                {quickTargets.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {quickTargets.map((t, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setTargetHost(t.host)}
+                                                className={cn(
+                                                    "px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all duration-200 flex items-center gap-2",
+                                                    targetHost === t.host
+                                                        ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20 scale-[1.02]"
+                                                        : "bg-blue-600/5 text-blue-500 border-blue-500/10 hover:bg-blue-600/10 hover:border-blue-500/30"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-1 h-1 rounded-full",
+                                                    targetHost === t.host ? "bg-white" : "bg-blue-500"
+                                                )}></div>
+                                                {t.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div>

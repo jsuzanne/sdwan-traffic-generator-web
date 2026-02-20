@@ -4,13 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [v1.2.1-patch.101] - 2026-02-19
+## [v1.2.1-patch.102] - 2026-02-20
 ### Fixed
-- **Speedtest (XFR)**: Improved the Quick Targets dropdown UI with a more premium, glassmorphic look. ✨
-- **Speedtest (XFR)**: Fixed the dropdown staying open after selecting a target; it now closes automatically. 🔌
-- **Backend**: Updated Quick Targets parsing to correctly strip quotes from names and IPs. 🛠️
+- **Speedtest (XFR)**: Pivot to a modern pill-based layout for Quick Targets selection, replacing the problematic dropdown for better reliability and UX. 💊✨
 
-## [v1.2.1-patch.100] - 2026-02-19
+## [v1.2.1-patch.101] - 2026-02-19
+### Changed
+- **Speedtest (XFR)**: Attempted dropdown UI refinements and auto-close logic (superseded by .102). 🛠️
 
 ## [v1.2.1-patch.99] - 2026-02-19
 
