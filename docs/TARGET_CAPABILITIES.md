@@ -1,17 +1,21 @@
 # Target Site Capabilities
 
-The **Target Site** (`sdwan-voice-echo`) is a specialized, lightweight container designed to be deployed at branch sites or hubs to act as a destination for traffic generation validation. It consolidates multiple test services into a single, easy-to-deploy appliance.
+The **Target Site** is composed of two lightweight containers designed to be deployed at branch sites or data centers as destinations for traffic generation and validation. Each container consolidates multiple test services into a single, easy-to-deploy appliance.
 
 ---
 
 ## 🚀 Available Services
 
-| Service | Port | Protocol | Purpose |
-|---------|------|----------|---------|
-| **Voice Echo** | 6100-6101 | UDP | Reflects RTP packets for VoIP MOS scoring |
-| **Convergence** | 6200 | UDP | High-precision echo for measuring failover time |
-| **Bandwidth** | 5201 | TCP/UDP | standard `iperf3` server for throughput testing |
-| **App Simulation** | 8082 | TCP | **NEW** HTTP server for SLA and Security testing |
+| Service | Container | Port | Protocol | Purpose |
+|---------|-----------|------|----------|---------|
+| **Voice Echo** | `sdwan-voice-echo` | 6100-6101 | UDP | Reflects RTP packets for VoIP MOS scoring |
+| **Convergence** | `sdwan-voice-echo` | 6200 | UDP | High-precision echo for measuring failover time |
+| **Bandwidth (iperf3)** | `sdwan-voice-echo` | 5201 | TCP/UDP | Standard `iperf3` server for throughput testing |
+| **App Simulation** | `sdwan-voice-echo` | 8082 | TCP | HTTP server for SLA and Security testing |
+| **XFR Speedtest** | `xfr-target` | 9000 | TCP/UDP/QUIC | High-performance throughput testing with deterministic ports |
+
+> [!NOTE]
+> The `xfr-target` container is separate from `sdwan-voice-echo`. Deploy both side-by-side on target machines. See [XFR_TESTING.md](XFR_TESTING.md) for full deployment instructions.
 
 ---
 
@@ -69,6 +73,7 @@ Configure the service via environment variables in your `docker-compose.yml`:
 
 ```yaml
 services:
+  # Voice Echo, Convergence, iperf3, HTTP
   voice-echo:
     image: jsuzanne/sdwan-voice-echo:latest
     environment:
@@ -79,7 +84,21 @@ services:
       - LOOP_SLOW_SECONDS=60           # Duration of slow phase
       - LOOP_NORMAL_SECONDS=60         # Duration of normal phase
       - RANDOM_SLOW_PROBABILITY=0.5    # Chance of slow response
+
+  # XFR Speedtest Target
+  xfr-target:
+    image: jsuzanne/xfr-target:latest
+    container_name: xfr-target
+    network_mode: "host"
+    restart: unless-stopped
+    environment:
+      - XFR_PORT=9000
+      - XFR_MAX_DURATION=60
+      - XFR_RATE_LIMIT=2
+      - XFR_ALLOW_CIDR=0.0.0.0/0
 ```
+
+> See [XFR_TESTING.md](XFR_TESTING.md) for complete XFR configuration reference.
 
 ---
 
