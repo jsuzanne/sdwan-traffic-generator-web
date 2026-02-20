@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v1.2.1-patch.103] - 2026-02-20
+### Added
+- **Convergence Lab**: Automatic async enrichment of convergence test results with SD-WAN egress path data using Prisma Flow Browser (`getflow.py`). 🛣️🔍
+  - After each test, a 60s fire-and-forget timer queries flow data using the deterministic source port (`30000 + testNum`).
+  - Results are atomically merged into `convergence-history.jsonl` with an `egress_path` field.
+  - Fully silent on failures (no credentials, no flow found, script missing). 🛡️
+- **UI**: New **EGRESS PATH** widget (5th position) in the Convergence History card, showing path, `⏳ fetching...` for recent tests, or `—` for older records. 🎯✨
+
 ## [v1.2.1-patch.102] - 2026-02-20
 ### Fixed
 - **Speedtest (XFR)**: Pivot to a modern pill-based layout for Quick Targets selection, replacing the problematic dropdown for better reliability and UX. 💊✨

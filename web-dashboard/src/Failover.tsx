@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Clock, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, Play, Pause, Trash2, Zap, Server, Globe, Hash, Plus, Target, X, Square } from 'lucide-react';
+import { Activity, Clock, Shield, Search, ChevronRight, BarChart3, AlertCircle, Info, Play, Pause, Trash2, Zap, Server, Globe, Hash, Plus, Target, X, Square, ArrowRightLeft } from 'lucide-react';
 
 interface FailoverProps {
     token: string;
@@ -516,7 +516,7 @@ export default function Failover(props: FailoverProps) {
                                                                     />
                                                                 ))}
                                                             </div>
-                                                            <div className="grid grid-cols-4 gap-4 pt-2">
+                                                            <div className="grid grid-cols-5 gap-3 pt-2">
                                                                 <div className="bg-card-secondary p-2 rounded border border-border">
                                                                     <div className="text-[8px] text-text-muted font-bold uppercase">Uplink Loss</div>
                                                                     <div className="text-xs font-mono font-bold text-red-500">↑ {test.tx_loss_pct || 0}%</div>
@@ -532,6 +532,21 @@ export default function Failover(props: FailoverProps) {
                                                                 <div className="bg-card-secondary p-2 rounded border border-border">
                                                                     <div className="text-[8px] text-text-muted font-bold uppercase">Jitter (ms)</div>
                                                                     <div className="text-xs font-mono font-bold text-text-secondary">{test.jitter_ms || 0}ms</div>
+                                                                </div>
+                                                                <div className="bg-card-secondary p-2 rounded border border-border">
+                                                                    <div className="text-[8px] text-text-muted font-bold uppercase flex items-center gap-1">
+                                                                        <ArrowRightLeft size={7} className="shrink-0" />
+                                                                        Egress Path
+                                                                    </div>
+                                                                    {test.egress_path ? (
+                                                                        <div className="text-xs font-mono font-bold text-blue-400 truncate" title={test.egress_path}>
+                                                                            {test.egress_path}
+                                                                        </div>
+                                                                    ) : (Date.now() - (test.timestamp || 0)) < 3 * 60 * 1000 ? (
+                                                                        <div className="text-[9px] text-text-muted italic">⏳ fetching...</div>
+                                                                    ) : (
+                                                                        <div className="text-xs text-text-muted">—</div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>

@@ -104,6 +104,76 @@ const CONVERGENCE_STATS_FILE = '/tmp/convergence_stats.json';
 const CONVERGENCE_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'convergence-counter.json');
 const CONVERGENCE_ENDPOINTS_FILE = path.join(APP_CONFIG.configDir, 'convergence-endpoints.json');
 
+// ─── Egress Path Enrichment Helpers ────────────────────────────────────────
+
+/**
+ * Spawn getflow.py and return parsed JSON, or null on any error.
+ * Fire-and-forget safe: never throws, always resolves.
+ */
+async function runGetflow(siteName: string, sourcePort: number): Promise<any> {
+    return new Promise((resolve) => {
+        try {
+            // Scripts/ directory is two levels up from web-dashboard/
+            const scriptPath = path.join(__dirname, '..', '..', 'Scripts', 'getflow.py');
+            if (!fs.existsSync(scriptPath)) {
+                resolve(null);
+                return;
+            }
+            const args = [
+                scriptPath,
+                '--site-name', siteName,
+                '--udp-src-port', String(sourcePort),
+                '--minutes', '5',
+                '--json'
+            ];
+            const proc = spawn('python3', args, { timeout: 30_000 });
+            let stdout = '';
+            proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+            proc.on('close', () => {
+                try { resolve(JSON.parse(stdout)); }
+                catch { resolve(null); }
+            });
+            proc.on('error', () => resolve(null));
+        } catch {
+            resolve(null);
+        }
+    });
+}
+
+/**
+ * Find a convergence history entry by testId and merge extra fields.
+ * Uses atomic .tmp + rename write to prevent file corruption.
+ */
+async function enrichConvergenceHistory(testId: string, extra: Record<string, any>): Promise<void> {
+    try {
+        if (!fs.existsSync(CONVERGENCE_HISTORY_FILE)) return;
+        const raw = await fs.promises.readFile(CONVERGENCE_HISTORY_FILE, 'utf-8');
+        const lines = raw.split('\n').filter(Boolean);
+        let found = false;
+        const updated = lines.map(line => {
+            try {
+                const obj = JSON.parse(line);
+                if (obj.testId === testId) {
+                    found = true;
+                    return JSON.stringify({ ...obj, ...extra });
+                }
+                return line;
+            } catch {
+                return line;
+            }
+        });
+        if (!found) return; // Don't write if entry not found
+        const tmp = CONVERGENCE_HISTORY_FILE + '.tmp';
+        await fs.promises.writeFile(tmp, updated.join('\n') + '\n', 'utf-8');
+        await fs.promises.rename(tmp, CONVERGENCE_HISTORY_FILE);
+    } catch (e: any) {
+        console.warn(`[CONV] enrichConvergenceHistory failed: ${e.message}`);
+    }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+
+
 // Batch Counter - Persistent rotating ID for batch tests
 const BATCH_COUNTER_FILE = path.join(APP_CONFIG.configDir, 'batch-counter.json');
 
@@ -2956,6 +3026,35 @@ app.post('/api/convergence/start', authenticateToken, (req, res) => {
                     }) + '\n');
                     // Cleanup tmp file
                     fs.unlinkSync(statsFile);
+
+                    // ─── Fire-and-forget egress path enrichment ───────────────
+                    // 60s delay allows the SD-WAN flow to be indexed in Prisma
+                    const testNum = parseInt(testId.replace('CONV-', ''));
+                    const sourcePort = 30000 + testNum;
+                    console.log(`[${testId}] [CONV] Scheduling getflow enrichment in 60s (port ${sourcePort})`);
+                    setTimeout(async () => {
+                        try {
+                            const siteInfo = siteManager.getSiteInfo();
+                            const siteName = siteInfo?.detected_site_name;
+                            if (!siteName) {
+                                console.log(`[${testId}] [CONV] No site name detected, skipping getflow enrichment`);
+                                return;
+                            }
+                            const result = await runGetflow(siteName, sourcePort);
+                            if (result?.flows && result.flows.length > 0) {
+                                const rawPath = result.flows[0]?.egress_path || '';
+                                const egressPath = rawPath.replace(/ to /g, ' → ');
+                                await enrichConvergenceHistory(testId, { egress_path: egressPath });
+                                console.log(`[${testId}] [CONV] Egress path enriched: ${egressPath}`);
+                            } else {
+                                console.log(`[${testId}] [CONV] Egress path: no flow found, skipping enrichment`);
+                            }
+                        } catch (e: any) {
+                            console.warn(`[${testId}] [CONV] getflow enrichment error: ${e.message}`);
+                        }
+                    }, 60_000); // Fire-and-forget — never awaited
+                    // ──────────────────────────────────────────────────────────
+
                 } catch (e) { }
             }
         });
