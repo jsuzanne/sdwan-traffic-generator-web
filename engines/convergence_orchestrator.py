@@ -200,7 +200,11 @@ class ConvergenceMetrics:
             history = [1] * (100 - len(history)) + history
 
         threshold_ms = max(100.0, interval_copy * 1500.0)
-        has_seq_gap = (seq > rcvd)
+        # Require at least 2 missing packets before considering a gap real.
+        # A single seq delta can be caused by a packet still in-flight at the moment
+        # of sampling (especially at low RTT / high jitter) without any real loss.
+        min_gap = max(2, int(rate_copy * 0.1))  # 10% of rate pps, minimum 2
+        has_seq_gap = (seq - rcvd) >= min_gap
         is_blackout = (outage > threshold_ms) and has_seq_gap
 
         # Persistence: Update the instance variable so we don't lose the peak value
@@ -215,7 +219,10 @@ class ConvergenceMetrics:
             max_blackout = max_blackout_copy
 
         if not is_running and rcvd >= seq:
-            # We keep the max_blackout even if test stopped, to show it in results
+            # All packets arrived → any recorded blackout was a transient jitter spike,
+            # not a real outage. Reset to 0 so the result isn't misleading.
+            max_blackout = 0
+            self.max_blackout = 0
             history = [1] * 100
 
         total_loss_pct = 0.0
