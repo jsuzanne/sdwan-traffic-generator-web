@@ -1,4 +1,5 @@
 import express from 'express';
+import net from 'net';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
@@ -413,12 +414,61 @@ class XfrJobManager {
         }
     }
 
-    startJob(id: string) {
+    private checkReachability(host: string, port: number, timeout: number = 2000): Promise<boolean> {
+        return new Promise((resolve) => {
+            const socket = new net.Socket();
+            let resolved = false;
+
+            socket.setTimeout(timeout);
+
+            socket.on('connect', () => {
+                resolved = true;
+                socket.destroy();
+                resolve(true);
+            });
+
+            socket.on('timeout', () => {
+                if (!resolved) {
+                    resolved = true;
+                    socket.destroy();
+                    resolve(false);
+                }
+            });
+
+            socket.on('error', () => {
+                if (!resolved) {
+                    resolved = true;
+                    socket.destroy();
+                    resolve(false);
+                }
+            });
+
+            socket.connect(port, host);
+        });
+    }
+
+    async startJob(id: string) {
         const job = this.jobs.get(id);
         if (!job || job.status !== 'queued') return;
 
         job.status = 'running';
         job.started_at = new Date().toISOString();
+
+        // 1. Pre-test Connectivity Check
+        this.logToXfrFile(job, `Performing pre-test connectivity check to ${job.params.host}:${job.params.port}...`);
+        const isReachable = await this.checkReachability(job.params.host, job.params.port);
+
+        if (!isReachable) {
+            job.status = 'failed';
+            job.error = `Target host/port unreachable (${job.params.host}:${job.params.port})`;
+            job.finished_at = new Date().toISOString();
+            log('XFR', `[${job.sequence_id}] Pre-test connectivity check failed: ${job.error}`);
+            this.notifyListeners(job, { type: 'done', data: { status: 'failed', error: job.error } });
+            this.logToXfrFile(job, `Test failed: ${job.error}`);
+            this.saveHistory();
+            return;
+        }
+        this.logToXfrFile(job, `Target reachable. Launching test...`);
 
         const args = this.buildArgs(job);
         log('XFR', `[${job.sequence_id}] Launching: ${XFR_BINARY} ${args.join(' ')}`);

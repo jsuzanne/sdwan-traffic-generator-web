@@ -37,7 +37,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install xfr binary
-RUN curl -L https://github.com/lance0/xfr/releases/latest/download/xfr-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin xfr
+ARG TARGETARCH
+RUN case ${TARGETARCH} in \
+    "amd64")  ARCH="x86_64-unknown-linux-musl" ;; \
+    "arm64")  ARCH="aarch64-unknown-linux-gnu" ;; \
+    *)        ARCH="x86_64-unknown-linux-musl" ;; \
+    esac && \
+    curl -L "https://github.com/lance0/xfr/releases/latest/download/xfr-${ARCH}.tar.gz" | tar xz -C /usr/local/bin xfr
 
 COPY web-dashboard/package*.json ./
 # Install production deps
