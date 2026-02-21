@@ -128,22 +128,29 @@ export default function Speedtest({ token }: Props) {
         };
 
         try {
+            console.log(`[XFR] Starting test to ${targetHost}:${targetPort}...`);
             const res = await fetch('/api/tests/xfr', {
                 method: 'POST',
                 headers: authHeaders,
                 body: JSON.stringify(body)
             });
-            const data = await res.json();
-            if (res.ok) {
-                toast.success(`Test started: ${data.id}`);
-                pollJob(data.id);
-                subscribeToStream(data.id);
-                fetchHistory();
-            } else {
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({ error: `HTTP ${res.status} ${res.statusText}` }));
+                console.error('[XFR] Server error:', data);
                 toast.error(data.error || 'Failed to start test');
+                return;
             }
-        } catch (e) {
-            toast.error('Network error starting test');
+
+            const data = await res.json();
+            console.log('[XFR] Test accepted:', data);
+            toast.success(`Test started: ${data.id}`);
+            pollJob(data.id);
+            subscribeToStream(data.id);
+            fetchHistory();
+        } catch (e: any) {
+            console.error('[XFR] Request failed:', e);
+            toast.error(`Network error: ${e.message || 'Check connection'}`);
         }
     };
 

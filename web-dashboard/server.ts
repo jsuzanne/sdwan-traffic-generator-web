@@ -1770,7 +1770,7 @@ app.get('/api/features', (req, res) => {
 // --- XFR Speedtest Endpoints ---
 
 app.post('/api/tests/xfr', authenticateToken, (req, res) => {
-
+    log('API', `[XFR] Incoming POST request: ${JSON.stringify(req.body)}`);
     const { mode, target, protocol, direction, duration_sec, bitrate, parallel_streams, psk } = req.body;
 
     if (!mode || !target || !target.host || !target.port) {
@@ -1801,8 +1801,10 @@ app.post('/api/tests/xfr', authenticateToken, (req, res) => {
         parallel_streams: parallel_streams || (mode === 'default' ? 4 : undefined),
     });
 
+    log('API', `[XFR] Created job ${id}. Starting execution...`);
     xfrManager.startJob(id);
 
+    log('API', `[XFR] Sending response for ${id}`);
     res.json({ id, status: 'queued' });
 });
 
