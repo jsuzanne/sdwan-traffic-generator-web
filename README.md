@@ -219,6 +219,7 @@ This application runs in Docker containers. You **must** have Docker installed a
   - Download from: https://www.docker.com/products/docker-desktop/
   - Requires macOS 11 or later
   - **Important:** Launch Docker Desktop and wait until it's running (🐳 icon in menu bar)
+- **Alternatives:** [OrbStack](https://orbstack.dev/) or [Colima](https://github.com/abiosoft/colima) (lightweight alternatives for macOS)
 
 #### 🪟 Windows
 - **Install Docker Desktop for Windows with WSL 2**
