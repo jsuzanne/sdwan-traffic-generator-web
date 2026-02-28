@@ -1,3 +1,10 @@
+> ⚠️ Project moved
+
+Active development now happens in **Stigix**:
+
+👉 https://github.com/jsuzanne/stigix
+
+This repository is kept **read‑only** for legacy users and old versions.
 # SD-WAN Traffic Generator Web
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/jsuzanne/sdwan-traffic-gen)
